@@ -3,6 +3,7 @@ This module contains the code to retrieve (hardware-related) data from the EVSE
 (Electric Vehicle Supply Equipment).
 """
 import logging
+import random
 import time
 from typing import List, Optional, Union
 
@@ -18,9 +19,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     EnergyTransferModeEnum,
     EVSENotification,
     IsolationLevel,
-)
-from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
-from iso15118.shared.messages.iso15118_2.datatypes import (
+    MeterInfo as MeterInfoV2,
     PMaxScheduleEntry,
     PMaxScheduleEntryDetails,
     PVEVSEMaxCurrent,
@@ -36,6 +35,59 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 )
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
+from iso15118.shared.messages.enums import (
+    Namespace,
+    Protocol,
+    ServiceV20,
+    ParameterName,
+    ControlMode,
+    DCConnector,
+    MobilityNeedsMode,
+    Pricing,
+    PriceAlgorithm,
+)
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeParameterDiscoveryResParams,
+    BPTACChargeParameterDiscoveryResParams,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    ProviderID,
+    Service,
+    ServiceList,
+    ServiceParameterList,
+    ParameterSet,
+    Parameter,
+    SelectedEnergyService,
+    ScheduledScheduleExchangeResParams,
+    DynamicScheduleExchangeResParams,
+    ScheduleTuple,
+    ChargingSchedule,
+    PowerSchedule,
+    AbsolutePriceSchedule,
+    PowerScheduleEntryList,
+    PowerScheduleEntry,
+    TaxRuleList,
+    PriceRuleStackList,
+    OverstayRuleList,
+    AdditionalServiceList,
+    TaxRule,
+    PriceRuleStack,
+    PriceRule,
+    OverstayRule,
+    AdditionalService,
+    PriceLevelSchedule,
+    PriceLevelScheduleEntryList,
+    PriceLevelScheduleEntry,
+    ScheduleExchangeReq,
+)
+from iso15118.shared.messages.iso15118_20.common_types import (
+    MeterInfo as MeterInfoV20,
+    RationalNumber,
+)
+from iso15118.shared.messages.iso15118_20.dc import (
+    DCChargeParameterDiscoveryResParams,
+    BPTDCChargeParameterDiscoveryResParams,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +110,220 @@ class SimEVSEController(EVSEControllerInterface):
         ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
         ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
         return [ac_single_phase, ac_three_phase]
+
+    def get_charge_params_v20(
+        self, selected_service: SelectedEnergyService
+    ) -> Union[
+        ACChargeParameterDiscoveryResParams,
+        BPTACChargeParameterDiscoveryResParams,
+        DCChargeParameterDiscoveryResParams,
+        BPTDCChargeParameterDiscoveryResParams,
+    ]:
+        """Overrides EVSEControllerInterface.get_charge_params_v20()."""
+        if selected_service.service == ServiceV20.AC:
+            return ACChargeParameterDiscoveryResParams(
+                ev_max_charge_power=RationalNumber(exponent=3, value=11),
+                ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            )
+        elif selected_service.service == ServiceV20.AC_BPT:
+            return BPTACChargeParameterDiscoveryResParams(
+                ev_max_charge_power=RationalNumber(exponent=3, value=11),
+                ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                ev_max_discharge_power=RationalNumber(exponent=3, value=11),
+                ev_min_discharge_power=RationalNumber(exponent=0, value=100),
+            )
+        elif selected_service.service == ServiceV20.DC:
+            return DCChargeParameterDiscoveryResParams(
+                evse_max_charge_power=RationalNumber(exponent=3, value=300),
+                evse_min_charge_power=RationalNumber(exponent=0, value=100),
+                evse_max_charge_current=RationalNumber(exponent=0, value=300),
+                evse_min_charge_current=RationalNumber(exponent=0, value=10),
+                evse_max_voltage=RationalNumber(exponent=0, value=1000),
+                evse_min_voltage=RationalNumber(exponent=0, value=10),
+            )
+        elif selected_service.service == ServiceV20.DC_BPT:
+            return BPTDCChargeParameterDiscoveryResParams(
+                evse_max_charge_power=RationalNumber(exponent=3, value=300),
+                evse_min_charge_power=RationalNumber(exponent=0, value=100),
+                evse_max_charge_current=RationalNumber(exponent=0, value=300),
+                evse_min_charge_current=RationalNumber(exponent=0, value=10),
+                evse_max_voltage=RationalNumber(exponent=0, value=1000),
+                evse_min_oltage=RationalNumber(exponent=0, value=10),
+                evse_max_discharge_power=RationalNumber(exponent=3, value=11),
+                evse_min_discharge_power=RationalNumber(exponent=3, value=1),
+                evse_max_discharge_current=RationalNumber(exponent=0, value=11),
+                evse_min_discharge_current=RationalNumber(exponent=0, value=0),
+            )
+        else:
+            # TODO Implement the remaining energy transer services
+            logger.error("Energy transfer service not supported")
+
+    def get_scheduled_se_params(
+        self,
+        selected_energy_service: SelectedEnergyService,
+        schedule_exchange_req: ScheduleExchangeReq,
+    ) -> Optional[ScheduledScheduleExchangeResParams]:
+        is_ready = bool(random.getrandbits(1))
+        if not is_ready:
+            logger.debug("Scheduled parameters for ScheduleExchangeRes not yet ready")
+            return None
+
+        """Overrides EVSEControllerInterface.get_scheduled_se_params()."""
+        charging_power_schedule_entry = PowerScheduleEntry(
+            duration=3600,
+            power=RationalNumber(exponent=3, value=10)
+            # Check if AC ThreePhase applies (Connector parameter within parameter set
+            # of SelectedEnergyService) if you want to add power_l2 and power_l3 values
+        )
+
+        charging_power_schedule = PowerSchedule(
+            time_anchor=0,
+            available_energy=RationalNumber(exponent=3, value=300),
+            power_tolerance=RationalNumber(exponent=0, value=2000),
+            power_schedule_entries=PowerScheduleEntryList(
+                power_schedule_entries=[charging_power_schedule_entry]
+            ),
+        )
+
+        tax_rule = TaxRule(
+            tax_rule_id=1,
+            tax_rule_name="What a great tax rule",
+            tax_rate=RationalNumber(exponent=0, value=10),
+            tax_included_in_price=False,
+            applies_to_energy_fee=True,
+            applies_to_parking_fee=True,
+            applies_to_overstay_fee=True,
+            applies_to_min_max_cost=True,
+        )
+
+        tax_rules = TaxRuleList(tax_rule=[tax_rule])
+
+        price_rule = PriceRule(
+            energy_fee=RationalNumber(exponent=0, value=20),
+            parking_fee=RationalNumber(exponent=0, value=0),
+            parking_fee_period=0,
+            carbon_dioxide_emission=0,
+            renewable_generation_percentage=0,
+            power_range_start=RationalNumber(exponent=0, value=0),
+        )
+
+        price_rule_stack = PriceRuleStack(duration=3600, price_rules=[price_rule])
+
+        price_rule_stacks = PriceRuleStackList(price_rule_stacks=[price_rule_stack])
+
+        overstay_rule = OverstayRule(
+            description="What a great description",
+            start_time=0,
+            fee=RationalNumber(exponent=0, value=50),
+            fee_period=3600,
+        )
+
+        overstay_rules = OverstayRuleList(
+            time_shreshold=3600,
+            power_threshold=RationalNumber(exponent=3, value=30),
+            rules=[overstay_rule],
+        )
+
+        additional_service = AdditionalService(
+            service_name="What a great service name",
+            service_fee=RationalNumber(exponent=0, value=0),
+        )
+
+        additional_services = AdditionalServiceList(
+            additional_services=[additional_service]
+        )
+
+        charging_absolute_price_schedule = AbsolutePriceSchedule(
+            currency="EUR",
+            language="ENG",
+            price_algorithm=PriceAlgorithm.POWER,
+            min_cost=RationalNumber(exponent=0, value=1),
+            max_cost=RationalNumber(exponent=0, value=10),
+            tax_rules=tax_rules,
+            price_rule_stacks=price_rule_stacks,
+            overstay_rules=overstay_rules,
+            additional_services=additional_services,
+        )
+
+        discharging_power_schedule = PowerSchedule(
+            duration=3600,
+            power=RationalNumber(exponent=3, value=-5)
+            # Check if AC ThreePhase applies (Connector parameter within parameter set
+            # of SelectedEnergyService) if you want to add power_l2 and power_l3 values
+        )
+
+        discharging_absolute_price_schedule = charging_absolute_price_schedule
+
+        charging_schedule = ChargingSchedule(
+            power_schedule=charging_power_schedule,
+            absolute_price_schedule=charging_absolute_price_schedule,
+        )
+
+        discharging_schedule = ChargingSchedule(
+            power_schedule=discharging_power_schedule,
+            absolute_price_schedule=discharging_absolute_price_schedule,
+        )
+
+        schedule_tuple = ScheduleTuple(
+            schedule_tuple_id=1,
+            charging_schedule=charging_schedule,
+            discharging_schedule=discharging_schedule,
+        )
+
+        scheduled_params = ScheduledScheduleExchangeResParams(
+            schedule_tuples=[schedule_tuple]
+        )
+
+        return scheduled_params
+
+    def get_dynamic_se_params(
+        self,
+        selected_energy_service: SelectedEnergyService,
+        schedule_exchange_req: ScheduleExchangeReq,
+    ) -> Optional[DynamicScheduleExchangeResParams]:
+        """Overrides EVSEControllerInterface.get_dynamic_se_params()."""
+        is_ready = bool(random.getrandbits(1))
+        if not is_ready:
+            logger.debug("Dynamic parameters for ScheduleExchangeRes not yet ready")
+            return None
+
+        price_level_schedule_entry = PriceLevelScheduleEntry(
+            duration=3600, price_level=1
+        )
+
+        schedule_entries = PriceLevelScheduleEntryList(
+            entries=[price_level_schedule_entry]
+        )
+
+        price_level_schedule = PriceLevelSchedule(
+            id="id1",
+            time_anchor=0,
+            schedule_id=1,
+            schedule_description="What a great description",
+            num_price_levels=1,
+            schedule_entries=schedule_entries,
+        )
+
+        dynamic_params = DynamicScheduleExchangeResParams(
+            departure_time=7200,
+            min_soc=30,
+            target_soc=80,
+            price_level_schedule=price_level_schedule,
+        )
+
+        return dynamic_params
+
+    def get_energy_service_list(self) -> ServiceList:
+        """Overrides EVSEControllerInterface.get_energy_service_list()."""
+        # AC = 1, DC = 2, AC_BPT = 5, DC_BPT = 6
+        service_ids = [2]
+        service_list: ServiceList = ServiceList(services=[])
+        for service_id in service_ids:
+            service_list.services.append(
+                Service(service_id=service_id, free_service=False)
+            )
+
+        return service_list
 
     def is_authorised(self) -> bool:
         """Overrides EVSEControllerInterface.is_authorised()."""
@@ -98,7 +364,7 @@ class SimEVSEController(EVSEControllerInterface):
         # Putting the list of SAScheduleTuple entries together
         sa_schedule_tuple_entry = SAScheduleTupleEntry(
             sa_schedule_tuple_id=1,
-            p_max_schedule=p_max_schedule_entry,
+            p_max_schedule=p_max_schedule_entries,
             sales_tariff=sales_tariff,
         )
 
@@ -136,6 +402,10 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_supported_providers()."""
         return None
 
+    def service_renegotiation_supported(self) -> bool:
+        """Overrides EVSEControllerInterface.service_renegotiation_supported()."""
+        return False
+
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
@@ -159,6 +429,51 @@ class SimEVSEController(EVSEControllerInterface):
             evse_nominal_voltage=evse_nominal_voltage,
             evse_max_current=evse_max_current,
         )
+        evse_nominal_voltage = PVEVSENominalVoltage(
+            multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
+        )
+        evse_max_current = PVEVSEMaxCurrent(
+            multiplier=0, value=32, unit=UnitSymbol.AMPERE
+        )
+        return ACEVSEChargeParameter(
+            ac_evse_status=self.get_ac_evse_status(),
+            evse_nominal_voltage=evse_nominal_voltage,
+            evse_max_current=evse_max_current,
+        )
+
+    def get_service_parameter_list(self, service_id: int) -> ServiceParameterList:
+        """Overrides EVSEControllerInterface.get_service_parameter_list()."""
+        if service_id == ServiceV20.DC.service_id:
+            service_parameter_list = ServiceParameterList(
+                parameter_sets=[
+                    ParameterSet(
+                        id=1,
+                        parameters=[
+                            Parameter(
+                                name=ParameterName.CONNECTOR,
+                                int_value=DCConnector.EXTENDED,
+                            ),
+                            Parameter(
+                                name=ParameterName.CONTROL_MODE,
+                                int_value=ControlMode.DYNAMIC,
+                            ),
+                            Parameter(
+                                name=ParameterName.MOBILITY_NEEDS_MODE,
+                                int_value=MobilityNeedsMode.EVCC_ONLY,
+                            ),
+                            Parameter(
+                                name=ParameterName.PRICING, int_value=Pricing.NONE
+                            ),
+                        ],
+                    )
+                ]
+            )
+
+            return service_parameter_list
+        else:
+            logger.error(
+                f"Unknown service ID {service_id}, can't provide ServiceParameterList"
+            )
 
     # ============================================================================
     # |                          DC-SPECIFIC FUNCTIONS                           |

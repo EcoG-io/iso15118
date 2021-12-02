@@ -10,26 +10,36 @@ Pydantic's Field class is used to be able to create a json schema of each model
 (or class) that matches the definitions in the XSD schema, including the XSD
 element names by using the 'alias' attribute.
 """
-
+from dataclasses import dataclass
 from enum import Enum
 from typing import List
 
 from pydantic import Field, root_validator, validator
 
 from iso15118.shared.messages import BaseModel
-from iso15118.shared.messages.enums import AuthEnum
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    INT_8_MIN,
+    INT_8_MAX,
+    INT_16_MAX,
+    INT_16_MIN,
+    ServiceV20,
+    UINT_16_MAX,
+    UINT_8_MAX,
+)
 from iso15118.shared.messages.iso15118_20.common_types import (
     UINT_32_MAX,
-    Certificate,
     EVSEStatus,
-    Identifier,
     MeterInfo,
     Processing,
     RationalNumber,
     Receipt,
-    RootCertificateID,
     V2GRequest,
     V2GResponse,
+    RootCertificateIDList,
+    NumericID,
+    Name,
+    Description,
 )
 from iso15118.shared.validators import one_field_must_be_set
 
@@ -44,16 +54,24 @@ class ECDHCurve(str, Enum):
     x448 = "X448"
 
 
-class EMAIDList(BaseModel):
+class EMAID(BaseModel):
     """See Annex C.1 in ISO 15118-20"""
 
-    emaids: List[Identifier] = Field(..., max_items=8, alias="EMAID")
+    emaid: str = Field(..., max_length=255, alias="EMAID")
+
+
+class Certificate(BaseModel):
+    """A DER encoded X.509 certificate"""
+
+    certificate: bytes = Field(..., max_length=800, alias="Certificate")
 
 
 class SubCertificates(BaseModel):
-    """See Annex C.1 or V2G_CI_CommonTypes.xsd in ISO 15118-20"""
+    """A list of DER encoded X.509 certificates"""
 
-    certificates: List[Certificate] = Field(..., max_items=3, alias="Certificate")
+    certificate: List[bytes] = Field(
+        ..., max_length=1600, max_items=3, alias="Certificate"
+    )
 
 
 class CertificateChain(BaseModel):
@@ -61,7 +79,7 @@ class CertificateChain(BaseModel):
 
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: Certificate = Field(..., alias="Certificate")
+    certificate: bytes = Field(..., max_length=800, alias="Certificate")
     sub_certificates: SubCertificates = Field(None, alias="SubCertificates")
 
 
@@ -73,7 +91,7 @@ class SignedCertificateChain(BaseModel):
     id: str = Field(..., max_length=255, alias="Id")
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: Certificate = Field(..., alias="Certificate")
+    certificate: bytes = Field(..., max_length=800, alias="Certificate")
     sub_certificates: SubCertificates = Field(None, alias="SubCertificates")
 
     def __str__(self):
@@ -85,7 +103,7 @@ class ContractCertificateChain(BaseModel):
 
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: Certificate = Field(..., alias="Certificate")
+    certificate: bytes = Field(..., max_length=800, alias="Certificate")
     sub_certificates: SubCertificates = Field(..., alias="SubCertificates")
 
 
@@ -106,7 +124,7 @@ class AuthorizationSetupReq(V2GRequest):
 
 
 class ProviderID(BaseModel):
-    provider_id: str = Field(..., max_length=80, alias="ProviderID")
+    provider_id: Name = Field(..., alias="ProviderID")
 
 
 class PnCAuthSetupResParams(BaseModel):
@@ -175,6 +193,11 @@ class PnCAuthReqParams(BaseModel):
         ..., alias="ContractCertificateChain"
     )
 
+    def __str__(self):
+        # We need to sign this element, which means it will be EXI encoded and we need
+        # its XSD-conform name
+        return "PnC_AReqAuthorizationMode"
+
 
 class EIMAuthReqParams(BaseModel):
     """
@@ -221,29 +244,29 @@ class AuthorizationRes(V2GResponse):
     evse_processing: Processing = Field(..., alias="EVSEProcessing")
 
 
-class ServiceIdList(BaseModel):
+class ServiceIDList(BaseModel):
     """See section 8.3.5.3.29 in ISO 15118-20"""
 
-    service_id: List[int] = Field(..., max_items=16, alias="ServiceID")
+    service_ids: List[int] = Field(..., max_items=16, alias="ServiceID")
 
 
 class ServiceDiscoveryReq(V2GRequest):
     """See section 8.3.4.3.4.2 in ISO 15118-20"""
 
-    supported_service_ids: ServiceIdList = Field(..., alias="SupportedServiceIDs")
+    supported_service_ids: ServiceIDList = Field(None, alias="SupportedServiceIDs")
 
 
-class ServiceDetails(BaseModel):
+class Service(BaseModel):
     """See section 8.3.5.3.1 in ISO 15118-20"""
 
     service_id: int = Field(..., alias="ServiceID")
     free_service: bool = Field(..., alias="FreeService")
 
 
-class Service(BaseModel):
+class ServiceList(BaseModel):
     """See section 8.3.5.3.2 in ISO 15118-20"""
 
-    service_details: ServiceDetails = Field(..., alias="Service")
+    services: List[Service] = Field(..., max_items=8, alias="Service")
 
 
 class ServiceDiscoveryRes(V2GResponse):
@@ -252,10 +275,8 @@ class ServiceDiscoveryRes(V2GResponse):
     service_renegotiation_supported: bool = Field(
         ..., alias="ServiceRenegotiationSupported"
     )
-    energy_transfer_service_list: List[Service] = Field(
-        ..., max_items=8, alias="EnergyTransferServiceList"
-    )
-    vas_list: List[Service] = Field(None, max_items=8, alias="VASList")
+    energy_service_list: ServiceList = Field(..., alias="EnergyTransferServiceList")
+    vas_list: ServiceList = Field(None, alias="VASList")
 
 
 class ServiceDetailReq(V2GRequest):
@@ -269,14 +290,15 @@ class Parameter(BaseModel):
 
     # 'Name' is actually an XML attribute, but JSON (our serialisation method)
     # doesn't have attributes. The EXI codec has to en-/decode accordingly.
-    name: str = Field(..., alias="Name")
+    name: Name = Field(..., alias="Name")
     bool_value: bool = Field(None, alias="boolValue")
     # XSD type byte with value range [-128..127]
-    byte_value: int = Field(None, ge=-128, le=127, alias="byteValue")
-    short_value: int = Field(None, ge=0, le=65535, alias="shortValue")
+    byte_value: int = Field(None, ge=INT_8_MIN, le=INT_8_MAX, alias="byteValue")
+    # XSD type short (16 bit integer) with value range [-32768..32767]
+    short_value: int = Field(None, ge=INT_16_MIN, le=INT_16_MAX, alias="shortValue")
     int_value: int = Field(None, alias="intValue")
     rational_number: RationalNumber = Field(None, alias="rationalNumber")
-    finite_str: str = Field(None, alias="finiteString")
+    finite_str: Name = Field(None, alias="finiteString")
 
     @root_validator(pre=True)
     def at_least_one_parameter_value(cls, values):
@@ -313,14 +335,14 @@ class Parameter(BaseModel):
 class ParameterSet(BaseModel):
     """See section 8.3.5.3.22 in ISO 15118-20"""
 
-    parameter_set_id: int = Field(..., alias="ParameterSetID")
-    parameter: List[Parameter] = Field(..., max_items=32, alias="Parameter")
+    id: int = Field(..., alias="ParameterSetID")
+    parameters: List[Parameter] = Field(..., max_items=32, alias="Parameter")
 
 
 class ServiceParameterList(BaseModel):
     """See section 8.3.5.3.21 in ISO 15118-20"""
 
-    parameter_set: List[ParameterSet] = Field(..., max_items=32, alias="ParameterSet")
+    parameter_sets: List[ParameterSet] = Field(..., max_items=32, alias="ParameterSet")
 
 
 class ServiceDetailRes(V2GResponse):
@@ -342,7 +364,7 @@ class SelectedService(BaseModel):
 class SelectedServiceList(BaseModel):
     """See section 8.3.5.3.24 in ISO 15118-20"""
 
-    selected_service: List[SelectedService] = Field(
+    selected_services: List[SelectedService] = Field(
         ..., max_items=16, alias="SelectedService"
     )
 
@@ -350,10 +372,10 @@ class SelectedServiceList(BaseModel):
 class ServiceSelectionReq(V2GRequest):
     """See section 8.3.4.3.6.2 in ISO 15118-20"""
 
-    selected_energy_transfer_service: SelectedService = Field(
+    selected_energy_service: SelectedService = Field(
         ..., alias="SelectedEnergyTransferService"
     )
-    selected_vas_list: SelectedService = Field(None, alias="SelectedVASList")
+    selected_vas_list: SelectedServiceList = Field(None, alias="SelectedVASList")
 
 
 class ServiceSelectionRes(V2GResponse):
@@ -370,7 +392,7 @@ class EVPowerScheduleEntry(BaseModel):
 class EVPowerScheduleEntryList(BaseModel):
     """See section 8.3.5.3.43 in ISO 15118-20"""
 
-    ev_power_schedule_entry: List[EVPowerScheduleEntry] = Field(
+    ev_power_schedule_entries: List[EVPowerScheduleEntry] = Field(
         ..., max_items=1024, alias="EVPowerScheduleEntry"
     )
 
@@ -395,13 +417,13 @@ class EVPriceRuleStack(BaseModel):
     """See section 8.3.5.3.47 in ISO 15118-20"""
 
     duration: int = Field(..., alias="Duration")
-    ev_price_rule: List[EVPriceRule] = Field(..., max_items=8, alias="EVPriceRule")
+    ev_price_rules: List[EVPriceRule] = Field(..., max_items=8, alias="EVPriceRule")
 
 
 class EVPriceRuleStackList(BaseModel):
     """See section 8.3.5.3.46 in ISO 15118-20"""
 
-    ev_price_rule_stack: List[EVPriceRuleStack] = Field(
+    ev_price_rule_stacks: List[EVPriceRuleStack] = Field(
         ..., max_items=1024, alias="EVPriceRuleStack"
     )
 
@@ -427,7 +449,7 @@ class EVEnergyOffer(BaseModel):
 class ScheduledScheduleExchangeReqParams(BaseModel):
     """See section 8.3.5.3.14 in ISO 15118-20"""
 
-    departure_time: int = Field(None, alias="DepartureTime")
+    departure_time: int = Field(None, ge=0, le=UINT_32_MAX, alias="DepartureTime")
     ev_target_energy_request: RationalNumber = Field(
         None, alias="EVTargetEnergyRequest"
     )
@@ -439,7 +461,7 @@ class ScheduledScheduleExchangeReqParams(BaseModel):
 class DynamicScheduleExchangeReqParams(BaseModel):
     """See section 8.3.5.3.13 in ISO 15118-20"""
 
-    departure_time: int = Field(..., alias="DepartureTime")
+    departure_time: int = Field(..., ge=0, le=UINT_32_MAX, alias="DepartureTime")
     # XSD type byte with value range [0..100]
     min_soc: int = Field(None, ge=0, le=100, alias="MinimumSOC")
     # XSD type byte with value range [0..100]
@@ -447,6 +469,28 @@ class DynamicScheduleExchangeReqParams(BaseModel):
     ev_target_energy_request: RationalNumber = Field(..., alias="EVTargetEnergyRequest")
     ev_max_energy_request: RationalNumber = Field(..., alias="EVMaximumEnergyRequest")
     ev_min_energy_request: RationalNumber = Field(..., alias="EVMinimumEnergyRequest")
+    ev_max_v2x_energy_request: RationalNumber = Field(
+        None, alias="EVMaximumV2XEnergyRequest"
+    )
+    ev_min_v2x_energy_request: RationalNumber = Field(
+        None, alias="EVMinimumV2XEnergyRequest"
+    )
+
+    @root_validator(pre=True)
+    def both_v2x_fields_must_be_set(cls, values):
+        max_v2g, min_v2x = (
+            values.get("ev_max_v2x_energy_request"),
+            values.get("ev_min_v2x_energy_request"),
+        )
+
+        if (max_v2g and not min_v2x) or (min_v2x and not max_v2g):
+            raise ValueError(
+                "EVMaximumV2XEnergyRequest and EVMinimumV2XEnergyRequest of type "
+                "Dynamic_SEReqControlModeType must either be both set or both omitted. "
+                "Only one of them was set ([V2G20-2681])"
+            )
+
+        return values
 
 
 class ScheduleExchangeReq(V2GRequest):
@@ -455,17 +499,17 @@ class ScheduleExchangeReq(V2GRequest):
     max_supporting_points: int = Field(
         ..., ge=12, le=1024, alias="MaximumSupportingPoints"
     )
-    scheduled_se_req: ScheduledScheduleExchangeReqParams = Field(
-        ..., alias="Scheduled_SEReqControlMode"
+    scheduled_params: ScheduledScheduleExchangeReqParams = Field(
+        None, alias="Scheduled_SEReqControlMode"
     )
-    dynamic_se_req: DynamicScheduleExchangeReqParams = Field(
-        ..., alias="Dynamic_SEReqControlMode"
+    dynamic_params: DynamicScheduleExchangeReqParams = Field(
+        None, alias="Dynamic_SEReqControlMode"
     )
 
     @root_validator(pre=True)
     def either_scheduled_or_dynamic(cls, values):
         """
-        Either scheduled_se_req or dynamic_se_req must be set, depending on
+        Either scheduled_params or dynamic_params must be set, depending on
         whether the charging process is governed by charging schedules or
         dynamic charging settings from the SECC.
 
@@ -476,9 +520,9 @@ class ScheduleExchangeReq(V2GRequest):
         # pylint: disable=no-self-use
         if one_field_must_be_set(
             [
-                "scheduled_se_req",
+                "scheduled_params",
                 "Scheduled_SEReqControlMode",
-                "dynamic_se_req",
+                "dynamic_params",
                 "Dynamic_SEReqControlMode",
             ],
             values,
@@ -499,7 +543,7 @@ class PowerScheduleEntry(BaseModel):
 class PowerScheduleEntryList(BaseModel):
     """See section 8.3.5.3.19 in ISO 15118-20"""
 
-    power_schedule_entry: List[PowerScheduleEntry] = Field(
+    power_schedule_entries: List[PowerScheduleEntry] = Field(
         ..., max_items=1024, alias="PowerScheduleEntry"
     )
 
@@ -519,24 +563,22 @@ class PriceSchedule(BaseModel):
     """See sections 8.3.5.3.49 and 8.3.5.3.62 in ISO 15118-20"""
 
     time_anchor: int = Field(..., alias="TimeAnchor")
-    price_schedule_id: int = Field(..., ge=1, le=UINT_32_MAX, alias="PriceScheduleID")
-    price_schedule_description: str = Field(
-        None, max_length=160, alias="PriceScheduleDescription"
-    )
+    schedule_id: NumericID = Field(..., alias="PriceScheduleID")
+    schedule_description: Description = Field(None, alias="PriceScheduleDescription")
 
 
 class PriceLevelScheduleEntry(BaseModel):
     """See section 8.3.5.3.64 in ISO 15118-20"""
 
-    duration: int = Field(..., alias="Duration")
+    duration: int = Field(..., ge=0, le=UINT_32_MAX, alias="Duration")
     # XSD type unsignedByte with value range [0..255]
-    price_level: int = Field(..., ge=0, le=255, alias="PriceLevel")
+    price_level: int = Field(..., ge=0, le=UINT_8_MAX, alias="PriceLevel")
 
 
 class PriceLevelScheduleEntryList(BaseModel):
     """See section 8.3.5.3.63 in ISO 15118-20"""
 
-    entry: List[PriceLevelScheduleEntry] = Field(
+    entries: List[PriceLevelScheduleEntry] = Field(
         ..., max_items=1024, alias="PriceLevelScheduleEntry"
     )
 
@@ -548,7 +590,7 @@ class PriceLevelSchedule(PriceSchedule):
     # doesn't have attributes. The EXI codec has to en-/decode accordingly.
     id: str = Field(None, max_length=255, alias="Id")
     # XSD type unsignedByte with value range [0..255]
-    num_price_levels: int = Field(..., ge=0, le=255, alias="NumberOfPriceLevels")
+    num_price_levels: int = Field(..., ge=0, le=UINT_8_MAX, alias="NumberOfPriceLevels")
     schedule_entries: PriceLevelScheduleEntryList = Field(
         ..., alias="PriceLevelScheduleEntries"
     )
@@ -557,8 +599,8 @@ class PriceLevelSchedule(PriceSchedule):
 class TaxRule(BaseModel):
     """See section 8.3.5.3.51 in ISO 15118-20"""
 
-    tax_rule_id: int = Field(..., ge=1, le=UINT_32_MAX, alias="TaxRuleID")
-    tax_rule_name: str = Field(None, max_length=80, alias="TaxRuleName")
+    tax_rule_id: NumericID = Field(..., alias="TaxRuleID")
+    tax_rule_name: Name = Field(None, alias="TaxRuleName")
     tax_rate: RationalNumber = Field(..., alias="TaxRate")
     tax_included_in_price: bool = Field(None, alias="TaxIncludedInPrice")
     applies_to_enery_fee: bool = Field(..., alias="AppliesToEnergyFee")
@@ -576,11 +618,12 @@ class TaxRuleList(BaseModel):
 class PriceRule(BaseModel):
     """See section 8.3.5.3.54 in ISO 15118-20"""
 
-    price_rule_id: int = Field(..., ge=1, le=UINT_32_MAX, alias="PriceRuleID")
     energy_fee: RationalNumber = Field(..., alias="EnergyFee")
     parking_fee: RationalNumber = Field(None, alias="EnergyFee")
-    parking_fee_period: int = Field(None, alias="ParkingFeePeriod")
-    carbon_dioxide_emission: int = Field(None, alias="CarbonDioxideEmission")
+    parking_fee_period: int = Field(None, le=UINT_32_MAX, alias="ParkingFeePeriod")
+    carbon_dioxide_emission: int = Field(
+        None, le=UINT_16_MAX, alias="CarbonDioxideEmission"
+    )
     # XSD type unsignedByte with value range [0..255]
     renewable_energy_percentage: int = Field(
         None, ge=0, le=255, alias="RenewableGenerationPercentage"
@@ -591,17 +634,14 @@ class PriceRule(BaseModel):
 class PriceRuleStack(BaseModel):
     """See section 8.3.5.3.53 in ISO 15118-20"""
 
-    price_rule_stack_id: int = Field(
-        ..., ge=1, le=UINT_32_MAX, alias="PriceRuleStackID"
-    )
-    duration: int = Field(..., alias="Duration")
-    price_rule: List[PriceRule] = Field(..., max_items=8, alias="PriceRule")
+    duration: int = Field(..., ge=0, le=UINT_32_MAX, alias="Duration")
+    price_rules: List[PriceRule] = Field(..., max_items=8, alias="PriceRule")
 
 
 class PriceRuleStackList(BaseModel):
     """See section 8.3.5.3.52 in ISO 15118-20"""
 
-    price_rule_stack: List[PriceRuleStack] = Field(
+    price_rule_stacks: List[PriceRuleStack] = Field(
         ..., max_items=1024, alias="PriceRuleStack"
     )
 
@@ -609,39 +649,33 @@ class PriceRuleStackList(BaseModel):
 class OverstayRule(BaseModel):
     """See section 8.3.5.3.56 in ISO 15118-20"""
 
-    overstay_rule_id: int = Field(..., ge=1, le=UINT_32_MAX, alias="OverstayRuleID")
-    overstay_rule_description: str = Field(
-        None, max_length=160, alias="OverstayRuleDescription"
-    )
-    start_time: int = Field(..., alias="StartTime")
-    overstay_fee: RationalNumber = Field(..., alias="OverstayFee")
-    overstay_fee_period: int = Field(..., alias="OverstayFeePeriod")
+    description: Description = Field(None, alias="OverstayRuleDescription")
+    start_time: int = Field(..., ge=0, le=UINT_32_MAX, alias="StartTime")
+    fee: RationalNumber = Field(..., alias="OverstayFee")
+    fee_period: int = Field(..., ge=0, le=UINT_32_MAX, alias="OverstayFeePeriod")
 
 
 class OverstayRuleList(BaseModel):
     """See section 8.3.5.3.55 in ISO 15118-20"""
 
-    overstay_rule_list_id: int = Field(
-        ..., ge=1, le=UINT_32_MAX, alias="OverstayRuleListID"
+    time_threshold: int = Field(
+        None, ge=0, le=UINT_32_MAX, alias="OverstayTimeThreshold"
     )
-    overstay_time_threshold: int = Field(None, alias="OverstayTimeThreshold")
-    overstay_power_threshold: RationalNumber = Field(
-        None, alias="OverstayPowerThreshold"
-    )
-    overstay_rule: List[OverstayRule] = Field(..., max_items=5, alias="OverstayRule")
+    power_threshold: RationalNumber = Field(None, alias="OverstayPowerThreshold")
+    rules: List[OverstayRule] = Field(..., max_items=5, alias="OverstayRule")
 
 
 class AdditionalService(BaseModel):
     """See section 8.3.5.3.58 in ISO 15118-20"""
 
-    service_name: str = Field(..., max_length=80, alias="ServiceName")
+    service_name: Name = Field(..., alias="ServiceName")
     service_fee: RationalNumber = Field(..., alias="ServiceFee")
 
 
 class AdditionalServiceList(BaseModel):
     """See section 8.3.5.3.57 in ISO 15118-20"""
 
-    additional_service: List[AdditionalService] = Field(
+    additional_services: List[AdditionalService] = Field(
         ..., max_items=5, alias="AdditionalService"
     )
 
@@ -657,7 +691,7 @@ class AbsolutePriceSchedule(PriceSchedule):
     tax_rules: TaxRuleList = Field(None, alias="TaxRules")
     price_rule_stacks: PriceRuleStackList = Field(..., alias="PriceRuleStacks")
     overstay_rules: OverstayRuleList = Field(None, alias="OverstayRules")
-    additional_selected_services: AdditionalServiceList = Field(
+    additional_services: AdditionalServiceList = Field(
         None, alias="AdditionalSelectedServices"
     )
 
@@ -705,6 +739,9 @@ class DischargingSchedule(BaseModel):
         None, alias="AbsolutePriceSchedule"
     )
 
+    # TODO Need to add a root validator to check if power schedule entries are negative
+    #      for discharging (also heck other discharging fields in other types)
+
     @root_validator(pre=True)
     def either_price_levels_or_absolute_prices(cls, values):
         """
@@ -733,21 +770,23 @@ class DischargingSchedule(BaseModel):
 class ScheduleTuple(BaseModel):
     """See section 8.3.5.3.17 in ISO 15118-20"""
 
-    schedule_tuple_id: str = Field(..., max_length=255, alias="ScheduleTupleID")
+    schedule_tuple_id: NumericID = Field(..., alias="ScheduleTupleID")
     charging_schedule: ChargingSchedule = Field(..., alias="ChargingSchedule")
-    discharging_schedule: DischargingSchedule = Field(..., alias="DischargingSchedule")
+    discharging_schedule: DischargingSchedule = Field(None, alias="DischargingSchedule")
 
 
 class ScheduledScheduleExchangeResParams(BaseModel):
     """See section 8.3.5.3.16 in ISO 15118-20"""
 
-    schedule_tuple: List[ScheduleTuple] = Field(..., max_items=3, alias="ScheduleTuple")
+    schedule_tuples: List[ScheduleTuple] = Field(
+        ..., max_items=3, alias="ScheduleTuple"
+    )
 
 
 class DynamicScheduleExchangeResParams(BaseModel):
     """See section 8.3.5.3.15 in ISO 15118-20"""
 
-    departure_time: int = Field(None, alias="DepartureTime")
+    departure_time: int = Field(None, ge=0, le=UINT_32_MAX, alias="DepartureTime")
     # XSD type byte with value range [0..100]
     min_soc: int = Field(None, ge=0, le=100, alias="MinimumSOC")
     # XSD type byte with value range [0..100]
@@ -756,6 +795,29 @@ class DynamicScheduleExchangeResParams(BaseModel):
     absolute_price_schedule: AbsolutePriceSchedule = Field(
         None, alias="AbsolutePriceSchedule"
     )
+
+    @root_validator(pre=True)
+    def min_soc_less_than_or_equal_to_target_soc(cls, values):
+        """
+        The min_soc value must be smaller than target_soc ([V2G20-1640]).
+
+        Pydantic validators are "class methods",
+        see https://pydantic-docs.helpmanual.io/usage/validators/
+        """
+        # pylint: disable=no-self-argument
+        # pylint: disable=no-self-use
+        # TODO Check if you need to also consider the field names MinimumSOC and
+        #      TargetSOC when decoding from EXI (if yes, check other classes as well)
+        #      for the same issue)
+        # TODO Also check other classes that contain min_soc and target_soc
+        min_soc, target_soc = values.get("min_soc"), values.get("target_soc")
+        if (min_soc and target_soc) and min_soc > target_soc:
+            raise ValueError(
+                "MinimumSOC must be less than or equal to TargetSOC.\n"
+                f"MinimumSOC: {min_soc}, TargetSOC: {target_soc}"
+            )
+
+        return values
 
     @root_validator(pre=True)
     def either_price_levels_or_absolute_prices(cls, values):
@@ -786,13 +848,43 @@ class ScheduleExchangeRes(V2GResponse):
     """See section 8.3.4.3.7.3 in ISO 15118-20"""
 
     evse_processing: Processing = Field(..., alias="EVSEProcessing")
-    scheduled_se_res: ScheduledScheduleExchangeResParams = Field(
-        ..., alias="Scheduled_SEResControlMode"
+    scheduled_params: ScheduledScheduleExchangeResParams = Field(
+        None, alias="Scheduled_SEResControlMode"
     )
-    dynamic_se_res: DynamicScheduleExchangeResParams = Field(
-        ..., alias="Dynamic_SEResControlMode"
+    dynamic_params: DynamicScheduleExchangeResParams = Field(
+        None, alias="Dynamic_SEResControlMode"
     )
     go_to_pause: bool = Field(None, alias="GoToPause")
+
+    @root_validator(pre=True)
+    def either_scheduled_or_dynamic(cls, values):
+        """
+        Either scheduled_params or dynamic_params must be set, depending on
+        whether the charging process is governed by charging schedules or
+        dynamic charging settings from the SECC.
+
+        Pydantic validators are "class methods",
+        see https://pydantic-docs.helpmanual.io/usage/validators/
+        """
+        # pylint: disable=no-self-argument
+        # pylint: disable=no-self-use
+        evse_processing = values.get("evse_processing")
+        if evse_processing == Processing.ONGOING:
+            return values
+
+        # Check if either the dynamic or scheduled parameters are set, but only in case
+        # evse_processing is set to FINISHED
+        if one_field_must_be_set(
+            [
+                "scheduled_params",
+                "Scheduled_SEResControlMode",
+                "dynamic_params",
+                "Dynamic_SEResControlMode",
+            ],
+            values,
+            True,
+        ):
+            return values
 
 
 class EVPowerProfileEntryList(BaseModel):
@@ -813,9 +905,7 @@ class PowerToleranceAcceptance(str, Enum):
 class ScheduledEVPowerProfile(BaseModel):
     """See section 8.3.5.3.12 in ISO 15118-20"""
 
-    selected_schedule_tuple_id: int = Field(
-        ..., ge=1, le=UINT_32_MAX, alias="SelectedScheduleTupleID"
-    )
+    selected_schedule_tuple_id: NumericID = Field(..., alias="SelectedScheduleTupleID")
     power_tolerance_acceptance: PowerToleranceAcceptance = Field(
         ..., alias="PowerToleranceAcceptance"
     )
@@ -898,9 +988,7 @@ class PowerDeliveryRes(V2GResponse):
 class ScheduledSignedMeterData(BaseModel):
     """See section 8.3.5.3.38 in ISO 15118-20"""
 
-    selected_schedule_tuple_id: int = Field(
-        ..., ge=1, le=UINT_32_MAX, alias="SelectedScheduleTupleID"
-    )
+    selected_schedule_tuple_id: NumericID = Field(..., alias="SelectedScheduleTupleID")
 
 
 class DynamicSignedMeterData(BaseModel):
@@ -959,8 +1047,7 @@ class SignedMeteringData(BaseModel):
             # pylint: disable=no-self-argument
             # pylint: disable=no-self-use
             try:
-                # convert value to int, assuming base 16
-                int(value, 16)
+                test = int(value, 16)
                 return value
             except ValueError as exc:
                 raise ValueError(
@@ -982,18 +1069,18 @@ class MeteringConfirmationRes(V2GResponse):
 class ChargingSession(str, Enum):
     """See section 8.3.4.3.10.2 in ISO 15118-20"""
 
-    pause = "Pause"
-    terminate = "Terminate"
-    service_renegotiation = "ServiceRenegotiation"
+    PAUSE = "Pause"
+    TERMINATE = "Terminate"
+    SERVICE_RENEGOTIATION = "ServiceRenegotiation"
 
 
 class SessionStopReq(V2GRequest):
     """See section 8.3.4.3.10.2 in ISO 15118-20"""
 
     charging_session: ChargingSession = Field(..., alias="ChargingSession")
-    ev_termination_code: str = Field(..., max_length=80, alias="EVTerminationCode")
+    ev_termination_code: Name = Field(None, alias="EVTerminationCode")
     ev_termination_explanation: str = Field(
-        ..., max_length=160, alias="EVTerminationExplanation"
+        None, max_length=160, alias="EVTerminationExplanation"
     )
 
 
@@ -1007,14 +1094,16 @@ class CertificateInstallationReq(V2GRequest):
     oem_prov_cert_chain: SignedCertificateChain = Field(
         ..., alias="OEMProvisioningCertificateChain"
     )
-    list_of_root_cert_ids: RootCertificateID = Field(
+    root_cert_id_list: RootCertificateIDList = Field(
         ..., alias="ListOfRootCertificateIDs"
     )
     # XSD type unsignedShort (16 bit integer) with value range [0..65535]
     max_contract_cert_chains: int = Field(
-        ..., ge=0, le=65535, alias="MaximumContractCertificateChains"
+        ..., ge=0, le=UINT_16_MAX, alias="MaximumContractCertificateChains"
     )
-    prioritized_emaids: EMAIDList = Field(None, alias="PrioritizedEMAIDs")
+    prioritized_emaids: List[EMAID] = Field(
+        None, max_items=8, alias="PrioritizedEMAIDs"
+    )
 
 
 class SignedInstallationData(BaseModel):
@@ -1143,3 +1232,53 @@ class VehicleCheckOutRes(V2GResponse):
     """See section 8.3.4.8.1.3.2 in ISO 15118-20"""
 
     evse_check_out_status: EVSECheckOutStatus = Field(..., alias="EVSECheckOutStatus")
+
+
+# ============================================================================
+# |            HELPFUL CUSTOM CLASSES FOR A COMMUNICATION SESSION            |
+# ============================================================================
+
+
+@dataclass
+class OfferedService:
+    """
+    This class puts all service-related information into one place. ISO 15118-20
+    messages and data types scatter information about service ID, typeo of service
+    (energy or value-added service) parameter sets, and whether a service is free.
+    This custom class provides easier access to all this information, which comes in
+    handy throughout the various states.
+    """
+
+    service: ServiceV20
+    # If it's not an energy transfer service, then it's a value-added service (VAS)
+    is_energy_service: bool
+    is_free: bool
+    parameter_sets: List[ParameterSet]
+
+
+@dataclass
+class SelectedEnergyService:
+    """
+    This class puts all necessary information about the energy service, which the EVCC
+    selects for a charging session, in one place. A SelectedService instance (datatype
+    used in ISO 15118-20) only contains a ServiceID and a ParameterSetID, but not the
+    actual parameter sets, for which we'd have to look elsewhere and loop through a
+    list of offered parameter sets. The parameter sets describe important service
+    details, which we need throughout the state machine.
+    """
+
+    service: ServiceV20
+    is_free: bool
+    parameter_set: ParameterSet
+
+
+@dataclass
+class SelectedVAS:
+    """
+    Similar to the custom class SelectedEnergyService, but for the value-added services
+    (VAS), which the EVCC selects for a charging session.
+    """
+
+    service: ServiceV20
+    is_free: bool
+    parameter_set: ParameterSet

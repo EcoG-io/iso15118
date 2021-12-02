@@ -6,7 +6,7 @@ SessionStopReq.
 
 import logging
 import time
-from typing import List, Union
+from typing import List, Union, Optional, Tuple
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.states.secc_state import StateSECC
@@ -15,7 +15,14 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import AuthEnum, Namespace
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    Namespace,
+    ISOV20PayloadTypes,
+    ServiceV20,
+    ParameterName,
+    ControlMode,
+)
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
@@ -29,6 +36,21 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionSetupReq,
     SessionSetupRes,
     SessionStopReq,
+    ServiceDetailReq,
+    ServiceDiscoveryRes,
+    ServiceIDList,
+    ServiceSelectionReq,
+    ServiceList,
+    ServiceDetailRes,
+    ServiceSelectionRes,
+    OfferedService,
+    SelectedEnergyService,
+    SelectedService,
+    SelectedVAS,
+    SelectedServiceList,
+    ScheduleExchangeReq,
+    ScheduleExchangeRes,
+    PowerDeliveryReq,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader,
@@ -37,6 +59,13 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
+)
+from iso15118.shared.messages.iso15118_20.dc import (
+    DCChargeParameterDiscoveryReq,
+    DCChargeParameterDiscoveryRes,
+    DCChargeParameterDiscoveryReqParams,
+    BPTDCChargeParameterDiscoveryReqParams,
+    DCCableCheckReq,
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.security import get_random_bytes, verify_signature
@@ -107,6 +136,7 @@ class SessionSetup(StateSECC):
             session_setup_res,
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         )
 
 
@@ -178,9 +208,11 @@ class AuthorizationSetup(StateSECC):
             eim_as_res = EIMAuthSetupResParams()
         if AuthEnum.PNC in supported_auth_options:
             auth_options.append(AuthEnum.PNC)
+            self.comm_session.gen_challenge = get_random_bytes(16)
             pnc_as_res = PnCAuthSetupResParams(
-                gen_challenge=get_random_bytes(16),
-                supported_providers=self.comm_session.evse_controller.get_supported_providers(),  # noqa: E501
+                gen_challenge=self.comm_session.gen_challenge,
+                supported_providers=
+                self.comm_session.evse_controller.get_supported_providers(),
             )
         # TODO [V2G20-2096], [V2G20-2570]
 
@@ -202,6 +234,7 @@ class AuthorizationSetup(StateSECC):
             auth_setup_res,
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         )
 
         self.expecting_auth_setup_req = False
@@ -289,57 +322,259 @@ class Authorization(StateSECC):
             return
 
         auth_req: AuthorizationReq = msg
+        response_code: ResponseCode = ResponseCode.OK
 
-        # Verify signature if EVCC sent PnC authorization data
-        if auth_req.pnc_params and not verify_signature(
-            auth_req.header.signature,
-            [
-                (
-                    auth_req.pnc_params.id,
-                    to_exi(auth_req.pnc_params, Namespace.ISO_V20_COMMON_MSG),
+        if auth_req.pnc_params:
+            if not verify_signature(
+                auth_req.header.signature,
+                [
+                    (
+                        auth_req.pnc_params.id,
+                        to_exi(auth_req.pnc_params, Namespace.ISO_V20_COMMON_MSG),
+                    )
+                ],
+                auth_req.pnc_params.contract_cert_chain.certificate,
+            ):
+                # TODO: There are more fine-grained WARNING response codes available
+                self.stop_state_machine(
+                    "Unable to verify signature for AuthorizationReq",
+                    message,
+                    ResponseCode.FAILED_SIGNATURE_ERROR,
                 )
-            ],
-            self.comm_session.contract_cert_chain.certificate,
-        ):
-            # TODO: There are more fine-grained WARNING response codes available
-            self.stop_state_machine(
-                "Unable to verify signature for AuthorizationReq",
-                message,
-                ResponseCode.FAILED_SIGNATURE_ERROR,
-            )
-            return
+                return
+
+            if auth_req.pnc_params.gen_challenge != self.comm_session.gen_challenge:
+                response_code = ResponseCode.WARN_CHALLENGE_INVALID
+
+        if self.comm_session.evse_controller.is_authorised():
+            auth_status = Processing.FINISHED
         else:
-            if self.comm_session.evse_controller.is_authorised():
-                auth_status = Processing.FINISHED
-            else:
-                auth_status = Processing.ONGOING
-            # TODO Need to distinguish between ONGOING and WAITING_FOR_CUSTOMER
+            auth_status = Processing.ONGOING
+        # TODO Need to distinguish between ONGOING and WAITING_FOR_CUSTOMER
 
-            auth_res = AuthorizationRes(
-                header=MessageHeader(
-                    session_id=self.comm_session.session_id, timestamp=time.time()
-                ),
-                response_code=ResponseCode.OK,
-                evse_processing=auth_status,
-            )
+        auth_res = AuthorizationRes(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id, timestamp=time.time()
+            ),
+            response_code=response_code,
+            evse_processing=auth_status,
+        )
 
-            self.create_next_message(
-                None,
-                auth_res,
-                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                Namespace.ISO_V20_COMMON_MSG,
-            )
+        self.create_next_message(
+            None,
+            auth_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
+        )
 
-            if auth_status == Processing.FINISHED:
-                self.expecting_authorization_req = False
-            else:
-                self.expecting_authorization_req = True
+        if auth_status == Processing.FINISHED:
+            self.expecting_authorization_req = False
+        else:
+            self.expecting_authorization_req = True
 
 
 class ServiceDiscovery(StateSECC):
     """
     The ISO 15118-20 state in which the SECC processes a
     ServiceDiscoveryReq from the EVCC.
+
+    The EVCC may send one of the following requests in this state:
+    1. ServiceDiscoveryReq
+    2. ServiceDetailReq
+    3. SessionStopReq
+
+    Upon first initialisation of this state, we expect a ServiceDiscoveryReq
+    but after that, the next possible request could be a ServiceDetailReq or a
+    SessionStopReq. This means that we need to remain in this state until we receive
+    the next message in the sequence.
+
+    As a result, the create_next_message() method is called with next_state = None.
+    """
+
+    def __init__(self, comm_session: SECCCommunicationSession):
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        self.expecting_service_discovery_req = True
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v20(
+            message,
+            [ServiceDiscoveryReq, ServiceDetailReq, SessionStopReq],
+            self.expecting_service_discovery_req,
+        )
+        if not msg:
+            return
+
+        if isinstance(msg, ServiceDetailReq):
+            ServiceDetail(self.comm_session).process_message(message)
+            return
+
+        if isinstance(msg, SessionStopReq):
+            SessionStop(self.comm_session).process_message(message)
+            return
+
+        service_discovery_req: ServiceDiscoveryReq = msg
+
+        offered_energy_services = (
+            self.comm_session.evse_controller.get_energy_service_list()
+        )
+        for energy_service in offered_energy_services.services:
+            self.comm_session.offered_services_v20.append(
+                OfferedService(
+                    service=ServiceV20.get_by_id(energy_service.service_id),
+                    is_energy_service=True,
+                    is_free=energy_service.free_service,
+                    # Parameter sets are available with ServiceDetailRes
+                    parameter_sets=[],
+                )
+            )
+
+        offered_vas = self.get_vas_list(service_discovery_req.supported_service_ids)
+        if offered_vas:
+            for vas in offered_vas.services:
+                self.comm_session.offered_services_v20.append(
+                    OfferedService(
+                        service=ServiceV20.get_by_id(vas.service_id),
+                        is_energy_service=False,
+                        is_free=vas.free_service,
+                        # Parameter sets are available with ServiceDetailRes
+                        parameter_sets=[],
+                    )
+                )
+
+        service_discovery_res = ServiceDiscoveryRes(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id, timestamp=time.time()
+            ),
+            response_code=ResponseCode.OK,
+            service_renegotiation_supported=
+            self.comm_session.evse_controller.service_renegotiation_supported(),
+            energy_service_list=offered_energy_services,
+            vas_list=offered_vas,
+        )
+
+        self.create_next_message(
+            None,
+            service_discovery_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
+        )
+
+        self.expecting_service_discovery_req = False
+
+    def get_vas_list(
+        self, supported_service_ids: ServiceIDList = None
+    ) -> Optional[ServiceList]:
+        """
+        Provides a list of value-added services (VAS) offered by the SECC. If the EVCC
+        provided a SupportedServiceIDs parameter with ServiceDiscoveryReq, then the
+        offered VAS list must not contain more services than the ones whose IDs are in
+        this list.
+
+        Args:
+            supported_service_ids: A list that contains all ServiceIDs that the EV
+                                   supports.
+
+        Returns:
+            A list of offered value-added services, or None, if none are offered.
+        """
+        return None
+
+
+class ServiceDetail(StateSECC):
+    """
+    The ISO 15118-20 state in which the SECC processes a
+    ServiceDetailReq from the EVCC.
+
+    The EVCC may send one of the following requests in this state:
+    1. ServiceDetailReq
+    2. ServiceSelectionReq
+    3. SessionStopReq
+
+    Upon first initialisation of this state, we expect a ServiceDetailReq
+    but after that, the next possible request could be a ServiceSelectionReq or a
+    SessionStopReq. This means that we need to remain in this state until we receive
+    the next message in the sequence.
+
+    As a result, the create_next_message() method is called with next_state = None.
+    """
+
+    def __init__(self, comm_session: SECCCommunicationSession):
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        self.expecting_service_detail_req = True
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v20(
+            message,
+            [ServiceDetailReq, ServiceSelectionReq, SessionStopReq],
+            # TODO Need to rethink this as we may also always expect a SessionStopReq,
+            #      but not always a ServiceSelectionReq. The expect_first parameter
+            #      doesn't work here as good as it does for ISO 15118-2
+            self.expecting_service_detail_req,
+        )
+        if not msg:
+            return
+
+        if isinstance(msg, ServiceSelectionReq):
+            ServiceSelection(self.comm_session).process_message(message)
+            return
+
+        if isinstance(msg, SessionStopReq):
+            SessionStop(self.comm_session).process_message(message)
+            return
+
+        service_detail_req: ServiceDetailReq = msg
+
+        service_parameter_list = (
+            self.comm_session.evse_controller.get_service_parameter_list(
+                service_detail_req.service_id
+            )
+        )
+        for offered_service in self.comm_session.offered_services_v20:
+            if offered_service.service.id == service_detail_req.service_id:
+                offered_service.parameter_sets = service_parameter_list.parameter_sets
+
+        service_detail_res = ServiceDetailRes(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id, timestamp=time.time()
+            ),
+            response_code=ResponseCode.OK,
+            service_id=service_detail_req.service_id,
+            service_parameter_list=service_parameter_list,
+        )
+
+        self.create_next_message(
+            None,
+            service_detail_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
+        )
+
+        self.expecting_service_detail_req = False
+
+
+class ServiceSelection(StateSECC):
+    """
+    The ISO 15118-20 state in which the SECC processes a
+    ServiceSelectionReq from the EVCC.
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
@@ -354,7 +589,271 @@ class ServiceDiscovery(StateSECC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("ServiceDiscovery not yet implemented")
+        msg = self.check_msg_v20(message, [ServiceSelectionReq, SessionStopReq], False)
+        if not msg:
+            return
+
+        if isinstance(msg, SessionStopReq):
+            SessionStop(self.comm_session).process_message(message)
+            return
+
+        service_selection_req: ServiceSelectionReq = msg
+
+        valid, reason, res_code = self.check_selected_services(service_selection_req)
+        if not valid:
+            self.stop_state_machine(reason, message, res_code)
+            return
+
+        energy_service_id = service_selection_req.selected_energy_service.service_id
+
+        if energy_service_id in (ServiceV20.AC.id, ServiceV20.AC_BPT.id):
+            next_state = ACChargeParameterDiscovery
+        elif energy_service_id in (ServiceV20.DC.id, ServiceV20.DC_BPT.id):
+            next_state = DCChargeParameterDiscovery
+        else:
+            # TODO Implement WPT and ACDP classes to create corresponding elif-branches
+            # TODO Check if the SECC offered the selected combination of service ID and
+            #      parameter set ID
+            self.stop_state_machine(
+                f"Selected energy transfer service ID '{energy_service_id}' invalid",
+                message,
+                ResponseCode.FAILED_SERVICE_SELECTION_INVALID,
+            )
+            return
+
+        service_selection_res = ServiceSelectionRes(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id, timestamp=time.time()
+            ),
+            response_code=ResponseCode.OK,
+        )
+
+        self.create_next_message(
+            next_state,
+            service_selection_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
+        )
+
+    def check_selected_services(
+        self, service_req: ServiceSelectionReq
+    ) -> Tuple[bool, str, Optional[ResponseCode]]:
+        """
+        Checks whether the energy transfer service and value-added services, which the
+        EVCC selected, were offered by the SECC in the previous ServiceDiscoveryRes.
+
+        Args:
+            service_req: The EVCC's ServiceSelectionReq message
+
+        Returns:
+            A tuple containing the following information:
+            1. True, if check passed, False otherwise
+            2. If False, the reason for not passing (empty if passed)
+            3. The corresponding negative response code
+        """
+        req_energy_service: SelectedService = service_req.selected_energy_service
+        req_vas_list: SelectedServiceList = service_req.selected_vas_list
+
+        # Create a list of tuples, with each tuple containing the service ID and the
+        # associated parameter set IDs of an offered service.
+        offered_id_pairs: List[(int, int)] = []
+        for offered_service in self.comm_session.offered_services_v20:
+            for parameter_set in offered_service.parameter_sets:
+                offered_id_pairs.append((offered_service.service.id, parameter_set.id))
+
+        # Let's first check if the (service ID, parameter set ID)-pair of the selected
+        # energy service is valid
+        if (
+            req_energy_service.service_id,
+            req_energy_service.parameter_set_id,
+        ) not in offered_id_pairs:
+            return (
+                False,
+                "Invalid selected pair of energy transfer service ID "
+                f"'{req_energy_service.service_id}' and parameter set ID "
+                f"'{req_energy_service.parameter_set_id}' (not offered by SECC)",
+                ResponseCode.FAILED_NO_ENERGY_TRANSFER_SERVICE_SELECTED,
+            )
+
+        # Let's check if the (service ID, parameter set ID)-pair of all selected
+        # value-added services (VAS) are valid (if the EVCC selected any VAS)
+        if req_vas_list:
+            for vas in req_vas_list.selected_services:
+                if (vas.service_id, vas.parameter_set_id) not in offered_id_pairs:
+                    return (
+                        False,
+                        "Invalid selected pair of value-added service ID "
+                        f"'{vas.service_id}' and parameter set ID "
+                        f"'{vas.parameter_set_id}' (not offered by SECC)",
+                        ResponseCode.FAILED_SERVICE_SELECTION_INVALID,
+                    )
+
+        # If all selected services are valid, let's add the information about the
+        # parameter set (not just the ID) to each selected service
+        for offered_service in self.comm_session.offered_services_v20:
+            if req_energy_service.service_id == offered_service.service.id:
+                for parameter_set in offered_service.parameter_sets:
+                    if req_energy_service.parameter_set_id == parameter_set.id:
+                        self.comm_session.selected_energy_service = (
+                            SelectedEnergyService(
+                                service=ServiceV20.get_by_id(
+                                    req_energy_service.service_id
+                                ),
+                                is_free=offered_service.is_free,
+                                parameter_set=parameter_set,
+                            )
+                        )
+
+                        # Set the control mode for the comm_session object
+                        for param in parameter_set.parameters:
+                            if param.name == ParameterName.CONTROL_MODE:
+                                self.comm_session.control_mode = ControlMode(
+                                    param.int_value
+                                )
+
+                        break
+                continue
+
+            if req_vas_list:
+                for vas in req_vas_list.selected_services:
+                    if req_energy_service.service_id == offered_service.service.id:
+                        for parameter_set in offered_service.parameter_sets:
+                            if req_energy_service.parameter_set_id == parameter_set.id:
+                                self.comm_session.selected_vas_list_v20.append(
+                                    SelectedVAS(
+                                        service=ServiceV20.get_by_id(vas.service_id),
+                                        is_free=offered_service.is_free,
+                                        parameter_set=parameter_set,
+                                    )
+                                )
+                                break
+
+        # TODO Implement [V2G20-1956] and [V2G20-1644] (ServiceRenegotiationSupported)
+        # TODO Check for [V2G20-1985]
+
+        return True, "", None
+
+
+class ScheduleExchange(StateSECC):
+    """
+    The ISO 15118-20 state in which the SECC processes a
+    ScheduleExchangeReq from the EVCC.
+
+    The EVCC may send one of the following requests in this state:
+    1. ScheduleExchangeReq
+    2. DCCableCheckReq
+    3. PowerDeliveryReq
+    3. SessionStopReq
+
+    Upon first initialisation of this state, we expect a ScheduleExchangeReq
+    but after that, the next possible request could be another ScheduleExchangeReq,
+    a DCCableCheckReq, a PowerDeliveryReq or a SessionStopReq. This means that we need
+    to remain in this state until we receive the next message in the sequence.
+    """
+
+    def __init__(self, comm_session: SECCCommunicationSession):
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v20(
+            message,
+            [ScheduleExchangeReq, DCCableCheckReq, PowerDeliveryReq, SessionStopReq],
+            False,
+        )
+        if not msg:
+            return
+
+        if isinstance(msg, DCCableCheckReq):
+            DCCableCheck(self.comm_session).process_message(message)
+            return
+
+        if isinstance(msg, PowerDeliveryReq):
+            PowerDelivery(self.comm_session).process_message(message)
+            return
+
+        if isinstance(msg, SessionStopReq):
+            SessionStop(self.comm_session).process_message(message)
+            return
+
+        schedule_exchange_req: ScheduleExchangeReq = msg
+
+        scheduled_params, dynamic_params = None, None
+        evse_processing = Processing.ONGOING
+        if self.comm_session.control_mode == ControlMode.SCHEDULED:
+            scheduled_params = (
+                self.comm_session.evse_controller.get_scheduled_se_params(
+                    self.comm_session.selected_energy_service, schedule_exchange_req
+                )
+            )
+            if scheduled_params:
+                evse_processing = Processing.FINISHED
+
+        if self.comm_session.control_mode == ControlMode.DYNAMIC:
+            dynamic_params = self.comm_session.evse_controller.get_dynamic_se_params(
+                self.comm_session.selected_energy_service, schedule_exchange_req
+            )
+            if dynamic_params:
+                evse_processing = Processing.FINISHED
+
+        schedule_exchange_res = ScheduleExchangeRes(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id, timestamp=time.time()
+            ),
+            response_code=ResponseCode.OK,
+            evse_processing=evse_processing,
+            scheduled_params=scheduled_params,
+            dynamic_params=dynamic_params,
+        )
+
+        # We don't know what request will come next (which state to transition to),
+        # unless the schedule parameters are ready and we're in AC charging.
+        # Even in DC charging the sequence is not 100% clear as the EVCC could skip
+        # DCCableCheck and DCPreCharge and go straight to PowerDelivery (Pause, Standby)
+        next_state = None
+        if (
+            evse_processing == Processing.FINISHED
+            and self.comm_session.selected_energy_service.service
+            in (ServiceV20.AC, ServiceV20.AC_BPT)
+        ):
+            next_state = PowerDelivery
+
+        self.create_next_message(
+            next_state,
+            schedule_exchange_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.SCHEDULE_RENEGOTIATION,
+        )
+
+
+class PowerDelivery(StateSECC):
+    """
+    The ISO 15118-20 state in which the SECC processes a
+    PowerDeliveryReq from the EVCC.
+    """
+
+    def __init__(self, comm_session: SECCCommunicationSession):
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        raise NotImplementedError("PowerDelivery not yet implemented")
 
 
 class SessionStop(StateSECC):
@@ -383,6 +882,212 @@ class SessionStop(StateSECC):
 # ============================================================================
 
 
+class ACChargeParameterDiscovery(StateSECC):
+    """
+    The ISO 15118-20 state in which the SECC processes an
+    ACChargeParameterDiscoveryReq from the EVCC.
+    """
+
+    def __init__(self, comm_session: SECCCommunicationSession):
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        raise NotImplementedError("ACChargeParameterDiscovery not yet implemented")
+
+
+class ACChargeLoop(StateSECC):
+    """
+    The ISO 15118-20 state in which the SECC processes an
+    ACChargeLoopReq from the EVCC.
+    """
+
+    def __init__(self, comm_session: SECCCommunicationSession):
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        raise NotImplementedError("ACChargeLoop not yet implemented")
+
+
 # ============================================================================
 # |                DC-SPECIFIC EVCC STATES - ISO 15118-20                    |
 # ============================================================================
+
+
+class DCChargeParameterDiscovery(StateSECC):
+    """
+    The ISO 15118-20 state in which the SECC processes a
+    DCChargeParameterDiscoveryReq from the EVCC.
+    """
+
+    def __init__(self, comm_session: SECCCommunicationSession):
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v20(
+            message, [DCChargeParameterDiscoveryReq, SessionStopReq], False
+        )
+        if not msg:
+            return
+
+        if isinstance(msg, SessionStopReq):
+            SessionStop(self.comm_session).process_message(message)
+            return
+
+        dc_cpd_req: DCChargeParameterDiscoveryReq = msg
+
+        charge_params = self.comm_session.evse_controller.get_charge_params_v20(
+            self.comm_session.selected_energy_service
+        )
+
+        energy_service = self.comm_session.selected_energy_service.service
+        dc_params, bpt_dc_params = None, None
+
+        if energy_service == ServiceV20.DC and self.charge_parameter_valid(
+            dc_cpd_req.dc_params
+        ):
+            dc_params = charge_params
+        elif energy_service == ServiceV20.DC_BPT and self.charge_parameter_valid(
+            dc_cpd_req.bpt_dc_params
+        ):
+            bpt_dc_params = charge_params
+        else:
+            self.stop_state_machine(
+                f"Invalid charge parameter for service {energy_service}",
+                message,
+                ResponseCode.FAILED_WRONG_CHARGE_PARAMETER,
+            )
+            return
+
+        dc_cpd_res = DCChargeParameterDiscoveryRes(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id, timestamp=time.time()
+            ),
+            response_code=ResponseCode.OK,
+            dc_params=dc_params,
+            bpt_dc_params=bpt_dc_params,
+        )
+
+        self.create_next_message(
+            ScheduleExchange,
+            dc_cpd_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_DC,
+            ISOV20PayloadTypes.DC_MAINSTREAM,
+        )
+
+    def charge_parameter_valid(
+        self,
+        dc_charge_params: Union[
+            DCChargeParameterDiscoveryReqParams, BPTDCChargeParameterDiscoveryReqParams
+        ],
+    ) -> bool:
+        # TODO Implement [V2G20-2272] (FAILED_WrongChargeParameter)
+        return True
+
+
+class DCCableCheck(StateSECC):
+    """
+    The ISO 15118-20 state in which the SECC processes a
+    DCCableCheckReq from the EVCC.
+    """
+
+    def __init__(self, comm_session: SECCCommunicationSession):
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        raise NotImplementedError("DCCableCheck not yet implemented")
+
+
+class DCPreCharge(StateSECC):
+    """
+    The ISO 15118-20 state in which the SECC processes a
+    DCPreChargeReq from the EVCC.
+    """
+
+    def __init__(self, comm_session: SECCCommunicationSession):
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        raise NotImplementedError("DCPreCharge not yet implemented")
+
+
+class DCChargeLoop(StateSECC):
+    """
+    The ISO 15118-20 state in which the SECC processes a
+    DCChargeLoopReq from the EVCC.
+    """
+
+    def __init__(self, comm_session: SECCCommunicationSession):
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        raise NotImplementedError("DCChargeLoop not yet implemented")
+
+
+class DCWeldingDetection(StateSECC):
+    """
+    The ISO 15118-20 state in which the SECC processes a
+    DCWeldingDetectionReq from the EVCC.
+    """
+
+    def __init__(self, comm_session: SECCCommunicationSession):
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        raise NotImplementedError("DCWeldingDetection not yet implemented")

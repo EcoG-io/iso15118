@@ -14,23 +14,21 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolRes,
 )
 from iso15118.shared.messages.enums import Namespace
-from iso15118.shared.messages.iso15118_2.body import BodyBase
 from iso15118.shared.messages.iso15118_2.body import (
+    BodyBase,
+    get_msg_type,
     SessionSetupReq as SessionSetupReqV2,
 )
-from iso15118.shared.messages.iso15118_2.body import get_msg_type
 from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode as ResponseCodeV2
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionSetupReq as SessionSetupReqV20,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
+    V2GRequest,
+    V2GMessage as V2GMessageV20,
     ResponseCode as ResponseCodeV20,
 )
-from iso15118.shared.messages.iso15118_20.common_types import (
-    V2GMessage as V2GMessageV20,
-)
-from iso15118.shared.messages.iso15118_20.common_types import V2GRequest
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
 
@@ -257,11 +255,13 @@ class StateSECC(State, ABC):
             error_res.response_code = response_code
             self.create_next_message(Terminate, error_res, 0, Namespace.ISO_V2_MSG_DEF)
         elif isinstance(faulty_request, V2GRequest):
-            error_res, namespace = self.comm_session.failed_responses_isov20.get(
-                type(faulty_request)
-            )
+            (
+                error_res,
+                namespace,
+                payload_type,
+            ) = self.comm_session.failed_responses_isov20.get(type(faulty_request))
             error_res.response_code = response_code
-            self.create_next_message(Terminate, error_res, 0, namespace)
+            self.create_next_message(Terminate, error_res, 0, namespace, payload_type)
         elif isinstance(faulty_request, SupportedAppProtocolReq):
             error_res = SupportedAppProtocolRes(response_code=response_code)
 

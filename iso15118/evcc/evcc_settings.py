@@ -8,7 +8,7 @@ from marshmallow.validate import Range
 
 from iso15118.evcc.controller.interface import EVControllerInterface
 from iso15118.evcc.controller.simulator import SimEVController
-from iso15118.shared.messages.enums import Protocol
+from iso15118.shared.messages.enums import Protocol, INT_16_MAX
 from iso15118.shared.network import validate_nic
 
 logger = logging.getLogger(__name__)
@@ -26,12 +26,14 @@ class Config:
     use_tls: bool = True
     enforce_tls: bool = False
     supported_protocols: Optional[List[Protocol]] = None
-
+    max_supporting_points: Optional[int] = None
+    
     def load_envs(self, env_path: Optional[str] = None) -> None:
         """
         Tries to load the .env file containing all the project settings.
         If `env_path` is not specified, it will get the .env on the current
         working directory of the project
+
         Args:
             env_path (str): Absolute path to the location of the .env file
         """
@@ -50,8 +52,8 @@ class Config:
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
 
-        # Choose the EVController implementation. Must be the class name of the
-        # controller that implements the EVControllerInterface
+        # The EVController implementation. Must be the class name of the controller
+        # that implements the EVControllerInterface
         self.ev_controller = EVControllerInterface
         if env.bool("EVCC_CONTROLLER_SIM", default=False):
             self.ev_controller = SimEVController
@@ -67,7 +69,7 @@ class Config:
         # the EV can store. That value is used in the CertificateInstallationReq.
         # Must be an integer between 0 and 65535, should be bigger than 0.
         self.max_contract_certs = env.int(
-            "MAX_CONTRACT_CERTS", default=3, validate=Range(min=1, max=65535)
+            "MAX_CONTRACT_CERTS", default=3, validate=Range(min=1, max=INT_16_MAX)
         )
 
         # Indicates the security level (either TCP (unencrypted) or TLS (encrypted))
@@ -88,6 +90,14 @@ class Config:
         # has higher priority than second list entry). A list entry must be a member
         # of the Protocol enum
         self.supported_protocols = [Protocol.ISO_15118_2, Protocol.ISO_15118_20_AC]
+
+        # Indicates the maximum number of entries the EVCC supports within the
+        # sub-elements of a ScheduleTuple (e.g. PowerScheduleType and PriceRuleType in
+        # ISO 15118-20 as well as PMaxSchedule and SalesTariff in ISO 15118-2).
+        # The SECC must not transmit more entries than defined in this parameter.
+        self.max_supporting_points = env.int(
+            "MAX_SUPPORTING_POINTS", default=1024, validate=Range(min=0, max=1024)
+        )
 
         env.seal()  # raise all errors at once, if any
 

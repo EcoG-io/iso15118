@@ -39,6 +39,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfo
 from iso15118.shared.messages.iso15118_2.datatypes import (
     SAScheduleTupleEntry,
     ServiceDetails,
+    Service,
 )
 from iso15118.shared.messages.sdp import SDPRequest, Security, create_sdp_response
 from iso15118.shared.messages.timeouts import Timeouts
@@ -82,6 +83,9 @@ class SECCCommunicationSession(V2GCommunicationSession):
         # The authorization option (called PaymentOption in ISO 15118-2) the
         # EVCC selected with the PaymentServiceSelectionReq
         self.selected_auth_option: Optional[AuthEnum] = None
+        # The generated challenge sent in PaymentDetailsRes. Its copy is expected in
+        # AuthorizationReq (applies to Plug & Charge identification mode only)
+        self.gen_challenge: bytes = bytes(0)
         # In ISO 15118-2, the EVCCID is the MAC address, given as bytes.
         # In ISO 15118-20, the EVCCID is like a VIN number, given as str.
         self.evcc_id: Union[bytes, str, None] = None

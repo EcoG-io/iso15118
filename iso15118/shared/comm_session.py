@@ -25,12 +25,24 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import Namespace, Protocol
+from iso15118.shared.messages.enums import (
+    Namespace,
+    Protocol,
+    DINPayloadTypes,
+    ISOV2PayloadTypes,
+    ISOV20PayloadTypes,
+    ControlMode,
+)
 from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
     SelectedService as SelectedServiceV2,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    OfferedService as OfferedServiceV20,
+    SelectedEnergyService,
+    SelectedVAS,
+)
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
@@ -95,7 +107,10 @@ class SessionStateMachine(ABC):
         self.comm_session = comm_session
         self.current_state = start_state(comm_session)
 
-    def get_exi_ns(self) -> str:
+    def get_exi_ns(
+        self,
+        payload_type: Union[DINPayloadTypes, ISOV2PayloadTypes, ISOV20PayloadTypes],
+    ) -> str:
         """
         Provides the right protocol namespace for the EXI decoder.
         In DIN SPEC 70121 and ISO 15118-2, all messages are defined
@@ -114,13 +129,25 @@ class SessionStateMachine(ABC):
             return Namespace.ISO_V2_MSG_DEF
         elif self.comm_session.protocol == Protocol.DIN_SPEC_70121:
             return Namespace.DIN_MSG_BODY
-        elif str(self.current_state).startswith("AC"):
+        elif (
+            self.comm_session.protocol.ns.startswith(Namespace.ISO_V20_BASE)
+            and payload_type.value == ISOV20PayloadTypes.AC_MAINSTREAM
+        ):
             return Namespace.ISO_V20_AC
-        elif str(self.current_state).startswith("DC"):
+        elif (
+            self.comm_session.protocol.ns.startswith(Namespace.ISO_V20_BASE)
+            and payload_type.value == ISOV20PayloadTypes.DC_MAINSTREAM
+        ):
             return Namespace.ISO_V20_DC
-        elif str(self.current_state).startswith("WPT"):
+        elif (
+            self.comm_session.protocol.ns.startswith(Namespace.ISO_V20_BASE)
+            and payload_type.value == ISOV20PayloadTypes.WPT_MAINSTREAM
+        ):
             return Namespace.ISO_V20_WPT
-        elif str(self.current_state).startswith("ACDP"):
+        elif (
+            self.comm_session.protocol.ns.startswith(Namespace.ISO_V20_BASE)
+            and payload_type.value == ISOV20PayloadTypes.ACDP_MAINSTREAM
+        ):
             return Namespace.ISO_V20_ACDP
         else:
             return Namespace.ISO_V20_COMMON_MSG
@@ -176,7 +203,9 @@ class SessionStateMachine(ABC):
             None,
         ] = None
         try:
-            decoded_message = from_exi(v2gtp_msg.payload, self.get_exi_ns())
+            decoded_message = from_exi(
+                v2gtp_msg.payload, self.get_exi_ns(v2gtp_msg.payload_type)
+            )
         except EXIDecodingError as exc:
             logger.exception(f"{exc}")
             raise exc
@@ -275,12 +304,24 @@ class V2GCommunicationSession(SessionStateMachine):
         self.session_id: str = ""
         # Mutually agreed-upon ISO 15118 application protocol as result of SAP
         self.chosen_protocol: str = ""
-        # The services offered by the SECC and selected by the EVCC
-        self.selected_services: List[SelectedServiceV2] = []
-        # Selected energy modes helps to choose AC or DC specific parameters
+        # Whether the SECC supports service renegotiation (ISO 15118-20)
+        self.service_renegotiation_supported: bool = False
+        # The services which the SECC offers (ISO 15118-20)
+        self.offered_services_v20: List[OfferedServiceV20] = []
+        # The value-added services which the EVCC selected (ISO 15118-20)
+        self.selected_vas_list_v20: List[SelectedVAS] = []
+        # The value-added services which the EVCC selected (ISO 15118-2)
+        self.selected_vas_list_v2: List[SelectedServiceV2] = []
+        # The energy service the EVCC selected (ISO 15118-20)
+        self.selected_energy_service: Optional[SelectedEnergyService] = None
+        # The energy mode the EVCC selected (ISO 15118-2)
         self.selected_energy_mode: Optional[EnergyTransferModeEnum] = None
         # The SAScheduleTuple element the EVCC chose (referenced by ID)
         self.selected_schedule: Optional[int] = None
+        # The control mode used for this session (Scheduled or Dynamic). In ISO 15118-2,
+        # there is only Scheduled, in -20 we have both and need to choose certain
+        # datatypes of messages based on which control mode was chosen
+        self.control_mode: Optional[ControlMode] = None
         # Contains info whether the communication session is stopped successfully (True)
         # or due to a failure (False), plus additional info regarding the reason behind.
         self.stop_reason: Optional[StopNotification] = None

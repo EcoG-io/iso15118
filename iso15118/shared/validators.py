@@ -8,7 +8,10 @@ from typing import List
 
 
 def validate_bytes_value_range(
-    var_name: str, var_bytes: bytes, min_val: int, max_val: int
+        var_name: str,
+        var_bytes: bytes,
+        min_val: int,
+        max_val: int
 ) -> bool:
     """
     Checks whether the provided integer value represented with the bytes object
@@ -57,8 +60,10 @@ def one_field_must_be_set(
     """
     set_fields: List = []
     for field_name in field_options:
-        field = values.get(field_name)
-        if field:
+        field = values.get(f"{field_name}")
+        # Important to not check for "if field" instead of "if field is not None" to
+        # avoid situations in which field evaluates to 0 (which equals to False)
+        if field is not None:
             set_fields.append(field)
 
     if mutually_exclusive and len(set_fields) != 1:

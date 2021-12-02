@@ -1,8 +1,9 @@
 import base64
 import json
 import logging
-from base64 import b64decode, b64encode
-from typing import Union
+
+from json import JSONDecodeError
+from typing import Union, List
 
 from pydantic import ValidationError
 
@@ -15,8 +16,22 @@ from iso15118.shared.messages.app_protocol import (
 )
 from iso15118.shared.messages.enums import Namespace
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeParameterDiscoveryReq,
+    ACChargeParameterDiscoveryRes,
+)
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq as AuthorizationReqV20,
+    ServiceDetailReq,
+    ServiceDetailRes,
+    ServiceSelectionReq,
+    ServiceSelectionRes,
+    ScheduleExchangeReq,
+    ScheduleExchangeRes,
+    PowerDeliveryReq,
+    PowerDeliveryRes,
+    SessionStopReq,
+    SessionStopRes,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationRes,
@@ -31,6 +46,18 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
+)
+from iso15118.shared.messages.iso15118_20.dc import (
+    DCChargeParameterDiscoveryReq,
+    DCChargeParameterDiscoveryRes,
+    DCChargeLoopReq,
+    DCChargeLoopRes,
+    DCCableCheckReq,
+    DCCableCheckRes,
+    DCPreChargeReq,
+    DCPreChargeRes,
+    DCWeldingDetectionReq,
+    DCWeldingDetectionRes,
 )
 from iso15118.shared.messages.xmldsig import SignedInfo
 from iso15118.shared.settings import MESSAGE_LOG_EXI, MESSAGE_LOG_JSON
@@ -273,13 +300,34 @@ def from_exi(
                 "SessionSetupRes": SessionSetupRes,
                 "AuthorizationSetupReq": AuthorizationSetupReq,
                 "AuthorizationSetupRes": AuthorizationSetupRes,
+                "CertificateInstallationReq": CertificateInstallationReq,
+                "CertificateInstallationRes": CertificateInstallationRes,
                 "AuthorizationReq": AuthorizationReqV20,
                 "AuthorizationRes": AuthorizationRes,
                 "ServiceDiscoveryReq": ServiceDiscoveryReq,
                 "ServiceDiscoveryRes": ServiceDiscoveryRes,
-                "CertificateInstallationReq": CertificateInstallationReq,
-                "CertificateInstallationRes": CertificateInstallationRes,
-                # TODO add all the other message types and states
+                "ServiceDetailReq": ServiceDetailReq,
+                "ServiceDetailRes": ServiceDetailRes,
+                "ServiceSelectionReq": ServiceSelectionReq,
+                "ServiceSelectionRes": ServiceSelectionRes,
+                "AC_ChargeParameterDiscoveryReq": ACChargeParameterDiscoveryReq,
+                "AC_ChargeParameterDiscoveryRes": ACChargeParameterDiscoveryRes,
+                "DC_ChargeParameterDiscoveryReq": DCChargeParameterDiscoveryReq,
+                "DC_ChargeParameterDiscoveryRes": DCChargeParameterDiscoveryRes,
+                "ScheduleExchangeReq": ScheduleExchangeReq,
+                "ScheduleExchangeRes": ScheduleExchangeRes,
+                "DC_CableCheckReq": DCCableCheckReq,
+                "DC_CableCheckRes": DCCableCheckRes,
+                "DC_PreChargeReq": DCPreChargeReq,
+                "DC_PreChargeRes": DCPreChargeRes,
+                "PowerDeliveryReq": PowerDeliveryReq,
+                "PowerDeliveryRes": PowerDeliveryRes,
+                "DC_ChargeLoopReq": DCChargeLoopReq,
+                "DC_ChargeLoopRes": DCChargeLoopRes,
+                "DC_WeldingDetectionReq": DCWeldingDetectionReq,
+                "DC_WeldingDetectionRes": DCWeldingDetectionRes,
+                "SessionStopReq": SessionStopReq,
+                "SessionStopRes": SessionStopRes,
             }
             msg_class = msg_classes_dict.get(msg_name)
             if not msg_class:
@@ -293,7 +341,9 @@ def from_exi(
 
         # TODO Add support for DIN SPEC 70121
 
-        raise EXIDecodingError("Can't identify protocol to use for decoding")
+        raise EXIDecodingError(
+            "EXI decoding error: can't identify protocol to use for decoding"
+        )
     except ValidationError as exc:
         raise EXIDecodingError(
             f"Error parsing the decoded EXI into a Pydantic class: {exc}. "

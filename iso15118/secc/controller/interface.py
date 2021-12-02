@@ -13,15 +13,29 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
     EnergyTransferModeEnum,
-)
-from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
-from iso15118.shared.messages.iso15118_2.datatypes import (
     PVEVSEPresentCurrent,
     PVEVSEPresentVoltage,
     SAScheduleTupleEntry,
+    MeterInfo as MeterInfoV2
 )
-from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeParameterDiscoveryResParams,
+    BPTACChargeParameterDiscoveryResParams,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    ProviderID,
+    ServiceList,
+    ServiceParameterList,
+    SelectedEnergyService,
+    ScheduledScheduleExchangeResParams,
+    DynamicScheduleExchangeResParams,
+    ScheduleExchangeReq,
+)
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
+from iso15118.shared.messages.iso15118_20.dc import (
+    DCChargeParameterDiscoveryResParams,
+    BPTDCChargeParameterDiscoveryResParams,
+)
 
 
 class EVSEControllerInterface(ABC):
@@ -46,11 +60,100 @@ class EVSEControllerInterface(ABC):
     @abstractmethod
     def get_supported_energy_transfer_modes(self) -> List[EnergyTransferModeEnum]:
         """
-        The MQTT interface needs to provide the information on the available energy
-        transfer modes, which depends on the socket the EV is connected to
+        The available energy transfer modes, which depends on the socket the EV is
+        connected to.
 
         Relevant for:
         - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_charge_params_v20(
+        self, selected_service: SelectedEnergyService
+    ) -> Union[
+        ACChargeParameterDiscoveryResParams,
+        BPTACChargeParameterDiscoveryResParams,
+        DCChargeParameterDiscoveryResParams,
+        BPTDCChargeParameterDiscoveryResParams,
+    ]:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryReq.
+
+        Args:
+            selected_service: The energy transfer service, which the EVCC selected, and
+                              for which we need the SECC's charge parameters
+
+        Returns:
+            Charge parameters for either unidirectional or bi-directional power
+            transfer needed for a ChargeParameterDiscoveryRes.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_scheduled_se_params(
+        self,
+        selected_energy_service: SelectedEnergyService,
+        schedule_exchange_req: ScheduleExchangeReq,
+    ) -> Optional[ScheduledScheduleExchangeResParams]:
+        """
+        Gets the parameters for a ScheduleExchangeResponse, which correspond to the
+        Scheduled control mode. If the parameters are not yet ready when requested,
+        return None.
+
+        Args:
+            selected_energy_service: The energy services, which the EVCC selected.
+                                     The selected parameter set, that is associated
+                                     with that energy service, influences the
+                                     parameters for the ScheduleExchangeRes
+            schedule_exchange_req: The ScheduleExchangeReq, whose parameters influence
+                                   the parameters for the ScheduleExchangeRes
+
+        Returns:
+            Parameters for the ScheduleExchangeRes in Scheduled control mode, if
+            readily available. If you're still waiting for all parameters, return None.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+
+    @abstractmethod
+    def get_dynamic_se_params(
+        self,
+        selected_energy_service: SelectedEnergyService,
+        schedule_exchange_req: ScheduleExchangeReq,
+    ) -> Optional[DynamicScheduleExchangeResParams]:
+        """
+        Gets the parameters for a ScheduleExchangeResponse, which correspond to the
+        Dynamic control mode. If the parameters are not yet ready when requested,
+        return None.
+
+        Args:
+            selected_energy_service: The energy services, which the EVCC selected.
+                                     The selected parameter set, that is associated
+                                     with that energy service, influences the
+                                     parameters for the ScheduleExchangeRes
+            schedule_exchange_req: The ScheduleExchangeReq, whose parameters influence
+                                   the parameters for the ScheduleExchangeRes
+
+        Returns:
+            Parameters for the ScheduleExchangeRes in Dynamic control mode, if
+            readily available. If you're still waiting for all parameters, return None.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+
+    @abstractmethod
+    def get_energy_service_list(self) -> ServiceList:
+        """
+        The available energy transfer services
+
+        Relevant for:
+        - ISO 15118-20
         """
         raise NotImplementedError
 
@@ -71,7 +174,9 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     def get_sa_schedule_list(
-        self, max_schedule_entries: Optional[int], departure_time: int = 0
+        self,
+        max_schedule_entries: Optional[int],
+        departure_time: int = 0
     ) -> Optional[List[SAScheduleTupleEntry]]:
         """
         Requests the charging schedule from a secondary actor (SA) like a
@@ -126,6 +231,27 @@ class EVSEControllerInterface(ABC):
         Provides a list of eMSPs (E-Mobility Service Providers) supported by the SECC.
         This allows EVCC to filter the list of contract certificates to be utilized
         during the authorization.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def service_renegotiation_supported(self) -> bool:
+        """
+        Whether or not service renegotiation is supported
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_service_parameter_list(self, service_id: int) -> ServiceParameterList:
+        """
+        Provides a list of parameters for a specific service ID for which the EVCC
+        requests additional information
 
         Relevant for:
         - ISO 15118-20

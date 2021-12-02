@@ -28,7 +28,37 @@ from iso15118.shared.messages.iso15118_20.ac import (
     BPTACChargeParameterDiscoveryReqParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import EMAIDList
+from iso15118.shared.messages.enums import (
+    Namespace,
+    Protocol,
+    ServiceV20,
+    PriceAlgorithm,
+)
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeParameterDiscoveryReqParams,
+    BPTACChargeParameterDiscoveryReqParams,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    EMAID,
+    ParameterSet as ParameterSetV20,
+    ScheduledScheduleExchangeReqParams,
+    DynamicScheduleExchangeReqParams,
+    EVEnergyOffer,
+    EVPowerSchedule,
+    EVPowerScheduleEntryList,
+    EVAbsolutePriceSchedule,
+    EVPowerScheduleEntry,
+    EVPriceRuleStackList,
+    EVPriceRuleStack,
+    EVPriceRule,
+    SelectedEnergyService,
+    SelectedVAS,
+)
 from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
+from iso15118.shared.messages.iso15118_20.dc import (
+    DCChargeParameterDiscoveryReqParams,
+    BPTDCChargeParameterDiscoveryReqParams,
+)
 from iso15118.shared.network import get_nic_mac_address
 
 logger = logging.getLogger(__name__)
@@ -42,6 +72,11 @@ class SimEVController(EVControllerInterface):
     def __init__(self):
         self.charging_loop_cycles: int = 0
 
+    # ============================================================================
+    # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
+    # ============================================================================
+
+    def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
 
@@ -67,6 +102,32 @@ class SimEVController(EVControllerInterface):
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
         return EnergyTransferModeEnum.AC_THREE_PHASE_CORE
 
+    def get_energy_service(self) -> ServiceV20:
+        """Overrides EVControllerInterface.get_energy_transfer_service()."""
+        return ServiceV20.DC
+
+    def select_energy_service_v20(
+        self, service: ServiceV20, is_free: bool, parameter_sets: List[ParameterSetV20]
+    ) -> SelectedEnergyService:
+        """Overrides EVControllerInterface.select_energy_service_v20()."""
+        selected_service = SelectedEnergyService(
+            service=ServiceV20.get_by_id(service.service_id),
+            is_free=is_free,
+            parameter_set=parameter_sets.pop(),
+        )
+        return selected_service
+
+    def select_vas_v20(
+        self, service: ServiceV20, is_free: bool, parameter_sets: List[ParameterSetV20]
+    ) -> Optional[SelectedVAS]:
+        """Overrides EVControllerInterface.select_vas_v20()."""
+        selected_service = SelectedVAS(
+            service=ServiceV20.get_by_id(service.service_id),
+            is_free=is_free,
+            parameter_set=parameter_sets.pop(),
+        )
+        return selected_service
+
     def get_charge_params_v2(self) -> ChargeParamsV2:
         """Overrides EVControllerInterface.get_charge_params_v2()."""
         # This is for simulating AC only. You can modify to simulate DC charging
@@ -88,30 +149,125 @@ class SimEVController(EVControllerInterface):
         return ChargeParamsV2(self.get_energy_transfer_mode(), ac_charge_params, None)
 
     def get_charge_params_v20(
-        self,
-    ) -> Tuple[
+        self, selected_service: SelectedEnergyService
+    ) -> Union[
         ACChargeParameterDiscoveryReqParams,
-        Optional[BPTACChargeParameterDiscoveryReqParams],
+        BPTACChargeParameterDiscoveryReqParams,
+        DCChargeParameterDiscoveryReqParams,
+        BPTDCChargeParameterDiscoveryReqParams,
     ]:
         """Overrides EVControllerInterface.get_charge_params_v20()."""
-        ac_params = ACChargeParameterDiscoveryReqParams(
-            ev_max_charge_power=RationalNumber(exponent=1, value=11),
-            ev_min_charge_power=RationalNumber(exponent=0, value=10),
+        if selected_service.service == ServiceV20.AC:
+            return ACChargeParameterDiscoveryReqParams(
+                ev_max_charge_power=RationalNumber(exponent=3, value=11),
+                ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            )
+        elif selected_service.service == ServiceV20.AC_BPT:
+            return BPTACChargeParameterDiscoveryReqParams(
+                ev_max_charge_power=RationalNumber(exponent=3, value=11),
+                ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                ev_max_discharge_power=RationalNumber(exponent=3, value=11),
+                ev_min_discharge_power=RationalNumber(exponent=0, value=100),
+            )
+        elif selected_service.service == ServiceV20.DC:
+            return DCChargeParameterDiscoveryReqParams(
+                ev_max_charge_power=RationalNumber(exponent=3, value=300),
+                ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                ev_max_charge_current=RationalNumber(exponent=0, value=300),
+                ev_min_charge_current=RationalNumber(exponent=0, value=10),
+                ev_max_voltage=RationalNumber(exponent=0, value=1000),
+                ev_min_voltage=RationalNumber(exponent=0, value=10),
+            )
+        elif selected_service.service == ServiceV20.DC_BPT:
+            return BPTDCChargeParameterDiscoveryReqParams(
+                ev_max_charge_power=RationalNumber(exponent=3, value=300),
+                ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                ev_max_charge_current=RationalNumber(exponent=0, value=300),
+                ev_min_charge_current=RationalNumber(exponent=0, value=10),
+                ev_max_voltage=RationalNumber(exponent=0, value=1000),
+                ev_min_oltage=RationalNumber(exponent=0, value=10),
+                ev_max_discharge_power=RationalNumber(exponent=3, value=11),
+                ev_min_discharge_power=RationalNumber(exponent=3, value=1),
+                ev_max_discharge_current=RationalNumber(exponent=0, value=11),
+                ev_min_discharge_current=RationalNumber(exponent=0, value=0),
+            )
+        else:
+            # TODO Implement the remaining energy transer services
+            logger.error(
+                f"Energy transfer service {selected_service.service} not supported"
+            )
+
+    def get_scheduled_se_params(
+        self, selected_energy_service: SelectedEnergyService
+    ) -> ScheduledScheduleExchangeReqParams:
+        """Overrides EVControllerInterface.get_scheduled_se_params()."""
+        ev_price_rule = EVPriceRule(
+            energy_fee=RationalNumber(exponent=0, value=0),
+            power_range_start=RationalNumber(exponent=0, value=0),
         )
 
-        bpt_ac_params = BPTACChargeParameterDiscoveryReqParams(
-            ev_max_charge_power=RationalNumber(exponent=1, value=11),
-            ev_min_charge_power=RationalNumber(exponent=0, value=10),
-            ev_max_discharge_power=RationalNumber(exponent=1, value=11),
-            ev_min_discharge_power=RationalNumber(exponent=0, value=10),
+        ev_price_rule_stack = EVPriceRuleStack(
+            duration=0, ev_price_rules=[ev_price_rule]
         )
 
-        # TODO Add support for DC and WPT
-        return ac_params, bpt_ac_params
+        ev_price_rule_stack_list = EVPriceRuleStackList(
+            ev_price_rule_stacks=[ev_price_rule_stack]
+        )
+
+        ev_absolute_price_schedule = EVAbsolutePriceSchedule(
+            time_anchor=0,
+            currency="EUR",
+            price_algorithm=PriceAlgorithm.POWER,
+            ev_price_rule_stacks=ev_price_rule_stack_list,
+        )
+
+        ev_power_schedule_entry = EVPowerScheduleEntry(
+            duration=3600, power=RationalNumber(exponent=3, value=-10)
+        )
+
+        ev_power_schedule_entries = EVPowerScheduleEntryList(
+            ev_power_schedule_entries=[ev_power_schedule_entry]
+        )
+
+        ev_power_schedule = EVPowerSchedule(
+            time_anchor=0, ev_power_schedule_entries=ev_power_schedule_entries
+        )
+
+        energy_offer = EVEnergyOffer(
+            ev_power_schedule=ev_power_schedule,
+            ev_absolute_price_schedule=ev_absolute_price_schedule,
+        )
+
+        scheduled_params = ScheduledScheduleExchangeReqParams(
+            departure_time=7200,
+            ev_target_energy_request=RationalNumber(exponent=3, value=10),
+            ev_max_energy_request=RationalNumber(exponent=3, value=20),
+            ev_min_energy_request=RationalNumber(exponent=3, value=5),
+            energy_offer=energy_offer,
+        )
+
+        return scheduled_params
+
+    def get_dynamic_se_params(
+        self, selected_energy_service: SelectedEnergyService
+    ) -> DynamicScheduleExchangeReqParams:
+        """Overrides EVControllerInterface.get_dynamic_se_params()."""
+        dynamic_params = DynamicScheduleExchangeReqParams(
+            departure_time=7200,
+            min_soc=30,
+            target_soc=80,
+            ev_target_energy_request=RationalNumber(exponent=3, value=40),
+            ev_max_energy_request=RationalNumber(exponent=1, value=6000),
+            ev_min_energy_request=RationalNumber(exponent=0, value=20000),
+            ev_max_v2x_energy_request=RationalNumber(exponent=0, value=5000),
+            ev_min_v2x_energy_request=RationalNumber(exponent=0, value=0),
+        )
+
+        return dynamic_params
 
     def is_cert_install_needed(self) -> bool:
         """Overrides EVControllerInterface.is_cert_install_needed()."""
-        return True
+        return False
 
     def process_sa_schedules(
         self, sa_schedules: List[SAScheduleTupleEntry]
@@ -174,3 +330,11 @@ class SimEVController(EVControllerInterface):
 
     def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         return None
+
+    # ============================================================================
+    # |                          AC-SPECIFIC FUNCTIONS                           |
+    # ============================================================================
+
+    # ============================================================================
+    # |                          DC-SPECIFIC FUNCTIONS                           |
+    # ============================================================================
