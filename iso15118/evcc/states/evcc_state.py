@@ -3,19 +3,32 @@ This module contains the abstract class for an EVCC-specific state,
 which extends the state shared between the EVCC and SECC.
 """
 from abc import ABC
-from typing import Union, Type, TypeVar, Optional
+from typing import Optional, Type, TypeVar, Union
 
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.shared.exceptions import FaultyStateImplementationError
-from iso15118.shared.messages.app_protocol import SupportedAppProtocolReq, \
-    SupportedAppProtocolRes
+from iso15118.shared.messages.app_protocol import (
+    SupportedAppProtocolReq,
+    SupportedAppProtocolRes,
+)
+from iso15118.shared.messages.iso15118_2.body import BodyBase, Response
+from iso15118.shared.messages.iso15118_2.body import (
+    SessionSetupReq as SessionSetupReqV2,
+)
+from iso15118.shared.messages.iso15118_2.body import (
+    SessionSetupRes as SessionSetupResV2,
+)
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
-from iso15118.shared.messages.iso15118_2.body import BodyBase, Response, \
-    SessionSetupReq as SessionSetupReqV2, SessionSetupRes as SessionSetupResV2
-from iso15118.shared.messages.iso15118_20.common_messages import SessionSetupReq \
-    as SessionSetupReqV20, SessionSetupRes as SessionSetupResV20
-from iso15118.shared.messages.iso15118_20.common_types import \
-    V2GMessage as V2GMessageV20, V2GResponse
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    SessionSetupReq as SessionSetupReqV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    SessionSetupRes as SessionSetupResV20,
+)
+from iso15118.shared.messages.iso15118_20.common_types import (
+    V2GMessage as V2GMessageV20,
+)
+from iso15118.shared.messages.iso15118_20.common_types import V2GResponse
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
 
@@ -36,8 +49,9 @@ class StateEVCC(State, ABC):
     2.b If step 2 returns False, terminate the session with stop_evcc()
     """
 
-    def __init__(self, comm_session: 'EVCCCommunicationSession',
-                 timeout: Union[float, int] = 0):
+    def __init__(
+        self, comm_session: "EVCCCommunicationSession", timeout: Union[float, int] = 0
+    ):
         """
         Initialises a state to process a new message. Every state that inherits
         from State needs to implement __init__ and call super().__init__() with
@@ -55,38 +69,49 @@ class StateEVCC(State, ABC):
                             throughout the session.
         """
         super().__init__(comm_session, timeout)
-        self.comm_session: 'EVCCCommunicationSession' = comm_session
+        self.comm_session: "EVCCCommunicationSession" = comm_session
 
-    T = TypeVar('T')
+    T = TypeVar("T")
 
-    def check_msg_v2(self,
-                     message: Union[SupportedAppProtocolReq,
-                                    SupportedAppProtocolRes,
-                                    V2GMessageV2,
-                                    V2GMessageV20],
-                     expected_msg_type: Union[Type[SupportedAppProtocolRes],
-                                              Type[Response],
-                                              Type[V2GResponse]]) \
-            -> Optional[V2GMessageV2]:
+    def check_msg_v2(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+        expected_msg_type: Union[
+            Type[SupportedAppProtocolRes], Type[Response], Type[V2GResponse]
+        ],
+    ) -> Optional[V2GMessageV2]:
         return self.check_msg(message, V2GMessageV2, expected_msg_type)
 
-    def check_msg_v20(self,
-                      message: Union[SupportedAppProtocolReq,
-                                     SupportedAppProtocolRes,
-                                     V2GMessageV2,
-                                     V2GMessageV20],
-                      expected_msg_type: Type[T]) -> Optional[T]:
+    def check_msg_v20(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+        expected_msg_type: Type[T],
+    ) -> Optional[T]:
         return self.check_msg(message, expected_msg_type, expected_msg_type)
 
-    def check_msg(self,
-                  message: Union[SupportedAppProtocolReq,
-                                 SupportedAppProtocolRes,
-                                 V2GMessageV2,
-                                 V2GMessageV20],
-                  expected_return_type: Type[T],
-                  expected_msg_type: Union[Type[SupportedAppProtocolRes],
-                                           Type[Response],
-                                           Type[V2GResponse]]) -> Optional[T]:
+    def check_msg(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+        expected_return_type: Type[T],
+        expected_msg_type: Union[
+            Type[SupportedAppProtocolRes], Type[Response], Type[V2GResponse]
+        ],
+    ) -> Optional[T]:
         """
         This function is used to reduce code redundancy in the process_message()
         method of each EVCC state. The following checks are covered:
@@ -114,8 +139,9 @@ class StateEVCC(State, ABC):
         """
         # TODO Add support for DIN SPEC 70121
         if not isinstance(message, expected_return_type):
-            self.stop_state_machine(f"{type(message)}' not a valid message type "
-                                    f"in state {str(self)}")
+            self.stop_state_machine(
+                f"{type(message)}' not a valid message type " f"in state {str(self)}"
+            )
             return None
 
         msg_body: Union[SupportedAppProtocolRes, BodyBase, V2GResponse]
@@ -127,22 +153,30 @@ class StateEVCC(State, ABC):
             msg_body = message
 
         if not isinstance(msg_body, expected_msg_type):
-            self.stop_state_machine(f"{str(message)}' not accepted in state "
-                                    f"{str(self)}")
+            self.stop_state_machine(
+                f"{str(message)}' not accepted in state " f"{str(self)}"
+            )
             return None
 
         if "FAILED" in msg_body.response_code:
-            self.stop_state_machine(f"Negative response code {msg_body.response_code} "
-                                    f"received with message {str(message)}")
+            self.stop_state_machine(
+                f"Negative response code {msg_body.response_code} "
+                f"received with message {str(message)}"
+            )
             return None
 
-        if not isinstance(msg_body, (SupportedAppProtocolRes,
-                                     SessionSetupResV2,
-                                     SessionSetupResV20)) and \
-                not message.header.session_id == self.comm_session.session_id:
-            self.stop_state_machine(f"{str(message)}'s session ID "
-                                    f"{message.header.session_id} does not match "
-                                    f"session ID {self.comm_session.session_id}")
+        if (
+            not isinstance(
+                msg_body,
+                (SupportedAppProtocolRes, SessionSetupResV2, SessionSetupResV20),
+            )
+            and not message.header.session_id == self.comm_session.session_id
+        ):
+            self.stop_state_machine(
+                f"{str(message)}'s session ID "
+                f"{message.header.session_id} does not match "
+                f"session ID {self.comm_session.session_id}"
+            )
             return None
 
         return message
@@ -157,8 +191,7 @@ class StateEVCC(State, ABC):
                     to be terminated. Helpful for further debugging.
         """
         self.comm_session.stop_reason = StopNotification(
-            False,
-            reason,
-            self.comm_session.writer.get_extra_info('peername'))
+            False, reason, self.comm_session.writer.get_extra_info("peername")
+        )
 
         self.next_state = Terminate

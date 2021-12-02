@@ -6,80 +6,119 @@ SessionStopReq.
 
 import logging.config
 import time
-from typing import List, Type, Optional, Union
+from typing import List, Optional, Type, Union
 
-from iso15118.secc.secc_settings import (SUPPORTED_AUTH_OPTIONS,
-                                         FREE_CHARGING_SERVICE,
-                                         FREE_CERT_INSTALL_SERVICE,
-                                         ALLOW_CERT_INSTALL_SERVICE)
-from iso15118.shared.settings import LOGGER_CONF_PATH
-from iso15118.shared.exceptions import (CertSignatureError, CertNotYetValidError,
-                                        CertExpiredError, CertRevokedError,
-                                        CertAttributeError, CertChainLengthError,
-                                        EncryptionError, PrivateKeyReadError)
-from iso15118.shared.notifications import StopNotification
-from iso15118.shared.security import (verify_certs, verify_signature,
-                                      load_cert, create_signature,
-                                      get_cert_cn, get_random_bytes,
-                                      encrypt_priv_key, load_priv_key,
-                                      CertPath, KeyPath, KeyEncoding)
-from iso15118.shared.states import State, Terminate
+from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.secc.secc_settings import (
+    ALLOW_CERT_INSTALL_SERVICE,
+    FREE_CERT_INSTALL_SERVICE,
+    FREE_CHARGING_SERVICE,
+    SUPPORTED_AUTH_OPTIONS,
+)
+from iso15118.secc.states.secc_state import StateSECC
+from iso15118.shared.exceptions import (
+    CertAttributeError,
+    CertChainLengthError,
+    CertExpiredError,
+    CertNotYetValidError,
+    CertRevokedError,
+    CertSignatureError,
+    EncryptionError,
+    PrivateKeyReadError,
+)
 from iso15118.shared.exi_codec import to_exi
-from iso15118.shared.messages.app_protocol import SupportedAppProtocolReq, \
-    SupportedAppProtocolRes
+from iso15118.shared.messages.app_protocol import (
+    SupportedAppProtocolReq,
+    SupportedAppProtocolRes,
+)
 from iso15118.shared.messages.enums import AuthEnum, Namespace
+from iso15118.shared.messages.iso15118_2.body import (
+    EMAID,
+    AuthorizationReq,
+    AuthorizationRes,
+    BodyBase,
+    CableCheckReq,
+    CertificateInstallationReq,
+    CertificateInstallationRes,
+    ChargeParameterDiscoveryReq,
+    ChargeParameterDiscoveryRes,
+    ChargingStatusReq,
+    ChargingStatusRes,
+    CurrentDemandReq,
+    MeteringReceiptReq,
+    MeteringReceiptRes,
+    PaymentDetailsReq,
+    PaymentDetailsRes,
+    PaymentServiceSelectionReq,
+    PaymentServiceSelectionRes,
+    PowerDeliveryReq,
+    PowerDeliveryRes,
+    PreChargeReq,
+    ResponseCode,
+    ServiceDetailReq,
+    ServiceDetailRes,
+    ServiceDiscoveryReq,
+    ServiceDiscoveryRes,
+    SessionSetupReq,
+    SessionSetupRes,
+    SessionStopReq,
+    SessionStopRes,
+    WeldingDetectionReq,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    ACEVSEChargeParameter,
+    ACEVSEStatus,
+    AuthOptions,
+    Certificate,
+    CertificateChain,
+    ChargeProgress,
+    ChargeService,
+    ChargingSession,
+    DCEVSEChargeParameter,
+    DHPublicKey,
+    EncryptedPrivateKey,
+    EVSENotification,
+    EVSEProcessing,
+    Parameter,
+    ParameterSet,
+    Service,
+    ServiceCategory,
+    ServiceDetails,
+    ServiceID,
+    ServiceName,
+    ServiceParameterList,
+)
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
-from iso15118.shared.messages.iso15118_2.datatypes import AuthOptions, \
-    ChargeService, Service, ServiceDetails, ServiceName, ServiceCategory, \
-    ServiceID, ParameterSet, Parameter, \
-    ServiceParameterList, EVSEProcessing, ACEVSEChargeParameter, \
-    DCEVSEChargeParameter, ChargeProgress, CertificateChain, EncryptedPrivateKey, \
-    DHPublicKey, Certificate, ACEVSEStatus, EVSENotification, ChargingSession
-from iso15118.shared.messages.iso15118_20.common_types import V2GMessage as V2GMessageV20
+from iso15118.shared.messages.iso15118_20.common_types import (
+    V2GMessage as V2GMessageV20,
+)
 from iso15118.shared.messages.sdp import Security
 from iso15118.shared.messages.timeouts import Timeouts
-from iso15118.shared.messages.iso15118_2.body import (SessionSetupReq,
-                                                      SessionSetupRes,
-                                                      ResponseCode,
-                                                      ServiceDiscoveryReq,
-                                                      ServiceDiscoveryRes,
-                                                      ServiceDetailReq,
-                                                      ServiceDetailRes,
-                                                      PaymentServiceSelectionReq,
-                                                      BodyBase,
-                                                      AuthorizationReq,
-                                                      ChargeParameterDiscoveryReq,
-                                                      PowerDeliveryReq,
-                                                      ChargingStatusReq,
-                                                      SessionStopReq,
-                                                      CurrentDemandReq,
-                                                      CableCheckReq,
-                                                      PreChargeReq,
-                                                      WeldingDetectionReq,
-                                                      MeteringReceiptReq,
-                                                      CertificateInstallationReq,
-                                                      PaymentDetailsReq,
-                                                      PaymentServiceSelectionRes,
-                                                      AuthorizationRes,
-                                                      ChargeParameterDiscoveryRes,
-                                                      PowerDeliveryRes,
-                                                      ChargingStatusRes,
-                                                      SessionStopRes,
-                                                      PaymentDetailsRes,
-                                                      CertificateInstallationRes,
-                                                      EMAID, MeteringReceiptRes)
-from iso15118.secc.states.secc_state import StateSECC
-from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.shared.notifications import StopNotification
+from iso15118.shared.security import (
+    CertPath,
+    KeyEncoding,
+    KeyPath,
+    create_signature,
+    encrypt_priv_key,
+    get_cert_cn,
+    get_random_bytes,
+    load_cert,
+    load_priv_key,
+    verify_certs,
+    verify_signature,
+)
+from iso15118.shared.settings import LOGGER_CONF_PATH
+from iso15118.shared.states import State, Terminate
 
-
-logging.config.fileConfig(fname=LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+logging.config.fileConfig(fname=LOGGER_CONF_PATH, disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 
 # ============================================================================
 # |     COMMON SECC STATES (FOR BOTH AC AND DC CHARGING) - ISO 15118-2       |
 # ============================================================================
+
 
 class SessionSetup(StateSECC):
     """
@@ -90,13 +129,17 @@ class SessionSetup(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         # TODO: less the time used for waiting for and processing the
         #       SDPRequest and SupportedAppProtocolReq
-        super().__init__(comm_session,
-                         Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         msg = self.check_msg_v2(message, [SessionSetupReq])
         if not msg:
             return
@@ -114,22 +157,28 @@ class SessionSetup(StateSECC):
             self.response_code = ResponseCode.OK_OLD_SESSION_JOINED
         else:
             # False session ID from EV, gracefully assigning new session ID
-            logger.warning(f"EVCC's session ID {msg.header.session_id} "
-                           f"does not match {self.comm_session.session_id}. "
-                           f"New session ID {session_id} assigned")
+            logger.warning(
+                f"EVCC's session ID {msg.header.session_id} "
+                f"does not match {self.comm_session.session_id}. "
+                f"New session ID {session_id} assigned"
+            )
             self.response_code = ResponseCode.OK_NEW_SESSION_ESTABLISHED
 
-        session_setup_res = SessionSetupRes(response_code=self.response_code,
-                                            evse_id=self.comm_session.evse_controller.get_evse_id(),
-                                            evse_timestamp=time.time())
+        session_setup_res = SessionSetupRes(
+            response_code=self.response_code,
+            evse_id=self.comm_session.evse_controller.get_evse_id(),
+            evse_timestamp=time.time(),
+        )
 
         self.comm_session.evcc_id = session_setup_req.evcc_id
         self.comm_session.session_id = session_id
 
-        self.create_next_message(ServiceDiscovery,
-                                 session_setup_res,
-                                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                 Namespace.ISO_V2_MSG_DEF)
+        self.create_next_message(
+            ServiceDiscovery,
+            session_setup_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
 
 
 class ServiceDiscovery(StateSECC):
@@ -154,19 +203,23 @@ class ServiceDiscovery(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_service_discovery_req: bool = True
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
-        msg = self.check_msg_v2(message,
-                                [ServiceDiscoveryReq,
-                                 ServiceDetailReq,
-                                 PaymentServiceSelectionReq],
-                                self.expecting_service_discovery_req)
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(
+            message,
+            [ServiceDiscoveryReq, ServiceDetailReq, PaymentServiceSelectionReq],
+            self.expecting_service_discovery_req,
+        )
         if not msg:
             return
 
@@ -179,18 +232,20 @@ class ServiceDiscovery(StateSECC):
             return
 
         service_discovery_req: ServiceDiscoveryReq = msg.body.service_discovery_req
-        service_discovery_res = self.get_services(service_discovery_req.
-                                                  service_category)
+        service_discovery_res = self.get_services(
+            service_discovery_req.service_category
+        )
 
-        self.create_next_message(None,
-                                 service_discovery_res,
-                                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                 Namespace.ISO_V2_MSG_DEF)
+        self.create_next_message(
+            None,
+            service_discovery_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
 
         self.expecting_service_discovery_req = False
 
-    def get_services(self, category_filter: ServiceCategory) \
-            -> ServiceDiscoveryRes:
+    def get_services(self, category_filter: ServiceCategory) -> ServiceDiscoveryRes:
         """
         Provides the ServiceDiscoveryRes message with all its services,
         including the mandatory ChargeService and optional value-added services
@@ -224,24 +279,25 @@ class ServiceDiscovery(StateSECC):
             service_name=ServiceName.CHARGING,
             service_category=ServiceCategory.CHARGING,
             free_service=FREE_CHARGING_SERVICE,
-            supported_energy_transfer_mode=
-            self.comm_session.evse_controller.get_supported_energy_transfer_modes())
+            supported_energy_transfer_mode=self.comm_session.evse_controller.get_supported_energy_transfer_modes(),
+        )
 
         service_list: List[Service] = []
         # Value-added services (VAS), like installation of contract certificates
         # and the Internet service, are only allowed with TLS-secured comm.
         if self.comm_session.is_tls:
-            if ALLOW_CERT_INSTALL_SERVICE and (category_filter is None or
-               category_filter == ServiceCategory.CERTIFICATE):
+            if ALLOW_CERT_INSTALL_SERVICE and (
+                category_filter is None
+                or category_filter == ServiceCategory.CERTIFICATE
+            ):
                 cert_install_service = ServiceDetails(
                     service_id=2,
                     service_name=ServiceName.CERTIFICATE,
                     service_category=ServiceCategory.CERTIFICATE,
-                    free_service=FREE_CERT_INSTALL_SERVICE)
-
-                service_list.append(
-                    Service(service_details=cert_install_service)
+                    free_service=FREE_CERT_INSTALL_SERVICE,
                 )
+
+                service_list.append(Service(service_details=cert_install_service))
 
             # Add more value-added services (VAS) here if need be
 
@@ -259,7 +315,8 @@ class ServiceDiscovery(StateSECC):
             response_code=ResponseCode.OK,
             auth_option_list=auth_options,
             charge_service=charge_service,
-            service_list=offered_services)
+            service_list=offered_services,
+        )
 
         self.comm_session.offered_services = service_list
 
@@ -287,18 +344,23 @@ class ServiceDetail(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_service_detail_req: bool = True
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
-        msg = self.check_msg_v2(message,
-                                [ServiceDetailReq,
-                                 PaymentServiceSelectionReq],
-                                self.expecting_service_detail_req)
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(
+            message,
+            [ServiceDetailReq, PaymentServiceSelectionReq],
+            self.expecting_service_detail_req,
+        )
         if not msg:
             return
 
@@ -313,10 +375,10 @@ class ServiceDetail(StateSECC):
         # Certificate installation service
         # We only offer installation of contract certificates, not updates
         if service_detail_req.service_id == ServiceID.CERTIFICATE:
-            install_parameter = Parameter(name='Service',
-                                          str_value='Installation')
-            install_parameter_set = ParameterSet(parameter_set_id=1,
-                                                 parameters=[install_parameter])
+            install_parameter = Parameter(name="Service", str_value="Installation")
+            install_parameter_set = ParameterSet(
+                parameter_set_id=1, parameters=[install_parameter]
+            )
             parameter_set.append(install_parameter_set)
 
         # To offer an Internet service, add the service parameter set here
@@ -327,16 +389,18 @@ class ServiceDetail(StateSECC):
             # point in time once we have an actual use case for that.
             pass
 
-        service_detail_res = \
-            ServiceDetailRes(response_code=ResponseCode.OK,
-                             service_id=service_detail_req.service_id,
-                             service_parameter_list=
-                             ServiceParameterList(parameter_set=parameter_set))
+        service_detail_res = ServiceDetailRes(
+            response_code=ResponseCode.OK,
+            service_id=service_detail_req.service_id,
+            service_parameter_list=ServiceParameterList(parameter_set=parameter_set),
+        )
 
-        self.create_next_message(None,
-                                 service_detail_res,
-                                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                 Namespace.ISO_V2_MSG_DEF)
+        self.create_next_message(
+            None,
+            service_detail_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
 
         self.expecting_service_detail_req = False
 
@@ -364,20 +428,28 @@ class PaymentServiceSelection(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_service_selection_req: bool = True
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
-        msg = self.check_msg_v2(message,
-                                [PaymentServiceSelectionReq,
-                                 CertificateInstallationReq,
-                                 PaymentDetailsReq,
-                                 AuthorizationReq],
-                                 self.expecting_service_selection_req)
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(
+            message,
+            [
+                PaymentServiceSelectionReq,
+                CertificateInstallationReq,
+                PaymentDetailsReq,
+                AuthorizationReq,
+            ],
+            self.expecting_service_selection_req,
+        )
         if not msg:
             return
 
@@ -397,8 +469,9 @@ class PaymentServiceSelection(StateSECC):
         # was received. Thus, if the above body messages do not check out,
         # means that we are in presence of a `PaymentServiceSelectionReq`
         # maessage
-        service_selection_req: PaymentServiceSelectionReq = \
+        service_selection_req: PaymentServiceSelectionReq = (
             msg.body.payment_service_selection_req
+        )
         selected_service_list = service_selection_req.selected_service_list
 
         charge_service_selected: bool = False
@@ -406,49 +479,60 @@ class PaymentServiceSelection(StateSECC):
             if service.service_id == ServiceID.CHARGING:
                 charge_service_selected = True
                 continue
-            if service.service_id not in \
-                    [offered_service.service_details.service_id
-                     for offered_service in
-                     self.comm_session.offered_services]:
+            if service.service_id not in [
+                offered_service.service_details.service_id
+                for offered_service in self.comm_session.offered_services
+            ]:
                 self.stop_state_machine(
                     f"Selected service with ID {service.service_id} "
                     f"was not offered",
                     message,
-                    ResponseCode.FAILED_SERVICE_SELECTION_INVALID)
+                    ResponseCode.FAILED_SERVICE_SELECTION_INVALID,
+                )
                 return
 
         if not charge_service_selected:
-            self.stop_state_machine("Charge service not selected",
-                                    message,
-                                    ResponseCode.FAILED_NO_CHARGE_SERVICE_SELECTED)
+            self.stop_state_machine(
+                "Charge service not selected",
+                message,
+                ResponseCode.FAILED_NO_CHARGE_SERVICE_SELECTED,
+            )
             return
 
-        if service_selection_req.selected_auth_option.value not in \
-                [auth_option.value for auth_option in
-                 self.comm_session.offered_auth_options]:
-            self.stop_state_machine("Selected authorization method "
-                                    f"{service_selection_req.selected_auth_option} "
-                                    f"was not offered",
-                                    message,
-                                    ResponseCode.FAILED_PAYMENT_SELECTION_INVALID)
+        if service_selection_req.selected_auth_option.value not in [
+            auth_option.value for auth_option in self.comm_session.offered_auth_options
+        ]:
+            self.stop_state_machine(
+                "Selected authorization method "
+                f"{service_selection_req.selected_auth_option} "
+                f"was not offered",
+                message,
+                ResponseCode.FAILED_PAYMENT_SELECTION_INVALID,
+            )
             return
 
-        logger.debug("EVCC chose authorization option "
-                     f"{service_selection_req.selected_auth_option.value}")
-        self.comm_session.selected_auth_option = \
-            AuthEnum(service_selection_req.selected_auth_option.value)
+        logger.debug(
+            "EVCC chose authorization option "
+            f"{service_selection_req.selected_auth_option.value}"
+        )
+        self.comm_session.selected_auth_option = AuthEnum(
+            service_selection_req.selected_auth_option.value
+        )
 
         # For now, we don't really care much more about the selected
         # value-added services. If the EVCC wants to do contract certificate
         # installation, it can do so as the service is offered.
 
-        service_selection_res = \
-            PaymentServiceSelectionRes(response_code=ResponseCode.OK)
+        service_selection_res = PaymentServiceSelectionRes(
+            response_code=ResponseCode.OK
+        )
 
-        self.create_next_message(None,
-                                 service_selection_res,
-                                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                 Namespace.ISO_V2_MSG_DEF)
+        self.create_next_message(
+            None,
+            service_selection_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
 
         self.expecting_service_selection_req = False
 
@@ -460,101 +544,132 @@ class CertificateInstallation(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         msg = self.check_msg_v2(message, [CertificateInstallationReq])
         if not msg:
             return
 
-        cert_install_req: CertificateInstallationReq = \
+        cert_install_req: CertificateInstallationReq = (
             msg.body.certificate_installation_req
+        )
 
         if not verify_signature(
-                signature=msg.header.signature,
-                elements_to_sign=[(cert_install_req.id,
-                                   to_exi(cert_install_req,
-                                          Namespace.ISO_V2_MSG_DEF))],
-                leaf_cert=cert_install_req.oem_provisioning_cert,
-                sub_ca_certs=[load_cert(CertPath.OEM_SUB_CA2_DER),
-                              load_cert(CertPath.OEM_SUB_CA1_DER)],
-                root_ca_cert_path=CertPath.OEM_ROOT_DER):
-            self.stop_state_machine("Signature verification failed for "
-                                    "CertificateInstallationReq",
-                                    message,
-                                    ResponseCode.FAILED_SIGNATURE_ERROR)
+            signature=msg.header.signature,
+            elements_to_sign=[
+                (
+                    cert_install_req.id,
+                    to_exi(cert_install_req, Namespace.ISO_V2_MSG_DEF),
+                )
+            ],
+            leaf_cert=cert_install_req.oem_provisioning_cert,
+            sub_ca_certs=[
+                load_cert(CertPath.OEM_SUB_CA2_DER),
+                load_cert(CertPath.OEM_SUB_CA1_DER),
+            ],
+            root_ca_cert_path=CertPath.OEM_ROOT_DER,
+        ):
+            self.stop_state_machine(
+                "Signature verification failed for " "CertificateInstallationReq",
+                message,
+                ResponseCode.FAILED_SIGNATURE_ERROR,
+            )
             return
 
         try:
-            dh_pub_key, encrypted_priv_key_bytes = \
-                encrypt_priv_key(load_cert(CertPath.OEM_LEAF_DER),
-                                 load_priv_key(KeyPath.CONTRACT_LEAF_PEM,
-                                               KeyEncoding.PEM))
+            dh_pub_key, encrypted_priv_key_bytes = encrypt_priv_key(
+                load_cert(CertPath.OEM_LEAF_DER),
+                load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
+            )
         except EncryptionError:
-            self.stop_state_machine("EncryptionError while trying to encrypt the "
-                                    "private key for the contract certificate",
-                                    message,
-                                    ResponseCode.FAILED)
+            self.stop_state_machine(
+                "EncryptionError while trying to encrypt the "
+                "private key for the contract certificate",
+                message,
+                ResponseCode.FAILED,
+            )
             return
         except PrivateKeyReadError as exc:
-            self.stop_state_machine("Can't read private key to encrypt for "
-                                    f"CertificateInstallationRes: {exc.error}",
-                                    message,
-                                    ResponseCode.FAILED)
+            self.stop_state_machine(
+                "Can't read private key to encrypt for "
+                f"CertificateInstallationRes: {exc.error}",
+                message,
+                ResponseCode.FAILED,
+            )
             return
 
         # The elements that need to be part of the signature
         contract_cert_chain = CertificateChain(
-                id='id1',
-                certificate=load_cert(CertPath.CONTRACT_LEAF_DER),
-                sub_certificates=[Certificate(certificate=
-                                              load_cert(CertPath.MO_SUB_CA2_DER)),
-                                  Certificate(certificate=
-                                              load_cert(CertPath.MO_SUB_CA1_DER))])
-        encrypted_priv_key = EncryptedPrivateKey(id='id2',
-                                                 value=encrypted_priv_key_bytes)
-        dh_public_key = DHPublicKey(id='id3', value=dh_pub_key)
-        emaid = EMAID(id='id4',
-                      value=get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER)))
+            id="id1",
+            certificate=load_cert(CertPath.CONTRACT_LEAF_DER),
+            sub_certificates=[
+                Certificate(certificate=load_cert(CertPath.MO_SUB_CA2_DER)),
+                Certificate(certificate=load_cert(CertPath.MO_SUB_CA1_DER)),
+            ],
+        )
+        encrypted_priv_key = EncryptedPrivateKey(
+            id="id2", value=encrypted_priv_key_bytes
+        )
+        dh_public_key = DHPublicKey(id="id3", value=dh_pub_key)
+        emaid = EMAID(
+            id="id4", value=get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER))
+        )
 
         cert_install_res = CertificateInstallationRes(
             response_code=ResponseCode.OK,
             cps_cert_chain=CertificateChain(
                 certificate=load_cert(CertPath.CPS_LEAF_DER),
-                sub_certificates=[Certificate(certificate=
-                                              load_cert(CertPath.CPS_SUB_CA2_DER)),
-                                  Certificate(certificate=
-                                              load_cert(CertPath.CPS_SUB_CA1_DER))]),
+                sub_certificates=[
+                    Certificate(certificate=load_cert(CertPath.CPS_SUB_CA2_DER)),
+                    Certificate(certificate=load_cert(CertPath.CPS_SUB_CA1_DER)),
+                ],
+            ),
             contract_cert_chain=contract_cert_chain,
             encrypted_private_key=encrypted_priv_key,
             dh_public_key=dh_public_key,
-            emaid=emaid)
+            emaid=emaid,
+        )
 
         try:
             signature = create_signature(
-                [(contract_cert_chain.id, to_exi(contract_cert_chain,
-                                                 Namespace.ISO_V2_MSG_DEF)),
-                 (encrypted_priv_key.id, to_exi(encrypted_priv_key,
-                                                Namespace.ISO_V2_MSG_DEF)),
-                 (dh_public_key.id, to_exi(dh_public_key,
-                                           Namespace.ISO_V2_MSG_DEF)),
-                 (emaid.id, to_exi(emaid, Namespace.ISO_V2_MSG_DEF))],
-                load_priv_key(KeyPath.CPS_LEAF_PEM, KeyEncoding.PEM))
+                [
+                    (
+                        contract_cert_chain.id,
+                        to_exi(contract_cert_chain, Namespace.ISO_V2_MSG_DEF),
+                    ),
+                    (
+                        encrypted_priv_key.id,
+                        to_exi(encrypted_priv_key, Namespace.ISO_V2_MSG_DEF),
+                    ),
+                    (dh_public_key.id, to_exi(dh_public_key, Namespace.ISO_V2_MSG_DEF)),
+                    (emaid.id, to_exi(emaid, Namespace.ISO_V2_MSG_DEF)),
+                ],
+                load_priv_key(KeyPath.CPS_LEAF_PEM, KeyEncoding.PEM),
+            )
 
-            self.create_next_message(PaymentDetails,
-                                     cert_install_res,
-                                     Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                     Namespace.ISO_V2_MSG_DEF,
-                                     signature=signature)
+            self.create_next_message(
+                PaymentDetails,
+                cert_install_res,
+                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+                Namespace.ISO_V2_MSG_DEF,
+                signature=signature,
+            )
         except PrivateKeyReadError as exc:
-            self.stop_state_machine("Can't read private key needed to create signature "
-                                    f"for CertificateInstallationRes: {exc.error}",
-                                    message,
-                                    ResponseCode.FAILED)
+            self.stop_state_machine(
+                "Can't read private key needed to create signature "
+                f"for CertificateInstallationRes: {exc.error}",
+                message,
+                ResponseCode.FAILED,
+            )
             return
 
 
@@ -582,13 +697,17 @@ class PaymentDetails(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         msg = self.check_msg_v2(message, [PaymentDetailsReq])
         if not msg:
             return
@@ -597,8 +716,10 @@ class PaymentDetails(StateSECC):
 
         try:
             leaf_cert = payment_details_req.cert_chain.certificate
-            sub_ca_certs = [sub_ca_cert.certificate for sub_ca_cert in
-                            payment_details_req.cert_chain.sub_certificates]
+            sub_ca_certs = [
+                sub_ca_cert.certificate
+                for sub_ca_cert in payment_details_req.cert_chain.sub_certificates
+            ]
             # TODO There should be an OCPP setting that determines whether
             #      or not the charging station should verify (is in
             #      possession of MO or V2G Root certificates) or if it
@@ -606,38 +727,47 @@ class PaymentDetails(StateSECC):
             # TODO Either an MO Root certificate or a V2G Root certificate
             #      could be used to verify, need to be flexible with regards
             #      to the PKI that is used.
-            verify_certs(leaf_cert,
-                         sub_ca_certs,
-                         CertPath.MO_ROOT_DER)
+            verify_certs(leaf_cert, sub_ca_certs, CertPath.MO_ROOT_DER)
 
             # TODO Check if EMAID has correct syntax
 
-            self.comm_session.contract_cert_chain = \
-                payment_details_req.cert_chain
+            self.comm_session.contract_cert_chain = payment_details_req.cert_chain
 
             payment_details_res = PaymentDetailsRes(
                 response_code=ResponseCode.OK,
                 gen_challenge=get_random_bytes(16),
-                evse_timestamp=time.time())
+                evse_timestamp=time.time(),
+            )
 
-            self.create_next_message(Authorization,
-                                     payment_details_res,
-                                     Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                     Namespace.ISO_V2_MSG_DEF)
-        except (CertSignatureError, CertNotYetValidError, CertExpiredError,
-                CertRevokedError, CertAttributeError, CertChainLengthError) \
-                as exc:
-            reason = ''
+            self.create_next_message(
+                Authorization,
+                payment_details_res,
+                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+        except (
+            CertSignatureError,
+            CertNotYetValidError,
+            CertExpiredError,
+            CertRevokedError,
+            CertAttributeError,
+            CertChainLengthError,
+        ) as exc:
+            reason = ""
             if isinstance(exc, CertSignatureError):
                 response_code = ResponseCode.FAILED_CERT_CHAIN_ERROR
-                reason = f"CertSignatureError for {exc.subject}, " \
-                               f"tried to verify with issuer: " \
-                               f"{exc.issuer}. \n{exc.extra_info}"
+                reason = (
+                    f"CertSignatureError for {exc.subject}, "
+                    f"tried to verify with issuer: "
+                    f"{exc.issuer}. \n{exc.extra_info}"
+                )
             elif isinstance(exc, CertChainLengthError):
                 response_code = ResponseCode.FAILED_CERT_CHAIN_ERROR
-                reason = f"CertChainLengthError, max " \
-                               f"{exc.allowed_num_sub_cas} sub-CAs allowed " \
-                               f"but {exc.num_sub_cas} sub-CAs provided"
+                reason = (
+                    f"CertChainLengthError, max "
+                    f"{exc.allowed_num_sub_cas} sub-CAs allowed "
+                    f"but {exc.num_sub_cas} sub-CAs provided"
+                )
             elif isinstance(exc, CertExpiredError):
                 response_code = ResponseCode.FAILED_CERTIFICATE_EXPIRED
                 reason = f"CertExpiredError for {exc.subject}"
@@ -678,18 +808,23 @@ class Authorization(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_authorization_req: bool = True
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
-        msg = self.check_msg_v2(message,
-                                [AuthorizationReq,
-                                 ChargeParameterDiscoveryReq],
-                                self.expecting_authorization_req)
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(
+            message,
+            [AuthorizationReq, ChargeParameterDiscoveryReq],
+            self.expecting_authorization_req,
+        )
         if not msg:
             return
 
@@ -701,21 +836,29 @@ class Authorization(StateSECC):
 
         if self.comm_session.selected_auth_option == AuthEnum.PNC_V2:
             if not self.comm_session.contract_cert_chain:
-                self.stop_state_machine("No contract certificate chain available to "
-                                        "verify AuthorizationReq",
-                                        message,
-                                        ResponseCode.FAILED_SIGNATURE_ERROR)
+                self.stop_state_machine(
+                    "No contract certificate chain available to "
+                    "verify AuthorizationReq",
+                    message,
+                    ResponseCode.FAILED_SIGNATURE_ERROR,
+                )
                 return
 
             if not verify_signature(
-                        msg.header.signature,
-                        [(authorization_req.id,
-                          to_exi(authorization_req,
-                                 Namespace.ISO_V2_MSG_DEF))],
-                        self.comm_session.contract_cert_chain.certificate):
-                self.stop_state_machine("Unable to verify signature of AuthorizationReq",
-                                        message,
-                                        ResponseCode.FAILED_SIGNATURE_ERROR)
+                msg.header.signature,
+                [
+                    (
+                        authorization_req.id,
+                        to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
+                    )
+                ],
+                self.comm_session.contract_cert_chain.certificate,
+            ):
+                self.stop_state_machine(
+                    "Unable to verify signature of AuthorizationReq",
+                    message,
+                    ResponseCode.FAILED_SIGNATURE_ERROR,
+                )
                 return
 
         if self.comm_session.evse_controller.is_authorised():
@@ -725,13 +868,16 @@ class Authorization(StateSECC):
         # TODO Need to distinguish between ONGOING and
         #      ONGOING_WAITING_FOR_CUSTOMER
 
-        authorization_res = AuthorizationRes(response_code=ResponseCode.OK,
-                                             evse_processing=auth_status)
+        authorization_res = AuthorizationRes(
+            response_code=ResponseCode.OK, evse_processing=auth_status
+        )
 
-        self.create_next_message(None,
-                                 authorization_res,
-                                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                 Namespace.ISO_V2_MSG_DEF)
+        self.create_next_message(
+            None,
+            authorization_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
 
         if auth_status == EVSEProcessing.FINISHED:
             self.expecting_authorization_req = False
@@ -761,18 +907,23 @@ class ChargeParameterDiscovery(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_charge_parameter_discovery_req = True
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
-        msg = self.check_msg_v2(message,
-                                [ChargeParameterDiscoveryReq,
-                                 PowerDeliveryReq],
-                                self.expecting_charge_parameter_discovery_req)
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(
+            message,
+            [ChargeParameterDiscoveryReq, PowerDeliveryReq],
+            self.expecting_charge_parameter_discovery_req,
+        )
         if not msg:
             return
 
@@ -780,47 +931,57 @@ class ChargeParameterDiscovery(StateSECC):
             PowerDelivery(self.comm_session).process_message(message)
             return
 
-        charge_params_req: ChargeParameterDiscoveryReq = \
+        charge_params_req: ChargeParameterDiscoveryReq = (
             msg.body.charge_parameter_discovery_req
+        )
 
-        if charge_params_req.requested_energy_mode not in \
-           self.comm_session.evse_controller.get_supported_energy_transfer_modes(True):
-            self.stop_state_machine(f"{charge_params_req.requested_energy_mode} not "
-                                    f"offered as energy transfer mode",
-                                    message,
-                                    ResponseCode.FAILED_WRONG_ENERGY_TRANSFER_MODE)
+        if (
+            charge_params_req.requested_energy_mode
+            not in self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+                True
+            )
+        ):
+            self.stop_state_machine(
+                f"{charge_params_req.requested_energy_mode} not "
+                f"offered as energy transfer mode",
+                message,
+                ResponseCode.FAILED_WRONG_ENERGY_TRANSFER_MODE,
+            )
             return
 
-        self.comm_session.selected_energy_mode = \
-            charge_params_req.requested_energy_mode
+        self.comm_session.selected_energy_mode = charge_params_req.requested_energy_mode
 
-        max_schedule_entries: Optional[int] = \
-            charge_params_req.max_entries_sa_schedule_tuple
+        max_schedule_entries: Optional[
+            int
+        ] = charge_params_req.max_entries_sa_schedule_tuple
 
         ac_evse_charge_params: Optional[ACEVSEChargeParameter] = None
         dc_evse_charge_params: Optional[DCEVSEChargeParameter] = None
         if charge_params_req.ac_ev_charge_parameter:
-            ac_evse_charge_params = \
+            ac_evse_charge_params = (
                 self.comm_session.evse_controller.get_ac_evse_charge_parameter()
+            )
             departure_time = charge_params_req.ac_ev_charge_parameter.departure_time
         else:
-            dc_evse_charge_params = \
+            dc_evse_charge_params = (
                 self.comm_session.evse_controller.get_dc_evse_charge_parameter()
+            )
             departure_time = charge_params_req.dc_ev_charge_parameter.departure_time
 
         if not departure_time:
             departure_time = 0
         sa_schedule_list = self.comm_session.evse_controller.get_sa_schedule_list(
-            max_schedule_entries,
-            departure_time)
+            max_schedule_entries, departure_time
+        )
 
         charge_params_res = ChargeParameterDiscoveryRes(
             response_code=ResponseCode.OK,
-            evse_processing=EVSEProcessing.FINISHED if sa_schedule_list
-                            else EVSEProcessing.ONGOING,
+            evse_processing=EVSEProcessing.FINISHED
+            if sa_schedule_list
+            else EVSEProcessing.ONGOING,
             sa_schedule_list=sa_schedule_list,
             ac_charge_parameter=ac_evse_charge_params,
-            dc_charge_parameter=dc_evse_charge_params
+            dc_charge_parameter=dc_evse_charge_params,
         )
 
         signature = None
@@ -837,14 +998,22 @@ class ChargeParameterDiscovery(StateSECC):
                 if schedule.tuple.sales_tariff:
                     try:
                         signature = create_signature(
-                            [(schedule.tuple.sales_tariff.id,
-                              to_exi(schedule.tuple.sales_tariff,
-                                     Namespace.ISO_V2_MSG_DEF))],
-                            load_priv_key(KeyPath.MO_SUB_CA2_PEM,
-                                          KeyEncoding.PEM))
+                            [
+                                (
+                                    schedule.tuple.sales_tariff.id,
+                                    to_exi(
+                                        schedule.tuple.sales_tariff,
+                                        Namespace.ISO_V2_MSG_DEF,
+                                    ),
+                                )
+                            ],
+                            load_priv_key(KeyPath.MO_SUB_CA2_PEM, KeyEncoding.PEM),
+                        )
                     except PrivateKeyReadError as exc:
-                        logger.warning("Can't read private key to needed to create "
-                                       f"signature for SalesTariff: {exc.error}")
+                        logger.warning(
+                            "Can't read private key to needed to create "
+                            f"signature for SalesTariff: {exc.error}"
+                        )
                         # If a SalesTariff isn't signed, that's not the end of the
                         # world, no reason to stop the charging process here
                 break
@@ -853,11 +1022,13 @@ class ChargeParameterDiscovery(StateSECC):
         else:
             self.expecting_charge_parameter_discovery_req = True
 
-        self.create_next_message(next_state,
-                                 charge_params_res,
-                                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                 Namespace.ISO_V2_MSG_DEF,
-                                 signature=signature)
+        self.create_next_message(
+            next_state,
+            charge_params_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+            signature=signature,
+        )
 
 
 class PowerDelivery(StateSECC):
@@ -888,20 +1059,28 @@ class PowerDelivery(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_power_delivery_req = True
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
-        msg = self.check_msg_v2(message,
-                                [PowerDeliveryReq,
-                                 ChargeParameterDiscoveryReq,
-                                 ChargingStatusReq,
-                                 SessionStopReq],
-                                self.expecting_power_delivery_req)
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(
+            message,
+            [
+                PowerDeliveryReq,
+                ChargeParameterDiscoveryReq,
+                ChargingStatusReq,
+                SessionStopReq,
+            ],
+            self.expecting_power_delivery_req,
+        )
         if not msg:
             return
 
@@ -919,24 +1098,31 @@ class PowerDelivery(StateSECC):
 
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
 
-        if power_delivery_req.sa_schedule_tuple_id not in \
-                [schedule.tuple.sa_schedule_tuple_id for schedule in
-                 self.comm_session.offered_schedules]:
-            self.stop_state_machine(f"{power_delivery_req.sa_schedule_tuple_id} "
-                                    "does not match any offered tariff IDs",
-                                    message,
-                                    ResponseCode.FAILED_TARIFF_SELECTION_INVALID)
+        if power_delivery_req.sa_schedule_tuple_id not in [
+            schedule.tuple.sa_schedule_tuple_id
+            for schedule in self.comm_session.offered_schedules
+        ]:
+            self.stop_state_machine(
+                f"{power_delivery_req.sa_schedule_tuple_id} "
+                "does not match any offered tariff IDs",
+                message,
+                ResponseCode.FAILED_TARIFF_SELECTION_INVALID,
+            )
             return
 
-        if power_delivery_req.charge_progress == ChargeProgress.START and \
-                not power_delivery_req.charging_profile:
+        if (
+            power_delivery_req.charge_progress == ChargeProgress.START
+            and not power_delivery_req.charging_profile
+        ):
             # Although the requirements don't make this 100% clear, it is
             # the intention of ISO 15118-2 for the EVCC to always send a
             # charging profile if ChargeProgress is set to 'Start'
-            self.stop_state_machine("No charge profile provided although "
-                                    "ChargeProgress was set to 'Start'",
-                                    message,
-                                    ResponseCode.FAILED_CHARGING_PROFILE_INVALID)
+            self.stop_state_machine(
+                "No charge profile provided although "
+                "ChargeProgress was set to 'Start'",
+                message,
+                ResponseCode.FAILED_CHARGING_PROFILE_INVALID,
+            )
             return
 
         # TODO We should also do a more detailed check of the charging
@@ -947,8 +1133,9 @@ class PowerDelivery(StateSECC):
         next_state: Type[State]
         if power_delivery_req.charge_progress == ChargeProgress.START:
             next_state = ChargingStatus
-            self.comm_session.selected_schedule = \
+            self.comm_session.selected_schedule = (
                 power_delivery_req.sa_schedule_tuple_id
+            )
             self.comm_session.charge_progress_started = True
         elif power_delivery_req.charge_progress == ChargeProgress.STOP:
             next_state = SessionStop
@@ -960,21 +1147,26 @@ class PowerDelivery(StateSECC):
             else:
                 # TODO Need to check if we really need to terminate the
                 #      session here or not
-                self.stop_state_machine("EVCC wants to renegotiate, but charge "
-                                        "progress has not yet started",
-                                        message,
-                                        ResponseCode.FAILED)
+                self.stop_state_machine(
+                    "EVCC wants to renegotiate, but charge "
+                    "progress has not yet started",
+                    message,
+                    ResponseCode.FAILED,
+                )
                 next_state = Terminate
 
         power_delivery_res = PowerDeliveryRes(
             response_code=ResponseCode.OK,
-            ac_evse_status=self.comm_session.evse_controller.get_ac_evse_status())
+            ac_evse_status=self.comm_session.evse_controller.get_ac_evse_status(),
+        )
         # TODO Check if in AC or DC charging mode
 
-        self.create_next_message(next_state,
-                                 power_delivery_res,
-                                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                 Namespace.ISO_V2_MSG_DEF)
+        self.create_next_message(
+            next_state,
+            power_delivery_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
 
         self.expecting_power_delivery_req = False
 
@@ -1002,20 +1194,23 @@ class MeteringReceipt(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_metering_receipt_req = True
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
-        msg = self.check_msg_v2(message,
-                                [MeteringReceiptReq,
-                                 ChargingStatusReq,
-                                 CurrentDemandReq,
-                                 PowerDeliveryReq],
-                                self.expecting_metering_receipt_req)
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(
+            message,
+            [MeteringReceiptReq, ChargingStatusReq, CurrentDemandReq, PowerDeliveryReq],
+            self.expecting_metering_receipt_req,
+        )
         if not msg:
             return
 
@@ -1034,46 +1229,60 @@ class MeteringReceipt(StateSECC):
         metering_receipt_req: MeteringReceiptReq = msg.body.metering_receipt_req
 
         if not self.comm_session.contract_cert_chain:
-            stop_reason = "No contract certificate chain available to verify " \
-                          "signature of MeteringReceiptReq"
+            stop_reason = (
+                "No contract certificate chain available to verify "
+                "signature of MeteringReceiptReq"
+            )
         elif not verify_signature(
-                msg.header.signature,
-                [(metering_receipt_req.id,
-                  to_exi(metering_receipt_req, Namespace.ISO_V2_MSG_DEF))],
-                self.comm_session.contract_cert_chain.certificate):
+            msg.header.signature,
+            [
+                (
+                    metering_receipt_req.id,
+                    to_exi(metering_receipt_req, Namespace.ISO_V2_MSG_DEF),
+                )
+            ],
+            self.comm_session.contract_cert_chain.certificate,
+        ):
             stop_reason = "Unable to verify signature of MeteringReceiptReq"
-        elif not metering_receipt_req.meter_info.meter_reading or \
-                (self.comm_session.sent_meter_info and
-                 self.comm_session.sent_meter_info.meter_reading and
-                 metering_receipt_req.meter_info.meter_reading !=
-                 self.comm_session.sent_meter_info.meter_reading):
-            stop_reason = "EVCC's meter info is not a copy of the SECC's meter info " \
-                          "sent in CharginStatusRes/CurrentDemandRes"
+        elif not metering_receipt_req.meter_info.meter_reading or (
+            self.comm_session.sent_meter_info
+            and self.comm_session.sent_meter_info.meter_reading
+            and metering_receipt_req.meter_info.meter_reading
+            != self.comm_session.sent_meter_info.meter_reading
+        ):
+            stop_reason = (
+                "EVCC's meter info is not a copy of the SECC's meter info "
+                "sent in CharginStatusRes/CurrentDemandRes"
+            )
         else:
             stop_reason = None
 
         if stop_reason:
-            self.stop_state_machine(stop_reason,
-                                    message,
-                                    ResponseCode.FAILED_METERING_SIGNATURE_NOT_VALID)
+            self.stop_state_machine(
+                stop_reason, message, ResponseCode.FAILED_METERING_SIGNATURE_NOT_VALID
+            )
             return
 
-        if self.comm_session.selected_energy_mode and \
-                self.comm_session.selected_energy_mode.value.startswith("AC"):
+        if (
+            self.comm_session.selected_energy_mode
+            and self.comm_session.selected_energy_mode.value.startswith("AC")
+        ):
             metering_receipt_res = MeteringReceiptRes(
                 response_code=ResponseCode.OK,
-                ac_evse_status=self.comm_session.evse_controller.get_ac_evse_status()
+                ac_evse_status=self.comm_session.evse_controller.get_ac_evse_status(),
             )
         else:
             metering_receipt_res = MeteringReceiptRes(
                 response_code=ResponseCode.OK,
-                dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status()
+                dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
             )
 
-        self.create_next_message(None,
-                                 metering_receipt_res,
-                                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                 Namespace.ISO_V2_MSG_DEF)
+        self.create_next_message(
+            None,
+            metering_receipt_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
 
         self.expecting_metering_receipt_req = False
 
@@ -1085,13 +1294,17 @@ class CableCheck(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         raise NotImplementedError("CableCheck not yet implemented")
 
 
@@ -1102,13 +1315,17 @@ class PreCharge(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         raise NotImplementedError("PreCharge not yet implemented")
 
 
@@ -1137,19 +1354,23 @@ class ChargingStatus(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_charging_status_req = True
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
-        msg = self.check_msg_v2(message,
-                                [ChargingStatusReq,
-                                 PowerDeliveryReq,
-                                 MeteringReceiptReq],
-                                self.expecting_charging_status_req)
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(
+            message,
+            [ChargingStatusReq, PowerDeliveryReq, MeteringReceiptReq],
+            self.expecting_charging_status_req,
+        )
         if not msg:
             return
 
@@ -1167,16 +1388,19 @@ class ChargingStatus(StateSECC):
             response_code=ResponseCode.OK,
             evse_id=self.comm_session.evse_controller.get_evse_id(),
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
-            ac_evse_status=ACEVSEStatus(notification_max_delay=0,
-                                        evse_notification=EVSENotification.NONE,
-                                        rcd=False),
+            ac_evse_status=ACEVSEStatus(
+                notification_max_delay=0,
+                evse_notification=EVSENotification.NONE,
+                rcd=False,
+            ),
             # TODO Could maybe request an OCPP setting that determines
             #      whether or not a receipt is required and when
             #      (probably only makes sense at the beginning and end of
             #      a charging session). If true, set MeterInfo.
             # meter_info=self.comm_session.evse_controller.get_meter_info(
             #     self.comm_session.protocol),
-            receipt_required=False)
+            receipt_required=False,
+        )
 
         if charging_status_res.meter_info:
             self.comm_session.sent_meter_info = charging_status_res.meter_info
@@ -1196,10 +1420,12 @@ class ChargingStatus(StateSECC):
             # MeteringReceiptReq
             next_state = MeteringReceipt
 
-        self.create_next_message(next_state,
-                                 charging_status_res,
-                                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                 Namespace.ISO_V2_MSG_DEF)
+        self.create_next_message(
+            next_state,
+            charging_status_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
 
         self.expecting_charging_status_req = False
 
@@ -1211,13 +1437,17 @@ class CurrentDemand(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         raise NotImplementedError("CurrentDemand not yet implemented")
 
 
@@ -1228,13 +1458,17 @@ class WeldingDetection(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         raise NotImplementedError("WeldingDetection not yet implemented")
 
 
@@ -1245,13 +1479,17 @@ class SessionStop(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         msg = self.check_msg_v2(message, [SessionStopReq])
         if not msg:
             return
@@ -1264,16 +1502,18 @@ class SessionStop(StateSECC):
         self.comm_session.stop_reason = StopNotification(
             True,
             f"Communication session {stopped} successfully",
-            self.comm_session.writer.get_extra_info('peername'))
+            self.comm_session.writer.get_extra_info("peername"),
+        )
 
-        self.create_next_message(Terminate,
-                                 SessionStopRes(response_code=ResponseCode.OK),
-                                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                 Namespace.ISO_V2_MSG_DEF)
+        self.create_next_message(
+            Terminate,
+            SessionStopRes(response_code=ResponseCode.OK),
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
 
 
-def get_state_by_msg_type(message_type: Type[BodyBase]) \
-        -> Optional[Type[State]]:
+def get_state_by_msg_type(message_type: Type[BodyBase]) -> Optional[Type[State]]:
     states_dict = {
         SessionSetupReq: SessionSetup,
         ServiceDiscoveryReq: ServiceDiscovery,
@@ -1290,7 +1530,7 @@ def get_state_by_msg_type(message_type: Type[BodyBase]) \
         CurrentDemandReq: CurrentDemand,
         MeteringReceiptReq: MeteringReceipt,
         WeldingDetectionReq: WeldingDetection,
-        SessionStopReq: SessionStop
+        SessionStopReq: SessionStop,
     }
 
     return states_dict.get(message_type, None)

@@ -1,16 +1,17 @@
-
 import binascii
-import logging.config
 import json
+import logging.config
 import os
-
 from builtins import Exception
-from py4j.java_gateway import JavaGateway
-from iso15118.shared.messages.enums import Protocol
-from iso15118.shared import settings
 
-logging.config.fileConfig(fname=settings.LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+from py4j.java_gateway import JavaGateway
+
+from iso15118.shared import settings
+from iso15118.shared.messages.enums import Protocol
+
+logging.config.fileConfig(
+    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
+)
 logger = logging.getLogger(__name__)
 
 
@@ -23,30 +24,24 @@ def compare_messages(json_to_encode, decoded_json):
 class ExiCodec:
     def __init__(self):
         logging.getLogger("py4j").setLevel(logging.CRITICAL)
-        path_to_jar_file = os.path.join(settings.ROOT_DIR,
-                                        "../shared/EXICodec.jar")
+        path_to_jar_file = os.path.join(settings.ROOT_DIR, "../shared/EXICodec.jar")
         self.gateway = JavaGateway.launch_gateway(
             classpath=path_to_jar_file,
             die_on_exit=False,
-            javaopts=["--add-opens", "java.base/java.lang=ALL-UNNAMED"])
+            javaopts=["--add-opens", "java.base/java.lang=ALL-UNNAMED"],
+        )
 
         self.exi_codec = self.gateway.jvm.com.siemens.ct.exi.main.cmd.EXICodec()
 
         self.protocol_schema_mapping = {
-            '': self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.AppProtocol,
-            'urn:iso:15118:2:2013:MsgDef': self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_2,
-            'urn:iso:std:iso:15118:-20:CommonMessages':
-                self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_CommonMessages,
-            'urn:iso:std:iso:15118:-20:AC':
-                self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_AC,
-            'urn:iso:std:iso:15118:-20:DC':
-                self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_DC,
-            'urn:iso:std:iso:15118:-20:WPT':
-                self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_WPT,
-            'urn:iso:std:iso:15118:-20:ACDP':
-                self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_ACDP,
-            'http://www.w3.org/2000/09/xmldsig#':
-                self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.XSDCore
+            "": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.AppProtocol,
+            "urn:iso:15118:2:2013:MsgDef": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_2,
+            "urn:iso:std:iso:15118:-20:CommonMessages": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_CommonMessages,
+            "urn:iso:std:iso:15118:-20:AC": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_AC,
+            "urn:iso:std:iso:15118:-20:DC": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_DC,
+            "urn:iso:std:iso:15118:-20:WPT": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_WPT,
+            "urn:iso:std:iso:15118:-20:ACDP": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_ACDP,
+            "http://www.w3.org/2000/09/xmldsig#": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.XSDCore,
         }
 
         logger.debug(f"EXICodec version: {self.exi_codec.get_version()}")
@@ -112,16 +107,19 @@ class ExiCodec:
                 if compare_messages(json_message, decoded_json):
                     return True
 
-                logger.debug(f"JSON to encode: {json_message}"
-                             f"\nDecoded JSON: {decoded_json}")
+                logger.debug(
+                    f"JSON to encode: {json_message}" f"\nDecoded JSON: {decoded_json}"
+                )
                 return False
             else:
                 logger.debug(f"Encoding worked: {exi.hex()}")
-                logger.debug("Decoding error: "
-                             f"{self.exi_codec.get_last_decoding_error()}")
+                logger.debug(
+                    "Decoding error: " f"{self.exi_codec.get_last_decoding_error()}"
+                )
         else:
-            logger.debug("Encoding error: "
-                         f"{self.exi_codec.get_last_encoding_error()}")
+            logger.debug(
+                "Encoding error: " f"{self.exi_codec.get_last_encoding_error()}"
+            )
 
         return False
 
@@ -133,4 +131,5 @@ class ExiCodec:
         """
         return self.protocol_schema_mapping.get(
             schema_ns,
-            self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.AppProtocol)
+            self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.AppProtocol,
+        )

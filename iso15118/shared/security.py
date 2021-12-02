@@ -2,41 +2,74 @@ import logging.config
 import secrets
 from datetime import datetime
 from enum import Enum, auto
-from ssl import SSLContext, PROTOCOL_TLSv1_2, VerifyMode, SSLError
-from typing import Union, List, Tuple, Optional
+from ssl import PROTOCOL_TLSv1_2, SSLContext, SSLError, VerifyMode
+from typing import List, Optional, Tuple, Union
 
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
+from cryptography.hazmat.backends.openssl.backend import Backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey, \
-    EllipticCurvePrivateKey, SECP256R1
+from cryptography.hazmat.primitives.asymmetric.ec import (
+    SECP256R1,
+    EllipticCurvePrivateKey,
+    EllipticCurvePublicKey,
+)
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.kdf.concatkdf import ConcatKDFHash
-from cryptography.hazmat.primitives.serialization import load_der_private_key, \
-    load_pem_private_key
-from cryptography.hazmat.backends.openssl.backend import Backend
-from cryptography.x509 import load_der_x509_certificate, NameOID, Certificate, \
-    ExtensionOID
+from cryptography.hazmat.primitives.serialization import (
+    load_der_private_key,
+    load_pem_private_key,
+)
+from cryptography.x509 import (
+    Certificate,
+    ExtensionOID,
+    NameOID,
+    load_der_x509_certificate,
+)
 
 from iso15118.shared import settings
-from iso15118.shared.exceptions import InvalidProtocolError, CertSignatureError, \
-    CertChainLengthError, CertAttributeError, CertNotYetValidError, \
-    CertExpiredError, CertRevokedError, EncryptionError, DecryptionError, \
-    PrivateKeyReadError, KeyTypeError
+from iso15118.shared.exceptions import (
+    CertAttributeError,
+    CertChainLengthError,
+    CertExpiredError,
+    CertNotYetValidError,
+    CertRevokedError,
+    CertSignatureError,
+    DecryptionError,
+    EncryptionError,
+    InvalidProtocolError,
+    KeyTypeError,
+    PrivateKeyReadError,
+)
 from iso15118.shared.exi_codec import to_exi
-from iso15118.shared.messages.enums import Protocol, Namespace
-from iso15118.shared.messages.iso15118_2.datatypes import CertificateChain \
-    as CertificateChainV2, Certificate as CertificateV2
-from iso15118.shared.messages.iso15118_20.common_messages import \
-    CertificateChain as CertificateChainV20, Certificate as CertificateV20, \
-    SignedCertificateChain
-from iso15118.shared.messages.xmldsig import Signature, SignedInfo, Reference, \
-    Transform, TransformDetails, DigestMethod, CanonicalizationMethod, \
-    SignatureMethod, SignatureValue
+from iso15118.shared.messages.enums import Namespace, Protocol
+from iso15118.shared.messages.iso15118_2.datatypes import Certificate as CertificateV2
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    CertificateChain as CertificateChainV2,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    Certificate as CertificateV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    CertificateChain as CertificateChainV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import SignedCertificateChain
+from iso15118.shared.messages.xmldsig import (
+    CanonicalizationMethod,
+    DigestMethod,
+    Reference,
+    Signature,
+    SignatureMethod,
+    SignatureValue,
+    SignedInfo,
+    Transform,
+    TransformDetails,
+)
 from iso15118.shared.settings import PKI_PATH
 
-logging.config.fileConfig(fname=settings.LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+logging.config.fileConfig(
+    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
+)
 logger = logging.getLogger(__name__)
 
 
@@ -90,12 +123,15 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             ssl_context.load_cert_chain(
                 certfile=CertPath.CPO_CERT_CHAIN_PEM,
                 keyfile=KeyPath.SECC_LEAF_PEM,
-                password=load_priv_key_pass())
+                password=load_priv_key_pass(),
+            )
         except SSLError:
-            logger.exception("SSLError, can't load certificate chain for SSL "
-                             "context. Private key (keyfile) probably doesn't "
-                             "match certificate (certfile) or password for "
-                             "private is key invalid. Returning None instead.")
+            logger.exception(
+                "SSLError, can't load certificate chain for SSL "
+                "context. Private key (keyfile) probably doesn't "
+                "match certificate (certfile) or password for "
+                "private is key invalid. Returning None instead."
+            )
             return None
         except FileNotFoundError:
             logger.exception("Can't find certfile or keyfile for SSL context")
@@ -112,8 +148,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
         ssl_context.verify_mode = VerifyMode.CERT_NONE
         # The SECC must support both ciphers defined in ISO 15118-2
         # TODO Support ciphers for ISO 15118-20 as well
-        ssl_context.set_ciphers('ECDH-ECDSA-AES128-SHA256:'
-                                'ECDHE-ECDSA-AES128-SHA256')
+        ssl_context.set_ciphers("ECDH-ECDSA-AES128-SHA256:" "ECDHE-ECDSA-AES128-SHA256")
     else:
         # Load the V2G Root CA certificate(s) to validate the SECC's leaf and
         # Sub-CA CPO certificates. The cafile string is the path to a file of
@@ -122,10 +157,10 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
         ssl_context.verify_mode = VerifyMode.CERT_REQUIRED
         # The EVCC must support only one cipher suite, so let's choose the
         # more secure one (ECDHE enables perfect forward secrecy)
-        ssl_context.set_ciphers('ECDHE-ECDSA-AES128-SHA256')
+        ssl_context.set_ciphers("ECDHE-ECDSA-AES128-SHA256")
 
     # The OpenSSL name for ECDH curve secp256r1 is prime256v1
-    ssl_context.set_ecdh_curve('prime256v1')
+    ssl_context.set_ecdh_curve("prime256v1")
 
     return ssl_context
 
@@ -148,20 +183,20 @@ def load_priv_key_pass(password_path: str = None) -> bytes:
     """
     if password_path:
         try:
-            with open(password_path, 'r') as password_file:
-                return password_file.readline().encode(encoding='utf-8')
+            with open(password_path, "r") as password_file:
+                return password_file.readline().encode(encoding="utf-8")
         except (FileNotFoundError, IOError) as exc:
             raise exc
     else:
         # This must be the same password as used for creating the private keys
         # and certificates. See create_certs.sh or request the password from
         # the providers of another test PKI (e.g. CharIN Testivals).
-        return '12345'.encode(encoding='utf-8')
+        return "12345".encode(encoding="utf-8")
 
 
-def load_priv_key(key_path: str,
-                  key_encoding: KeyEncoding = KeyEncoding.PEM) \
-        -> EllipticCurvePrivateKey:
+def load_priv_key(
+    key_path: str, key_encoding: KeyEncoding = KeyEncoding.PEM
+) -> EllipticCurvePrivateKey:
     """
     Loads a PEM or DER encoded private key given the provided key_path and
     returns the key as an EllipticCurvePrivateKey object.
@@ -178,31 +213,41 @@ def load_priv_key(key_path: str,
         FileNotFoundError, IOError
     """
     try:
-        with open(key_path, 'rb') as key_file:
+        with open(key_path, "rb") as key_file:
             try:
                 if key_encoding == KeyEncoding.PEM:
-                    priv_key = load_pem_private_key(key_file.read(),
-                                                    load_priv_key_pass())
+                    priv_key = load_pem_private_key(
+                        key_file.read(), load_priv_key_pass()
+                    )
                 else:
-                    priv_key = load_der_private_key(key_file.read(),
-                                                    load_priv_key_pass())
+                    priv_key = load_der_private_key(
+                        key_file.read(), load_priv_key_pass()
+                    )
                 if isinstance(priv_key, EllipticCurvePrivateKey):
                     return priv_key
 
                 # TODO Add support for other keys used in ISO 15118-20
-                raise PrivateKeyReadError(f"Unknown key type at location {key_path}. "
-                                          "Expected key of type EllipticCurvePrivateKey")
+                raise PrivateKeyReadError(
+                    f"Unknown key type at location {key_path}. "
+                    "Expected key of type EllipticCurvePrivateKey"
+                )
             except ValueError as exc:
-                raise PrivateKeyReadError("The PEM data could not be decrypted or its "
-                                          "structure could not be decoded "
-                                          "successfully.") from exc
+                raise PrivateKeyReadError(
+                    "The PEM data could not be decrypted or its "
+                    "structure could not be decoded "
+                    "successfully."
+                ) from exc
             except TypeError as exc:
-                raise PrivateKeyReadError("Either password was given and private key "
-                                          "was not encrypted or key was encrypted "
-                                          "but no password was supplied.") from exc
+                raise PrivateKeyReadError(
+                    "Either password was given and private key "
+                    "was not encrypted or key was encrypted "
+                    "but no password was supplied."
+                ) from exc
             except UnsupportedAlgorithm as exc:
-                raise PrivateKeyReadError("Serialized key is of a type not supported "
-                                          "by the crypto library.") from exc
+                raise PrivateKeyReadError(
+                    "Serialized key is of a type not supported "
+                    "by the crypto library."
+                ) from exc
     except (FileNotFoundError, IOError) as exc:
         raise PrivateKeyReadError("Key file not found at location {key_path}") from exc
 
@@ -226,16 +271,20 @@ def to_ec_pub_key(public_key_bytes: bytes) -> EllipticCurvePublicKey:
     """
     try:
         ec_pub_key = EllipticCurvePublicKey.from_encoded_point(
-            curve=SECP256R1(),
-            data=public_key_bytes)
+            curve=SECP256R1(), data=public_key_bytes
+        )
         return ec_pub_key
     except ValueError as exc:
-        logging.exception("An invalid point is supplied, can't convert "
-                          "bytes to EllipticCurvePublicKey instance")
+        logging.exception(
+            "An invalid point is supplied, can't convert "
+            "bytes to EllipticCurvePublicKey instance"
+        )
         raise exc
     except TypeError as exc:
-        logging.exception("Curve provided is not an EllipticCurve, can't "
-                          "convert byets to EllipticCurvePublicKey instance")
+        logging.exception(
+            "Curve provided is not an EllipticCurve, can't "
+            "convert byets to EllipticCurvePublicKey instance"
+        )
         raise exc
 
 
@@ -257,19 +306,19 @@ def load_cert(cert_path: str) -> bytes:
         FileNotFoundError, IOError
     """
     try:
-        with open(cert_path, 'rb') as cert_file:
+        with open(cert_path, "rb") as cert_file:
             return cert_file.read()
     except (FileNotFoundError, IOError) as exc:
         raise exc
 
 
-def load_cert_chain(protocol: Protocol,
-                    leaf_path: str,
-                    sub_ca2_path: str,
-                    sub_ca1_path: str = None,
-                    id: str = None) -> Union[CertificateChainV2,
-                                             CertificateChainV20,
-                                             SignedCertificateChain]:
+def load_cert_chain(
+    protocol: Protocol,
+    leaf_path: str,
+    sub_ca2_path: str,
+    sub_ca1_path: str = None,
+    id: str = None,
+) -> Union[CertificateChainV2, CertificateChainV20, SignedCertificateChain]:
     """
     Reads the leaf and sub-CA certificate(s) from file and returns a
     CertificateChain object corresponding to the protocol provided.
@@ -306,36 +355,40 @@ def load_cert_chain(protocol: Protocol,
     sub_ca1_cert = load_cert(sub_ca1_path) if sub_ca1_path else None
 
     if protocol == Protocol.ISO_15118_2:
-        sub_ca_certs_v2: List[CertificateV2] = [CertificateV2(certificate=
-                                                           sub_ca2_cert)]
+        sub_ca_certs_v2: List[CertificateV2] = [CertificateV2(certificate=sub_ca2_cert)]
         if sub_ca1_cert:
             sub_ca_certs_v2.append(CertificateV2(certificate=sub_ca1_cert))
-        return CertificateChainV2(certificate=leaf_cert,
-                                  sub_certificates=sub_ca_certs_v2)
+        return CertificateChainV2(
+            certificate=leaf_cert, sub_certificates=sub_ca_certs_v2
+        )
 
     if protocol.ns.startswith(Namespace.ISO_V20_BASE):
-        sub_ca_certs_v20: List[CertificateV20] = [CertificateV20(certificate=
-                                                                 sub_ca2_cert)]
+        sub_ca_certs_v20: List[CertificateV20] = [
+            CertificateV20(certificate=sub_ca2_cert)
+        ]
         if sub_ca1_cert:
             sub_ca_certs_v20.append(CertificateV20(certificate=sub_ca1_cert))
 
         if id:
             # In ISO 15118-20, there's a distinction between a CertificateChain
             # and a SignedCertificateChain (which includes the id attribute).
-            return SignedCertificateChain(id=id,
-                                          certificate=leaf_cert,
-                                          sub_certificates=sub_ca_certs_v20)
+            return SignedCertificateChain(
+                id=id, certificate=leaf_cert, sub_certificates=sub_ca_certs_v20
+            )
 
-        return CertificateChainV20(certificate=leaf_cert,
-                                   sub_certificates=sub_ca_certs_v20)
+        return CertificateChainV20(
+            certificate=leaf_cert, sub_certificates=sub_ca_certs_v20
+        )
 
     raise InvalidProtocolError(f"'{protocol}' is not a valid Protocol enum")
 
 
-def verify_certs(leaf_cert_bytes: bytes,
-                 sub_ca_certs: List[bytes],
-                 root_ca_cert_path: str,
-                 private_environment: bool = False):
+def verify_certs(
+    leaf_cert_bytes: bytes,
+    sub_ca_certs: List[bytes],
+    root_ca_cert_path: str,
+    private_environment: bool = False,
+):
     """
     Verifies a certificate chain according to the following criteria:
     1. Verify the signature of each certificate contained in the cert chain
@@ -373,8 +426,9 @@ def verify_certs(leaf_cert_bytes: bytes,
     sub_ca1_cert = None
     root_ca_cert = load_der_x509_certificate(load_cert(root_ca_cert_path))
 
-    sub_ca_der_certs: List[Certificate] = [load_der_x509_certificate(cert)
-                                           for cert in sub_ca_certs]
+    sub_ca_der_certs: List[Certificate] = [
+        load_der_x509_certificate(cert) for cert in sub_ca_certs
+    ]
 
     # Step 1.a: Categorize the sub-CA certificates into sub-CA 1 and sub-CA 2.
     #           A sub-CA 2 certificate's profile has its PathLength extension
@@ -388,16 +442,19 @@ def verify_certs(leaf_cert_bytes: bytes,
     #      compliance with the corresponding certificate profile
     for cert in sub_ca_der_certs:
         path_len = cert.extensions.get_extension_for_oid(
-            ExtensionOID.BASIC_CONSTRAINTS).value.path_length
+            ExtensionOID.BASIC_CONSTRAINTS
+        ).value.path_length
         if path_len == 0:
             if sub_ca2_cert:
-                logger.error(f"Sub-CA cert {sub_ca2_cert.subject.__str__()} "
-                             "already has PathLength attribute set to 0. "
-                             "A certificate chain must not contain two "
-                             "certificates with the same path length")
-                raise CertAttributeError(subject=cert.subject.__str__(),
-                                         attr='PathLength',
-                                         invalid_value='0')
+                logger.error(
+                    f"Sub-CA cert {sub_ca2_cert.subject.__str__()} "
+                    "already has PathLength attribute set to 0. "
+                    "A certificate chain must not contain two "
+                    "certificates with the same path length"
+                )
+                raise CertAttributeError(
+                    subject=cert.subject.__str__(), attr="PathLength", invalid_value="0"
+                )
             sub_ca2_cert = cert
         elif path_len == 1:
             if sub_ca1_cert:
@@ -405,14 +462,14 @@ def verify_certs(leaf_cert_bytes: bytes,
                     f"Sub-CA cert {sub_ca1_cert.subject.__str__()} "
                     f"already has PathLength attribute set to 1. "
                     "A certificate chain must not contain two "
-                    "certificates with the same path length")
-                raise CertAttributeError(subject=cert.subject.__str__(),
-                                         attr='PathLength',
-                                         invalid_value='1')
+                    "certificates with the same path length"
+                )
+                raise CertAttributeError(
+                    subject=cert.subject.__str__(), attr="PathLength", invalid_value="1"
+                )
             sub_ca1_cert = cert
         else:
-            raise CertChainLengthError(allowed_num_sub_cas=2,
-                                       num_sub_cas=path_len)
+            raise CertChainLengthError(allowed_num_sub_cas=2, num_sub_cas=path_len)
 
     if not sub_ca2_cert and not private_environment:
         raise CertChainLengthError(allowed_num_sub_cas=2, num_sub_cas=0)
@@ -426,91 +483,109 @@ def verify_certs(leaf_cert_bytes: bytes,
     cert_to_check = leaf_cert
     try:
         if private_environment:
-            if isinstance(pub_key := root_ca_cert.public_key(),
-                          EllipticCurvePublicKey):
+            if isinstance(pub_key := root_ca_cert.public_key(), EllipticCurvePublicKey):
                 pub_key.verify(
                     leaf_cert.signature,
                     leaf_cert.tbs_certificate_bytes,
-                    ec.ECDSA(hashes.SHA256()))
+                    ec.ECDSA(hashes.SHA256()),
+                )
             else:
                 # TODO Add support for ISO 15118-20 public key types
-                raise KeyTypeError(f"Unexpected public key type "
-                                   f"{type(root_ca_cert.public_key())}")
+                raise KeyTypeError(
+                    f"Unexpected public key type " f"{type(root_ca_cert.public_key())}"
+                )
         elif not sub_ca2_cert:
             logger.error("Sub-CA 2 certificate missing in public cert chain")
             raise CertChainLengthError(allowed_num_sub_cas=2, num_sub_cas=0)
         else:
-            if isinstance(pub_key := sub_ca2_cert.public_key(),
-                          EllipticCurvePublicKey):
+            if isinstance(pub_key := sub_ca2_cert.public_key(), EllipticCurvePublicKey):
                 pub_key.verify(
                     leaf_cert.signature,
                     leaf_cert.tbs_certificate_bytes,
                     # TODO Find a way to read id dynamically from the certificate
-                    ec.ECDSA(hashes.SHA256()))
+                    ec.ECDSA(hashes.SHA256()),
+                )
             else:
                 # TODO Add support for ISO 15118-20 public key types
-                raise KeyTypeError(f"Unexpected public key type "
-                                   f"{type(sub_ca2_cert.public_key())}")
+                raise KeyTypeError(
+                    f"Unexpected public key type " f"{type(sub_ca2_cert.public_key())}"
+                )
 
             if sub_ca1_cert:
                 cert_to_check = sub_ca2_cert
 
-                if isinstance(pub_key := sub_ca1_cert.public_key(),
-                              EllipticCurvePublicKey):
+                if isinstance(
+                    pub_key := sub_ca1_cert.public_key(), EllipticCurvePublicKey
+                ):
                     pub_key.verify(
                         sub_ca2_cert.signature,
                         sub_ca2_cert.tbs_certificate_bytes,
-                        ec.ECDSA(hashes.SHA256()))
+                        ec.ECDSA(hashes.SHA256()),
+                    )
                 else:
                     # TODO Add support for ISO 15118-20 public key types
-                    raise KeyTypeError(f"Unexpected public key type "
-                                       f"{type(sub_ca1_cert.public_key())}")
+                    raise KeyTypeError(
+                        f"Unexpected public key type "
+                        f"{type(sub_ca1_cert.public_key())}"
+                    )
 
                 cert_to_check = sub_ca1_cert
 
-                if isinstance(pub_key := root_ca_cert.public_key(),
-                              EllipticCurvePublicKey):
+                if isinstance(
+                    pub_key := root_ca_cert.public_key(), EllipticCurvePublicKey
+                ):
                     pub_key.verify(
                         sub_ca1_cert.signature,
                         sub_ca1_cert.tbs_certificate_bytes,
-                        ec.ECDSA(hashes.SHA256()))
+                        ec.ECDSA(hashes.SHA256()),
+                    )
                 else:
                     # TODO Add support for ISO 15118-20 public key types
-                    raise KeyTypeError(f"Unexpected public key type "
-                                       f"{type(root_ca_cert.public_key())}")
+                    raise KeyTypeError(
+                        f"Unexpected public key type "
+                        f"{type(root_ca_cert.public_key())}"
+                    )
             else:
                 cert_to_check = sub_ca2_cert
 
-                if isinstance(pub_key := root_ca_cert.public_key(),
-                              EllipticCurvePublicKey):
+                if isinstance(
+                    pub_key := root_ca_cert.public_key(), EllipticCurvePublicKey
+                ):
                     pub_key.verify(
                         sub_ca2_cert.signature,
                         sub_ca2_cert.tbs_certificate_bytes,
-                        ec.ECDSA(hashes.SHA256()))
+                        ec.ECDSA(hashes.SHA256()),
+                    )
                 else:
                     # TODO Add support for ISO 15118-20 public key types
-                    raise KeyTypeError(f"Unexpected public key type "
-                                       f"{type(root_ca_cert.public_key())}")
+                    raise KeyTypeError(
+                        f"Unexpected public key type "
+                        f"{type(root_ca_cert.public_key())}"
+                    )
     except InvalidSignature as exc:
-        raise CertSignatureError(subject=cert_to_check.subject.__str__(),
-                                 issuer=cert_to_check.issuer.__str__()) from exc
+        raise CertSignatureError(
+            subject=cert_to_check.subject.__str__(),
+            issuer=cert_to_check.issuer.__str__(),
+        ) from exc
     except UnsupportedAlgorithm as exc:
         raise CertSignatureError(
             subject=cert_to_check.subject.__str__(),
             issuer=cert_to_check.issuer.__str__(),
             extra_info=f"UnsupportedAlgorithm for certificate "
-                       f"{cert_to_check.subject.__str__()}. "
-                       f"\nSignature hash algorithm: "
-                       f"{cert_to_check.signature_hash_algorithm.name if cert_to_check.signature_hash_algorithm else 'None'}"
-                       f"\nSignature algorithm: "
-                       f"{cert_to_check.signature_algorithm_oid}"
-                       # TODO This OpenSSL version may not be the complied one
-                       #      that is actually used, need to check
-                       f"\nOpenSSL version: {Backend().openssl_version_text()}") \
-            from exc
+            f"{cert_to_check.subject.__str__()}. "
+            f"\nSignature hash algorithm: "
+            f"{cert_to_check.signature_hash_algorithm.name if cert_to_check.signature_hash_algorithm else 'None'}"
+            f"\nSignature algorithm: "
+            f"{cert_to_check.signature_algorithm_oid}"
+            # TODO This OpenSSL version may not be the complied one
+            #      that is actually used, need to check
+            f"\nOpenSSL version: {Backend().openssl_version_text()}",
+        ) from exc
     except Exception as exc:
-        logger.exception(f"{exc.__class__.__name__} while verifying signature"
-                         f"of certificate {cert_to_check.subject}")
+        logger.exception(
+            f"{exc.__class__.__name__} while verifying signature"
+            f"of certificate {cert_to_check.subject}"
+        )
 
     # Step 2: Check that each certificate is valid, i.e. the current time is
     #         between the notBefore and notAfter timestamps of the certificate
@@ -584,8 +659,9 @@ def get_cert_issuer_serial(cert_path: str) -> Tuple[str, int]:
     return der_cert.issuer.__str__(), der_cert.serial_number
 
 
-def create_signature(elements_to_sign: List[Tuple[str, bytes]],
-                     signature_key: EllipticCurvePrivateKey) -> Signature:
+def create_signature(
+    elements_to_sign: List[Tuple[str, bytes]], signature_key: EllipticCurvePrivateKey
+) -> Signature:
     """
     Creates a Signature element that is placed in the header of a V2GMessage.
     This process is divided into two steps:
@@ -619,38 +695,51 @@ def create_signature(elements_to_sign: List[Tuple[str, bytes]],
     for body_element in elements_to_sign:
         id_attr, exi_encoded = body_element
         reference = Reference(
-            uri='#' + id_attr,
-            transforms=[Transform(
+            uri="#" + id_attr,
+            transforms=[
+                Transform(
                     details=TransformDetails(
-                        algorithm='http://www.w3.org/TR/canonical-exi/'))],
+                        algorithm="http://www.w3.org/TR/canonical-exi/"
+                    )
+                )
+            ],
             digest_method=DigestMethod(
-                algorithm='http://www.w3.org/2001/04/xmlenc#sha256'),
-            digest_value=create_digest(exi_encoded))
+                algorithm="http://www.w3.org/2001/04/xmlenc#sha256"
+            ),
+            digest_value=create_digest(exi_encoded),
+        )
 
         reference_list.append(reference)
 
     signed_info = SignedInfo(
         canonicalization_method=CanonicalizationMethod(
-            algorithm='http://www.w3.org/TR/canonical-exi/'),
+            algorithm="http://www.w3.org/TR/canonical-exi/"
+        ),
         signature_method=SignatureMethod(
-            algorithm='http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256'),
-        reference=reference_list)
+            algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"
+        ),
+        reference=reference_list,
+    )
 
     # 2. Step: Signature generation
     exi_encoded_signed_info = to_exi(signed_info, Namespace.XML_DSIG)
-    signature_value = signature_key.sign(exi_encoded_signed_info,
-                                         ec.ECDSA(hashes.SHA256()))
-    signature = Signature(signed_info=signed_info,
-                          signature_value=SignatureValue(value=signature_value))
+    signature_value = signature_key.sign(
+        exi_encoded_signed_info, ec.ECDSA(hashes.SHA256())
+    )
+    signature = Signature(
+        signed_info=signed_info, signature_value=SignatureValue(value=signature_value)
+    )
 
     return signature
 
 
-def verify_signature(signature: Signature,
-                     elements_to_sign: List[Tuple[str, bytes]],
-                     leaf_cert: bytes,
-                     sub_ca_certs: List[bytes] = None,
-                     root_ca_cert_path: str = None) -> bool:
+def verify_signature(
+    signature: Signature,
+    elements_to_sign: List[Tuple[str, bytes]],
+    leaf_cert: bytes,
+    sub_ca_certs: List[bytes] = None,
+    root_ca_cert_path: str = None,
+) -> bool:
     """
     Verifies the signature contained in the Signature element of the V2GMessage
     header. The following steps are required:
@@ -706,15 +795,17 @@ def verify_signature(signature: Signature,
                 logger.error("Reference without URI element")
                 continue
 
-            if reference.uri == '#' + id_attr:
+            if reference.uri == "#" + id_attr:
                 if calculated_digest == reference.digest_value:
                     message_digests_equal = True
 
-                logger.debug(f"\nReceived digest of reference with ID {id_attr}: "
-                             f"{reference.digest_value.hex().upper()}"
-                             f"\nCalculated digest for reference: "
-                             f"{calculated_digest.hex().upper()}"
-                             f"\n=> Match: {message_digests_equal}")
+                logger.debug(
+                    f"\nReceived digest of reference with ID {id_attr}: "
+                    f"{reference.digest_value.hex().upper()}"
+                    f"\nCalculated digest for reference: "
+                    f"{calculated_digest.hex().upper()}"
+                    f"\n=> Match: {message_digests_equal}"
+                )
 
         if not message_digests_equal:
             logger.error(f"Digest mismatch for element with ID '{id_attr}'")
@@ -727,31 +818,43 @@ def verify_signature(signature: Signature,
 
     try:
         if isinstance(pub_key, EllipticCurvePublicKey):
-            pub_key.verify(signature.signature_value.value,
-                           exi_encoded_signed_info,
-                           ec.ECDSA(hashes.SHA256()))
+            pub_key.verify(
+                signature.signature_value.value,
+                exi_encoded_signed_info,
+                ec.ECDSA(hashes.SHA256()),
+            )
         else:
             # TODO Add support for ISO 15118-20 public key types
-            raise KeyTypeError(f"Unexpected public key type "
-                               f"{type(pub_key)}")
+            raise KeyTypeError(f"Unexpected public key type " f"{type(pub_key)}")
     except InvalidSignature:
-        logger.error("Signature verification failed for signature value "
-                     f"\n{signature.signature_value.value.hex()}")
+        logger.error(
+            "Signature verification failed for signature value "
+            f"\n{signature.signature_value.value.hex()}"
+        )
         return False
 
     # 3. Step: Verify signatures along the certificate chain, if provided
     if sub_ca_certs and root_ca_cert_path:
         try:
             verify_certs(leaf_cert, sub_ca_certs, root_ca_cert_path)
-        except (CertSignatureError, CertNotYetValidError, CertExpiredError,
-                CertRevokedError, CertAttributeError, CertChainLengthError) \
-                as exc:
-            logger.error(f"{exc.__class__.__name__}: Signature verification "
-                         f"failed while checking certificate chain")
+        except (
+            CertSignatureError,
+            CertNotYetValidError,
+            CertExpiredError,
+            CertRevokedError,
+            CertAttributeError,
+            CertChainLengthError,
+        ) as exc:
+            logger.error(
+                f"{exc.__class__.__name__}: Signature verification "
+                f"failed while checking certificate chain"
+            )
             return False
     else:
-        logger.warning("Sub-CA and root CA certificates were not used to "
-                       "verify signatures along the certificate chain")
+        logger.warning(
+            "Sub-CA and root CA certificates were not used to "
+            "verify signatures along the certificate chain"
+        )
 
     logger.debug("Signature verified successfully")
     return True
@@ -763,9 +866,9 @@ def create_digest(exi_encoded_element) -> bytes:
     return digest.finalize()
 
 
-def encrypt_priv_key(oem_prov_cert: bytes,
-                     priv_key_to_encrypt: EllipticCurvePrivateKey) \
-        -> Tuple[bytes, bytes]:
+def encrypt_priv_key(
+    oem_prov_cert: bytes, priv_key_to_encrypt: EllipticCurvePrivateKey
+) -> Tuple[bytes, bytes]:
     """
     Encrypts the provided private key priv_key_to_encrypt by following these
     steps:
@@ -837,15 +940,17 @@ def encrypt_priv_key(oem_prov_cert: bytes,
     # TODO encode_point() is marked as deprecated. Use
     #      EllipticCurvePublicKey.public_bytes to obtain both compressed and
     #      uncompressed point encoding.
-    ephemeral_ecdh_pub_key = \
+    ephemeral_ecdh_pub_key = (
         ephemeral_ecdh_priv_key.public_key().public_numbers().encode_point()
+    )
     # 1.3: Generate shared secret using the new ECDH private key and the public
     #      key of the counterpart (OEM provisioning certificate's public key)
     oem_prov_cert_pub_key = load_der_x509_certificate(oem_prov_cert).public_key()
     shared_secret: Optional[bytes] = None
     if isinstance(oem_prov_cert_pub_key, EllipticCurvePublicKey):
-        shared_secret = ephemeral_ecdh_priv_key.exchange(ec.ECDH(),
-                                                         oem_prov_cert_pub_key)
+        shared_secret = ephemeral_ecdh_priv_key.exchange(
+            ec.ECDH(), oem_prov_cert_pub_key
+        )
 
     if shared_secret:
         # 2. Step: Generate symmetric key using a key derivation function (KDF)
@@ -854,14 +959,17 @@ def encrypt_priv_key(oem_prov_cert: bytes,
         sender_party_u = 0x55
         receiver_party_v = 0x56
         symmetric_key_length_in_bytes = 16
-        other_info = bytes(algorithm_id.to_bytes(1, 'big') +
-                           sender_party_u.to_bytes(1, 'big') +
-                           receiver_party_v.to_bytes(1, 'big'))
+        other_info = bytes(
+            algorithm_id.to_bytes(1, "big")
+            + sender_party_u.to_bytes(1, "big")
+            + receiver_party_v.to_bytes(1, "big")
+        )
 
         concat_kdf = ConcatKDFHash(
             algorithm=hashes.SHA256(),
             length=symmetric_key_length_in_bytes,
-            otherinfo=other_info)
+            otherinfo=other_info,
+        )
 
         symmetric_key = concat_kdf.derive(shared_secret)
 
@@ -874,10 +982,11 @@ def encrypt_priv_key(oem_prov_cert: bytes,
 
         try:
             priv_key_value = priv_key_to_encrypt.private_numbers().private_value
-            priv_key_value_bytes = priv_key_value.to_bytes(32, 'big')
+            priv_key_value_bytes = priv_key_value.to_bytes(32, "big")
             encryptor = cipher.encryptor()
-            encrypted_priv_key = encryptor.update(priv_key_value_bytes) + \
-                                 encryptor.finalize()
+            encrypted_priv_key = (
+                encryptor.update(priv_key_value_bytes) + encryptor.finalize()
+            )
         except Exception as exc:
             logger.exception(exc)
             raise EncryptionError from exc
@@ -893,9 +1002,11 @@ def encrypt_priv_key(oem_prov_cert: bytes,
     raise EncryptionError()
 
 
-def decrypt_priv_key(encrypted_priv_key_with_iv: bytes,
-                     ecdh_priv_key: EllipticCurvePrivateKey,
-                     ecdh_pub_key: EllipticCurvePublicKey) -> bytes:
+def decrypt_priv_key(
+    encrypted_priv_key_with_iv: bytes,
+    ecdh_priv_key: EllipticCurvePrivateKey,
+    ecdh_pub_key: EllipticCurvePublicKey,
+) -> bytes:
     """
     Decrypts the private key associated with the contract certificate.
 
@@ -931,21 +1042,23 @@ def decrypt_priv_key(encrypted_priv_key_with_iv: bytes,
         sender_party_u = 0x55
         receiver_party_v = 0x56
         symmetric_key_length_in_bytes = 16
-        other_info = bytes(algorithm_id.to_bytes(1, 'big') +
-                           sender_party_u.to_bytes(1, 'big') +
-                           receiver_party_v.to_bytes(1, 'big'))
+        other_info = bytes(
+            algorithm_id.to_bytes(1, "big")
+            + sender_party_u.to_bytes(1, "big")
+            + receiver_party_v.to_bytes(1, "big")
+        )
 
         concat_kdf = ConcatKDFHash(
             algorithm=hashes.SHA256(),
             length=symmetric_key_length_in_bytes,
-            otherinfo=other_info)
+            otherinfo=other_info,
+        )
 
         symmetric_key = concat_kdf.derive(shared_secret)
 
         cipher = Cipher(algorithms.AES(symmetric_key), modes.CBC(init_vector))
         decryptor = cipher.decryptor()
-        decrypted_priv_key = decryptor.update(encrypted_priv_key) + \
-                             decryptor.finalize()
+        decrypted_priv_key = decryptor.update(encrypted_priv_key) + decryptor.finalize()
 
         return decrypted_priv_key
 
@@ -961,33 +1074,34 @@ class CertPath(str, Enum):
     NOTE: For a productive environment, the access to certificate should be
           managed in a secure way (e.g. through a hardware security module).
     """
+
     # Mobility operator (MO)
-    CONTRACT_LEAF_DER = PKI_PATH + 'iso15118_2/certs/contractLeafCert.der'
-    MO_SUB_CA2_DER = PKI_PATH + 'iso15118_2/certs/moSubCA2Cert.der'
-    MO_SUB_CA1_DER = PKI_PATH + 'iso15118_2/certs/moSubCA1Cert.der'
-    MO_ROOT_DER = PKI_PATH + 'iso15118_2/certs/moRootCACert.der'
+    CONTRACT_LEAF_DER = PKI_PATH + "iso15118_2/certs/contractLeafCert.der"
+    MO_SUB_CA2_DER = PKI_PATH + "iso15118_2/certs/moSubCA2Cert.der"
+    MO_SUB_CA1_DER = PKI_PATH + "iso15118_2/certs/moSubCA1Cert.der"
+    MO_ROOT_DER = PKI_PATH + "iso15118_2/certs/moRootCACert.der"
 
     # Charge point operator (CPO)
-    SECC_LEAF_DER = PKI_PATH + 'iso15118_2/certs/seccLeafCert.der'
-    SECC_LEAF_PEM = PKI_PATH + 'iso15118_2/certs/seccLeafCert.pem'
-    CPO_SUB_CA2_DER = PKI_PATH + 'iso15118_2/certs/cpoSubCA2Cert.der'
-    CPO_SUB_CA1_DER = PKI_PATH + 'iso15118_2/certs/cpoSubCA1Cert.der'
-    V2G_ROOT_DER = PKI_PATH + 'iso15118_2/certs/v2gRootCACert.der'
-    V2G_ROOT_PEM = PKI_PATH + 'iso15118_2/certs/v2gRootCACert.pem'
+    SECC_LEAF_DER = PKI_PATH + "iso15118_2/certs/seccLeafCert.der"
+    SECC_LEAF_PEM = PKI_PATH + "iso15118_2/certs/seccLeafCert.pem"
+    CPO_SUB_CA2_DER = PKI_PATH + "iso15118_2/certs/cpoSubCA2Cert.der"
+    CPO_SUB_CA1_DER = PKI_PATH + "iso15118_2/certs/cpoSubCA1Cert.der"
+    V2G_ROOT_DER = PKI_PATH + "iso15118_2/certs/v2gRootCACert.der"
+    V2G_ROOT_PEM = PKI_PATH + "iso15118_2/certs/v2gRootCACert.pem"
     # Needed for the 'certfile' parameter in ssl_context.load_cert_chain()
-    CPO_CERT_CHAIN_PEM = PKI_PATH + 'iso15118_2/certs/cpoCertChain.pem'
+    CPO_CERT_CHAIN_PEM = PKI_PATH + "iso15118_2/certs/cpoCertChain.pem"
 
     # Certificate provisioning service (CPS)
-    CPS_LEAF_DER = PKI_PATH + 'iso15118_2/certs/cpsLeafCert.der'
-    CPS_SUB_CA2_DER = PKI_PATH + 'iso15118_2/certs/cpsSubCA2Cert.der'
-    CPS_SUB_CA1_DER = PKI_PATH + 'iso15118_2/certs/cpsSubCA1Cert.der'
+    CPS_LEAF_DER = PKI_PATH + "iso15118_2/certs/cpsLeafCert.der"
+    CPS_SUB_CA2_DER = PKI_PATH + "iso15118_2/certs/cpsSubCA2Cert.der"
+    CPS_SUB_CA1_DER = PKI_PATH + "iso15118_2/certs/cpsSubCA1Cert.der"
     # The root is the V2G_ROOT
 
     # EV manufacturer (OEM)
-    OEM_LEAF_DER = PKI_PATH + 'iso15118_2/certs/oemLeafCert.der'
-    OEM_SUB_CA2_DER = PKI_PATH + 'iso15118_2/certs/oemSubCA2Cert.der'
-    OEM_SUB_CA1_DER = PKI_PATH + 'iso15118_2/certs/oemSubCA1Cert.der'
-    OEM_ROOT_DER = PKI_PATH + 'iso15118_2/certs/oemRootCACert.der'
+    OEM_LEAF_DER = PKI_PATH + "iso15118_2/certs/oemLeafCert.der"
+    OEM_SUB_CA2_DER = PKI_PATH + "iso15118_2/certs/oemSubCA2Cert.der"
+    OEM_SUB_CA1_DER = PKI_PATH + "iso15118_2/certs/oemSubCA1Cert.der"
+    OEM_ROOT_DER = PKI_PATH + "iso15118_2/certs/oemRootCACert.der"
 
 
 class KeyPath(str, Enum):
@@ -998,26 +1112,27 @@ class KeyPath(str, Enum):
     NOTE: For a productive environment, the access to a private key should be
           managed in a secure way (e.g. through a hardware security module).
     """
+
     # Mobility operator (MO)
-    CONTRACT_LEAF_PEM = PKI_PATH + 'iso15118_2/private_keys/contractLeaf.key'
-    MO_SUB_CA2_PEM = PKI_PATH + 'iso15118_2/private_keys/moSubCA2.key'
-    MO_SUB_CA1_PEM = PKI_PATH + 'iso15118_2/private_keys/moSubCA1.key'
-    MO_ROOT_PEM = PKI_PATH + 'iso15118_2/private_keys/moRootCA.key'
+    CONTRACT_LEAF_PEM = PKI_PATH + "iso15118_2/private_keys/contractLeaf.key"
+    MO_SUB_CA2_PEM = PKI_PATH + "iso15118_2/private_keys/moSubCA2.key"
+    MO_SUB_CA1_PEM = PKI_PATH + "iso15118_2/private_keys/moSubCA1.key"
+    MO_ROOT_PEM = PKI_PATH + "iso15118_2/private_keys/moRootCA.key"
 
     # Charge point operator (CPO)
-    SECC_LEAF_PEM = PKI_PATH + 'iso15118_2/private_keys/seccLeaf.key'
-    CPO_SUB_CA2_PEM = PKI_PATH + 'iso15118_2/private_keys/cpoSubCA2.key'
-    CPO_SUB_CA1_PEM = PKI_PATH + 'iso15118_2/private_keys/cpoSubCA1.key'
-    V2G_ROOT_PEM = PKI_PATH + 'iso15118_2/private_keys/v2gRootCA.key'
+    SECC_LEAF_PEM = PKI_PATH + "iso15118_2/private_keys/seccLeaf.key"
+    CPO_SUB_CA2_PEM = PKI_PATH + "iso15118_2/private_keys/cpoSubCA2.key"
+    CPO_SUB_CA1_PEM = PKI_PATH + "iso15118_2/private_keys/cpoSubCA1.key"
+    V2G_ROOT_PEM = PKI_PATH + "iso15118_2/private_keys/v2gRootCA.key"
 
     # Certificate provisioning service (CPS)
-    CPS_LEAF_PEM = PKI_PATH + 'iso15118_2/private_keys/cpsLeaf.key'
-    CPS_SUB_CA2_PEM = PKI_PATH + 'iso15118_2/private_keys/cpsSubCA2.key'
-    CPS_SUB_CA1_PEM = PKI_PATH + 'iso15118_2/private_keys/cpsSubCA1.key'
+    CPS_LEAF_PEM = PKI_PATH + "iso15118_2/private_keys/cpsLeaf.key"
+    CPS_SUB_CA2_PEM = PKI_PATH + "iso15118_2/private_keys/cpsSubCA2.key"
+    CPS_SUB_CA1_PEM = PKI_PATH + "iso15118_2/private_keys/cpsSubCA1.key"
     # The root is the V2G_ROOT
 
     # EV manufacturer (OEM)
-    OEM_LEAF_PEM = PKI_PATH + 'iso15118_2/private_keys/oemLeaf.key'
-    OEM_SUB_CA2_PEM = PKI_PATH + 'iso15118_2/private_keys/oemSubCA2.key'
-    OEM_SUB_CA1_PEM = PKI_PATH + 'iso15118_2/private_keys/oemSubCA1.key'
-    OEM_ROOT_PEM = PKI_PATH + 'iso15118_2/private_keys/oemRootCA.key'
+    OEM_LEAF_PEM = PKI_PATH + "iso15118_2/private_keys/oemLeaf.key"
+    OEM_SUB_CA2_PEM = PKI_PATH + "iso15118_2/private_keys/oemSubCA2.key"
+    OEM_SUB_CA1_PEM = PKI_PATH + "iso15118_2/private_keys/oemSubCA1.key"
+    OEM_ROOT_PEM = PKI_PATH + "iso15118_2/private_keys/oemRootCA.key"

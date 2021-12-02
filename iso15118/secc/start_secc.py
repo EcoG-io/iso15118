@@ -1,5 +1,6 @@
-import logging
 import asyncio
+import logging
+
 from iso15118.secc.comm_session_handler import CommunicationSessionHandler
 
 logging.basicConfig(level=logging.DEBUG)

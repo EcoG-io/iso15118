@@ -11,13 +11,14 @@ class Notification:
 class TCPClientNotification(Notification):
     def __init__(self, reader: StreamReader, writer: StreamWriter):
         self.transport = (reader, writer)
-        self.ip_address = writer.get_extra_info('peername')
+        self.ip_address = writer.get_extra_info("peername")
 
 
 class UDPPacketNotification(Notification):
     """
     Message notification of a UDP Packet
     """
+
     def __init__(self, data: bytes, addr: Tuple[str, int]):
         self.data = data
         self.addr = addr
@@ -58,10 +59,8 @@ class StopNotification(Notification):
                          to manage the various communication sessions the TCP
                          server is serving.
     """
-    def __init__(self,
-                 successful: bool,
-                 reason: str,
-                 peer_ip_address: str = None):
+
+    def __init__(self, successful: bool, reason: str, peer_ip_address: str = None):
         self.successful = successful
         self.reason = reason
         self.peer_ip_address = peer_ip_address

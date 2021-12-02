@@ -8,35 +8,52 @@ import logging.config
 import time
 from typing import List, Union
 
-from iso15118.secc.secc_settings import SUPPORTED_AUTH_OPTIONS, \
-    ALLOW_CERT_INSTALL_SERVICE
-from iso15118.shared.settings import LOGGER_CONF_PATH
-from iso15118.shared.security import get_random_bytes, verify_signature
+from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.secc.secc_settings import (
+    ALLOW_CERT_INSTALL_SERVICE,
+    SUPPORTED_AUTH_OPTIONS,
+)
+from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exi_codec import to_exi
-from iso15118.shared.messages.app_protocol import SupportedAppProtocolReq, \
-    SupportedAppProtocolRes
+from iso15118.shared.messages.app_protocol import (
+    SupportedAppProtocolReq,
+    SupportedAppProtocolRes,
+)
 from iso15118.shared.messages.enums import AuthEnum, Namespace
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
-from iso15118.shared.messages.iso15118_20.common_messages import \
-    SessionSetupReq, SessionSetupRes, AuthorizationSetupReq, \
-    AuthorizationSetupRes, EIMAuthSetupResParams, \
-    PnCAuthSetupResParams, AuthorizationReq, AuthorizationRes, \
-    CertificateInstallationReq, ServiceDiscoveryReq, SessionStopReq
-from iso15118.shared.messages.iso15118_20.common_types import V2GMessage as V2GMessageV20
-from iso15118.shared.messages.iso15118_20.common_types import ResponseCode, \
-    MessageHeader, Processing
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    AuthorizationReq,
+    AuthorizationRes,
+    AuthorizationSetupReq,
+    AuthorizationSetupRes,
+    CertificateInstallationReq,
+    EIMAuthSetupResParams,
+    PnCAuthSetupResParams,
+    ServiceDiscoveryReq,
+    SessionSetupReq,
+    SessionSetupRes,
+    SessionStopReq,
+)
+from iso15118.shared.messages.iso15118_20.common_types import (
+    MessageHeader,
+    Processing,
+    ResponseCode,
+)
+from iso15118.shared.messages.iso15118_20.common_types import (
+    V2GMessage as V2GMessageV20,
+)
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
-from iso15118.secc.states.secc_state import StateSECC
-from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.shared.security import get_random_bytes, verify_signature
+from iso15118.shared.settings import LOGGER_CONF_PATH
 
-logging.config.fileConfig(fname=LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+logging.config.fileConfig(fname=LOGGER_CONF_PATH, disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 
 # ============================================================================
 # |    COMMON SECC STATES (FOR ALL ENERGY TRANSFER MODES) - ISO 15118-20     |
 # ============================================================================
+
 
 class SessionSetup(StateSECC):
     """
@@ -47,13 +64,17 @@ class SessionSetup(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         # TODO: less the time used for waiting for and processing the
         #       SDPRequest and SupportedAppProtocolReq
-        super().__init__(comm_session,
-                         Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         msg = self.check_msg_v20(message, [SessionSetupReq])
         if not msg:
             return
@@ -71,23 +92,28 @@ class SessionSetup(StateSECC):
             self.response_code = ResponseCode.OK_OLD_SESSION_JOINED
         else:
             # False session ID from EV, gracefully assigning new session ID
-            logger.warning(f"EVCC's session ID {msg.header.session_id} "
-                           f"does not match {self.comm_session.session_id}. "
-                           f"New session ID {session_id} assigned")
+            logger.warning(
+                f"EVCC's session ID {msg.header.session_id} "
+                f"does not match {self.comm_session.session_id}. "
+                f"New session ID {session_id} assigned"
+            )
             self.response_code = ResponseCode.OK_NEW_SESSION_ESTABLISHED
 
         session_setup_res = SessionSetupRes(
             header=MessageHeader(session_id=session_id, timestamp=time.time()),
             response_code=self.response_code,
-            evse_id=self.comm_session.evse_controller.get_evse_id())
+            evse_id=self.comm_session.evse_controller.get_evse_id(),
+        )
 
         self.comm_session.evcc_id = session_setup_req.evcc_id
         self.comm_session.session_id = session_id
 
-        self.create_next_message(AuthorizationSetup,
-                                 session_setup_res,
-                                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                 Namespace.ISO_V20_COMMON_MSG)
+        self.create_next_message(
+            AuthorizationSetup,
+            session_setup_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_COMMON_MSG,
+        )
 
 
 class AuthorizationSetup(StateSECC):
@@ -113,20 +139,28 @@ class AuthorizationSetup(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_auth_setup_req = True
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
-        msg = self.check_msg_v20(message,
-                                 [AuthorizationSetupReq,
-                                  AuthorizationReq,
-                                  CertificateInstallationReq,
-                                  SessionStopReq],
-                                 self.expecting_auth_setup_req)
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v20(
+            message,
+            [
+                AuthorizationSetupReq,
+                AuthorizationReq,
+                CertificateInstallationReq,
+                SessionStopReq,
+            ],
+            self.expecting_auth_setup_req,
+        )
         if not msg:
             return
 
@@ -151,26 +185,29 @@ class AuthorizationSetup(StateSECC):
             auth_options.append(AuthEnum.PNC)
             pnc_as_res = PnCAuthSetupResParams(
                 gen_challenge=get_random_bytes(16),
-                supported_providers=self.comm_session.evse_controller.get_supported_providers())
+                supported_providers=self.comm_session.evse_controller.get_supported_providers(),
+            )
         # TODO [V2G20-2096], [V2G20-2570]
 
         self.comm_session.offered_auth_options = auth_options
 
         auth_setup_res = AuthorizationSetupRes(
             header=MessageHeader(
-                session_id=self.comm_session.session_id,
-                timestamp=time.time()),
+                session_id=self.comm_session.session_id, timestamp=time.time()
+            ),
             response_code=ResponseCode.OK,
             auth_services=auth_options,
             cert_install_service=ALLOW_CERT_INSTALL_SERVICE,
             eim_as_res=eim_as_res,
-            pnc_as_res=pnc_as_res
+            pnc_as_res=pnc_as_res,
         )
 
-        self.create_next_message(None,
-                                 auth_setup_res,
-                                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                 Namespace.ISO_V20_COMMON_MSG)
+        self.create_next_message(
+            None,
+            auth_setup_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_COMMON_MSG,
+        )
 
         self.expecting_auth_setup_req = False
 
@@ -182,13 +219,17 @@ class CertificateInstallation(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         raise NotImplementedError("CertificateInstallation not yet implemented")
 
 
@@ -215,20 +256,28 @@ class Authorization(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_authorization_req = True
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
-        msg = self.check_msg_v20(message,
-                                 [AuthorizationReq,
-                                  CertificateInstallationReq,
-                                  ServiceDiscoveryReq,
-                                  SessionStopReq],
-                                 self.expecting_authorization_req)
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v20(
+            message,
+            [
+                AuthorizationReq,
+                CertificateInstallationReq,
+                ServiceDiscoveryReq,
+                SessionStopReq,
+            ],
+            self.expecting_authorization_req,
+        )
         if not msg:
             return
 
@@ -248,15 +297,21 @@ class Authorization(StateSECC):
 
         # Verify signature if EVCC sent PnC authorization data
         if auth_req.pnc_params and not verify_signature(
-                        auth_req.header.signature,
-                        [(auth_req.pnc_params.id,
-                          to_exi(auth_req.pnc_params,
-                                 Namespace.ISO_V20_COMMON_MSG))],
-                        self.comm_session.contract_cert_chain.certificate):
+            auth_req.header.signature,
+            [
+                (
+                    auth_req.pnc_params.id,
+                    to_exi(auth_req.pnc_params, Namespace.ISO_V20_COMMON_MSG),
+                )
+            ],
+            self.comm_session.contract_cert_chain.certificate,
+        ):
             # TODO: There are more fine-grained WARNING response codes available
-            self.stop_state_machine("Unable to verify signature for AuthorizationReq",
-                                    message,
-                                    ResponseCode.FAILED_SIGNATURE_ERROR)
+            self.stop_state_machine(
+                "Unable to verify signature for AuthorizationReq",
+                message,
+                ResponseCode.FAILED_SIGNATURE_ERROR,
+            )
             return
         else:
             if self.comm_session.evse_controller.is_authorised():
@@ -267,16 +322,18 @@ class Authorization(StateSECC):
 
             auth_res = AuthorizationRes(
                 header=MessageHeader(
-                    session_id=self.comm_session.session_id,
-                    timestamp=time.time()),
+                    session_id=self.comm_session.session_id, timestamp=time.time()
+                ),
                 response_code=ResponseCode.OK,
-                evse_processing=auth_status
+                evse_processing=auth_status,
             )
 
-            self.create_next_message(None,
-                                     auth_res,
-                                     Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                                     Namespace.ISO_V20_COMMON_MSG)
+            self.create_next_message(
+                None,
+                auth_res,
+                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+                Namespace.ISO_V20_COMMON_MSG,
+            )
 
             if auth_status == Processing.FINISHED:
                 self.expecting_authorization_req = False
@@ -291,13 +348,17 @@ class ServiceDiscovery(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         raise NotImplementedError("ServiceDiscovery not yet implemented")
 
 
@@ -308,13 +369,17 @@ class SessionStop(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session,
-                         Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         raise NotImplementedError("SessionStop not yet implemented")
 
 

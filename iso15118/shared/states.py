@@ -1,31 +1,39 @@
 import logging.config
-from typing import Type, Union, TYPE_CHECKING, Optional
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Optional, Type, Union
 
 from pydantic import ValidationError
 
 from iso15118.shared import settings
-from iso15118.shared.exceptions import EXIEncodingError, InvalidProtocolError, \
-    InvalidPayloadTypeError
+from iso15118.shared.exceptions import (
+    EXIEncodingError,
+    InvalidPayloadTypeError,
+    InvalidProtocolError,
+)
 from iso15118.shared.exi_codec import to_exi
-from iso15118.shared.messages.app_protocol import (SupportedAppProtocolReq,
-                                                   SupportedAppProtocolRes)
-from iso15118.shared.messages.iso15118_2.datatypes import Notification, \
-    FaultCode
-from iso15118.shared.messages.iso15118_2.header import (
-    MessageHeader as MessageHeaderV2)
-from iso15118.shared.messages.iso15118_2.body import BodyBase, Body
-from iso15118.shared.messages.iso15118_2.msgdef import (
-    V2GMessage as V2GMessageV2)
-from iso15118.shared.messages.iso15118_20.common_types import (
-    V2GMessage as V2GMessageV20)
+from iso15118.shared.messages.app_protocol import (
+    SupportedAppProtocolReq,
+    SupportedAppProtocolRes,
+)
 from iso15118.shared.messages.enums import (
-    ISOV2PayloadTypes, ISOV20PayloadTypes, DINPayloadTypes, Namespace)
+    DINPayloadTypes,
+    ISOV2PayloadTypes,
+    ISOV20PayloadTypes,
+    Namespace,
+)
+from iso15118.shared.messages.iso15118_2.body import Body, BodyBase
+from iso15118.shared.messages.iso15118_2.datatypes import FaultCode, Notification
+from iso15118.shared.messages.iso15118_2.header import MessageHeader as MessageHeaderV2
+from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
+from iso15118.shared.messages.iso15118_20.common_types import (
+    V2GMessage as V2GMessageV20,
+)
 from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.messages.xmldsig import Signature
 
-logging.config.fileConfig(fname=settings.LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+logging.config.fileConfig(
+    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
+)
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -50,12 +58,14 @@ class State(ABC):
     - the EVCC is processing an incoming response message from the SECC, or
     - the SECC is processing an incoming request message from the EVCC
     """
+
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self,
-                 comm_session: Union['EVCCCommunicationSession',
-                                     'SECCCommunicationSession'],
-                 timeout: Union[float, int] = 0):
+    def __init__(
+        self,
+        comm_session: Union["EVCCCommunicationSession", "SECCCommunicationSession"],
+        timeout: Union[float, int] = 0,
+    ):
         """
         Initialises a state to process a new message. Every state that inherits
         from State needs to implement __init__ and call super().__init__() with
@@ -65,8 +75,9 @@ class State(ABC):
             timeout: The amount of seconds to wait for an incoming message to
                      process before raising a timeout
         """
-        self.comm_session: Union['EVCCCommunicationSession',
-                                 'SECCCommunicationSession'] = comm_session
+        self.comm_session: Union[
+            "EVCCCommunicationSession", "SECCCommunicationSession"
+        ] = comm_session
         self.comm_session.current_state = self
         # The amount of seconds to wait for an incoming message
         self.timeout: Union[float, int] = 0
@@ -75,17 +86,19 @@ class State(ABC):
         # Terminate (if the session shall be terminated) or Pause (if the session
         # shall be paused and certain session values shall be saved until the
         # session is resumed later on)
-        self.next_state: Optional[Type['State']] = None
+        self.next_state: Optional[Type["State"]] = None
         # The optional signature in a V2GMessage's header
         self.next_msg_signature: Optional[Signature] = None
         # The next message, which is either a SupportedAppProtocolReq,
         # SupportedAppProtocolRes, a BodyBase instance of an ISO 15118-20 V2GMessage
         # or an instance of an ISO 15118-20 V2GMessage
-        self.next_msg: Union[SupportedAppProtocolReq,
-                             SupportedAppProtocolRes,
-                             V2GMessageV2,
-                             V2GMessageV20,
-                             None] = None
+        self.next_msg: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            None,
+        ] = None
         # Each V2GMessage (and SupportedAppProtocolReq and -Res)
         # is first EXI encoded and then placed as a payload in a V2GTP
         # (V2G Transfer Protocol) message, which is then sent to the counterpart
@@ -101,10 +114,15 @@ class State(ABC):
             logger.debug(f"Waiting for up to {timeout} s")
 
     @abstractmethod
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         """
         Every State must implement this method to process the incoming message,
         which is either a request message (SECC) or a response message (EVCC) of
@@ -125,19 +143,19 @@ class State(ABC):
         """
         raise NotImplementedError
 
-    def create_next_message(self,
-                            next_state: Optional[Type['State']],
-                            next_msg: Union[SupportedAppProtocolReq,
-                                            SupportedAppProtocolRes,
-                                            BodyBase,
-                                            V2GMessageV20],
-                            next_msg_timeout: Union[float, int],
-                            namespace: Namespace,
-                            next_msg_payload_type: Union[DINPayloadTypes,
-                                                         ISOV2PayloadTypes,
-                                                         ISOV20PayloadTypes] =
-                            ISOV2PayloadTypes.EXI_ENCODED,
-                            signature: Signature = None):
+    def create_next_message(
+        self,
+        next_state: Optional[Type["State"]],
+        next_msg: Union[
+            SupportedAppProtocolReq, SupportedAppProtocolRes, BodyBase, V2GMessageV20
+        ],
+        next_msg_timeout: Union[float, int],
+        namespace: Namespace,
+        next_msg_payload_type: Union[
+            DINPayloadTypes, ISOV2PayloadTypes, ISOV20PayloadTypes
+        ] = ISOV2PayloadTypes.EXI_ENCODED,
+        signature: Signature = None,
+    ):
         """
         Is called in case the processing of an incoming message was successful.
         Provides all the necessary information to create the next V2GTP
@@ -196,29 +214,35 @@ class State(ABC):
 
         # Step 2
         if not next_msg:
-            logger.error("Parameter 'next_msg' of create_next_message() is "
-                         "None")
+            logger.error("Parameter 'next_msg' of create_next_message() is " "None")
             return
-        to_be_exi_encoded: Union[SupportedAppProtocolReq,
-                                 SupportedAppProtocolRes,
-                                 V2GMessageV2,
-                                 V2GMessageV20]
+        to_be_exi_encoded: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ]
         # TODO add support for DIN SPEC 70121
         if isinstance(next_msg, BodyBase):
             note: Union[Notification, None] = None
-            if self.comm_session.stop_reason and \
-                    not self.comm_session.stop_reason.successful:
+            if (
+                self.comm_session.stop_reason
+                and not self.comm_session.stop_reason.successful
+            ):
                 # The fault message must not be bigger than 64 characters according to
                 # the XSD data type description
                 if len(self.comm_session.stop_reason.reason) > 64:
-                    fault_msg = self.comm_session.stop_reason.reason[:62] + '..'
+                    fault_msg = self.comm_session.stop_reason.reason[:62] + ".."
                 else:
                     fault_msg = self.comm_session.stop_reason.reason
-                note = Notification(fault_code=FaultCode.PARSING_ERROR,
-                                    fault_msg=fault_msg)
-            header = MessageHeaderV2(session_id=self.comm_session.session_id,
-                                     signature=signature,
-                                     notification=note)
+                note = Notification(
+                    fault_code=FaultCode.PARSING_ERROR, fault_msg=fault_msg
+                )
+            header = MessageHeaderV2(
+                session_id=self.comm_session.session_id,
+                signature=signature,
+                notification=note,
+            )
             body = Body.parse_obj({str(next_msg): next_msg.dict()})
             try:
                 to_be_exi_encoded = V2GMessageV2(header=header, body=body)
@@ -249,13 +273,14 @@ class State(ABC):
                 # Each V2GMessage (and SupportedAppProtocolReq and -Res)
                 # is first EXI encoded and then placed as a payload in a
                 # V2GTPMessage (V2G Transfer Protocol message)
-                self.next_v2gtp_msg = \
-                    V2GTPMessage(self.comm_session.protocol,
-                                 next_msg_payload_type,
-                                 exi_payload)
+                self.next_v2gtp_msg = V2GTPMessage(
+                    self.comm_session.protocol, next_msg_payload_type, exi_payload
+                )
             except (InvalidProtocolError, InvalidPayloadTypeError) as exc:
-                logger.exception(f"{exc.__class__.__name__} occurred while "
-                                 f"creating a V2GTPMessage. {exc}")
+                logger.exception(
+                    f"{exc.__class__.__name__} occurred while "
+                    f"creating a V2GTPMessage. {exc}"
+                )
 
     def __repr__(self):
         """
@@ -271,24 +296,38 @@ class State(ABC):
 
 
 class Terminate(State):
-    def __init__(self, comm_session: Union['EVCCCommunicationSession',
-                                           'SECCCommunicationSession']):
+    def __init__(
+        self,
+        comm_session: Union["EVCCCommunicationSession", "SECCCommunicationSession"],
+    ):
         super().__init__(comm_session)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         pass
 
 
 class Pause(State):
-    def __init__(self, comm_session: Union['EVCCCommunicationSession',
-                                           'SECCCommunicationSession']):
+    def __init__(
+        self,
+        comm_session: Union["EVCCCommunicationSession", "SECCCommunicationSession"],
+    ):
         super().__init__(comm_session)
 
-    def process_message(self, message: Union[SupportedAppProtocolReq,
-                                             SupportedAppProtocolRes,
-                                             V2GMessageV2,
-                                             V2GMessageV20]):
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
         pass

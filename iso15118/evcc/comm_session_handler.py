@@ -7,46 +7,55 @@ That EVCCCommunicationSession object is taking care of the TCP communication
 with the SECC to properly exchange all messages in a V2G communication session.
 """
 
-import logging.config
 import asyncio
+import logging.config
 from asyncio.streams import StreamReader, StreamWriter
 from ipaddress import IPv6Address
-from typing import Tuple, Optional, Union, List
+from typing import List, Optional, Tuple, Union
 
 from pydantic.error_wrappers import ValidationError
 
 from iso15118.evcc import evcc_settings
 from iso15118.evcc.controller.interface import EVControllerInterface
-from iso15118.evcc.evcc_settings import (SDP_RETRY_CYCLES, SUPPORTED_PROTOCOLS,
-                                         USE_TLS, ENFORCE_TLS, EV_CONTROLLER)
-from iso15118.evcc.transport.udp_client import UDPClient
+from iso15118.evcc.evcc_settings import (
+    ENFORCE_TLS,
+    EV_CONTROLLER,
+    SDP_RETRY_CYCLES,
+    SUPPORTED_PROTOCOLS,
+    USE_TLS,
+)
 from iso15118.evcc.transport.tcp_client import TCPClient
-from iso15118.shared.settings import LOGGER_CONF_PATH
+from iso15118.evcc.transport.udp_client import UDPClient
 from iso15118.shared.comm_session import V2GCommunicationSession
+from iso15118.shared.exceptions import (
+    InvalidSDPResponseError,
+    InvalidSettingsValueError,
+    InvalidV2GTPMessageError,
+    MessageProcessingError,
+    SDPFailedError,
+)
 from iso15118.shared.exi_codec import to_exi
-from iso15118.shared.messages.app_protocol import (SupportedAppProtocolReq,
-                                                   AppProtocol)
-from iso15118.shared.messages.enums import Namespace, AuthEnum
+from iso15118.shared.messages.app_protocol import AppProtocol, SupportedAppProtocolReq
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    ISOV2PayloadTypes,
+    ISOV20PayloadTypes,
+    Namespace,
+    Protocol,
+)
 from iso15118.shared.messages.iso15118_2.datatypes import ChargingSession
+from iso15118.shared.messages.sdp import SDPRequest, SDPResponse, Security, Transport
 from iso15118.shared.messages.timeouts import Timeouts
-from iso15118.shared.messages.enums import (ISOV2PayloadTypes,
-                                            ISOV20PayloadTypes,
-                                            Protocol)
 from iso15118.shared.messages.v2gtp import V2GTPMessage
-from iso15118.shared.messages.sdp import SDPResponse, Security, SDPRequest, \
-    Transport
-from iso15118.shared.notifications import (UDPPacketNotification,
-                                           ReceiveTimeoutNotification,
-                                           StopNotification)
-from iso15118.shared.utils import wait_till_finished, cancel_task
-from iso15118.shared.exceptions import (InvalidSDPResponseError,
-                                        InvalidV2GTPMessageError,
-                                        MessageProcessingError,
-                                        SDPFailedError,
-                                        InvalidSettingsValueError)
+from iso15118.shared.notifications import (
+    ReceiveTimeoutNotification,
+    StopNotification,
+    UDPPacketNotification,
+)
+from iso15118.shared.settings import LOGGER_CONF_PATH
+from iso15118.shared.utils import cancel_task, wait_till_finished
 
-logging.config.fileConfig(fname=LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+logging.config.fileConfig(fname=LOGGER_CONF_PATH, disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 SDP_MAX_REQUEST_COUNTER = 50
@@ -58,22 +67,22 @@ class EVCCCommunicationSession(V2GCommunicationSession):
     variables and also implements a pausing mechanism.
     """
 
-    def __init__(self,
-                 transport: Tuple[StreamReader, StreamWriter],
-                 session_handler_queue: asyncio.Queue):
+    def __init__(
+        self,
+        transport: Tuple[StreamReader, StreamWriter],
+        session_handler_queue: asyncio.Queue,
+    ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
         from iso15118.evcc.states.sap_states import SupportedAppProtocol
+
         # TODO: There must be another way to do this than to pass the self
         # itself into the child. There are just a few attributes in these
         # class. If it is really necessary we can pass them into the child
         # From what I could see, we just use attributes of the V2GCommunication
         # Session, so we dont need to do this self injection, since self
         # is already injected by default on a child
-        super().__init__(transport,
-                         SupportedAppProtocol,
-                         session_handler_queue,
-                         self)
+        super().__init__(transport, SupportedAppProtocol, session_handler_queue, self)
         # The EV controller that implements the interface EVControllerInterface
         self.ev_controller: EVControllerInterface = EV_CONTROLLER()
         # The authorization option (called PaymentOption in ISO 15118-2) the
@@ -98,7 +107,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         # a MeteringReceiptRes, ChargingStatusRes, or CurrentDemandRes) or EVCC
         self.renegotiation_requested = False
         # The ID of the EVSE that controls the power flow to the EV
-        self.evse_id: str = ''
+        self.evse_id: str = ""
         self.is_tls = USE_TLS
 
     def create_sap(self) -> Union[SupportedAppProtocolReq, None]:
@@ -135,7 +144,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
                 major_version=2 if protocol is Protocol.ISO_15118_2 else 1,
                 minor_version=0,
                 schema_id=schema_id,
-                priority=priority
+                priority=priority,
             )
             app_protocols.append(app_protocol_entry)
 
@@ -155,13 +164,17 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         try:
             sap_req = self.create_sap()
         except ValidationError as exc:
-            logger.exception("Validation error occurred while creating "
-                             f"SupportedAppProtocolReq: {exc}")
-            raise MessageProcessingError('SupportedAppProtocolReq') from exc
+            logger.exception(
+                "Validation error occurred while creating "
+                f"SupportedAppProtocolReq: {exc}"
+            )
+            raise MessageProcessingError("SupportedAppProtocolReq") from exc
 
-        v2gtp_msg = V2GTPMessage(Protocol.UNKNOWN,
-                                 ISOV2PayloadTypes.EXI_ENCODED,
-                                 to_exi(sap_req, Namespace.SAP))
+        v2gtp_msg = V2GTPMessage(
+            Protocol.UNKNOWN,
+            ISOV2PayloadTypes.EXI_ENCODED,
+            to_exi(sap_req, Namespace.SAP),
+        )
         self.current_state.next_msg = sap_req
         await self.send(v2gtp_msg)
 
@@ -171,8 +184,10 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         according to section 8.4.2 in ISO 15118-2
         TODO Check what needs to happen in a pause with ISO 15118-20
         """
-        logger.debug("Writing session variables to settings for use when "
-                     "resuming the communication session later")
+        logger.debug(
+            "Writing session variables to settings for use when "
+            "resuming the communication session later"
+        )
         RESUME_SESSION_ID = self.session_id
         evcc_settings.RESUME_SELECTED_AUTH_OPTION = self.selected_auth_option
         evcc_settings.RESUME_REQUESTED_ENERGY_MODE = self.selected_energy_mode
@@ -183,6 +198,7 @@ class CommunicationSessionHandler:
     The CommunicationSessionHandler is the control center that manages the
     communication session with the SECC.
     """
+
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self):
@@ -199,8 +215,7 @@ class CommunicationSessionHandler:
         # The communication session is a tuple containing the session itself
         # and the associated task, so we can cancel the task when needed
         self.comm_session: Tuple[
-            Optional[V2GCommunicationSession],
-            Optional[asyncio.Task]
+            Optional[V2GCommunicationSession], Optional[asyncio.Task]
         ] = (None, None)
 
     async def start_session_handler(self):
@@ -210,14 +225,16 @@ class CommunicationSessionHandler:
         method to be our constructor.
         """
         if not SDP_RETRY_CYCLES or SDP_RETRY_CYCLES <= 0:
-            logger.error("The EVCC setting SDP_RETRY_CYCLES must set to a "
-                         "value greater than or equal to 1, otherwise the "
-                         "communication session handler cannot start")
+            logger.error(
+                "The EVCC setting SDP_RETRY_CYCLES must set to a "
+                "value greater than or equal to 1, otherwise the "
+                "communication session handler cannot start"
+            )
             return
 
         self.list_of_tasks = [
             self.get_from_rcv_queue(self._rcv_queue),
-            self.restart_sdp(True)
+            self.restart_sdp(True),
         ]
         self.udp_client = await UDPClient.create(self._rcv_queue)
         logger.debug("Communication session handler started")
@@ -239,11 +256,10 @@ class CommunicationSessionHandler:
         security = Security.NO_TLS
         if USE_TLS:
             security = Security.TLS
-        sdp_request = SDPRequest(security=security,
-                                 transport_protocol=Transport.TCP)
-        v2gtp_msg = V2GTPMessage(Protocol.UNKNOWN,
-                                 sdp_request.payload_type,
-                                 sdp_request.to_payload())
+        sdp_request = SDPRequest(security=security, transport_protocol=Transport.TCP)
+        v2gtp_msg = V2GTPMessage(
+            Protocol.UNKNOWN, sdp_request.payload_type, sdp_request.to_payload()
+        )
         logger.debug(f"Sending SDPRequest: {sdp_request}")
         await self.udp_client.send_and_receive(v2gtp_msg)
 
@@ -286,63 +302,74 @@ class CommunicationSessionHandler:
         Raises:
             SDPFailedError
         """
-        shutdown_msg = "Shutting down high-level communication. Unplug and " \
-                       "plug in the cable again if you want to start anew."
+        shutdown_msg = (
+            "Shutting down high-level communication. Unplug and "
+            "plug in the cable again if you want to start anew."
+        )
 
         if new_sdp_cycle:
             if self._sdp_retry_cycles == 0:
                 raise SDPFailedError(
                     f"EVCC tried {SDP_RETRY_CYCLES} times to initiate a "
                     "V2GCommunicationSession, but maximum number of SDP retry "
-                    f"cycles is now reached. {shutdown_msg}")
+                    f"cycles is now reached. {shutdown_msg}"
+                )
 
             self._sdp_retry_cycles -= 1
             self.sdp_retries_number = SDP_MAX_REQUEST_COUNTER
-            logger.debug("Initiating new SDP cycle, "
-                         f"{self._sdp_retry_cycles} more cycles(s) left")
+            logger.debug(
+                "Initiating new SDP cycle, "
+                f"{self._sdp_retry_cycles} more cycles(s) left"
+            )
 
         if self.sdp_retries_number > 0:
             logger.debug(f"Remaining SDP requests: {self.sdp_retries_number}")
             try:
                 await self.send_sdp()
             except InvalidSettingsValueError as exc:
-                logger.error(f"Invalid value for {exc.entity} setting "
-                             f"{exc.setting}: {exc.invalid_value}")
+                logger.error(
+                    f"Invalid value for {exc.entity} setting "
+                    f"{exc.setting}: {exc.invalid_value}"
+                )
 
             self.sdp_retries_number -= 1
         else:
             self.sdp_retries_number = SDP_MAX_REQUEST_COUNTER
-            raise SDPFailedError(f"SDPRequest was not successful. "
-                                 f"{shutdown_msg}")
+            raise SDPFailedError(f"SDPRequest was not successful. " f"{shutdown_msg}")
 
     async def start_comm_session(self, host: IPv6Address, port: int, is_tls: bool):
         server_type = "TLS" if is_tls else "TCP"
 
         try:
-            logger.debug(f"Starting {server_type} client, trying to connect to "
-                         f"{host.compressed} at port {port} ...")
-            self.tcp_client = await TCPClient.create(host,
-                                                     port,
-                                                     self._rcv_queue,
-                                                     is_tls)
+            logger.debug(
+                f"Starting {server_type} client, trying to connect to "
+                f"{host.compressed} at port {port} ..."
+            )
+            self.tcp_client = await TCPClient.create(
+                host, port, self._rcv_queue, is_tls
+            )
             logger.debug("TCP client connected")
         except Exception as exc:
-            logger.exception(f"{exc.__class__.__name__} when trying to connect "
-                             f"to host {host} and port {port}")
+            logger.exception(
+                f"{exc.__class__.__name__} when trying to connect "
+                f"to host {host} and port {port}"
+            )
             return
 
         comm_session = EVCCCommunicationSession(
-            (self.tcp_client.reader, self.tcp_client.writer),
-            self._rcv_queue)
+            (self.tcp_client.reader, self.tcp_client.writer), self._rcv_queue
+        )
 
         try:
             await comm_session.send_sap()
             self.comm_session = comm_session, asyncio.create_task(
-                comm_session.start(Timeouts.SUPPORTED_APP_PROTOCOL_REQ))
+                comm_session.start(Timeouts.SUPPORTED_APP_PROTOCOL_REQ)
+            )
         except MessageProcessingError as exc:
             logger.exception(
                 f"{exc.__class__.__name__} occurred while trying to "
-                f"create create an SDPRequest")
+                f"create create an SDPRequest"
+            )
             return
 
     async def process_incoming_udp_packet(self, message: UDPPacketNotification):
@@ -355,8 +382,7 @@ class CommunicationSessionHandler:
             message:    The UDPPacket containing an SDP response message
         """
         try:
-            v2gtp_msg = V2GTPMessage.from_bytes(Protocol.UNKNOWN,
-                                                message.data)
+            v2gtp_msg = V2GTPMessage.from_bytes(Protocol.UNKNOWN, message.data)
         except InvalidV2GTPMessageError as exc:
             logger.error(exc)
             return
@@ -392,28 +418,31 @@ class CommunicationSessionHandler:
             #
             # The rationale behind this might be that the EV OEM trades convenience
             # (the EV driver can always charge) over security.
-            if (
-                    (not secc_signals_tls and ENFORCE_TLS) or
-                    (secc_signals_tls and not USE_TLS)
+            if (not secc_signals_tls and ENFORCE_TLS) or (
+                secc_signals_tls and not USE_TLS
             ):
-                logger.error("Security mismatch, can't initiate communication session."
-                             f"\nEVCC setting USE_TLS: {USE_TLS}"
-                             f"\nEVCC setting ENFORCE_TLS: {ENFORCE_TLS}"
-                             f"\nSDP response signals TLS: {secc_signals_tls}")
+                logger.error(
+                    "Security mismatch, can't initiate communication session."
+                    f"\nEVCC setting USE_TLS: {USE_TLS}"
+                    f"\nEVCC setting ENFORCE_TLS: {ENFORCE_TLS}"
+                    f"\nSDP response signals TLS: {secc_signals_tls}"
+                )
                 return
 
-            ip_address_int = int.from_bytes(sdp_response.ip_address, 'big')
+            ip_address_int = int.from_bytes(sdp_response.ip_address, "big")
             host = IPv6Address(ip_address_int)
             port = sdp_response.port
-        elif (v2gtp_msg.payload_type ==
-              ISOV20PayloadTypes.SDP_RESPONSE_WIRELESS):
+        elif v2gtp_msg.payload_type == ISOV20PayloadTypes.SDP_RESPONSE_WIRELESS:
             raise NotImplementedError(
                 "The incoming datagram seems to be a SDPResponse "
                 "for wireless communication (used for ACD-P). "
-                "This feature is not yet implemented.")
+                "This feature is not yet implemented."
+            )
         else:
-            logger.error(f"Incoming datagram of {len(message)} bytes is no "
-                         f"valid SDPResponse message")
+            logger.error(
+                f"Incoming datagram of {len(message)} bytes is no "
+                f"valid SDPResponse message"
+            )
             try:
                 await self.restart_sdp(True)
             except SDPFailedError as exc:
@@ -455,8 +484,10 @@ class CommunicationSessionHandler:
                             logger.exception(exc)
                             # TODO not sure what else to do here
                 else:
-                    logger.warning("Communication session handler received "
-                                   "an unknown message or notification: "
-                                   f"{notification}")
+                    logger.warning(
+                        "Communication session handler received "
+                        "an unknown message or notification: "
+                        f"{notification}"
+                    )
             finally:
                 queue.task_done()

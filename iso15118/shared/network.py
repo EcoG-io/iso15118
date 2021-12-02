@@ -1,25 +1,25 @@
-import socket
 import asyncio
-import psutil
 import logging.config
+import socket
 from ipaddress import IPv6Address
 from random import randint
-from typing import Union, Tuple
+from typing import Tuple, Union
+
+import psutil
 
 from iso15118.shared import settings
-from iso15118.shared.exceptions import (NoLinkLocalAddressError,
-                                        MACAddressNotFound)
+from iso15118.shared.exceptions import MACAddressNotFound, NoLinkLocalAddressError
 
-logging.config.fileConfig(fname=settings.LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+logging.config.fileConfig(
+    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
+)
 logger = logging.getLogger(__name__)
 
 SDP_MULTICAST_GROUP = "FF02::1"
 SDP_SERVER_PORT = 15118
 
 
-def _search_link_local_addr(nic: str,
-                            nic_addr_list: list) -> Union[IPv6Address, None]:
+def _search_link_local_addr(nic: str, nic_addr_list: list) -> Union[IPv6Address, None]:
     """
     Provides the IPv6 link-local address for the network interface card
     (NIC) provided.
@@ -40,19 +40,18 @@ def _search_link_local_addr(nic: str,
         addr_family = nic_addr[0]
         # Remove any interface after the IP address with .split('%')[0] to
         # make sure we only get hex characters for IPv6Address(address)
-        address = nic_addr[1].split('%')[0]
+        address = nic_addr[1].split("%")[0]
 
-        if addr_family == socket.AF_INET6 and \
-                IPv6Address(address).is_link_local:
+        if addr_family == socket.AF_INET6 and IPv6Address(address).is_link_local:
             return IPv6Address(address)
 
-    logger.debug("Could not find IPv6 link-local address for network "
-                 f"interface card {nic}")
+    logger.debug(
+        "Could not find IPv6 link-local address for network " f"interface card {nic}"
+    )
     return None
 
 
-async def get_full_ipv6_address(host: str, port: int) \
-        -> Tuple[str, int, int, int]:
+async def get_full_ipv6_address(host: str, port: int) -> Tuple[str, int, int, int]:
     """
     loop.getaddrinfo returns a list of tuples containing
     [(address_family, socktype, proto, canonname, socket_address)].
@@ -95,16 +94,17 @@ async def get_full_ipv6_address(host: str, port: int) \
     """
     loop = asyncio.get_running_loop()
 
-    addr_info_list = await loop.getaddrinfo(host, port,
-                                            family=socket.AF_INET6,
-                                            type=socket.SOCK_STREAM)
+    addr_info_list = await loop.getaddrinfo(
+        host, port, family=socket.AF_INET6, type=socket.SOCK_STREAM
+    )
     # We only need the socket_address here
     _, _, _, _, socket_address = addr_info_list[0]
     return socket_address
 
 
-async def get_link_local_addr(port: int, evcc_settings_nic: str) \
-        -> Tuple[Tuple[str, int, int, int], str]:
+async def get_link_local_addr(
+    port: int, evcc_settings_nic: str
+) -> Tuple[Tuple[str, int, int, int], str]:
     """
     Provides the IPv6 link-local address for the network interface card
     (NIC) configured in the secc_settings.py file. If no NIC is configured, the
@@ -135,29 +135,29 @@ async def get_link_local_addr(port: int, evcc_settings_nic: str) \
     if evcc_settings_nic:
         try:
             nic_addr_list = nics_with_addresses[evcc_settings_nic]
-            ip_address = _search_link_local_addr(evcc_settings_nic,
-                                                 nic_addr_list)
+            ip_address = _search_link_local_addr(evcc_settings_nic, nic_addr_list)
 
             if ip_address:
-                nic_address = (str(ip_address) + f"%{evcc_settings_nic}")
-                socket_address = await get_full_ipv6_address(
-                    nic_address,
-                    port)
+                nic_address = str(ip_address) + f"%{evcc_settings_nic}"
+                socket_address = await get_full_ipv6_address(nic_address, port)
                 return socket_address, evcc_settings_nic
 
             raise NoLinkLocalAddressError(
                 f"Network interface card (NIC) '{evcc_settings_nic}' configured in "
-                "settings does not yield a local-link IPv6 address.")
+                "settings does not yield a local-link IPv6 address."
+            )
         except KeyError as exc:
-            raise NoLinkLocalAddressError(f"Network interface card (NIC) "
-                                          f"'{evcc_settings_nic}' configured in settings but "
-                                          "not found.") from exc
+            raise NoLinkLocalAddressError(
+                f"Network interface card (NIC) "
+                f"'{evcc_settings_nic}' configured in settings but "
+                "not found."
+            ) from exc
     else:
         # In case no NIC was provided in an EVCC or SECC settings file
         for nic in nics_with_addresses:
             ip_address = _search_link_local_addr(nic, nics_with_addresses[nic])
             # TODO: Once we move to a linux container, remove the MacOS lo0
-            if ip_address and nic not in ['lo0', 'lo']:
+            if ip_address and nic not in ["lo0", "lo"]:
                 nic_address = str(ip_address) + f"%{nic}"
                 socket_address = await get_full_ipv6_address(nic_address, port)
                 return socket_address, nic
@@ -173,8 +173,7 @@ def get_tcp_port() -> int:
     return randint(49152, 65535)
 
 
-def get_nic(settings_nic: str = None, exclude_loopback_nic: bool = False) \
-        -> str:
+def get_nic(settings_nic: str = None, exclude_loopback_nic: bool = False) -> str:
     """
     Provides the network interface card (NIC) to use for UDP and TCP client
     and server. First, the value for settings.NETWORK_INTERFACE is
@@ -204,16 +203,18 @@ def get_nic(settings_nic: str = None, exclude_loopback_nic: bool = False) \
     for nic in nics_with_addresses:
         ip_address = _search_link_local_addr(nic, nics_with_addresses[nic])
         if ip_address:
-            if nic in ['lo0', 'lo'] and exclude_loopback_nic:
+            if nic in ["lo0", "lo"] and exclude_loopback_nic:
                 continue
             return nic
 
-    raise NoLinkLocalAddressError("Could not find a suitable network "
-                                  "interface card with an IPv6 "
-                                  "link-local address")
+    raise NoLinkLocalAddressError(
+        "Could not find a suitable network "
+        "interface card with an IPv6 "
+        "link-local address"
+    )
 
 
-def get_nic_mac_address(nic_id: str = '') -> str:
+def get_nic_mac_address(nic_id: str = "") -> str:
     """
     This method returns the MAC Addess of a specific NIC or the first one
     associated with a IPv6 link-local address.
@@ -239,8 +240,9 @@ def get_nic_mac_address(nic_id: str = '') -> str:
         try:
             nic_id = get_nic(settings_nic=nic_id, exclude_loopback_nic=True)
         except NoLinkLocalAddressError:
-            raise MACAddressNotFound("Incapable of finding a suitable NIC") \
-                from NoLinkLocalAddressError
+            raise MACAddressNotFound(
+                "Incapable of finding a suitable NIC"
+            ) from NoLinkLocalAddressError
     if nic_id in nics_with_addresses:
         nic = nics_with_addresses[nic_id]
         for addr in nic:

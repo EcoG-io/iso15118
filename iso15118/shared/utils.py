@@ -3,17 +3,18 @@ This module contains methods for managing multiple asnycio tasks that are
 supposed to run concurrently.
 """
 
-import logging.config
 import asyncio
 import json
+import logging.config
 import os
 from contextlib import suppress
 from typing import Any, Awaitable, List
 
 from iso15118.shared import settings
 
-logging.config.fileConfig(fname=settings.LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+logging.config.fileConfig(
+    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
+)
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +28,7 @@ def load_from_env(variable, default=None):
 
 
 async def cancel_task(task):
-    """ Cancel the task safely """
+    """Cancel the task safely"""
     task.cancel()
     try:
         await task
@@ -35,9 +36,10 @@ async def cancel_task(task):
         pass
 
 
-async def wait_till_finished(awaitables: List[Awaitable[Any]],
-                             finished_when=asyncio.FIRST_EXCEPTION):
-    """ Run the tasks until one task is finished. The condition to finish
+async def wait_till_finished(
+    awaitables: List[Awaitable[Any]], finished_when=asyncio.FIRST_EXCEPTION
+):
+    """Run the tasks until one task is finished. The condition to finish
     depends on the argument 'finished_when', which directly translates
     to the asyncio.wait argument 'return_when' that can assume the following
     values: FIRST_COMPLETED, FIRST_EXCEPTION, ALL_COMPLETED
@@ -89,7 +91,7 @@ async def wait_till_finished(awaitables: List[Awaitable[Any]],
 
 
 class MultiError(Exception):
-    """ Exception used to raise multiple exceptions.
+    """Exception used to raise multiple exceptions.
 
     The attribute `errors` gives access to the wrapper errors.
 
@@ -103,6 +105,7 @@ class MultiError(Exception):
                     ...
 
     """
+
     def __init__(self, errors: List[Exception]):
         Exception.__init__(self)
         self.errors = errors

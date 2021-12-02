@@ -4,14 +4,22 @@ This module contains the abstract class for an EVCC to retrieve data from the EV
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Tuple, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 from iso15118.shared.messages.enums import Protocol
-from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferMode, \
-    SAScheduleTuple, ProfileEntry, ChargeProgress, ACEVChargeParameter, \
-    DCEVChargeParameter, EnergyTransferModeEnum
-from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReqParams, \
-    BPTACChargeParameterDiscoveryReqParams
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    ACEVChargeParameter,
+    ChargeProgress,
+    DCEVChargeParameter,
+    EnergyTransferMode,
+    EnergyTransferModeEnum,
+    ProfileEntry,
+    SAScheduleTuple,
+)
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeParameterDiscoveryReqParams,
+    BPTACChargeParameterDiscoveryReqParams,
+)
 from iso15118.shared.messages.iso15118_20.common_messages import EMAID
 
 
@@ -23,7 +31,6 @@ class ChargeParamsV2:
 
 
 class EVControllerInterface(ABC):
-
     @abstractmethod
     def get_evcc_id(self, protocol: Protocol) -> str:
         """
@@ -76,9 +83,12 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_charge_params_v20(self) -> \
-            Tuple[ACChargeParameterDiscoveryReqParams,
-                  Optional[BPTACChargeParameterDiscoveryReqParams]]:
+    def get_charge_params_v20(
+        self,
+    ) -> Tuple[
+        ACChargeParameterDiscoveryReqParams,
+        Optional[BPTACChargeParameterDiscoveryReqParams],
+    ]:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryReq, which is
         either an ACChargeParameterDiscoveryReq, or a DCChargeParameterDiscoveryReq,
@@ -115,8 +125,9 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def process_sa_schedules(self, sa_schedules: List[SAScheduleTuple]) \
-            -> Tuple[ChargeProgress, int, List[ProfileEntry]]:
+    def process_sa_schedules(
+        self, sa_schedules: List[SAScheduleTuple]
+    ) -> Tuple[ChargeProgress, int, List[ProfileEntry]]:
         """
         Processes the SAScheduleList provided with the ChargeParameterDiscoveryRes
         to decide which of the offered schedules to choose and whether or not to

@@ -1,7 +1,7 @@
 import environs
-from iso15118.secc.controller.simulator import SimEVSEController
-from iso15118.shared.messages.enums import Protocol, AuthEnum
 
+from iso15118.secc.controller.simulator import SimEVSEController
+from iso15118.shared.messages.enums import AuthEnum, Protocol
 
 env = environs.Env(eager=False)
 
@@ -38,8 +38,7 @@ FREE_CHARGING_SERVICE = env.bool("FREE_CHARGING_SERVICE", default=False)
 # Indicates whether or not the installation of a contract certificate is free.
 # Should be configurable via OCPP messages.
 # Must be one of the bool values True or False
-FREE_CERT_INSTALL_SERVICE = env.bool("FREE_CERT_INSTALL_SERVICE",
-                                     default=True)
+FREE_CERT_INSTALL_SERVICE = env.bool("FREE_CERT_INSTALL_SERVICE", default=True)
 
 # Indicates whether or not the installation/update of a contract certificate
 # shall be offered to the EV. Should be configurable via OCPP messages.
@@ -52,4 +51,3 @@ ALLOW_CERT_INSTALL_SERVICE = env.bool("ALLOW_CERT_INSTALL_SERVICE", default=True
 ENFORCE_TLS = env.bool("SECC_ENFORCE_TLS", default=False)
 
 env.seal()  # raise all errors at once, if any
-

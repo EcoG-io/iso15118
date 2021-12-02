@@ -5,31 +5,46 @@ which extends the state shared between the EVCC and SECC.
 
 import logging.config
 from abc import ABC
-from typing import Union, Type, List, TypeVar, Optional
+from typing import List, Optional, Type, TypeVar, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.shared import settings
 from iso15118.shared.exceptions import FaultyStateImplementationError
 from iso15118.shared.messages.app_protocol import (
-    SupportedAppProtocolRes, SupportedAppProtocolReq, ResponseCodeSAP, )
+    ResponseCodeSAP,
+    SupportedAppProtocolReq,
+    SupportedAppProtocolRes,
+)
 from iso15118.shared.messages.enums import Namespace
-from iso15118.shared.messages.iso15118_2.msgdef import (
-    V2GMessage as V2GMessageV2)
-from iso15118.shared.messages.iso15118_2.body import get_msg_type, BodyBase, \
-    SessionSetupReq as SessionSetupReqV2, SessionSetupRes as SessionSetupResV2
-from iso15118.shared.messages.iso15118_20.common_messages import SessionSetupReq \
-    as SessionSetupReqV20, SessionSetupRes as SessionSetupResV20
-from iso15118.shared.messages.iso15118_2.datatypes import (
-    ResponseCode as ResponseCodeV2)
+from iso15118.shared.messages.iso15118_2.body import BodyBase
+from iso15118.shared.messages.iso15118_2.body import (
+    SessionSetupReq as SessionSetupReqV2,
+)
+from iso15118.shared.messages.iso15118_2.body import (
+    SessionSetupRes as SessionSetupResV2,
+)
+from iso15118.shared.messages.iso15118_2.body import get_msg_type
+from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode as ResponseCodeV2
+from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    SessionSetupReq as SessionSetupReqV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    SessionSetupRes as SessionSetupResV20,
+)
 from iso15118.shared.messages.iso15118_20.common_types import (
-    V2GMessage as V2GMessageV20, V2GRequest)
+    ResponseCode as ResponseCodeV20,
+)
+from iso15118.shared.messages.iso15118_20.common_types import (
+    V2GMessage as V2GMessageV20,
+)
+from iso15118.shared.messages.iso15118_20.common_types import V2GRequest
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
-from iso15118.shared.messages.iso15118_20.common_types import (
-    ResponseCode as ResponseCodeV20)
 
-logging.config.fileConfig(fname=settings.LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+logging.config.fileConfig(
+    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
+)
 logger = logging.getLogger(__name__)
 
 
@@ -54,8 +69,9 @@ class StateSECC(State, ABC):
     # The default response code 'OK' can be overwritten as needed.
     response_code: Union[ResponseCodeV2, ResponseCodeV20] = ResponseCodeV2.OK
 
-    def __init__(self, comm_session: 'SECCCommunicationSession',
-                 timeout: Union[float, int] = 0):
+    def __init__(
+        self, comm_session: "SECCCommunicationSession", timeout: Union[float, int] = 0
+    ):
         """
         Initialises a state to process a new message. Every state that inherits
         from State needs to implement __init__ and call super().__init__() with
@@ -73,42 +89,54 @@ class StateSECC(State, ABC):
                             throughout the session.
         """
         super().__init__(comm_session, timeout)
-        self.comm_session: 'SECCCommunicationSession' = comm_session
+        self.comm_session: "SECCCommunicationSession" = comm_session
 
-    T = TypeVar('T')
+    T = TypeVar("T")
 
-    def check_msg_v2(self,
-                     message: Union[SupportedAppProtocolReq,
-                                    SupportedAppProtocolRes,
-                                    V2GMessageV2,
-                                    V2GMessageV20],
-                     expected_msg_types: List[Union[Type[SupportedAppProtocolReq],
-                                                    Type[BodyBase],
-                                                    Type[V2GRequest]]],
-                     expect_first: bool = True) -> V2GMessageV2:
+    def check_msg_v2(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+        expected_msg_types: List[
+            Union[Type[SupportedAppProtocolReq], Type[BodyBase], Type[V2GRequest]]
+        ],
+        expect_first: bool = True,
+    ) -> V2GMessageV2:
         return self.check_msg(message, V2GMessageV2, expected_msg_types, expect_first)
 
-    def check_msg_v20(self,
-                      message: Union[SupportedAppProtocolReq,
-                                     SupportedAppProtocolRes,
-                                     V2GMessageV2,
-                                     V2GMessageV20],
-                      expected_msg_types: List[Union[Type[SupportedAppProtocolReq],
-                                                     Type[BodyBase],
-                                                     Type[V2GRequest]]],
-                      expect_first: bool = True) -> V2GMessageV20:
+    def check_msg_v20(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+        expected_msg_types: List[
+            Union[Type[SupportedAppProtocolReq], Type[BodyBase], Type[V2GRequest]]
+        ],
+        expect_first: bool = True,
+    ) -> V2GMessageV20:
         return self.check_msg(message, V2GMessageV20, expected_msg_types, expect_first)
 
-    def check_msg(self,
-                  message: Union[SupportedAppProtocolReq,
-                                 SupportedAppProtocolRes,
-                                 V2GMessageV2,
-                                 V2GMessageV20],
-                  expected_return_type: Type[T],
-                  expected_msg_types: List[Union[Type[SupportedAppProtocolReq],
-                                                 Type[BodyBase],
-                                                 Type[V2GRequest]]],
-                  expect_first: bool = True) -> Optional[T]:
+    def check_msg(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+        expected_return_type: Type[T],
+        expected_msg_types: List[
+            Union[Type[SupportedAppProtocolReq], Type[BodyBase], Type[V2GRequest]]
+        ],
+        expect_first: bool = True,
+    ) -> Optional[T]:
         """
         This function is used to reduce code redundancy in the process_message()
         method of each SECC state. The following checks are covered:
@@ -150,10 +178,11 @@ class StateSECC(State, ABC):
         """
         # TODO Add support for DIN SPEC 70121
         if not isinstance(message, expected_return_type):
-            self.stop_state_machine(f"{type(message)}' not a valid message type "
-                                    f"in state {str(self)}",
-                                    message,
-                                    ResponseCodeV2.FAILED_SEQUENCE_ERROR)
+            self.stop_state_machine(
+                f"{type(message)}' not a valid message type " f"in state {str(self)}",
+                message,
+                ResponseCodeV2.FAILED_SEQUENCE_ERROR,
+            )
             return None
 
         msg_body: Union[SupportedAppProtocolReq, BodyBase, V2GRequest]
@@ -166,11 +195,16 @@ class StateSECC(State, ABC):
 
         match = False
         for idx, expected_msg_type in enumerate(expected_msg_types):
-            if idx == 0 and expect_first and not isinstance(msg_body, expected_msg_type):
-                self.stop_state_machine(f"{str(message)}' not accepted in state "
-                                        f"{str(self)}",
-                                        message,
-                                        ResponseCodeV2.FAILED_SEQUENCE_ERROR)
+            if (
+                idx == 0
+                and expect_first
+                and not isinstance(msg_body, expected_msg_type)
+            ):
+                self.stop_state_machine(
+                    f"{str(message)}' not accepted in state " f"{str(self)}",
+                    message,
+                    ResponseCodeV2.FAILED_SEQUENCE_ERROR,
+                )
                 return None
 
             if isinstance(msg_body, expected_msg_type):
@@ -178,34 +212,40 @@ class StateSECC(State, ABC):
                 break
 
         if not match:
-            self.stop_state_machine(f"{str(message)}' not accepted in state "
-                                    f"{str(self)}",
-                                    message,
-                                    ResponseCodeV2.FAILED_SEQUENCE_ERROR)
+            self.stop_state_machine(
+                f"{str(message)}' not accepted in state " f"{str(self)}",
+                message,
+                ResponseCodeV2.FAILED_SEQUENCE_ERROR,
+            )
             return None
 
-        if not isinstance(msg_body, (SessionSetupReqV2,
-                                     SessionSetupReqV20)) and \
-           not isinstance(message, SupportedAppProtocolReq) and \
-           not message.header.session_id == self.comm_session.session_id:
-            self.stop_state_machine(f"{str(message)}'s session ID "
-                                    f"{message.header.session_id} does not match "
-                                    f"session ID {self.comm_session.session_id}",
-                                    message,
-                                    ResponseCodeV2.FAILED_UNKNOWN_SESSION)
+        if (
+            not isinstance(msg_body, (SessionSetupReqV2, SessionSetupReqV20))
+            and not isinstance(message, SupportedAppProtocolReq)
+            and not message.header.session_id == self.comm_session.session_id
+        ):
+            self.stop_state_machine(
+                f"{str(message)}'s session ID "
+                f"{message.header.session_id} does not match "
+                f"session ID {self.comm_session.session_id}",
+                message,
+                ResponseCodeV2.FAILED_UNKNOWN_SESSION,
+            )
             return None
 
         return message
 
-    def stop_state_machine(self,
-                           reason: str,
-                           faulty_request: Union[SupportedAppProtocolReq,
-                                                 SupportedAppProtocolRes,
-                                                 V2GMessageV2,
-                                                 V2GMessageV20],
-                           response_code: Union[ResponseCodeSAP,
-                                                ResponseCodeV2,
-                                                ResponseCodeV20]):
+    def stop_state_machine(
+        self,
+        reason: str,
+        faulty_request: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+        response_code: Union[ResponseCodeSAP, ResponseCodeV2, ResponseCodeV20],
+    ):
         """
         In case the processing of a message from the EVCC fails, the SECC needs
         to send a response to the corresponding request with minimal payload
@@ -219,34 +259,27 @@ class StateSECC(State, ABC):
         FAILED_SequenceError.
         """
         self.comm_session.stop_reason = StopNotification(
-            False,
-            reason,
-            self.comm_session.writer.get_extra_info('peername'))
+            False, reason, self.comm_session.writer.get_extra_info("peername")
+        )
 
         if isinstance(faulty_request, V2GMessageV2):
             msg_type = get_msg_type(str(faulty_request))
             error_res = self.comm_session.failed_responses_isov2.get(msg_type)
             error_res.response_code = response_code
-            self.create_next_message(Terminate,
-                                     error_res,
-                                     0,
-                                     Namespace.ISO_V2_MSG_DEF)
+            self.create_next_message(Terminate, error_res, 0, Namespace.ISO_V2_MSG_DEF)
         elif isinstance(faulty_request, V2GRequest):
-            error_res, namespace = \
-                self.comm_session.failed_responses_isov20.get(type(faulty_request))
+            error_res, namespace = self.comm_session.failed_responses_isov20.get(
+                type(faulty_request)
+            )
             error_res.response_code = response_code
-            self.create_next_message(Terminate,
-                                     error_res,
-                                     0,
-                                     namespace)
+            self.create_next_message(Terminate, error_res, 0, namespace)
         elif isinstance(faulty_request, SupportedAppProtocolReq):
             error_res = SupportedAppProtocolRes(response_code=response_code)
 
-            self.create_next_message(Terminate,
-                                     error_res,
-                                     0,
-                                     Namespace.SAP)
+            self.create_next_message(Terminate, error_res, 0, Namespace.SAP)
         else:
             # Should actually never happen
-            logger.error("Something's off here: the faulty_request and response_code "
-                         "are not of the expected type")
+            logger.error(
+                "Something's off here: the faulty_request and response_code "
+                "are not of the expected type"
+            )

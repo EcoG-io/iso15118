@@ -1,8 +1,8 @@
-import logging.config
 import asyncio
+import logging.config
 import socket
 import struct
-from asyncio import DatagramTransport, DatagramProtocol
+from asyncio import DatagramProtocol, DatagramTransport
 from typing import Tuple
 
 from iso15118.evcc.evcc_settings import NETWORK_INTERFACE
@@ -10,14 +10,15 @@ from iso15118.shared import settings
 from iso15118.shared.exceptions import NoLinkLocalAddressError
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.messages.v2gtp import V2GTPMessage
-from iso15118.shared.network import (get_nic,
-                                     SDP_SERVER_PORT,
-                                     SDP_MULTICAST_GROUP)
-from iso15118.shared.notifications import (UDPPacketNotification,
-                                           ReceiveTimeoutNotification)
+from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT, get_nic
+from iso15118.shared.notifications import (
+    ReceiveTimeoutNotification,
+    UDPPacketNotification,
+)
 
-logging.config.fileConfig(fname=settings.LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+logging.config.fileConfig(
+    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
+)
 logger = logging.getLogger(__name__)
 
 
@@ -64,15 +65,14 @@ class UDPClient(DatagramProtocol):
         # Initialise socket for IPv6 datagrams
         # Address family (determines network layer protocol, here IPv6)
         # Socket type (datagram, determines transport layer protocol UDP)
-        sock = socket.socket(family=socket.AF_INET6,
-                             type=socket.SOCK_DGRAM)
+        sock = socket.socket(family=socket.AF_INET6, type=socket.SOCK_DGRAM)
 
         # Allows address to be reused
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         # The socket needs to be configured with a time-to-live value (TTL)
         # for messages to 1 so they do not go past the local network segment.
-        ttl = struct.pack('@i', 1)
+        ttl = struct.pack("@i", 1)
         sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_HOPS, ttl)
 
         # The IP_MULTICAST_IF or IPV6_MULTICAST_IF settings tell your socket
@@ -81,18 +81,18 @@ class UDPClient(DatagramProtocol):
         # with bind(), since bind() controls which interface(s) the socket
         # receives multicast packets from.
 
-        nic: str = ''
+        nic: str = ""
 
         try:
             nic = get_nic(NETWORK_INTERFACE)
         except NoLinkLocalAddressError as exc:
-            logger.exception("Can't assign interface for UDP server, unable "
-                             f"to find network interface card. {exc}")
+            logger.exception(
+                "Can't assign interface for UDP server, unable "
+                f"to find network interface card. {exc}"
+            )
 
         interface_index = socket.if_nametoindex(nic)
-        sock.setsockopt(socket.IPPROTO_IPV6,
-                        socket.IPV6_MULTICAST_IF,
-                        interface_index)
+        sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_IF, interface_index)
 
         transport, _ = await loop.create_datagram_endpoint(
             protocol_factory=lambda: self,
@@ -100,7 +100,7 @@ class UDPClient(DatagramProtocol):
         )
 
         self._transport = transport
-        logger.debug('UDP client started')
+        logger.debug("UDP client started")
 
         return self
 
@@ -175,9 +175,9 @@ class UDPClient(DatagramProtocol):
         getting a message from the queue and putting it back over and over
         until the time expires? We have to test that
         """
-        self._transport.sendto(message.to_bytes(),
-                               (SDP_MULTICAST_GROUP,
-                                SDP_SERVER_PORT))
+        self._transport.sendto(
+            message.to_bytes(), (SDP_MULTICAST_GROUP, SDP_SERVER_PORT)
+        )
         self._last_message_sent = message
 
         logger.debug(f"Message sent: {message}")
@@ -185,14 +185,15 @@ class UDPClient(DatagramProtocol):
     async def receive(self):
         try:
             udp_packet, _ = await asyncio.wait_for(
-                self._rcv_queue.get(),
-                timeout=Timeouts.SDP_REQ
+                self._rcv_queue.get(), timeout=Timeouts.SDP_REQ
             )
             self._session_handler_queue.put_nowait(udp_packet)
         except asyncio.TimeoutError as e:
-            logger.warning(f"A {e.__class__.__name__} occurred. Waited "
-                           f"for {Timeouts.SDP_REQ} s after sending an "
-                           f"SDPRequest")
+            logger.warning(
+                f"A {e.__class__.__name__} occurred. Waited "
+                f"for {Timeouts.SDP_REQ} s after sending an "
+                f"SDPRequest"
+            )
             self._session_handler_queue.put_nowait(ReceiveTimeoutNotification())
 
     async def send_and_receive(self, message: V2GTPMessage):

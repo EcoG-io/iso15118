@@ -24,15 +24,15 @@ class InvalidMessageError(Exception):
 
 
 class InvalidV2GTPMessageError(Exception):
-    """ Is thrown when trying to create a V2GTP message from a bytes object """
+    """Is thrown when trying to create a V2GTP message from a bytes object"""
 
 
 class InvalidSDPRequestError(Exception):
-    """ Is thrown when trying to create an SDP request from a bytearray """
+    """Is thrown when trying to create an SDP request from a bytearray"""
 
 
 class InvalidSDPResponseError(Exception):
-    """ Is thrown when trying to create an SDP response from a bytearray """
+    """Is thrown when trying to create an SDP response from a bytearray"""
 
 
 class SDPFailedError(Exception):
@@ -49,6 +49,7 @@ class MessageProcessingError(Exception):
     The message_name argument for the __init__ is the name of the message that
     caused the processing error.
     """
+
     def __init__(self, message_name: str):
         Exception.__init__(self)
         self.message_name = message_name
@@ -60,13 +61,14 @@ class FaultyStateImplementationError(Exception):
     processing an incoming message. The 'error' field provides additional
     information as to what specifically is wrong.
     """
+
     def __init__(self, error: str):
         Exception.__init__(self)
         self.error = error
 
 
 class InvalidPayloadTypeError(Exception):
-    """ Is thrown when trying to instantiate a V2GTPMessage object with a
+    """Is thrown when trying to instantiate a V2GTPMessage object with a
     payload type that is not supported by ISO 15118 version of a running
     communication session
     """
@@ -122,7 +124,7 @@ class CertSignatureError(Exception):
     exception is thrown for the first certificate that causes the error.
     """
 
-    def __init__(self, subject: str, issuer: str, extra_info: str = ''):
+    def __init__(self, subject: str, issuer: str, extra_info: str = ""):
         Exception.__init__(self)
         self.subject = subject
         self.issuer = issuer
@@ -203,12 +205,14 @@ class CertChainLengthError(Exception):
 
 class EncryptionError(Exception):
     """Is thrown when an error occurs while trying to encrypt a private key"""
+
     def __init__(self):
         Exception.__init__(self)
 
 
 class DecryptionError(Exception):
     """Is thrown when an error occurs while trying to decrypt a private key"""
+
     def __init__(self):
         Exception.__init__(self)
 

@@ -11,10 +11,10 @@ Pydantic's Field class is used to be able to create a json schema of each model
 element names by using the 'alias' attribute.
 """
 
-from typing import List, Literal
 from enum import Enum, IntEnum
+from typing import List, Literal
 
-from pydantic import Field, validator, root_validator
+from pydantic import Field, root_validator, validator
 
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import INT_32_MAX, AuthEnum
@@ -27,6 +27,7 @@ class UnitSymbol(str, Enum):
     These are the physical units used in the PhysicalValue subclasses.
     See section 8.5.2.7 in ISO 15118-2.
     """
+
     HOURS = "h"
     MINUTES = "m"
     SECONDS = "s"
@@ -42,8 +43,9 @@ class PhysicalValue(BaseModel):
     (abbreviation for 'Physical Value') and define value and unit fields.
     See section 8.5.2.7 in ISO 15118-2
     """
+
     # XSD type byte with value range [-3..3]
-    multiplier: int = Field(..., ge=-3, le=3, alias='Multiplier')
+    multiplier: int = Field(..., ge=-3, le=3, alias="Multiplier")
 
 
 class PVChargingProfileEntryMaxPower(PhysicalValue):
@@ -55,8 +57,9 @@ class PVChargingProfileEntryMaxPower(PhysicalValue):
     Therefore, you'll have to set the multiplier to 1 if you want to reach
     the max value (20000 x 10 ^ multiplier, where multiplier = 1)
     """
-    value: int = Field(..., ge=0, le=200000, alias='Value')
-    unit: Literal[UnitSymbol.WATT] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=200000, alias="Value")
+    unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
 
 class PVEAmount(PhysicalValue):
@@ -68,8 +71,9 @@ class PVEAmount(PhysicalValue):
     Therefore, you'll have to set the multiplier to 1 if you want to reach
     the max value (20000 x 10 ^ multiplier, where multiplier = 1)
     """
-    value: int = Field(..., ge=0, le=200000, alias='Value')
-    unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=200000, alias="Value")
+    unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
 
 
 class PVEVEnergyCapacity(PhysicalValue):
@@ -81,8 +85,9 @@ class PVEVEnergyCapacity(PhysicalValue):
     Therefore, you'll have to set the multiplier to 1 if you want to reach
     the max value (20000 x 10 ^ multiplier, where multiplier = 1)
     """
-    value: int = Field(..., ge=0, le=200000, alias='Value')
-    unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=200000, alias="Value")
+    unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
 
 
 class PVEVEnergyRequest(PhysicalValue):
@@ -94,22 +99,25 @@ class PVEVEnergyRequest(PhysicalValue):
     Therefore, you'll have to set the multiplier to 1 if you want to reach
     the max value (20000 x 10 ^ multiplier, where multiplier = 1)
     """
-    value: int = Field(..., ge=0, le=200000, alias='Value')
-    unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=200000, alias="Value")
+    unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
 
 
 class PVEVMaxCurrent(PhysicalValue):
     """
     See section 8.5.2.7 in ISO 15118-2
     """
-    value: int = Field(..., ge=0, le=400, alias='Value')
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=400, alias="Value")
+    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVMaxCurrentLimit(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=400, alias='Value')
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=400, alias="Value")
+    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVMaxPowerLimit(PhysicalValue):
@@ -121,32 +129,37 @@ class PVEVMaxPowerLimit(PhysicalValue):
     Therefore, you'll have to set the multiplier to 1 if you want to reach
     the max value (20000 x 10 ^ multiplier, where multiplier = 1)
     """
-    value: int = Field(..., ge=0, le=200000, alias='Value')
-    unit: Literal[UnitSymbol.WATT] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=200000, alias="Value")
+    unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
 
 class PVEVMaxVoltage(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=1000, alias='Value')
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=1000, alias="Value")
+    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVEVMaxVoltageLimit(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=1000, alias='Value')
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=1000, alias="Value")
+    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVEVMinCurrent(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=400, alias='Value')
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=400, alias="Value")
+    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSECurrentRegulationTolerance(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=400, alias='Value')
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=400, alias="Value")
+    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEEnergyToBeDelivered(PhysicalValue):
@@ -158,20 +171,23 @@ class PVEVSEEnergyToBeDelivered(PhysicalValue):
     Therefore, you'll have to set the multiplier to 1 if you want to reach
     the max value (20000 x 10 ^ multiplier, where multiplier = 1)
     """
-    value: int = Field(..., ge=0, le=200000, alias='Value')
-    unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=200000, alias="Value")
+    unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
 
 
 class PVEVSEMaxCurrent(PhysicalValue):
     """See sections 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=400, alias='Value')
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=400, alias="Value")
+    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEMaxCurrentLimit(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=400, alias='Value')
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=400, alias="Value")
+    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEMaxPowerLimit(PhysicalValue):
@@ -183,62 +199,72 @@ class PVEVSEMaxPowerLimit(PhysicalValue):
     Therefore, you'll have to set the multiplier to 1 if you want to reach
     the max value (20000 x 10 ^ multiplier, where multiplier = 1)
     """
-    value: int = Field(..., ge=0, le=200000, alias='Value')
-    unit: Literal[UnitSymbol.WATT] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=200000, alias="Value")
+    unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
 
 class PVEVSEMaxVoltageLimit(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=1000, alias='Value')
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=1000, alias="Value")
+    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVEVSENominalVoltage(PhysicalValue):
     """See section 8.5.2.7  in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=1000, alias='Value')
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=1000, alias="Value")
+    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVEVSEMinCurrentLimit(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=400, alias='Value')
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=400, alias="Value")
+    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEMinVoltageLimit(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=1000, alias='Value')
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=1000, alias="Value")
+    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVEVSEPeakCurrentRipple(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=400, alias='Value')
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=400, alias="Value")
+    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEPresentCurrent(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=400, alias='Value')
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=400, alias="Value")
+    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEPresentVoltage(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=1000, alias='Value')
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=1000, alias="Value")
+    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVEVTargetCurrent(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=400, alias='Value')
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=400, alias="Value")
+    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVTargetVoltage(PhysicalValue):
     """See section 8.5.2.7 in ISO 15118-2"""
-    value: int = Field(..., ge=0, le=1000, alias='Value')
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=1000, alias="Value")
+    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVPMax(PhysicalValue):
@@ -249,8 +275,9 @@ class PVPMax(PhysicalValue):
     Therefore, you'll have to set the multiplier to 1 if you want to reach
     the max value (20000 x 10 ^ multiplier, where multiplier = 1)
     """
-    value: int = Field(..., ge=0, le=200000, alias='Value')
-    unit: Literal[UnitSymbol.WATT] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=200000, alias="Value")
+    unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
 
 class PVRemainingTimeToBulkSOC(PhysicalValue):
@@ -261,8 +288,9 @@ class PVRemainingTimeToBulkSOC(PhysicalValue):
     Therefore, you'll have to set the multiplier to 1 if you want to reach
     the max value (17280 x 10 ^ multiplier, where multiplier = 1)
     """
-    value: int = Field(..., ge=0, le=172800, alias='Value')
-    unit: Literal[UnitSymbol.SECONDS] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=172800, alias="Value")
+    unit: Literal[UnitSymbol.SECONDS] = Field(..., alias="Unit")
 
 
 class PVRemainingTimeToFullSOC(PhysicalValue):
@@ -273,8 +301,9 @@ class PVRemainingTimeToFullSOC(PhysicalValue):
     Therefore, you'll have to set the multiplier to 1 if you want to reach
     the max value (17280 x 10 ^ multiplier, where multiplier = 1)
     """
-    value: int = Field(..., ge=0, le=172800, alias='Value')
-    unit: Literal[UnitSymbol.SECONDS] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=172800, alias="Value")
+    unit: Literal[UnitSymbol.SECONDS] = Field(..., alias="Unit")
 
 
 class PVStartValue(PhysicalValue):
@@ -285,26 +314,30 @@ class PVStartValue(PhysicalValue):
     Therefore, you'll have to set the multiplier to 1 if you want to reach
     the max value (20000 x 10 ^ multiplier, where multiplier = 1)
     """
-    value: int = Field(..., ge=0, le=200000, alias='Value')
-    unit: Literal[UnitSymbol.WATT] = Field(..., alias='Unit')
+
+    value: int = Field(..., ge=0, le=200000, alias="Value")
+    unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
 
 class EVChargeParameter(BaseModel):
     """See section 8.4.3.8.2 in ISO 15118-2"""
+
     # XSD type unsignedInt (32-bit unsigned integer) with value range
-    departure_time: int = Field(None, ge=0, le=INT_32_MAX, alias='DepartureTime')
+    departure_time: int = Field(None, ge=0, le=INT_32_MAX, alias="DepartureTime")
 
 
 class ACEVChargeParameter(EVChargeParameter):
     """See section 8.5.3.2 in ISO 15118-2"""
-    e_amount: PVEAmount = Field(..., alias='EAmount')
-    ev_max_voltage: PVEVMaxVoltage = Field(..., alias='EVMaxVoltage')
-    ev_max_current: PVEVMaxCurrent = Field(..., alias='EVMaxCurrent')
-    ev_min_current: PVEVMinCurrent = Field(..., alias='EVMinCurrent')
+
+    e_amount: PVEAmount = Field(..., alias="EAmount")
+    ev_max_voltage: PVEVMaxVoltage = Field(..., alias="EVMaxVoltage")
+    ev_max_current: PVEVMaxCurrent = Field(..., alias="EVMaxCurrent")
+    ev_min_current: PVEVMinCurrent = Field(..., alias="EVMinCurrent")
 
 
 class EVSENotification(str, Enum):
     """See sections 8.5.3.1 and 8.5.4.1 in ISO 15118-2"""
+
     NONE = "None"
     STOP_CHARGING = "StopCharging"
     RE_NEGOTIATION = "ReNegotiation"
@@ -312,37 +345,42 @@ class EVSENotification(str, Enum):
 
 class EVSEStatus(BaseModel):
     """See sections 8.5.3.1 and 8.5.4.1 in ISO 15118-2"""
+
     # XSD type unsignedShort (16 bit integer) with value range [0..65535]
-    notification_max_delay: int = Field(..., ge=0, le=65535,
-                                        alias='NotificationMaxDelay')
-    evse_notification: EVSENotification = Field(..., alias='EVSENotification')
+    notification_max_delay: int = Field(
+        ..., ge=0, le=65535, alias="NotificationMaxDelay"
+    )
+    evse_notification: EVSENotification = Field(..., alias="EVSENotification")
 
 
 class ACEVSEStatus(EVSEStatus):
     """See section 8.5.3.1 in ISO 15118-2"""
-    rcd: bool = Field(..., alias='RCD')
+
+    rcd: bool = Field(..., alias="RCD")
 
 
 class ACEVSEChargeParameter(BaseModel):
     """See section 8.5.3.3 in ISO 15118-2"""
-    ac_evse_status: ACEVSEStatus = Field(..., alias='AC_EVSEStatus')
-    evse_nominal_voltage: PVEVSENominalVoltage = \
-        Field(..., alias='EVSENominalVoltage')
-    evse_max_current: PVEVSEMaxCurrent = Field(..., alias='EVSEMaxCurrent')
+
+    ac_evse_status: ACEVSEStatus = Field(..., alias="AC_EVSEStatus")
+    evse_nominal_voltage: PVEVSENominalVoltage = Field(..., alias="EVSENominalVoltage")
+    evse_max_current: PVEVSEMaxCurrent = Field(..., alias="EVSEMaxCurrent")
 
 
 class Certificate(BaseModel):
     """See sections 8.5.2.5 and 8.5.2.26 in ISO 15118-2"""
-    certificate: bytes = Field(..., max_length=800, alias='Certificate')
+
+    certificate: bytes = Field(..., max_length=800, alias="Certificate")
 
 
 class CertificateChain(BaseModel):
     """See section 8.5.2.5 in ISO 15118-2"""
-    id: str = Field(None, alias='Id')
+
+    id: str = Field(None, alias="Id")
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: bytes = Field(..., max_length=800, alias='Certificate')
-    sub_certificates: List[Certificate] = Field(None, alias='SubCertificates')
+    certificate: bytes = Field(..., max_length=800, alias="Certificate")
+    sub_certificates: List[Certificate] = Field(None, alias="SubCertificates")
 
     def __str__(self):
         return type(self).__name__
@@ -350,13 +388,15 @@ class CertificateChain(BaseModel):
 
 class ChargeProgress(str, Enum):
     """See section 8.4.3.9.2 in ISO 15118-2"""
-    START = 'Start'
-    STOP = 'Stop'
-    RENEGOTIATE = 'Renegotiate'
+
+    START = "Start"
+    STOP = "Stop"
+    RENEGOTIATE = "Renegotiate"
 
 
 class EnergyTransferModeEnum(str, Enum):
     """See sections 8.5.2.4 and 8.4.3.8.2 in ISO 15118-2"""
+
     AC_SINGLE_PHASE_CORE = "AC_single_phase_core"
     AC_THREE_PHASE_CORE = "AC_three_phase_core"
     DC_CORE = "DC_core"
@@ -367,11 +407,13 @@ class EnergyTransferModeEnum(str, Enum):
 
 class EnergyTransferMode(BaseModel):
     """See section 8.5.2.4 in ISO 15118-2"""
-    value: EnergyTransferModeEnum = Field(..., alias='EnergyTransferMode')
+
+    value: EnergyTransferModeEnum = Field(..., alias="EnergyTransferMode")
 
 
 class ServiceID(IntEnum):
     """See section 8.4.3.3.2 in ISO 15118-2"""
+
     CHARGING = 1
     CERTIFICATE = 2
     INTERNET = 3
@@ -384,95 +426,109 @@ class ServiceID(IntEnum):
 
 class ServiceCategory(str, Enum):
     """See section 8.4.3.3.2 in ISO 15118-2"""
-    CHARGING = 'EVCharging'
-    CERTIFICATE = 'ContractCertificate'
-    INTERNET = 'Internet'
-    CUSTOM = 'OtherCustom'
+
+    CHARGING = "EVCharging"
+    CERTIFICATE = "ContractCertificate"
+    INTERNET = "Internet"
+    CUSTOM = "OtherCustom"
 
 
 class ServiceName(str, Enum):
     """See section 8.6.3.6, Table 105 in ISO 15118-2"""
-    CHARGING = 'AC_DC_Charging'
-    CERTIFICATE = 'Certificate'
-    INTERNET = 'InternetAccess'
-    CUSTOM = 'UseCaseInformation'
+
+    CHARGING = "AC_DC_Charging"
+    CERTIFICATE = "Certificate"
+    INTERNET = "InternetAccess"
+    CUSTOM = "UseCaseInformation"
 
 
 class ServiceDetails(BaseModel):
     """See section 8.5.2.1 in ISO 15118-2"""
+
     # XSD type unsignedShort (16 bit integer) with value range [0..65535]
-    service_id: ServiceID = Field(..., ge=0, le=65535, alias='ServiceID')
-    service_name: ServiceName = Field(None, max_length=32, alias='ServiceName')
-    service_category: ServiceCategory = Field(..., alias='ServiceCategory')
-    service_scope: str = Field(None, max_length=64, alias='ServiceScope')
-    free_service: bool = Field(..., alias='FreeService')
+    service_id: ServiceID = Field(..., ge=0, le=65535, alias="ServiceID")
+    service_name: ServiceName = Field(None, max_length=32, alias="ServiceName")
+    service_category: ServiceCategory = Field(..., alias="ServiceCategory")
+    service_scope: str = Field(None, max_length=64, alias="ServiceScope")
+    free_service: bool = Field(..., alias="FreeService")
 
 
 class ChargeService(ServiceDetails):
     """See section 8.5.2.3 in ISO 15118-2"""
-    supported_energy_transfer_mode: List[EnergyTransferMode] \
-        = Field(..., max_items=6, alias='SupportedEnergyTransferMode')
+
+    supported_energy_transfer_mode: List[EnergyTransferMode] = Field(
+        ..., max_items=6, alias="SupportedEnergyTransferMode"
+    )
 
 
 class ProfileEntryDetails(BaseModel):
     """See section 8.5.2.11 in ISO 15118-2"""
-    start: int = Field(..., alias='ChargingProfileEntryStart')
-    max_power: PVPMax = Field(..., alias='ChargingProfileEntryMaxPower')
+
+    start: int = Field(..., alias="ChargingProfileEntryStart")
+    max_power: PVPMax = Field(..., alias="ChargingProfileEntryMaxPower")
     # XSD type byte with value range [1..3]
-    max_phases_in_use: int = Field(None, ge=1, le=3,
-                                   alias='ChargingProfileEntryMaxNumberOfPhasesInUse')
+    max_phases_in_use: int = Field(
+        None, ge=1, le=3, alias="ChargingProfileEntryMaxNumberOfPhasesInUse"
+    )
 
 
 class ProfileEntry(BaseModel):
     """See section 8.5.2.10 in ISO 15118-2"""
-    entry_details: ProfileEntryDetails = Field(..., alias='ProfileEntry')
+
+    entry_details: ProfileEntryDetails = Field(..., alias="ProfileEntry")
 
 
 class ChargingSession(str, Enum):
     """See section 8.4.3.12.2 in ISO 15118-2"""
-    TERMINATE = 'Terminate'
-    PAUSE = 'Pause'
+
+    TERMINATE = "Terminate"
+    PAUSE = "Pause"
 
 
 class CostKind(str, Enum):
     """See section 8.5.2.20 in ISO 15118-2"""
-    RELATIVE_PRICE_PERCENTAGE = 'relativePricePercentage'
-    RENEWABLE_GENERATION_PERCENTAGE = 'RenewableGenerationPercentage'
-    CARBON_DIOXIDE_EMISSION = 'CarbonDioxideEmission'
+
+    RELATIVE_PRICE_PERCENTAGE = "relativePricePercentage"
+    RENEWABLE_GENERATION_PERCENTAGE = "RenewableGenerationPercentage"
+    CARBON_DIOXIDE_EMISSION = "CarbonDioxideEmission"
 
 
 class Cost(BaseModel):
     """See section 8.5.2.20 in ISO 15118-2"""
-    cost_kind: CostKind = Field(..., alias='costKind')
-    amount: int = Field(..., alias='amount')
+
+    cost_kind: CostKind = Field(..., alias="costKind")
+    amount: int = Field(..., alias="amount")
     # XSD type byte with value range [-3..3]
-    amount_multiplier: int = Field(None, ge=-3, le=3, alias='amountMultiplier')
+    amount_multiplier: int = Field(None, ge=-3, le=3, alias="amountMultiplier")
 
 
 class ConsumptionCost(BaseModel):
     """See section 8.5.2.19 in ISO 15118-2"""
-    start_value: PVStartValue = Field(..., alias='startValue')
-    cost: List[Cost] = Field(..., max_items=3, alias='Cost')
+
+    start_value: PVStartValue = Field(..., alias="startValue")
+    cost: List[Cost] = Field(..., max_items=3, alias="Cost")
 
 
 class EncryptedPrivateKey(BaseModel):
     """See section 8.5.2.28 in ISO 15118-2"""
+
     # 'Id' is actually an XML attribute, but JSON (our serialisation method)
     # doesn't have attributes. The EXI codec has to en-/decode accordingly.
-    id: str = Field(..., alias='Id')
+    id: str = Field(..., alias="Id")
     # The XSD doesn't explicitly state a Value element for
     # ContractSignatureEncryptedPrivateKeyType but its base XSD type named
     # privateKeyType has an XSD element <xs:maxLength value="48"/>. That's why
     # we add this 'value' field
-    value: bytes = Field(..., max_length=48, alias='value')
+    value: bytes = Field(..., max_length=48, alias="value")
 
     def __str__(self):
         # The XSD conform element name
-        return 'ContractSignatureEncryptedPrivateKey'
+        return "ContractSignatureEncryptedPrivateKey"
 
 
 class DCEVErrorCode(str, Enum):
     """See section 8.5.4.2 in ISO 15118-2"""
+
     NO_ERROR = "NO_ERROR"
     FAILED_RESS_TEMPERATURE_INHIBIT = "FAILED_RESSTemperatureInhibit"
     FAILED_EV_SHIFT_POSITION = "FAILED_EVShiftPosition"
@@ -480,8 +536,7 @@ class DCEVErrorCode(str, Enum):
     FAILED_EV_RESS_MALFUNCTION = "FAILED_EVRESSMalfunction"
     FAILED_CHARGING_CURRENT_DIFFERENTIAL = "FAILED_ChargingCurrentdifferential"
     FAILED_CHARGING_VOLTAGE_OUT_OF_RANGE = "FAILED_ChargingVoltageOutOfRange"
-    FAILED_CHARGING_SYSTEM_INCOMPATIBILITY = \
-        "FAILED_ChargingSystemIncompatibility"
+    FAILED_CHARGING_SYSTEM_INCOMPATIBILITY = "FAILED_ChargingSystemIncompatibility"
     NO_DATA = "NoData"
     RESERVED_A = "Reserved_A"
     RESERVED_B = "Reserved_B"
@@ -490,40 +545,43 @@ class DCEVErrorCode(str, Enum):
 
 class DCEVStatus(BaseModel):
     """See section 8.5.4.2 in ISO 15118-2"""
-    ev_ready: bool = Field(..., alias='EVReady')
-    ev_error_code: DCEVErrorCode = Field(..., alias='EVErrorCode')
+
+    ev_ready: bool = Field(..., alias="EVReady")
+    ev_error_code: DCEVErrorCode = Field(..., alias="EVErrorCode")
     # XSD type byte with value range [0..100]
-    ev_ress_soc: int = Field(..., ge=0, le=100, alias='EVRESSSOC')
+    ev_ress_soc: int = Field(..., ge=0, le=100, alias="EVRESSSOC")
 
 
 class DCEVChargeParameter(EVChargeParameter):
     """See section 8.5.4.3 in ISO 15118-2"""
-    dc_ev_status: DCEVStatus = Field(..., alias='DC_EVStatus')
-    ev_maximum_current_limit: PVEVMaxCurrentLimit = \
-        Field(..., alias='EVMaximumCurrentLimit')
-    ev_maximum_power_limit: PVEVMaxPowerLimit = \
-        Field(None, alias='EVMaximumPowerLimit')
-    ev_maximum_voltage_limit: PVEVMaxVoltageLimit = \
-        Field(..., alias='EVMaximumVoltageLimit')
-    ev_energy_capacity: PVEVEnergyCapacity = \
-        Field(None, alias='EVEnergyCapacity')
-    ev_energy_request: PVEVEnergyRequest = \
-        Field(None, alias='EVEnergyRequest')
+
+    dc_ev_status: DCEVStatus = Field(..., alias="DC_EVStatus")
+    ev_maximum_current_limit: PVEVMaxCurrentLimit = Field(
+        ..., alias="EVMaximumCurrentLimit"
+    )
+    ev_maximum_power_limit: PVEVMaxPowerLimit = Field(None, alias="EVMaximumPowerLimit")
+    ev_maximum_voltage_limit: PVEVMaxVoltageLimit = Field(
+        ..., alias="EVMaximumVoltageLimit"
+    )
+    ev_energy_capacity: PVEVEnergyCapacity = Field(None, alias="EVEnergyCapacity")
+    ev_energy_request: PVEVEnergyRequest = Field(None, alias="EVEnergyRequest")
     # XSD type byte with value range [0..100]
-    full_soc: int = Field(None, ge=0, le=100, alias='FullSOC')
+    full_soc: int = Field(None, ge=0, le=100, alias="FullSOC")
     # XSD type byte with value range [0..100]
-    bulk_soc: int = Field(None, ge=0, le=100, alias='BulkSOC')
+    bulk_soc: int = Field(None, ge=0, le=100, alias="BulkSOC")
 
 
 class DCEVPowerDeliveryParameter(BaseModel):
     """See section 8.5.4.5 in ISO 15118-2"""
-    dc_ev_status: DCEVStatus = Field(..., alias='DC_EVStatus')
-    bulk_charging_complete: bool = Field(None, alis='BulkChargingComplete')
-    charging_complete: bool = Field(..., alias='ChargingComplete')
+
+    dc_ev_status: DCEVStatus = Field(..., alias="DC_EVStatus")
+    bulk_charging_complete: bool = Field(None, alis="BulkChargingComplete")
+    charging_complete: bool = Field(..., alias="ChargingComplete")
 
 
 class DCEVSEStatusCode(str, Enum):
     """See section 8.5.4.1 in ISO 15118-2"""
+
     EVSE_NOT_READY = "EVSE_NotReady"
     EVSE_READY = "EVSE_Ready"
     EVSE_SHUTDOWN = "EVSE_Shutdown"
@@ -541,6 +599,7 @@ class DCEVSEStatusCode(str, Enum):
 
 class IsolationLevel(str, Enum):
     """See section 8.5.4.1 in ISO 15118-2"""
+
     INVALID = "Invalid"
     VALID = "Valid"
     WARNING = "Warning"
@@ -550,45 +609,55 @@ class IsolationLevel(str, Enum):
 
 class DCEVSEStatus(EVSEStatus):
     """See section 8.5.4.1 in ISO 15118-2"""
-    evse_isolation_status: IsolationLevel = Field(None,
-                                                  alias='EVSEIsolationStatus')
-    evse_status_code: DCEVSEStatusCode = Field(..., alias='EVSEStatusCode')
+
+    evse_isolation_status: IsolationLevel = Field(None, alias="EVSEIsolationStatus")
+    evse_status_code: DCEVSEStatusCode = Field(..., alias="EVSEStatusCode")
 
 
 class DCEVSEChargeParameter(BaseModel):
     """See section 8.5.4.4 in ISO 15118-2"""
-    dc_evse_status: DCEVSEStatus = Field(..., alias='DC_EVSEStatus')
-    evse_maximum_current_limit: PVEVSEMaxCurrentLimit = \
-        Field(..., alias='EVSEMaximumCurrentLimit')
-    evse_maximum_power_limit: PVEVSEMaxPowerLimit = \
-        Field(..., alias='EVSEMaximumPowerLimit')
-    evse_maximum_voltage_limit: PVEVSEMaxVoltageLimit = \
-        Field(..., alias='EVSEMaximumVoltageLimit')
-    evse_minimum_current_limit: PVEVSEMinCurrentLimit = \
-        Field(..., alias='EVSEMinimumCurrentLimit')
-    evse_minimum_voltage_limit: PVEVSEMinVoltageLimit = \
-        Field(..., alias='EVSEMinimumVoltageLimit')
-    evse_current_regulation_tolerance: \
-        PVEVSECurrentRegulationTolerance \
-        = Field(None, alias='EVSECurrentRegulationTolerance')
-    evse_peak_current_ripple: PVEVSEPeakCurrentRipple = \
-        Field(..., alias='EVSEPeakCurrentRipple')
-    evse_energy_to_be_delivered: PVEVSEEnergyToBeDelivered = \
-        Field(None, alias='EVSEEnergyToBeDelivered')
+
+    dc_evse_status: DCEVSEStatus = Field(..., alias="DC_EVSEStatus")
+    evse_maximum_current_limit: PVEVSEMaxCurrentLimit = Field(
+        ..., alias="EVSEMaximumCurrentLimit"
+    )
+    evse_maximum_power_limit: PVEVSEMaxPowerLimit = Field(
+        ..., alias="EVSEMaximumPowerLimit"
+    )
+    evse_maximum_voltage_limit: PVEVSEMaxVoltageLimit = Field(
+        ..., alias="EVSEMaximumVoltageLimit"
+    )
+    evse_minimum_current_limit: PVEVSEMinCurrentLimit = Field(
+        ..., alias="EVSEMinimumCurrentLimit"
+    )
+    evse_minimum_voltage_limit: PVEVSEMinVoltageLimit = Field(
+        ..., alias="EVSEMinimumVoltageLimit"
+    )
+    evse_current_regulation_tolerance: PVEVSECurrentRegulationTolerance = Field(
+        None, alias="EVSECurrentRegulationTolerance"
+    )
+    evse_peak_current_ripple: PVEVSEPeakCurrentRipple = Field(
+        ..., alias="EVSEPeakCurrentRipple"
+    )
+    evse_energy_to_be_delivered: PVEVSEEnergyToBeDelivered = Field(
+        None, alias="EVSEEnergyToBeDelivered"
+    )
 
 
 class DHPublicKey(BaseModel):
     """See section 8.5.2.29 in ISO 15118-2"""
-    id: str = Field(..., alias='Id')
-    value: bytes = Field(..., max_length=65, alias='value')
+
+    id: str = Field(..., alias="Id")
+    value: bytes = Field(..., max_length=65, alias="value")
 
     def __str__(self):
         # The XSD has a typo here, not using pascal case for the datatype
-        return 'DHpublickey'
+        return "DHpublickey"
 
 
 class EVSEProcessing(str, Enum):
     """See sections 8.4.3.8.3, 8.4.3.7.2, and 8.4.5.2.3 in ISO 15118-2"""
+
     FINISHED = "Finished"
     ONGOING = "Ongoing"
     ONGOING_WAITING_FOR_CUSTOMER = "Ongoing_WaitingForCustomerInteraction"
@@ -596,6 +665,7 @@ class EVSEProcessing(str, Enum):
 
 class FaultCode(str, Enum):
     """See section 8.5.2.8 in ISO 15118-2"""
+
     PARSING_ERROR = "ParsingError"
     # Typo in XSD file ("Certificat")
     NO_TLS_ROOT_CERTIFICATE_AVAILABLE = "NoTLSRootCertificatAvailable"
@@ -604,47 +674,50 @@ class FaultCode(str, Enum):
 
 class RootCertificateID(BaseModel):
     """See section 8.5.2.27 in ISO 15118-2"""
-    x509_issuer_serial: X509IssuerSerial = Field(..., alias='RootCertificateID')
+
+    x509_issuer_serial: X509IssuerSerial = Field(..., alias="RootCertificateID")
 
 
 class MeterInfo(BaseModel):
     """See section 8.5.2.27 in ISO 15118-2"""
-    meter_id: str = Field(..., max_length=32, alias='MeterID')
-    meter_reading: int = Field(None, ge=0, le=999999999, alias='MeterReading')
-    sig_meter_reading: bytes = Field(None, max_length=64,
-                                     alias='SigMeterReading')
+
+    meter_id: str = Field(..., max_length=32, alias="MeterID")
+    meter_reading: int = Field(None, ge=0, le=999999999, alias="MeterReading")
+    sig_meter_reading: bytes = Field(None, max_length=64, alias="SigMeterReading")
     # XSD type short (16 bit integer) with value range [-32768..32767]
     # A status with a negative value doesn't make much sense though ...
-    meter_status: int = Field(None, ge=-32768, le=32767, alias='MeterStatus')
+    meter_status: int = Field(None, ge=-32768, le=32767, alias="MeterStatus")
     # XSD type short (16 bit integer) with value range [-32768..32767].
     # However, that doesn't make any sense as TMeter is supposed to be a Unix
     # time stamp. Should be unsignedLong
-    t_meter: int = Field(None, alias='TMeter')
+    t_meter: int = Field(None, alias="TMeter")
 
 
 class Notification(BaseModel):
     """See section 8.5.2.8 in ISO 15118-2"""
-    fault_code: FaultCode = Field(..., alias='FaultCode')
-    fault_msg: str = Field(None, max_length=64, alias='FaultMsg')
+
+    fault_code: FaultCode = Field(..., alias="FaultCode")
+    fault_msg: str = Field(None, max_length=64, alias="FaultMsg")
 
     def __str__(self):
-        additional_info = f" ({self.fault_msg})" if self.fault_msg else ''
+        additional_info = f" ({self.fault_msg})" if self.fault_msg else ""
         return self.fault_code + additional_info
 
 
 class Parameter(BaseModel):
     """See section 8.5.2.23 in ISO 15118-2"""
+
     # 'Name' is actually an XML attribute, but JSON (our serialisation method)
     # doesn't have attributes. The EXI codec has to en-/decode accordingly.
-    name: str = Field(..., alias='Name')
-    bool_value: bool = Field(None, alias='boolValue')
+    name: str = Field(..., alias="Name")
+    bool_value: bool = Field(None, alias="boolValue")
     # XSD type byte with value range [-128..127]
-    byte_value: int = Field(None, ge=-128, le=127, alias='byteValue')
+    byte_value: int = Field(None, ge=-128, le=127, alias="byteValue")
     # XSD type short (16 bit integer) with value range [-32768..32767]
-    short_value: int = Field(None, ge=-32768, le=32767, alias='shortValue')
-    int_value: int = Field(None, alias='intValue')
-    physical_value: PhysicalValue = Field(None, alias='physicalValue')
-    str_value: str = Field(None, alias='stringValue')
+    short_value: int = Field(None, ge=-32768, le=32767, alias="shortValue")
+    int_value: int = Field(None, alias="intValue")
+    physical_value: PhysicalValue = Field(None, alias="physicalValue")
+    str_value: str = Field(None, alias="stringValue")
 
     @root_validator(pre=True)
     def at_least_one_parameter_value(cls, values):
@@ -657,24 +730,35 @@ class Parameter(BaseModel):
         """
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
-        if one_field_must_be_set(['bool_value', 'boolValue',
-                                  'byte_value', 'byteValue',
-                                  'short_value', 'shortValue',
-                                  'int_value', 'intValue',
-                                  'physical_value', 'physicalValue',
-                                  'str_value', 'stringValue'],
-                                 values,
-                                 True):
+        if one_field_must_be_set(
+            [
+                "bool_value",
+                "boolValue",
+                "byte_value",
+                "byteValue",
+                "short_value",
+                "shortValue",
+                "int_value",
+                "intValue",
+                "physical_value",
+                "physicalValue",
+                "str_value",
+                "stringValue",
+            ],
+            values,
+            True,
+        ):
             return values
 
 
 class ParameterSet(BaseModel):
     """See section 8.5.2.22 in ISO 15118-2"""
+
     # XSD type unsignedShort (16 bit integer) with value range [0..65535]
     # Table 87 says short, Table 106 says unsignedShort. We go with
     # unsignedShort as it makes more sense (no negative values).
-    parameter_set_id: int = Field(..., ge=0, le=65535, alias='ParameterSetID')
-    parameters: List[Parameter] = Field(..., max_items=16, alias='Parameter')
+    parameter_set_id: int = Field(..., ge=0, le=65535, alias="ParameterSetID")
+    parameters: List[Parameter] = Field(..., max_items=16, alias="Parameter")
 
 
 class AuthOptions(BaseModel):
@@ -684,29 +768,33 @@ class AuthOptions(BaseModel):
     The datatype in ISO 15118-2 is called "PaymentOption", but it's rather
     about the authorization method than about payment, thus the name AuthOption
     """
-    value: AuthEnum = Field(..., alias='PaymentOption')
+
+    value: AuthEnum = Field(..., alias="PaymentOption")
 
 
 class RelativeTimeInterval(BaseModel):
     """See section 8.5.2.18 in ISO 15118-2"""
-    start: int = Field(..., ge=0, le=16777214, alias='start')
-    duration: int = Field(None, ge=0, le=86400, alias='duration')
+
+    start: int = Field(..., ge=0, le=16777214, alias="start")
+    duration: int = Field(None, ge=0, le=86400, alias="duration")
 
 
 class PMaxScheduleEntryDetails(BaseModel):
     """See section 8.5.2.15 in ISO 15118-2"""
-    p_max: PVPMax = Field(..., alias='PMax')
-    time_interval: RelativeTimeInterval = Field(..., alias='RelativeTimeInterval')
+
+    p_max: PVPMax = Field(..., alias="PMax")
+    time_interval: RelativeTimeInterval = Field(..., alias="RelativeTimeInterval")
 
 
 class PMaxScheduleEntry(BaseModel):
     """See section 8.5.2.14 in ISO 15118-2"""
-    entry_details: PMaxScheduleEntryDetails = Field(...,
-                                                    alias='PMaxScheduleEntry')
+
+    entry_details: PMaxScheduleEntryDetails = Field(..., alias="PMaxScheduleEntry")
 
 
 class ResponseCode(str, Enum):
     """See page 271 in ISO 15118-2"""
+
     OK = "OK"
     OK_NEW_SESSION_ESTABLISHED = "OK_NewSessionEstablished"
     OK_OLD_SESSION_JOINED = "OK_OldSessionJoined"
@@ -731,47 +819,54 @@ class ResponseCode(str, Enum):
     FAILED_NO_CHARGE_SERVICE_SELECTED = "FAILED_NoChargeServiceSelected"
     FAILED_WRONG_ENERGY_TRANSFER_MODE = "FAILED_WrongEnergyTransferMode"
     FAILED_CONTACTOR_ERROR = "FAILED_ContactorError"
-    FAILED_CERTIFICATE_NOT_ALLOWED_AT_THIS_EVSE = \
+    FAILED_CERTIFICATE_NOT_ALLOWED_AT_THIS_EVSE = (
         "FAILED_CertificateNotAllowedAtThisEVSE"
+    )
     FAILED_CERTIFICATE_REVOKED = "FAILED_CertificateRevoked"
 
 
 class SelectedService(BaseModel):
     """See section 8.5.2.25 in ISO 15118-2"""
+
     # XSD type unsignedShort (16 bit integer) with value range [0..65535]
-    service_id: int = Field(..., ge=0, le=65535, alias='ServiceID')
+    service_id: int = Field(..., ge=0, le=65535, alias="ServiceID")
     # XSD type unsignedShort (16 bit integer) with value range [0..65535]
     # Table 87 says short, Table 106 says unsignedShort. We go with
     # unsignedShort as it makes more sense (no negative values).
-    parameter_set_id: int = Field(None, ge=0, le=65535, alias='ParameterSetID')
+    parameter_set_id: int = Field(None, ge=0, le=65535, alias="ParameterSetID")
 
 
 class SelectedServiceList(BaseModel):
     """See section 8.5.2.24 in ISO 15118-2"""
-    selected_service: List[SelectedService] = Field(..., max_items=16,
-                                                    alias='SelectedService')
+
+    selected_service: List[SelectedService] = Field(
+        ..., max_items=16, alias="SelectedService"
+    )
 
 
 class Service(BaseModel):
     """See section 8.5.2.2 in ISO 15118-2"""
-    service_details: ServiceDetails = Field(..., alias='Service')
+
+    service_details: ServiceDetails = Field(..., alias="Service")
 
 
 class ServiceParameterList(BaseModel):
     """See section 8.5.2.21 in ISO 15118-2"""
-    parameter_set: List[ParameterSet] = Field(..., max_items=255,
-                                              alias='ParameterSet')
+
+    parameter_set: List[ParameterSet] = Field(..., max_items=255, alias="ParameterSet")
 
 
 class SalesTariffEntry(BaseModel):
     """See section 8.5.2.17 in ISO 15118-2"""
-    # XSD type unsignedByte with value range [0..255]
-    e_price_level: int = Field(None, ge=0, le=255, alias='EPriceLevel')
-    time_interval: RelativeTimeInterval = Field(..., alias='RelativeTimeInterval')
-    consumption_cost: List[ConsumptionCost] = Field(None, max_items=3,
-                                                    alias='ConsumptionCost')
 
-    @validator('consumption_cost')
+    # XSD type unsignedByte with value range [0..255]
+    e_price_level: int = Field(None, ge=0, le=255, alias="EPriceLevel")
+    time_interval: RelativeTimeInterval = Field(..., alias="RelativeTimeInterval")
+    consumption_cost: List[ConsumptionCost] = Field(
+        None, max_items=3, alias="ConsumptionCost"
+    )
+
+    @validator("consumption_cost")
     def at_least_one_cost_indicator(cls, value, values):
         """
         Check that either e_price_level or consumption_cost is used.
@@ -782,27 +877,32 @@ class SalesTariffEntry(BaseModel):
         """
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
-        if not value and not values.get('e_price_level'):
-            raise ValueError("At least e_price_level or consumption_cost must "
-                             "be set, both cannot be optional.")
+        if not value and not values.get("e_price_level"):
+            raise ValueError(
+                "At least e_price_level or consumption_cost must "
+                "be set, both cannot be optional."
+            )
         return value
 
 
 class SalesTariff(BaseModel):
     """See section 8.5.2.16 in ISO 15118-2"""
-    id: str = Field(None, alias='Id')
+
+    id: str = Field(None, alias="Id")
     # XSD type unsignedByte with value range [0 .. 255]
     # Table 77 says it's both of type SAIDType (which is unsignedByte) and
     # short, so we choose the smaller value range.
-    sales_tariff_id: int = Field(..., ge=0, le=255, alias='SalesTariffID')
-    sales_tariff_description: str = Field(None, max_length=32,
-                                          alias='SalesTariffDescription')
+    sales_tariff_id: int = Field(..., ge=0, le=255, alias="SalesTariffID")
+    sales_tariff_description: str = Field(
+        None, max_length=32, alias="SalesTariffDescription"
+    )
     # XSD type unsignedByte with value range [0..255]
-    num_e_price_levels: int = Field(None, ge=0, le=255, alias='NumEPriceLevels')
-    sales_tariff_entry: List[SalesTariffEntry] = Field(..., max_items=102,
-                                                       alias='SalesTariffEntry')
+    num_e_price_levels: int = Field(None, ge=0, le=255, alias="NumEPriceLevels")
+    sales_tariff_entry: List[SalesTariffEntry] = Field(
+        ..., max_items=102, alias="SalesTariffEntry"
+    )
 
-    @validator('sales_tariff_entry')
+    @validator("sales_tariff_entry")
     def check_num_e_price_levels(cls, value, values):
         """
         If at least one sales_tariff_entry contains an e_price_level entry,
@@ -816,23 +916,29 @@ class SalesTariff(BaseModel):
         # pylint: disable=no-self-
         e_price_levels = 0
         for sales_tariff_entry in value:
-            if 'e_price_level' in sales_tariff_entry or \
-                    sales_tariff_entry.e_price_level:
+            if (
+                "e_price_level" in sales_tariff_entry
+                or sales_tariff_entry.e_price_level
+            ):
                 e_price_levels += 1
 
-        if e_price_levels > 0 and 'num_e_price_levels' not in values:
-            raise ValueError(f"SalesTariff contains {e_price_levels} "
-                             "distinct e_price_level entries, but field "
-                             "'num_e_price_levels' is not provided.")
+        if e_price_levels > 0 and "num_e_price_levels" not in values:
+            raise ValueError(
+                f"SalesTariff contains {e_price_levels} "
+                "distinct e_price_level entries, but field "
+                "'num_e_price_levels' is not provided."
+            )
 
-        if e_price_levels != values['num_e_price_levels']:
-            raise ValueError("The amount of distinct e_price_levels "
-                             f"{e_price_levels} does not match "
-                             f"num_e_price_levels "
-                             f"({values['num_e_price_levels']})")
+        if e_price_levels != values["num_e_price_levels"]:
+            raise ValueError(
+                "The amount of distinct e_price_levels "
+                f"{e_price_levels} does not match "
+                f"num_e_price_levels "
+                f"({values['num_e_price_levels']})"
+            )
         return value
 
-    @validator('sales_tariff_id')
+    @validator("sales_tariff_id")
     def sales_tariff_id_value_range(cls, value):
         """
         Checks whether the sales_tariff_id field of a SalesTariff object
@@ -846,35 +952,38 @@ class SalesTariff(BaseModel):
         if not 1 <= value <= 255:
             raise ValueError(
                 f"The value {value} is outside the allowed value "
-                f"range [1..255] for SalesTariffID")
+                f"range [1..255] for SalesTariffID"
+            )
         return value
 
     def __str__(self):
         # The XSD conform element name
-        return 'SalesTariff'
+        return "SalesTariff"
 
 
 class SAScheduleTupleEntry(BaseModel):
     """See section 8.5.2.13 in ISO 15118-2"""
+
     # XSD type unsignedByte with value range [1..255]
-    sa_schedule_tuple_id: int = Field(..., ge=1, le=255,
-                                      alias='SAScheduleTupleID')
-    p_max_schedule: List[PMaxScheduleEntry] = Field(..., max_items=1024,
-                                                    alias='PMaxSchedule')
-    sales_tariff: SalesTariff = Field(None, alias='SalesTariff')
+    sa_schedule_tuple_id: int = Field(..., ge=1, le=255, alias="SAScheduleTupleID")
+    p_max_schedule: List[PMaxScheduleEntry] = Field(
+        ..., max_items=1024, alias="PMaxSchedule"
+    )
+    sales_tariff: SalesTariff = Field(None, alias="SalesTariff")
 
 
 class SAScheduleTuple(BaseModel):
     """See section 8.5.2.13 in ISO 15118-2"""
-    tuple: SAScheduleTupleEntry = Field(..., alias='SAScheduleTuple')
+
+    tuple: SAScheduleTupleEntry = Field(..., alias="SAScheduleTuple")
 
 
 class EMAID(BaseModel):
     # 'Id' is actually an XML attribute, but JSON (our serialisation method)
     # doesn't have attributes. The EXI codec has to en-/decode accordingly.
-    id: str = Field(None, alias='Id')
-    value: str = Field(..., min_length=14, max_length=15, alias='value')
+    id: str = Field(None, alias="Id")
+    value: str = Field(..., min_length=14, max_length=15, alias="value")
 
     def __str__(self):
         # The XSD conform element name
-        return 'eMAID'
+        return "eMAID"

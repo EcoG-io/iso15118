@@ -4,13 +4,23 @@ This module contains the abstract class for an SECC to retrieve data from the EV
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Union, Optional
+from typing import List, Optional, Union
 
 from iso15118.shared.messages.enums import Protocol
-from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferMode, \
-    EnergyTransferModeEnum, SAScheduleTuple, MeterInfo as MeterInfoV2, ACEVSEStatus, \
-    ACEVSEChargeParameter, DCEVSEStatus, DCEVSEChargeParameter, PVEVSEPresentVoltage, \
-    PVEVSEPresentCurrent
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    ACEVSEChargeParameter,
+    ACEVSEStatus,
+    DCEVSEChargeParameter,
+    DCEVSEStatus,
+    EnergyTransferMode,
+    EnergyTransferModeEnum,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    PVEVSEPresentCurrent,
+    PVEVSEPresentVoltage,
+    SAScheduleTuple,
+)
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
 
@@ -35,8 +45,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_supported_energy_transfer_modes(self, as_enums: bool = False) \
-            -> Union[List[EnergyTransferMode], List[EnergyTransferModeEnum]]:
+    def get_supported_energy_transfer_modes(
+        self, as_enums: bool = False
+    ) -> Union[List[EnergyTransferMode], List[EnergyTransferModeEnum]]:
         """
         The MQTT interface needs to provide the information on the available energy
         transfer modes, which depends on the socket the EV is connected to
@@ -66,10 +77,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_sa_schedule_list(self,
-                             max_schedule_entries: Optional[int],
-                             departure_time: int = 0) \
-            -> Optional[List[SAScheduleTuple]]:
+    def get_sa_schedule_list(
+        self, max_schedule_entries: Optional[int], departure_time: int = 0
+    ) -> Optional[List[SAScheduleTuple]]:
         """
         Requests the charging schedule from a secondary actor (SA) like a
         charge point operator, if available. If no backend information is given

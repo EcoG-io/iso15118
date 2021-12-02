@@ -6,56 +6,57 @@ from iso15118.shared.messages import BaseModel
 
 
 class TransformDetails(BaseModel):
-    algorithm: str = Field(..., alias='Algorithm')
+    algorithm: str = Field(..., alias="Algorithm")
 
 
 class Transform(BaseModel):
-    details: TransformDetails = Field(..., alias='Transform')
+    details: TransformDetails = Field(..., alias="Transform")
 
 
 class DigestMethod(BaseModel):
-    algorithm: str = Field(..., alias='Algorithm')
+    algorithm: str = Field(..., alias="Algorithm")
 
 
 class SignatureMethod(BaseModel):
-    algorithm: str = Field(..., alias='Algorithm')
+    algorithm: str = Field(..., alias="Algorithm")
 
 
 class CanonicalizationMethod(BaseModel):
-    algorithm: str = Field(..., alias='Algorithm')
+    algorithm: str = Field(..., alias="Algorithm")
 
 
 class Reference(BaseModel):
-    transforms: List[Transform] = Field(..., alias='Transforms')
-    digest_method: DigestMethod = Field(..., alias='DigestMethod')
-    digest_value: bytes = Field(..., alias='DigestValue')
+    transforms: List[Transform] = Field(..., alias="Transforms")
+    digest_method: DigestMethod = Field(..., alias="DigestMethod")
+    digest_value: bytes = Field(..., alias="DigestValue")
     # 'URI' is actually an XML attribute, but JSON (our serialisation method)
     # doesn't have attributes. The EXI codec has to en-/decode accordingly.
-    uri: str = Field(..., alias='URI')
+    uri: str = Field(..., alias="URI")
 
 
 class SignedInfo(BaseModel):
-    canonicalization_method: CanonicalizationMethod = \
-        Field(..., alias='CanonicalizationMethod')
-    signature_method: SignatureMethod = Field(..., alias='SignatureMethod')
-    reference: List[Reference] = Field(..., max_items=4, alias='Reference')
+    canonicalization_method: CanonicalizationMethod = Field(
+        ..., alias="CanonicalizationMethod"
+    )
+    signature_method: SignatureMethod = Field(..., alias="SignatureMethod")
+    reference: List[Reference] = Field(..., max_items=4, alias="Reference")
 
     def __str__(self):
         return type(self).__name__
 
 
 class SignatureValue(BaseModel):
-    value: bytes = Field(..., alias='value')
+    value: bytes = Field(..., alias="value")
 
 
 class Signature(BaseModel):
-    signed_info: SignedInfo = Field(..., alias='SignedInfo')
-    signature_value: SignatureValue = Field(..., alias='SignatureValue')
+    signed_info: SignedInfo = Field(..., alias="SignedInfo")
+    signature_value: SignatureValue = Field(..., alias="SignatureValue")
 
 
 class X509IssuerSerial(BaseModel):
-    x509_issuer_name: str = Field(..., alias='X509IssuerName')
-    x509_serial_number: int = Field(..., alias='X509SerialNumber')
+    x509_issuer_name: str = Field(..., alias="X509IssuerName")
+    x509_serial_number: int = Field(..., alias="X509SerialNumber")
 
 
 class SignedElement(BaseModel):

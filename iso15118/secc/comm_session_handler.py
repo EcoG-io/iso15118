@@ -10,40 +10,45 @@ The CommunicationSessionHandler can manage several SECCCommunicationSessions
 at once, i.e. creating, storing, and deleting those sessions as needed.
 """
 
-import logging.config
 import asyncio
+import logging.config
 import socket
-
-from typing import Dict, Tuple, Union, List, Optional
 from asyncio.streams import StreamReader, StreamWriter
+from typing import Dict, List, Optional, Tuple, Union
 
-from iso15118.secc.secc_settings import ENFORCE_TLS, EVSE_CONTROLLER
 from iso15118.secc.controller.interface import EVSEControllerInterface
-from iso15118.secc.failed_responses import init_failed_responses_iso_v2, \
-    init_failed_responses_iso_v20
-from iso15118.secc.transport.udp_server import UDPServer
+from iso15118.secc.failed_responses import (
+    init_failed_responses_iso_v2,
+    init_failed_responses_iso_v20,
+)
+from iso15118.secc.secc_settings import ENFORCE_TLS, EVSE_CONTROLLER
 from iso15118.secc.transport.tcp_server import TCPServer
-from iso15118.shared.settings import LOGGER_CONF_PATH
+from iso15118.secc.transport.udp_server import UDPServer
 from iso15118.shared.comm_session import V2GCommunicationSession
-from iso15118.shared.messages.iso15118_2.datatypes import Service, \
-    SAScheduleTuple, CertificateChain as CertificateChainV2, \
-    MeterInfo as MeterInfoV2
-from iso15118.shared.utils import wait_till_finished, cancel_task
-from iso15118.shared.notifications import (UDPPacketNotification,
-                                           TCPClientNotification,
-                                           StopNotification)
-from iso15118.shared.exceptions import InvalidV2GTPMessageError, \
-    InvalidSDPRequestError
-from iso15118.shared.messages.timeouts import Timeouts
-from iso15118.shared.messages.enums import (Protocol,
-                                            ISOV2PayloadTypes,
-                                            ISOV20PayloadTypes, AuthEnum)
-from iso15118.shared.messages.v2gtp import V2GTPMessage
+from iso15118.shared.exceptions import InvalidSDPRequestError, InvalidV2GTPMessageError
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    ISOV2PayloadTypes,
+    ISOV20PayloadTypes,
+    Protocol,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    CertificateChain as CertificateChainV2,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
+from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTuple, Service
 from iso15118.shared.messages.sdp import SDPRequest, Security, create_sdp_response
+from iso15118.shared.messages.timeouts import Timeouts
+from iso15118.shared.messages.v2gtp import V2GTPMessage
+from iso15118.shared.notifications import (
+    StopNotification,
+    TCPClientNotification,
+    UDPPacketNotification,
+)
+from iso15118.shared.settings import LOGGER_CONF_PATH
+from iso15118.shared.utils import cancel_task, wait_till_finished
 
-
-logging.config.fileConfig(fname=LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+logging.config.fileConfig(fname=LOGGER_CONF_PATH, disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 
@@ -53,17 +58,16 @@ class SECCCommunicationSession(V2GCommunicationSession):
     variables and also implements a pausing mechanism.
     """
 
-    def __init__(self,
-                 transport: Tuple[StreamReader, StreamWriter],
-                 session_handler_queue: asyncio.Queue):
+    def __init__(
+        self,
+        transport: Tuple[StreamReader, StreamWriter],
+        session_handler_queue: asyncio.Queue,
+    ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
         from iso15118.secc.states.sap_states import SupportedAppProtocol
 
-        super().__init__(transport,
-                         SupportedAppProtocol,
-                         session_handler_queue,
-                         self)
+        super().__init__(transport, SupportedAppProtocol, session_handler_queue, self)
         # The EVSE controller that implements the interface EVSEControllerInterface
         self.evse_controller: EVSEControllerInterface = EVSE_CONTROLLER()
         # The authorization option(s) offered with ServiceDiscoveryRes in
@@ -118,7 +122,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
 
         """
         _, writer = transport
-        return True if writer.get_extra_info('sslcontext') else False
+        return True if writer.get_extra_info("sslcontext") else False
 
 
 class CommunicationSessionHandler:
@@ -126,6 +130,7 @@ class CommunicationSessionHandler:
     The CommunicationSessionHandler is the control center that manages all
     communication sessions with one or more EVs.
     """
+
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self):
@@ -193,23 +198,25 @@ class CommunicationSessionHandler:
                 if isinstance(notification, UDPPacketNotification):
                     await self.process_incoming_udp_packet(notification)
                 elif isinstance(notification, TCPClientNotification):
-                    logger.debug("TCP client connected, client address is "
-                                 f"{notification.ip_address}.")
+                    logger.debug(
+                        "TCP client connected, client address is "
+                        f"{notification.ip_address}."
+                    )
 
                     try:
-                        comm_session, task = self.comm_sessions[
-                            notification.ip_address]
+                        comm_session, task = self.comm_sessions[notification.ip_address]
                         comm_session.resume()
                     except KeyError:
                         comm_session = SECCCommunicationSession(
-                            notification.transport,
-                            self._rcv_queue
+                            notification.transport, self._rcv_queue
                         )
 
-                    task = asyncio.create_task(comm_session.start(
-                        Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT))
-                    self.comm_sessions[notification.ip_address] = \
-                        (comm_session, task)
+                    task = asyncio.create_task(
+                        comm_session.start(
+                            Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT
+                        )
+                    )
+                    self.comm_sessions[notification.ip_address] = (comm_session, task)
                 elif isinstance(notification, StopNotification):
                     try:
                         await cancel_task(
@@ -220,9 +227,11 @@ class CommunicationSessionHandler:
                         # TODO Need to check why this KeyError happens
                         pass
                 else:
-                    logger.warning(f"Communication session handler "
-                                   f"received an unknown message or "
-                                   f"notification: {notification}")
+                    logger.warning(
+                        f"Communication session handler "
+                        f"received an unknown message or "
+                        f"notification: {notification}"
+                    )
             # TODO: What about an except here?
             finally:
                 queue.task_done()
@@ -234,8 +243,7 @@ class CommunicationSessionHandler:
         PPD (pairing and positioning device -> ACD-pantograph in ISO 15118-20)
         """
         try:
-            v2gtp_msg = V2GTPMessage.from_bytes(Protocol.UNKNOWN,
-                                                message.data)
+            v2gtp_msg = V2GTPMessage.from_bytes(Protocol.UNKNOWN, message.data)
         except InvalidV2GTPMessageError as exc:
             logger.exception(exc)
             return
@@ -254,32 +262,38 @@ class CommunicationSessionHandler:
                     port = self.tcp_server.port_no_tls
 
                 # convert IPv6 address from presentation to numeric format
-                ipv6_bytes = socket.inet_pton(socket.AF_INET6,
-                                              self.tcp_server.ipv6_address_host)
+                ipv6_bytes = socket.inet_pton(
+                    socket.AF_INET6, self.tcp_server.ipv6_address_host
+                )
 
-                sdp_response = create_sdp_response(sdp_request,
-                                                   ipv6_bytes,
-                                                   port,
-                                                   ENFORCE_TLS)
+                sdp_response = create_sdp_response(
+                    sdp_request, ipv6_bytes, port, ENFORCE_TLS
+                )
             except InvalidSDPRequestError as exc:
-                logger.exception(f"{exc.__class__.__name__}, received bytes: "
-                                 f"{v2gtp_msg.payload.hex()}")
+                logger.exception(
+                    f"{exc.__class__.__name__}, received bytes: "
+                    f"{v2gtp_msg.payload.hex()}"
+                )
                 return
-        elif (v2gtp_msg.payload_type ==
-              ISOV20PayloadTypes.SDP_REQUEST_WIRELESS):
+        elif v2gtp_msg.payload_type == ISOV20PayloadTypes.SDP_REQUEST_WIRELESS:
             raise NotImplementedError(
                 "The incoming datagram seems to be an SECC Discovery request "
                 "message for wireless communication (used for ACD-P). "
-                "This feature is not yet implemented.")
+                "This feature is not yet implemented."
+            )
         else:
-            logger.error(f"Incoming datagram of {len(message.data)} "
-                         f"bytes is no valid SDP request message")
+            logger.error(
+                f"Incoming datagram of {len(message.data)} "
+                f"bytes is no valid SDP request message"
+            )
             return
 
         # TODO Determine protocol version
-        v2gtp_msg = V2GTPMessage(Protocol.ISO_15118_2,
-                                 ISOV2PayloadTypes.SDP_RESPONSE,
-                                 sdp_response.to_payload())
+        v2gtp_msg = V2GTPMessage(
+            Protocol.ISO_15118_2,
+            ISOV2PayloadTypes.SDP_RESPONSE,
+            sdp_response.to_payload(),
+        )
         logger.debug(f"Sending SDPResponse: {sdp_response}")
 
         self.udp_server.send(v2gtp_msg, message.addr)

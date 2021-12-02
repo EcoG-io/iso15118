@@ -21,12 +21,13 @@ from iso15118.shared.messages.xmldsig import Signature
 
 class MessageHeader(BaseModel):
     """See section 8.3.3 in ISO 15118-2"""
-    # XSD type hexBinary with max 8 bytes encoded as 16 hexadecimal characters
-    session_id: str = Field(..., max_length=16, alias='SessionID')
-    notification: Notification = Field(None, alias='Notification')
-    signature: Signature = Field(None, alias='Signature')
 
-    @validator('session_id')
+    # XSD type hexBinary with max 8 bytes encoded as 16 hexadecimal characters
+    session_id: str = Field(..., max_length=16, alias="SessionID")
+    notification: Notification = Field(None, alias="Notification")
+    signature: Signature = Field(None, alias="Signature")
+
+    @validator("session_id")
     def check_sessionid_is_hexbinary(cls, value):
         """
         Checks whether the session_id field is a hexadecimal representation of
@@ -43,4 +44,5 @@ class MessageHeader(BaseModel):
         except ValueError as exc:
             raise ValueError(
                 f"Invalid value '{value}' for SessionID (must be "
-                f"hexadecimal representation of max 8 bytes)") from exc
+                f"hexadecimal representation of max 8 bytes)"
+            ) from exc

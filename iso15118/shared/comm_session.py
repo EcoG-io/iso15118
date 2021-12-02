@@ -9,34 +9,41 @@ import asyncio
 import logging.config
 from abc import ABC, abstractmethod
 from asyncio.streams import StreamReader, StreamWriter
-from typing import Type, Tuple, Optional, Union, List
+from typing import List, Optional, Tuple, Type, Union
 
 from pydantic import ValidationError
 from typing_extensions import TYPE_CHECKING
 
 from iso15118.shared import settings
-from iso15118.shared.utils import wait_till_finished
-from iso15118.shared.exceptions import (InvalidV2GTPMessageError,
-                                        MessageProcessingError,
-                                        FaultyStateImplementationError,
-                                        EXIDecodingError)
+from iso15118.shared.exceptions import (
+    EXIDecodingError,
+    FaultyStateImplementationError,
+    InvalidV2GTPMessageError,
+    MessageProcessingError,
+)
 from iso15118.shared.exi_codec import from_exi
-from iso15118.shared.messages.app_protocol import SupportedAppProtocolReq, \
-    SupportedAppProtocolRes
-from iso15118.shared.messages.enums import Protocol, Namespace
-from iso15118.shared.messages.v2gtp import V2GTPMessage
-from iso15118.shared.messages.sdp import Security
-from iso15118.shared.messages.iso15118_2.msgdef import (
-    V2GMessage as V2GMessageV2)
+from iso15118.shared.messages.app_protocol import (
+    SupportedAppProtocolReq,
+    SupportedAppProtocolRes,
+)
+from iso15118.shared.messages.enums import Namespace, Protocol
+from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
-    SelectedService as SelectedServiceV2, EnergyTransferModeEnum)
+    SelectedService as SelectedServiceV2,
+)
+from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
-    V2GMessage as V2GMessageV20)
+    V2GMessage as V2GMessageV20,
+)
+from iso15118.shared.messages.sdp import Security
+from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.notifications import StopNotification
-from iso15118.shared.states import State, Terminate, Pause
+from iso15118.shared.states import Pause, State, Terminate
+from iso15118.shared.utils import wait_till_finished
 
-logging.config.fileConfig(fname=settings.LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+logging.config.fileConfig(
+    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
+)
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -58,10 +65,12 @@ class SessionStateMachine(ABC):
     Each newly established TCP session initiates a communication session, which
     is essentially the sate machine for the ISO 15118 message handling.
     """
-    def __init__(self,
-                 start_state: Type[State],
-                 comm_session: Union['EVCCCommunicationSession',
-                                     'SECCCommunicationSession']):
+
+    def __init__(
+        self,
+        start_state: Type[State],
+        comm_session: Union["EVCCCommunicationSession", "SECCCommunicationSession"],
+    ):
         """
         The EVCC state machine starts with waiting for the
         SupportedAppProtocolRes message from the SECC.
@@ -157,24 +166,22 @@ class SessionStateMachine(ABC):
         # Step 1
         try:
             # First extract the V2GMessage payload from the V2GTPMessage ...
-            v2gtp_msg = V2GTPMessage.from_bytes(
-                self.comm_session.protocol,
-                message
-            )
+            v2gtp_msg = V2GTPMessage.from_bytes(self.comm_session.protocol, message)
         except InvalidV2GTPMessageError as exc:
             logger.exception("Incoming TCPPacket is not a valid V2GTPMessage")
             # and then decode the bytearray into the message
             raise MessageProcessingError from exc
 
         # Step 2
-        decoded_message: Union[SupportedAppProtocolReq,
-                               SupportedAppProtocolRes,
-                               V2GMessageV2,
-                               V2GMessageV20,
-                               None] = None
+        decoded_message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            None,
+        ] = None
         try:
-            decoded_message = from_exi(v2gtp_msg.payload,
-                                       self.get_exi_ns())
+            decoded_message = from_exi(v2gtp_msg.payload, self.get_exi_ns())
         except EXIDecodingError as exc:
             logger.error(f"{exc.error}")
             self.current_state.next_state = Terminate
@@ -182,8 +189,10 @@ class SessionStateMachine(ABC):
 
         # Shouldn't happen, but just to be sure (otherwise mypy would complain)
         if not decoded_message:
-            logger.error("Unusual error situation: decoded_message is None"
-                         "although no EXIDecodingError was raised")
+            logger.error(
+                "Unusual error situation: decoded_message is None"
+                "although no EXIDecodingError was raised"
+            )
             return
 
         # Step 3
@@ -191,8 +200,9 @@ class SessionStateMachine(ABC):
             logger.debug(f"{str(decoded_message)} received")
             self.current_state.process_message(decoded_message)
         except MessageProcessingError as exc:
-            logger.exception(f"{exc.__class__.__name__} while processing "
-                             f"{exc.message_name}")
+            logger.exception(
+                f"{exc.__class__.__name__} while processing " f"{exc.message_name}"
+            )
             raise exc
         except FaultyStateImplementationError as exc:
             logger.exception(f"{exc.__class__.__name__}: {exc.error}")
@@ -204,11 +214,15 @@ class SessionStateMachine(ABC):
             logger.exception(f"{exc}")
             raise exc
 
-        if self.current_state.next_v2gtp_msg is None and \
-           self.current_state.next_state is not Terminate:
-            raise FaultyStateImplementationError("Field 'next_v2gtp_msg' is "
-                                                 "None but must be set because "
-                                                 "next state is not Terminate")
+        if (
+            self.current_state.next_v2gtp_msg is None
+            and self.current_state.next_state is not Terminate
+        ):
+            raise FaultyStateImplementationError(
+                "Field 'next_v2gtp_msg' is "
+                "None but must be set because "
+                "next state is not Terminate"
+            )
 
     def go_to_next_state(self):
         """
@@ -234,14 +248,16 @@ class V2GCommunicationSession(SessionStateMachine):
     to execute the corresponding state machine, process incoming messages, and
     send subsequent messages as a result.
     """
+
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self,
-                 transport: Tuple[StreamReader, StreamWriter],
-                 start_state: Type['State'],
-                 session_handler_queue: asyncio.Queue,
-                 comm_session: Union['EVCCCommunicationSession',
-                                     'SECCCommunicationSession']):
+    def __init__(
+        self,
+        transport: Tuple[StreamReader, StreamWriter],
+        start_state: Type["State"],
+        session_handler_queue: asyncio.Queue,
+        comm_session: Union["EVCCCommunicationSession", "SECCCommunicationSession"],
+    ):
         """
         Initialise the communication session with EVCC or SECC specific
         parameters
@@ -262,9 +278,9 @@ class V2GCommunicationSession(SessionStateMachine):
         self.reader, self.writer = transport
         # For timeout, termination, and pausing notifications
         self.session_handler_queue = session_handler_queue
-        self.session_id: str = ''
+        self.session_id: str = ""
         # Mutually agreed-upon ISO 15118 application protocol as result of SAP
-        self.chosen_protocol: str = ''
+        self.chosen_protocol: str = ""
         # The services offered by the SECC and selected by the EVCC
         self.selected_services: List[SelectedServiceV2] = []
         # Selected energy modes helps to choose AC or DC specific parameters
@@ -323,9 +339,11 @@ class V2GCommunicationSession(SessionStateMachine):
         else:
             terminate_or_pause = "Terminat"
 
-        logger.debug(f"{terminate_or_pause}ing the data link in 2 seconds and "
-                     "closing the TCP connection in 5 seconds. "
-                     f"Reason: {self.stop_reason.reason}")
+        logger.debug(
+            f"{terminate_or_pause}ing the data link in 2 seconds and "
+            "closing the TCP connection in 5 seconds. "
+            f"Reason: {self.stop_reason.reason}"
+        )
 
         await asyncio.sleep(2)
         # TODO Signal data link layer to either terminate or pause the data
@@ -334,8 +352,10 @@ class V2GCommunicationSession(SessionStateMachine):
         await asyncio.sleep(3)
         self.writer.close()
         await self.writer.wait_closed()
-        logger.debug("TCP connection closed to peer with address "
-                     f"{self.writer.get_extra_info('peername')}")
+        logger.debug(
+            "TCP connection closed to peer with address "
+            f"{self.writer.get_extra_info('peername')}"
+        )
 
     async def send(self, message: V2GTPMessage):
         """
@@ -370,31 +390,36 @@ class V2GCommunicationSession(SessionStateMachine):
                 # The biggest message is the Certificate Installation Response,
                 # which is estimated to be maximum between 5k to 6k
                 # TODO check if that still holds with -20 (e.g. cross certs)
-                message = await asyncio.wait_for(self.reader.read(7000),
-                                                 timeout)
+                message = await asyncio.wait_for(self.reader.read(7000), timeout)
 
-                if message == b'' and self.reader.at_eof():
+                if message == b"" and self.reader.at_eof():
                     await self.stop()
-                    self.session_handler_queue.put_nowait(StopNotification(
-                        False,
-                        "TCP peer closed connection",
-                        self.writer.get_extra_info('peername')))
+                    self.session_handler_queue.put_nowait(
+                        StopNotification(
+                            False,
+                            "TCP peer closed connection",
+                            self.writer.get_extra_info("peername"),
+                        )
+                    )
                     return
             except asyncio.TimeoutError as exc:
                 if self.last_message_sent:
-                    error_msg = f"{exc.__class__.__name__} occurred. Waited " \
-                                f"for {timeout} s after sending last message: "\
-                                f"{str(self.last_message_sent)}"
+                    error_msg = (
+                        f"{exc.__class__.__name__} occurred. Waited "
+                        f"for {timeout} s after sending last message: "
+                        f"{str(self.last_message_sent)}"
+                    )
                 else:
-                    error_msg = f"{exc.__class__.__name__} occurred. Waited "\
-                                f"for {timeout} s. No V2GTP message was "\
-                                "previously sent. This is probably a timeout "\
-                                f"while waiting for SupportedAppProtocolReq"
+                    error_msg = (
+                        f"{exc.__class__.__name__} occurred. Waited "
+                        f"for {timeout} s. No V2GTP message was "
+                        "previously sent. This is probably a timeout "
+                        f"while waiting for SupportedAppProtocolReq"
+                    )
 
                 self.stop_reason = StopNotification(
-                    False,
-                    error_msg,
-                    self.writer.get_extra_info('peername'))
+                    False, error_msg, self.writer.get_extra_info("peername")
+                )
 
                 await self.stop()
                 self.session_handler_queue.put_nowait(self.stop_reason)
@@ -413,16 +438,19 @@ class V2GCommunicationSession(SessionStateMachine):
                 if self.current_state.next_state in (Terminate, Pause):
                     await self.stop()
                     self.comm_session.session_handler_queue.put_nowait(
-                        self.comm_session.stop_reason)
+                        self.comm_session.stop_reason
+                    )
                     return
 
                 timeout = self.current_state.next_msg_timeout
                 self.go_to_next_state()
-            except (MessageProcessingError,
-                    FaultyStateImplementationError,
-                    EXIDecodingError) as exc:
-                message_name = ''
-                additional_info = ''
+            except (
+                MessageProcessingError,
+                FaultyStateImplementationError,
+                EXIDecodingError,
+            ) as exc:
+                message_name = ""
+                additional_info = ""
                 if isinstance(exc, MessageProcessingError):
                     message_name = exc.message_name
                 if isinstance(exc, FaultyStateImplementationError):
@@ -434,7 +462,8 @@ class V2GCommunicationSession(SessionStateMachine):
                     False,
                     f"{exc.__class__.__name__} occurred while processing message "
                     f"{message_name} in state {str(self.current_state)}{additional_info}",
-                    self.writer.get_extra_info('peername'))
+                    self.writer.get_extra_info("peername"),
+                )
 
                 await self.stop()
                 self.session_handler_queue.put_nowait(self.stop_reason)
@@ -444,7 +473,8 @@ class V2GCommunicationSession(SessionStateMachine):
                     False,
                     f"{exc.__class__.__name__} occurred while processing message in "
                     f"state {str(self.current_state)}: {exc}",
-                    self.writer.get_extra_info('peername'))
+                    self.writer.get_extra_info("peername"),
+                )
 
                 await self.stop()
                 self.session_handler_queue.put_nowait(self.stop_reason)

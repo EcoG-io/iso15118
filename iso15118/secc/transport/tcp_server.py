@@ -1,16 +1,17 @@
-import logging.config
 import asyncio
+import logging.config
 import socket
 from typing import Tuple
 
-from iso15118.shared import settings
 from iso15118.secc.secc_settings import NETWORK_INTERFACE
-from iso15118.shared.notifications import TCPClientNotification
+from iso15118.shared import settings
 from iso15118.shared.network import get_link_local_addr, get_tcp_port
+from iso15118.shared.notifications import TCPClientNotification
 from iso15118.shared.security import get_ssl_context
 
-logging.config.fileConfig(fname=settings.LOGGER_CONF_PATH,
-                          disable_existing_loggers=False)
+logging.config.fileConfig(
+    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
+)
 logger = logging.getLogger(__name__)
 
 
@@ -87,14 +88,12 @@ class TCPServer(asyncio.Protocol):
         # Initialise socket for IPv6 TCP packets
         # Address family (determines network layer protocol, here IPv6)
         # Socket type (stream, determines transport layer protocol TCP)
-        sock = socket.socket(family=socket.AF_INET6,
-                             type=socket.SOCK_STREAM)
+        sock = socket.socket(family=socket.AF_INET6, type=socket.SOCK_STREAM)
 
         # Allows address to be reused
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        self.full_ipv6_address, nic = await get_link_local_addr(
-            port, NETWORK_INTERFACE)
+        self.full_ipv6_address, nic = await get_link_local_addr(port, NETWORK_INTERFACE)
         self.ipv6_address_host = self.full_ipv6_address[0]
 
         # Bind the socket to the IP address and port for receiving
@@ -108,12 +107,14 @@ class TCPServer(asyncio.Protocol):
             client_connected_cb=self,
             sock=sock,
             reuse_address=True,
-            ssl=ssl_context
+            ssl=ssl_context,
         )
 
-        logger.debug(f"{server_type} server started at "
-                     f"address {self.ipv6_address_host}%{nic} and "
-                     f"port {port}")
+        logger.debug(
+            f"{server_type} server started at "
+            f"address {self.ipv6_address_host}%{nic} and "
+            f"port {port}"
+        )
 
         try:
             # Shield the task so we can handle the cancellation
@@ -122,13 +123,13 @@ class TCPServer(asyncio.Protocol):
             # So, instead, we can control what to do with the task
             await asyncio.shield(server.wait_closed())
         except asyncio.CancelledError:
-            logger.warning('Closing TCP server')
+            logger.warning("Closing TCP server")
             server.close()
             await server.wait_closed()
 
-    async def __call__(self,
-                       reader: asyncio.StreamReader,
-                       writer: asyncio.StreamWriter) -> None:
+    async def __call__(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ) -> None:
         """
         Callback for a new socket connection with the server.
         It provides a streamReader and a streamWriter
