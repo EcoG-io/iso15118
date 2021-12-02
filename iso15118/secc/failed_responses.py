@@ -101,6 +101,7 @@ from iso15118.shared.messages.enums import (
     IsolationLevel,
     Namespace,
     UnitSymbol,
+    ISOV20PayloadTypes,
 )
 from iso15118.shared.messages.iso15118_2.body import EMAID
 from iso15118.shared.messages.iso15118_2.body import (
@@ -165,7 +166,7 @@ from iso15118.shared.messages.iso15118_2.body import (
 from iso15118.shared.messages.iso15118_2.body import (
     WeldingDetectionRes as WeldingDetectionResV2,
 )
-from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEStatus, AuthOptionList
+from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEStatus, AuthOptions
 from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain as CertificateChainV2,
 )
@@ -183,10 +184,12 @@ from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReq,
     ACChargeParameterDiscoveryRes,
     ACChargeParameterDiscoveryResParams,
-    ScheduledACChargeLoopResParamsParams,
+    ScheduledACChargeLoopResParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq as AuthorizationReqV20,
+    SubCertificates,
+    ServiceList,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationRes as AuthorizationResV20,
@@ -220,7 +223,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 from iso15118.shared.messages.iso15118_20.common_messages import (
     PriceLevelSchedule,
     PriceLevelScheduleEntryList,
-    ScheduledScheduleExchangeResParams,
     ScheduleExchangeReq,
     ScheduleExchangeRes,
     Service,
@@ -231,7 +233,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 from iso15118.shared.messages.iso15118_20.common_messages import (
     ServiceDetailRes as ServiceDetailResV20,
 )
-from iso15118.shared.messages.iso15118_20.common_messages import ServiceDetails
 from iso15118.shared.messages.iso15118_20.common_messages import (
     ServiceDiscoveryReq as ServiceDiscoveryReqV20,
 )
@@ -256,9 +257,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionStopRes as SessionStopResV20,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import SignedInstallationData
-from iso15118.shared.messages.iso15118_20.common_messages import (
-    SubCertificates as SubCertificatesV20,
-)
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader as MessageHeaderV20,
 )
@@ -266,7 +264,11 @@ from iso15118.shared.messages.iso15118_20.common_types import Processing, Ration
 from iso15118.shared.messages.iso15118_20.common_types import (
     ResponseCode as ResponseCodeV20,
 )
-
+from iso15118.shared.messages.iso15118_20.dc import (
+    DCChargeParameterDiscoveryReq,
+    DCChargeParameterDiscoveryRes,
+    DCChargeParameterDiscoveryResParams,
+)
 
 def init_failed_responses_din_spec_70121() -> dict:
     """
@@ -429,14 +431,14 @@ def init_failed_responses_iso_v2() -> dict:
         ),
         ServiceDiscoveryReqV2: ServiceDiscoveryResV2(
             response_code=ResponseCodeV2.FAILED,
-            auth_option_list=AuthOptionList(auth_options=[AuthEnum.EIM_V2]),
+            auth_option_list=[AuthOptions(value=AuthEnum.EIM_V2)],
             charge_service=ChargeService(
                 service_id=ServiceID.CHARGING,
                 service_category=ServiceCategory.CHARGING,
                 free_service=False,
-                supported_energy_transfer_mode=EnergyTransferModeList(
-                    energy_modes=[EnergyTransferModeEnum.DC_CORE]
-                ),
+                supported_energy_transfer_mode=[
+                    EnergyTransferMode(value=EnergyTransferModeEnum.DC_CORE)
+                ],
             ),
         ),
         ServiceDetailReqV2: ServiceDetailResV2(
@@ -566,6 +568,7 @@ def init_failed_responses_iso_v20() -> dict:
                 header=header, response_code=ResponseCodeV20.FAILED, evse_id=""
             ),
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         ),
         AuthorizationReqV20: (
             AuthorizationResV20(
@@ -574,6 +577,7 @@ def init_failed_responses_iso_v20() -> dict:
                 evse_processing=Processing.FINISHED,
             ),
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         ),
         AuthorizationSetupReq: (
             AuthorizationSetupRes(
@@ -584,6 +588,7 @@ def init_failed_responses_iso_v20() -> dict:
                 eim_as_res=EIMAuthSetupResParams(),
             ),
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         ),
         CertificateInstallationReqV20: (
             CertificateInstallationResV20(
@@ -594,7 +599,7 @@ def init_failed_responses_iso_v20() -> dict:
                 signed_installation_data=SignedInstallationData(
                     contract_cert_chain=CertificateChainV20(
                         certificate=bytes(0),
-                        sub_certificates=SubCertificatesV20(certificates=[bytes(0)]),
+                        sub_certificates=SubCertificates(certificate=[bytes(0)]),
                     ),
                     ecdh_curve=ECDHCurve.x448,
                     dh_public_key=bytes(0),
@@ -604,32 +609,34 @@ def init_failed_responses_iso_v20() -> dict:
                 remaining_contract_cert_chains=0,
             ),
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         ),
         ServiceDiscoveryReqV20: (
             ServiceDiscoveryResV20(
                 header=header,
                 response_code=ResponseCodeV20.FAILED,
                 service_renegotiation_supported=False,
-                energy_transfer_service_list=[
-                    Service(
-                        service_details=ServiceDetails(service_id=0, free_service=False)
-                    )
-                ],
+                energy_service_list=ServiceList(
+                    services=[Service(service_id=0, free_service=False)],
+                ),
             ),
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         ),
         ServiceDetailReqV20: (
             ServiceDetailResV20(
                 header=header,
                 response_code=ResponseCodeV20.FAILED,
                 service_id=0,
-                service_parameter_list=ServiceParameterList(parameter_set=[]),
+                service_parameter_list=ServiceParameterList(parameter_sets=[]),
             ),
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         ),
         ServiceSelectionReq: (
             ServiceSelectionRes(header=header, response_code=ResponseCodeV20.FAILED),
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         ),
         ACChargeParameterDiscoveryReq: (
             ACChargeParameterDiscoveryRes(
@@ -642,8 +649,24 @@ def init_failed_responses_iso_v20() -> dict:
                 ),
             ),
             Namespace.ISO_V20_AC,
+            ISOV20PayloadTypes.AC_MAINSTREAM,
         ),
-        # DCChargeParameterDiscoveryReq:
+        DCChargeParameterDiscoveryReq: (
+            DCChargeParameterDiscoveryRes(
+                header=header,
+                response_code=ResponseCodeV20.FAILED,
+                dc_params=DCChargeParameterDiscoveryResParams(
+                    evse_max_charge_power=RationalNumber(exponent=0, value=0),
+                    evse_min_charge_power=RationalNumber(exponent=0, value=0),
+                    evse_max_charge_current=RationalNumber(exponent=0, value=0),
+                    evse_min_charge_current=RationalNumber(exponent=0, value=0),
+                    evse_max_voltage=RationalNumber(exponent=0, value=0),
+                    evse_min_voltage=RationalNumber(exponent=0, value=0),
+                ),
+            ),
+            Namespace.ISO_V20_DC,
+            ISOV20PayloadTypes.DC_MAINSTREAM,
+        ),
         # TODO Need to add DC messages for ISO 15118-20
         #     None,
         # WPTChargeParameterDiscoveryReq:
@@ -675,29 +698,31 @@ def init_failed_responses_iso_v20() -> dict:
                 header=header,
                 response_code=ResponseCodeV20.FAILED,
                 evse_processing=Processing.ONGOING,
-                scheduled_se_res=ScheduledScheduleExchangeResParams(schedule_tuple=[]),
-                dynamic_se_res=DynamicScheduleExchangeResParams(
+                dynamic_params=DynamicScheduleExchangeResParams(
                     price_level_schedule=PriceLevelSchedule(
                         time_anchor=0,
-                        price_schedule_id=1,
+                        schedule_id=1,
                         num_price_levels=0,
-                        schedule_entries=PriceLevelScheduleEntryList(entry=[]),
+                        schedule_entries=PriceLevelScheduleEntryList(entries=[]),
                     )
                 ),
             ),
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         ),
         PowerDeliveryReqV20: (
             PowerDeliveryResV20(header=header, response_code=ResponseCodeV20.FAILED),
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         ),
         ACChargeLoopReq: (
             ACChargeLoopRes(
                 header=header,
                 response_code=ResponseCodeV20.FAILED,
-                scheduled_ac_charge_loop_res=ScheduledACChargeLoopResParamsParams(),
+                scheduled_ac_charge_loop_res=ScheduledACChargeLoopResParams(),
             ),
             Namespace.ISO_V20_AC,
+            ISOV20PayloadTypes.AC_MAINSTREAM,
         ),
         # DCChargeLoopReq:
         # TODO Need to add DC messages for ISO 15118-20
@@ -710,6 +735,7 @@ def init_failed_responses_iso_v20() -> dict:
                 header=header, response_code=ResponseCodeV20.FAILED
             ),
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         ),
         # DCWeldingDetectionReq:
         # TODO Need to add DC messages for ISO 15118-20
@@ -723,6 +749,7 @@ def init_failed_responses_iso_v20() -> dict:
         SessionStopReqV20: (
             SessionStopResV20(header=header, response_code=ResponseCodeV20.FAILED),
             Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
         ),
     }
 

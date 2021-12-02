@@ -161,7 +161,7 @@ class ScheduledACChargeLoopReqParams(ScheduledChargeLoopReqParams):
     )
 
 
-class ScheduledACChargeLoopResParamsParams(ScheduledChargeLoopResParams):
+class ScheduledACChargeLoopResParams(ScheduledChargeLoopResParams):
     """See section 8.3.5.4.6 in ISO 15118-20"""
 
     evse_target_active_power: RationalNumber = Field(
@@ -216,7 +216,7 @@ class BPTScheduledACChargeLoopReqParams(ScheduledACChargeLoopReqParams):
     )
 
 
-class BPTScheduledACChargeLoopResParams(ScheduledACChargeLoopResParamsParams):
+class BPTScheduledACChargeLoopResParams(ScheduledACChargeLoopResParams):
     """See section 8.3.5.4.7.6 in ISO 15118-20"""
 
 
@@ -432,7 +432,7 @@ class ACChargeLoopRes(ChargeLoopRes):
     """See section 8.3.4.4.3.3 in ISO 15118-20"""
 
     evse_target_frequency: RationalNumber = Field(None, alias="EVSETargetFrequency")
-    scheduled_ac_charge_loop_res: ScheduledACChargeLoopResParamsParams = Field(
+    scheduled_ac_charge_loop_res: ScheduledACChargeLoopResParams = Field(
         None, alias="Scheduled_AC_CLResControlMode"
     )
     dynamic_ac_charge_loop_res: DynamicACChargeLoopRes = Field(

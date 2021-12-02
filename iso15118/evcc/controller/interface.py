@@ -27,13 +27,33 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVChargeParameter,
     DCEVPowerDeliveryParameter,
     DCEVStatus,
-    SAScheduleTupleEntry,
+    EnergyTransferModeEnum,
+    SAScheduleTuple,
+    ProfileEntry,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
     BPTACChargeParameterDiscoveryReqParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import EMAIDList
+from iso15118.shared.messages.enums import Protocol, ServiceV20
+
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeParameterDiscoveryReqParams,
+    BPTACChargeParameterDiscoveryReqParams,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    EMAID,
+    ParameterSet as ParameterSetV20,
+    ScheduledScheduleExchangeReqParams,
+    DynamicScheduleExchangeReqParams,
+    SelectedEnergyService,
+    SelectedVAS,
+)
+from iso15118.shared.messages.iso15118_20.dc import (
+    DCChargeParameterDiscoveryReqParams,
+    BPTDCChargeParameterDiscoveryReqParams,
+)
 
 
 @dataclass
@@ -44,6 +64,11 @@ class ChargeParamsV2:
 
 
 class EVControllerInterface(ABC):
+
+    # ============================================================================
+    # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
+    # ============================================================================
+
     @abstractmethod
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """
@@ -93,8 +118,64 @@ class EVControllerInterface(ABC):
         """
         raise NotImplementedError
 
+    def get_energy_service(self) -> ServiceV20:
+        """
+        Gets the energy transfer service requested for the current charging session.
+        This must be one of the energy related services (services with ID 1 through 7)
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
     @abstractmethod
-    def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
+    def select_energy_service_v20(
+        self, service: ServiceV20, is_free: bool, parameter_sets: List[ParameterSetV20]
+    ) -> SelectedEnergyService:
+        """
+        Selects the energy service and associated parameter set from a given set of
+        parameters per energy service ID.
+
+        Args:
+            service: The service given as an enum member of ServiceV20
+            is_free: Whether this is a free or paid service
+            parameter_sets: The parameter sets, which the SECC offers for that energy
+                            service
+
+        Returns:
+            An instance of SelectedEnergyService, containing the service, whether it's
+            free or paid, and its chosen parameter set.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def select_vas_v20(
+        self, service: ServiceV20, is_free: bool, parameter_sets: List[ParameterSetV20]
+    ) -> Optional[SelectedVAS]:
+        """
+        Selects a value-added service (VAS) and associated parameter set from a given
+        set of parameters for that value-added energy. If you don't want to select
+        the offered VAS, return None.
+
+        Args:
+            service: The value-added service given as an enum member of ServiceV20
+            is_free: Whether this is a free or paid service
+            parameter_sets: The parameter sets, which the SECC offers for that VAS
+
+        Returns:
+            An instance of SelectedVAS, containing the service, whether it's free or
+            paid, and its chosen parameter set.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_charge_params_v2(self) -> ChargeParamsV2:
         """
         Gets the charge parameter needed for ChargeParameterDiscoveryReq (ISO 15118-2),
         including the energy transfer mode and the energy mode-specific parameters,
@@ -112,26 +193,73 @@ class EVControllerInterface(ABC):
 
     @abstractmethod
     def get_charge_params_v20(
-        self,
-    ) -> Tuple[
+        self, selected_service: SelectedEnergyService
+    ) -> Union[
         ACChargeParameterDiscoveryReqParams,
-        Optional[BPTACChargeParameterDiscoveryReqParams],
+        BPTACChargeParameterDiscoveryReqParams,
+        DCChargeParameterDiscoveryReqParams,
+        BPTDCChargeParameterDiscoveryReqParams,
     ]:
         """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryReq, which is
-        either an ACChargeParameterDiscoveryReq, or a DCChargeParameterDiscoveryReq,
-        or a WPTChargeParameterDiscoveryReq from ISO 15118-20, including the optional
-        optional BPT (bi-directional power flow) paramters.
+        Gets the charge parameters needed for a ChargeParameterDiscoveryReq.
+
+        Args:
+            selected_service: The energy transfer service, which the EVCC selected, and
+                              for which we need the EVCC's charge parameters. This is
+                              an instance of the custom class SelectedEnergyService.
 
         Returns:
-            A tuple containing both the non-BPT and BPT charger parameter needed for a
-            request message of type ChargeParameterDiscoveryReq (AC, DC, or WPT)
+            Charge parameters for either unidirectional or bi-directional power
+            transfer needed for a ChargeParameterDiscoveryReq.
 
         Relevant for:
         - ISO 15118-20
-        TODO Add support for DC and WPT in the return type
+
+        TODO Add support for WPT and ACDP in the return type
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def get_scheduled_se_params(
+        self, selected_energy_service: SelectedEnergyService
+    ) -> ScheduledScheduleExchangeReqParams:
+        """
+        Gets the parameters for a ScheduleExchangeRequest, which correspond to the
+        Scheduled control mode.
+
+        Args:
+            selected_energy_service: The energy services, which the EVCC selected.
+                                     The selected parameter set, that is associated
+                                     with that energy service, influences the
+                                     parameters for the ScheduleExchangeReq
+
+        Returns:
+            Parameters for the ScheduleExchangeReq in Scheduled control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+
+    @abstractmethod
+    def get_dynamic_se_params(
+        self, selected_energy_service: SelectedEnergyService
+    ) -> DynamicScheduleExchangeReqParams:
+        """
+        Gets the parameters for a ScheduleExchangeRequest, which correspond to the
+        Dynamic control mode.
+
+        Args:
+            selected_energy_service: The energy services, which the EVCC selected.
+                                     The selected parameter set, that is associated
+                                     with that energy service, influences the
+                                     parameters for the ScheduleExchangeReq
+
+        Returns:
+            Parameters for the ScheduleExchangeReq in Dynamic control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
 
     @abstractmethod
     def is_cert_install_needed(self) -> bool:

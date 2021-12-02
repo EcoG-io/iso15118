@@ -129,10 +129,9 @@ class SupportedAppProtocol(StateEVCC):
                     # This should not happen because the EVCC previously
                     # should have sent a valid SupportedAppProtocolReq
                     logger.error(
-                        "EVCC sent an invalid protocol namespace in "
-                        f"its previous SupportedAppProtocolReq: "
-                        f"{protocol.protocol_ns}. Allowed namespaces are:"
-                        f" {self.comm_session.config.supported_protocols}"
+                        "EVCC sent an invalid protocol namespace in its previous"
+                        f"SupportedAppProtocolReq: {protocol.protocol_ns}. Allowed "
+                        f"namespaces: {self.comm_session.config.supported_protocols}"
                     )
                     raise MessageProcessingError("SupportedAppProtocolReq")
                 break
