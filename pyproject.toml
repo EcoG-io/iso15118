@@ -1,0 +1,42 @@
+[tool.poetry]
+name = "iso15118"
+version = "0.1.0"
+description = "Implementation of the ISO 15118-2 and -20 specs for SECC"
+authors = ["André Duarte <andre@switch-ev.com>",
+           "Dr. Marc Mültin <marc@switch-ev.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+environs = "^9.3.5"
+cryptography = "^3.4.8"
+pydantic = "^1.7.3"
+psutil = "^5.8.0"
+aioredis = "^2.0.0"
+py4j = "^0.10.9"
+mqtt-api = { version = "^0.5.0", source = "pypi-switch"}
+
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+pytest-asyncio = "^0.16.0"
+asynctest = "^0.13.0"
+freezegun = "^1.1.0"
+sphinx = "^3.5.3"
+black = "21.11b1"
+isort = "^5.10.1"
+flake8 = "^4.0.1"
+pytest-cov = "^3.0.0"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "pypi-switch"
+url = "https://pypi.switch-ev.com/simple/"
+default = false
+secondary = true
+
+[tool.poetry.scripts]
+iso15118 = 'iso15118.secc.start_secc:run'

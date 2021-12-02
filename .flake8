@@ -1,0 +1,56 @@
+[flake8]
+max-line-length = 88
+inline-quotes = "
+ignore = D204
+ignore-decorators=property
+rst-roles =
+    class,
+    func,
+    ref,
+rst-directives =
+    envvar,
+    exception,
+extend-ignore =
+    ANN101,ANN102,
+    D100, D101, D104,
+    # See https://github.com/PyCQA/pycodestyle/issues/373
+    E203,E231,
+    W503,
+    # Google Python style is not RST until after processed by Napoleon
+    # See https://github.com/peterjc/flake8-rst-docstrings/issues/17
+    RST201,RST203,RST301,RST210
+    P101,
+    N812,
+    WPS110,WPS111,WPS114,
+    WPS201,WPS202,WPS210,WPS211,WPS214,WPS221,WPS226,WPS229,WPS232,WPS300,WPS305
+    WPS306,WPS323,WPS326,WPS332,WPS337,
+    WPS402,WPS412,
+    WPS437,
+    WPS600,WPS602
+    # Trailing comma check is incompatible with black
+    # since flake8 applies it to single-line cases as well
+    C812,
+max-arguments = 6
+
+
+per-file-ignores =
+    # Allow the following in tests:
+    # - asserts (S101)
+    # - shadowing variables, which would object to Pytest fixtures (WPS442)
+    # - arbitrarily long function names (WPS118)
+    # - more than seven test functions per file (WPS202)
+    # - Missing docstring in public module (D100)
+    # - Missing docstring in public function (D103)
+    # - Overused expression: 8 > 7 (WPS204)
+    # - Found too many arguments: 6 > 5 (WPS211)
+    # - Found too many `assert` statements: 6 > 5 (WPS218)
+    # - Calling "private" methods, for testing purposes (WPS437)
+    tests/*:S101,WPS442,WPS118,WPS202,D100, D103, WPS211, WPS218
+    test_*:S101,WPS442,WPS118,WPS202,WPS204,WPS211,WPS218,WPS437,D100,D103
+
+
+    # Allow the following in __init__ files:
+    # Unused imports, since this is to enable their use elsewhere (F401)
+    __init__.py: F401
+    tests/*:ANN201,D100,D102,D103,S101,WPS114,WPS115,WPS118,WPS202,WPS204,WPS210,WPS218,WPS221,WPS232,WPS407,WPS420,WPS421,WPS430,WPS432,WPS437,WPS442,WPS501,WPS600,WPS609
+

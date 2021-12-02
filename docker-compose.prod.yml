@@ -1,0 +1,6 @@
+version: '3.9'
+services:
+  secc:
+    env_file: .env
+  evcc:
+    env_file: .env

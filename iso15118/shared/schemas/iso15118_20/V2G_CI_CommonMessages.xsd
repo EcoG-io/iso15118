@@ -1,0 +1,911 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="urn:iso:std:iso:15118:-20:CommonMessages" xmlns:v2gci_ct="urn:iso:std:iso:15118:-20:CommonTypes" targetNamespace="urn:iso:std:iso:15118:-20:CommonMessages" elementFormDefault="qualified" attributeFormDefault="qualified" version="15118:-20">
+	<xs:import namespace="urn:iso:std:iso:15118:-20:CommonTypes" schemaLocation="V2G_CI_CommonTypes.xsd"/>
+	<!-- ––––––––––––––– -->
+	<!-- Common Messages -->
+	<!-- ––––––––––––––– -->
+	<!--               -->
+	<!-- Session Setup -->
+	<!--               -->
+	<xs:element name="SessionSetupReq" type="SessionSetupReqType"/>
+	<xs:complexType name="SessionSetupReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="EVCCID" type="v2gci_ct:identifierType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="SessionSetupRes" type="SessionSetupResType"/>
+	<xs:complexType name="SessionSetupResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSEID" type="v2gci_ct:identifierType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                     -->
+	<!-- Authorization Setup -->
+	<!--                     -->
+	<xs:element name="AuthorizationSetupReq" type="AuthorizationSetupReqType"/>
+	<xs:complexType name="AuthorizationSetupReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="AuthorizationSetupRes" type="AuthorizationSetupResType"/>
+	<xs:complexType name="AuthorizationSetupResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="AuthorizationServices" type="authorizationType" maxOccurs="2"/>
+					<xs:element name="CertificateInstallationService" type="xs:boolean"/>
+					<xs:choice>
+						<xs:element name="EIM_ASResAuthorizationMode" type="EIM_ASResAuthorizationModeType"/>
+						<xs:element name="PnC_ASResAuthorizationMode" type="PnC_ASResAuthorizationModeType"/>
+					</xs:choice>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--               -->
+	<!-- Authorization -->
+	<!--               -->
+	<xs:element name="AuthorizationReq" type="AuthorizationReqType"/>
+	<xs:complexType name="AuthorizationReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="SelectedAuthorizationService" type="authorizationType"/>
+					<xs:choice>
+						<xs:element name="EIM_AReqAuthorizationMode" type="EIM_AReqAuthorizationModeType"/>
+						<xs:element name="PnC_AReqAuthorizationMode" type="PnC_AReqAuthorizationModeType"/>
+					</xs:choice>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="AuthorizationRes" type="AuthorizationResType"/>
+	<xs:complexType name="AuthorizationResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                   -->
+	<!-- Service Discovery -->
+	<!--                   -->
+	<xs:element name="ServiceDiscoveryReq" type="ServiceDiscoveryReqType"/>
+	<xs:complexType name="ServiceDiscoveryReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="SupportedServiceIDs" type="ServiceIDListType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="ServiceDiscoveryRes" type="ServiceDiscoveryResType"/>
+	<xs:complexType name="ServiceDiscoveryResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="ServiceRenegotiationSupported" type="xs:boolean"/>
+					<xs:element name="EnergyTransferServiceList" type="ServiceListType"/>
+					<xs:element name="VASList" type="ServiceListType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                -->
+	<!-- Service Detail -->
+	<!--                -->
+	<xs:element name="ServiceDetailReq" type="ServiceDetailReqType"/>
+	<xs:complexType name="ServiceDetailReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="ServiceID" type="serviceIDType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="ServiceDetailRes" type="ServiceDetailResType"/>
+	<xs:complexType name="ServiceDetailResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="ServiceID" type="serviceIDType"/>
+					<xs:element name="ServiceParameterList" type="ServiceParameterListType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                   -->
+	<!-- Service Selection -->
+	<!--                   -->
+	<xs:element name="ServiceSelectionReq" type="ServiceSelectionReqType"/>
+	<xs:complexType name="ServiceSelectionReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="SelectedEnergyTransferService" type="SelectedServiceType"/>
+					<xs:element name="SelectedVASList" type="SelectedServiceListType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="ServiceSelectionRes" type="ServiceSelectionResType"/>
+	<xs:complexType name="ServiceSelectionResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                   -->
+	<!-- Schedule Exchange -->
+	<!--                   -->
+	<xs:element name="ScheduleExchangeReq" type="ScheduleExchangeReqType"/>
+	<xs:complexType name="ScheduleExchangeReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="MaximumSupportingPoints" type="maxSupportingPointsScheduleTupleType"/>
+					<xs:choice>
+						<xs:element name="Dynamic_SEReqControlMode" type="Dynamic_SEReqControlModeType"/>
+						<xs:element name="Scheduled_SEReqControlMode" type="Scheduled_SEReqControlModeType"/>
+					</xs:choice>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="ScheduleExchangeRes" type="ScheduleExchangeResType"/>
+	<xs:complexType name="ScheduleExchangeResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
+					<xs:element name="GoToPause" type="xs:boolean" minOccurs="0"/>
+					<xs:choice>
+						<xs:element name="Dynamic_SEResControlMode" type="Dynamic_SEResControlModeType"/>
+						<xs:element name="Scheduled_SEResControlMode" type="Scheduled_SEResControlModeType"/>
+					</xs:choice>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                -->
+	<!-- Power Delivery -->
+	<!--                -->
+	<xs:element name="PowerDeliveryReq" type="PowerDeliveryReqType"/>
+	<xs:complexType name="PowerDeliveryReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="EVProcessing" type="v2gci_ct:processingType"/>
+					<xs:element name="ChargeProgress" type="chargeProgressType"/>
+					<xs:element name="EVPowerProfile" type="EVPowerProfileType" minOccurs="0"/>
+					<xs:element name="BPT_ChannelSelection" type="channelSelectionType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="PowerDeliveryRes" type="PowerDeliveryResType"/>
+	<xs:complexType name="PowerDeliveryResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSEStatus" type="v2gci_ct:EVSEStatusType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                       -->
+	<!-- Metering Confirmation -->
+	<!--                       -->
+	<xs:element name="MeteringConfirmationReq" type="MeteringConfirmationReqType"/>
+	<xs:complexType name="MeteringConfirmationReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="SignedMeteringData" type="SignedMeteringDataType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="MeteringConfirmationRes" type="MeteringConfirmationResType"/>
+	<xs:complexType name="MeteringConfirmationResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--              -->
+	<!-- Session Stop -->
+	<!--              -->
+	<xs:element name="SessionStopReq" type="SessionStopReqType"/>
+	<xs:complexType name="SessionStopReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="ChargingSession" type="chargingSessionType"/>
+					<xs:element name="EVTerminationCode" type="v2gci_ct:nameType" minOccurs="0"/>
+					<xs:element name="EVTerminationExplanation" type="v2gci_ct:descriptionType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="SessionStopRes" type="SessionStopResType"/>
+	<xs:complexType name="SessionStopResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                          -->
+	<!-- Certificate Installation -->
+	<!--                          -->
+	<xs:element name="CertificateInstallationReq" type="CertificateInstallationReqType"/>
+	<xs:complexType name="CertificateInstallationReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="OEMProvisioningCertificateChain" type="SignedCertificateChainType"/>
+					<xs:element name="ListOfRootCertificateIDs" type="v2gci_ct:ListOfRootCertificateIDsType"/>
+					<xs:element name="MaximumContractCertificateChains" type="xs:unsignedByte"/>
+					<xs:element name="PrioritizedEMAIDs" type="EMAIDListType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="CertificateInstallationRes" type="CertificateInstallationResType"/>
+	<xs:complexType name="CertificateInstallationResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
+					<xs:element name="CPSCertificateChain" type="CertificateChainType"/>
+					<xs:element name="SignedInstallationData" type="SignedInstallationDataType"/>
+					<xs:element name="RemainingContractCertificateChains" type="xs:unsignedByte"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                  -->
+	<!-- Vehicle Check In -->
+	<!--                  -->
+	<xs:element name="VehicleCheckInReq" type="VehicleCheckInReqType"/>
+	<xs:complexType name="VehicleCheckInReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="EVCheckInStatus" type="evCheckInStatusType"/>
+					<xs:element name="ParkingMethod" type="parkingMethodType"/>
+					<xs:element name="VehicleFrame" type="xs:short" minOccurs="0"/>
+					<xs:element name="DeviceOffset" type="xs:short" minOccurs="0"/>
+					<xs:element name="VehicleTravel" type="xs:short" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="VehicleCheckInRes" type="VehicleCheckInResType"/>
+	<xs:complexType name="VehicleCheckInResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="ParkingSpace" type="xs:short" minOccurs="0"/>
+					<xs:element name="DeviceLocation" type="xs:short" minOccurs="0"/>
+					<xs:element name="TargetDistance" type="xs:short" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                   -->
+	<!-- Vehicle Check Out -->
+	<!--                   -->
+	<xs:element name="VehicleCheckOutReq" type="VehicleCheckOutReqType"/>
+	<xs:complexType name="VehicleCheckOutReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="EVCheckOutStatus" type="evCheckOutStatusType"/>
+					<xs:element name="CheckOutTime" type="xs:unsignedLong"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="VehicleCheckOutRes" type="VehicleCheckOutResType"/>
+	<xs:complexType name="VehicleCheckOutResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSECheckOutStatus" type="evseCheckOutStatusType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!-- –––––––––––––––––––––– -->
+	<!-- Message Specific Types -->
+	<!-- –––––––––––––––––––––– -->
+	<!--                     -->
+	<!-- Authorization Setup -->
+	<!--                     -->
+	<xs:simpleType name="authorizationType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="EIM"/>
+			<xs:enumeration value="PnC"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="genChallengeType">
+		<xs:restriction base="xs:base64Binary">
+			<xs:length value="16"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- Identification Mode / PnC -->
+	<xs:complexType name="PnC_ASResAuthorizationModeType">
+		<xs:sequence>
+			<xs:element name="GenChallenge" type="genChallengeType"/>
+			<xs:element name="SupportedProviders" type="SupportedProvidersListType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="SupportedProvidersListType">
+		<xs:sequence>
+			<xs:element name="ProviderID" type="v2gci_ct:nameType" maxOccurs="128"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- Identification Mode / EIM -->
+	<xs:complexType name="EIM_ASResAuthorizationModeType"/>
+	<!--               -->
+	<!-- Authorization -->
+	<!--               -->
+	<!-- Identification Mode / PnC -->
+	<xs:complexType name="PnC_AReqAuthorizationModeType">
+		<xs:sequence>
+			<xs:element name="GenChallenge" type="genChallengeType"/>
+			<xs:element name="ContractCertificateChain" type="ContractCertificateChainType"/>
+		</xs:sequence>
+		<xs:attribute name="Id" type="xs:ID" use="required"/>
+	</xs:complexType>
+	<!-- Identification Mode / EIM -->
+	<xs:complexType name="EIM_AReqAuthorizationModeType"/>
+	<!--                                                        -->
+	<!-- Service Discovery / Service Detail / Service Selection -->
+	<!--                                                        -->
+	<xs:simpleType name="serviceIDType">
+		<xs:restriction base="xs:unsignedShort"/>
+	</xs:simpleType>
+	<xs:complexType name="ServiceIDListType">
+		<xs:sequence>
+			<xs:element name="ServiceID" type="serviceIDType" maxOccurs="16"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="ServiceType">
+		<xs:sequence>
+			<xs:element name="ServiceID" type="serviceIDType"/>
+			<xs:element name="FreeService" type="xs:boolean"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="ServiceListType">
+		<xs:sequence>
+			<xs:element name="Service" type="ServiceType" maxOccurs="8"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="SelectedServiceType">
+		<xs:sequence>
+			<xs:element name="ServiceID" type="serviceIDType"/>
+			<xs:element name="ParameterSetID" type="serviceIDType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="SelectedServiceListType">
+		<xs:sequence>
+			<xs:element name="SelectedService" type="SelectedServiceType" maxOccurs="16"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="ParameterType">
+		<xs:choice>
+			<xs:element name="boolValue" type="xs:boolean"/>
+			<xs:element name="byteValue" type="xs:byte"/>
+			<xs:element name="shortValue" type="xs:short"/>
+			<xs:element name="intValue" type="xs:int"/>
+			<xs:element name="rationalNumber" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="finiteString" type="v2gci_ct:nameType"/>
+		</xs:choice>
+		<xs:attribute name="Name" type="v2gci_ct:nameType" use="required"/>
+	</xs:complexType>
+	<xs:complexType name="ParameterSetType">
+		<xs:sequence>
+			<xs:element name="ParameterSetID" type="serviceIDType"/>
+			<xs:element name="Parameter" type="ParameterType" maxOccurs="32"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="ServiceParameterListType">
+		<xs:sequence>
+			<xs:element name="ParameterSet" type="ParameterSetType" maxOccurs="32"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!--                   -->
+	<!-- Schedule Exchange -->
+	<!--                   -->
+	<xs:simpleType name="maxSupportingPointsScheduleTupleType">
+		<xs:restriction base="xs:unsignedShort">
+			<xs:minInclusive value="12"/>
+			<xs:maxInclusive value="1024"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- ScheduleTupleType -->
+	<xs:complexType name="ScheduleTupleType">
+		<xs:sequence>
+			<xs:element name="ScheduleTupleID" type="v2gci_ct:numericIDType"/>
+			<xs:element name="ChargingSchedule" type="ChargingScheduleType"/>
+			<xs:element name="DischargingSchedule" type="ChargingScheduleType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- ScheduleTupleType/ChargingScheduleType -->
+	<xs:complexType name="ChargingScheduleType">
+		<xs:sequence>
+			<xs:element name="PowerSchedule" type="PowerScheduleType"/>
+			<xs:choice minOccurs="0">
+				<xs:element name="AbsolutePriceSchedule" type="AbsolutePriceScheduleType"/>
+				<xs:element name="PriceLevelSchedule" type="PriceLevelScheduleType"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- Control Modes - Scheduled -->
+	<xs:complexType name="Scheduled_SEReqControlModeType">
+		<xs:sequence>
+			<xs:element name="DepartureTime" type="xs:unsignedInt" minOccurs="0"/>
+			<xs:element name="EVTargetEnergyRequest" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVMaximumEnergyRequest" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVMinimumEnergyRequest" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVEnergyOffer" type="EVEnergyOfferType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="Scheduled_SEResControlModeType">
+		<xs:sequence>
+			<xs:element name="ScheduleTuple" type="ScheduleTupleType" maxOccurs="3"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- Control Modes - Dynamic -->
+	<xs:complexType name="Dynamic_SEReqControlModeType">
+		<xs:sequence>
+			<xs:element name="DepartureTime" type="xs:unsignedInt"/>
+			<xs:element name="MinimumSOC" type="v2gci_ct:percentValueType" minOccurs="0"/>
+			<xs:element name="TargetSOC" type="v2gci_ct:percentValueType" minOccurs="0"/>
+			<xs:element name="EVTargetEnergyRequest" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="EVMaximumEnergyRequest" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="EVMinimumEnergyRequest" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="EVMaximumV2XEnergyRequest" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVMinimumV2XEnergyRequest" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="Dynamic_SEResControlModeType">
+		<xs:sequence>
+			<xs:element name="DepartureTime" type="xs:unsignedInt" minOccurs="0"/>
+			<xs:element name="MinimumSOC" type="v2gci_ct:percentValueType" minOccurs="0"/>
+			<xs:element name="TargetSOC" type="v2gci_ct:percentValueType" minOccurs="0"/>
+			<xs:choice minOccurs="0">
+				<xs:element name="AbsolutePriceSchedule" type="AbsolutePriceScheduleType"/>
+				<xs:element name="PriceLevelSchedule" type="PriceLevelScheduleType"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<!--                -->
+	<!-- Power Delivery -->
+	<!--                -->
+	<xs:simpleType name="chargeProgressType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Start"/>
+			<xs:enumeration value="Stop"/>
+			<xs:enumeration value="Standby"/>
+			<xs:enumeration value="ScheduleRenegotiation"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="channelSelectionType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Charge"/>
+			<xs:enumeration value="Discharge"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!--                          -->
+	<!-- Certificate Installation -->
+	<!--                          -->
+	<xs:simpleType name="ecdhCurveType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="SECP521"/>
+			<xs:enumeration value="X448"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="dhPublicKeyType">
+		<xs:restriction base="xs:base64Binary">
+			<xs:length value="133"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="secp521_EncryptedPrivateKeyType">
+		<xs:restriction base="xs:base64Binary">
+			<xs:length value="94"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="x448_EncryptedPrivateKeyType">
+		<xs:restriction base="xs:base64Binary">
+			<xs:length value="84"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="tpm_EncryptedPrivateKeyType">
+		<xs:restriction base="xs:base64Binary">
+			<xs:length value="206"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="SignedInstallationDataType">
+		<xs:sequence>
+			<xs:element name="ContractCertificateChain" type="ContractCertificateChainType"/>
+			<xs:element name="ECDHCurve" type="ecdhCurveType"/>
+			<xs:element name="DHPublicKey" type="dhPublicKeyType"/>
+			<xs:choice>
+				<xs:element name="SECP521_EncryptedPrivateKey" type="secp521_EncryptedPrivateKeyType"/>
+				<xs:element name="X448_EncryptedPrivateKey" type="x448_EncryptedPrivateKeyType"/>
+				<xs:element name="TPM_EncryptedPrivateKey" type="tpm_EncryptedPrivateKeyType"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="Id" type="xs:ID" use="required"/>
+	</xs:complexType>
+	<xs:element name="SignedInstallationData" type="SignedInstallationDataType"/>
+	<!--                       -->
+	<!-- Metering Confirmation -->
+	<!--                       -->
+	<xs:complexType name="SignedMeteringDataType">
+		<xs:sequence>
+			<xs:element name="SessionID" type="v2gci_ct:sessionIDType"/>
+			<xs:element name="MeterInfo" type="v2gci_ct:MeterInfoType"/>
+			<xs:element name="Receipt" type="v2gci_ct:ReceiptType" minOccurs="0"/>
+			<xs:choice>
+				<xs:element name="Dynamic_SMDTControlMode" type="Dynamic_SMDTControlModeType"/>
+				<xs:element name="Scheduled_SMDTControlMode" type="Scheduled_SMDTControlModeType"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="Id" type="xs:ID" use="required"/>
+	</xs:complexType>
+	<xs:element name="SignedMeteringData" type="SignedMeteringDataType"/>
+	<!-- Control Modes - Scheduled -->
+	<xs:complexType name="Scheduled_SMDTControlModeType">
+		<xs:sequence>
+			<xs:element name="SelectedScheduleTupleID" type="v2gci_ct:numericIDType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- Control Modes - Dynamic -->
+	<xs:complexType name="Dynamic_SMDTControlModeType"/>
+	<!--             -->
+	<!-- SessionStop -->
+	<!--             -->
+	<xs:simpleType name="chargingSessionType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Pause"/>
+			<xs:enumeration value="Terminate"/>
+			<xs:enumeration value="ServiceRenegotiation"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!--                        -->
+	<!-- Vehicle Check In / Out -->
+	<!--                        -->
+	<xs:simpleType name="evCheckInStatusType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="CheckIn"/>
+			<xs:enumeration value="Processing"/>
+			<xs:enumeration value="Completed"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="evCheckOutStatusType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="CheckOut"/>
+			<xs:enumeration value="Processing"/>
+			<xs:enumeration value="Completed"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="evseCheckOutStatusType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Scheduled"/>
+			<xs:enumeration value="Completed"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="parkingMethodType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="AutoParking"/>
+			<xs:enumeration value="MVGuideManual"/>
+			<xs:enumeration value="Manual"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="TargetPositionType">
+		<xs:sequence>
+			<xs:element name="TargetOffsetX" type="xs:unsignedShort"/>
+			<xs:element name="TargetOffsetY" type="xs:unsignedShort"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- –––––––––––––– -->
+	<!-- Schedule Types -->
+	<!-- –––––––––––––– -->
+	<!--                   -->
+	<!-- PowerScheduleType -->
+	<!--                   -->
+	<xs:complexType name="PowerScheduleType">
+		<xs:sequence>
+			<xs:element name="TimeAnchor" type="xs:unsignedLong"/>
+			<xs:element name="AvailableEnergy" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="PowerTolerance" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="PowerScheduleEntries" type="PowerScheduleEntryListType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- PowerScheduleType/PowerScheduleEntryListType -->
+	<xs:complexType name="PowerScheduleEntryListType">
+		<xs:sequence>
+			<xs:element name="PowerScheduleEntry" type="PowerScheduleEntryType" maxOccurs="1024"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- PowerScheduleType/PowerScheduleEntryListType/PowerScheduleEntryType -->
+	<xs:complexType name="PowerScheduleEntryType">
+		<xs:sequence>
+			<xs:element name="Duration" type="xs:unsignedInt"/>
+			<xs:element name="Power" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="Power_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="Power_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!--                   -->
+	<!-- PriceScheduleType -->
+	<!--                   -->
+	<xs:complexType name="PriceScheduleType" abstract="true">
+		<xs:sequence>
+			<xs:element name="TimeAnchor" type="xs:unsignedLong"/>
+			<xs:element name="PriceScheduleID" type="v2gci_ct:numericIDType"/>
+			<xs:element name="PriceScheduleDescription" type="v2gci_ct:descriptionType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- PriceLevelScheduleType -->
+	<xs:complexType name="PriceLevelScheduleType">
+		<xs:complexContent>
+			<xs:extension base="PriceScheduleType">
+				<xs:sequence>
+					<xs:element name="NumberOfPriceLevels" type="xs:unsignedByte"/>
+					<xs:element name="PriceLevelScheduleEntries" type="PriceLevelScheduleEntryListType"/>
+				</xs:sequence>
+				<xs:attribute name="Id" type="xs:ID"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!-- PriceLevelScheduleType/PriceLevelScheduleEntryListType -->
+	<xs:complexType name="PriceLevelScheduleEntryListType">
+		<xs:sequence>
+			<xs:element name="PriceLevelScheduleEntry" type="PriceLevelScheduleEntryType" maxOccurs="1024"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- PriceLevelScheduleType/PriceLevelScheduleEntryListType/PriceLevelScheduleEntryType -->
+	<xs:complexType name="PriceLevelScheduleEntryType">
+		<xs:sequence>
+			<xs:element name="Duration" type="xs:unsignedInt"/>
+			<xs:element name="PriceLevel" type="xs:unsignedByte"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- AbsolutePriceScheduleType -->
+	<xs:complexType name="AbsolutePriceScheduleType">
+		<xs:complexContent>
+			<xs:extension base="PriceScheduleType">
+				<xs:sequence>
+					<xs:element name="Currency" type="currencyType"/>
+					<xs:element name="Language" type="languageType"/>
+					<xs:element name="PriceAlgorithm" type="v2gci_ct:identifierType"/>
+					<xs:element name="MinimumCost" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="MaximumCost" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="TaxRules" type="TaxRuleListType" minOccurs="0"/>
+					<xs:element name="PriceRuleStacks" type="PriceRuleStackListType"/>
+					<xs:element name="OverstayRules" type="OverstayRuleListType" minOccurs="0"/>
+					<xs:element name="AdditionalSelectedServices" type="AdditionalServiceListType" minOccurs="0"/>
+				</xs:sequence>
+				<xs:attribute name="Id" type="xs:ID"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!-- AbsolutePriceScheduleType/TaxRuleListType -->
+	<xs:complexType name="TaxRuleListType">
+		<xs:sequence>
+			<xs:element name="TaxRule" type="TaxRuleType" maxOccurs="10"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- AbsolutePriceScheduleType/TaxRuleListType/TaxRuleType -->
+	<xs:complexType name="TaxRuleType">
+		<xs:sequence>
+			<xs:element name="TaxRuleID" type="v2gci_ct:numericIDType"/>
+			<xs:element name="TaxRuleName" type="v2gci_ct:nameType" minOccurs="0"/>
+			<xs:element name="TaxRate" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="TaxIncludedInPrice" type="xs:boolean" minOccurs="0"/>
+			<xs:element name="AppliesToEnergyFee" type="xs:boolean"/>
+			<xs:element name="AppliesToParkingFee" type="xs:boolean"/>
+			<xs:element name="AppliesToOverstayFee" type="xs:boolean"/>
+			<xs:element name="AppliesMinimumMaximumCost" type="xs:boolean"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- AbsolutePriceScheduleType/PriceRuleStackListType -->
+	<xs:complexType name="PriceRuleStackListType">
+		<xs:sequence>
+			<xs:element name="PriceRuleStack" type="PriceRuleStackType" maxOccurs="1024"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- AbsolutePriceScheduleType/PriceRuleListType/PriceRuleStackType -->
+	<xs:complexType name="PriceRuleStackType">
+		<xs:sequence>
+			<xs:element name="Duration" type="xs:unsignedInt"/>
+			<xs:element name="PriceRule" type="PriceRuleType" maxOccurs="8"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- AbsolutePriceScheduleType/PriceRuleListType/PriceRuleStackType/PriceRuleType -->
+	<xs:complexType name="PriceRuleType">
+		<xs:sequence>
+			<xs:element name="EnergyFee" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="ParkingFee" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="ParkingFeePeriod" type="xs:unsignedInt" minOccurs="0"/>
+			<xs:element name="CarbonDioxideEmission" type="xs:unsignedShort" minOccurs="0"/>
+			<xs:element name="RenewableGenerationPercentage" type="xs:unsignedByte" minOccurs="0"/>
+			<xs:element name="PowerRangeStart" type="v2gci_ct:RationalNumberType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- AbsolutePriceScheduleType/OverstayRuleListType -->
+	<xs:complexType name="OverstayRuleListType">
+		<xs:sequence>
+			<xs:element name="OverstayTimeThreshold" type="xs:unsignedInt" minOccurs="0"/>
+			<xs:element name="OverstayPowerThreshold" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="OverstayRule" type="OverstayRuleType" maxOccurs="5"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- AbsolutePriceScheduleType/OverstayRuleListType/OverstayRuleType -->
+	<xs:complexType name="OverstayRuleType">
+		<xs:sequence>
+			<xs:element name="OverstayRuleDescription" type="v2gci_ct:descriptionType" minOccurs="0"/>
+			<xs:element name="StartTime" type="xs:unsignedInt"/>
+			<xs:element name="OverstayFee" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="OverstayFeePeriod" type="xs:unsignedInt"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- AbsolutePriceScheduleType/AdditionalServicesListType -->
+	<xs:complexType name="AdditionalServiceListType">
+		<xs:sequence>
+			<xs:element name="AdditionalService" type="AdditionalServiceType" maxOccurs="5"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- this allows for additional services -->
+	<xs:complexType name="AdditionalServiceType">
+		<xs:sequence>
+			<xs:element name="ServiceName" type="v2gci_ct:nameType"/>
+			<xs:element name="ServiceFee" type="v2gci_ct:RationalNumberType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="currencyType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="3"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="languageType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="3"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!--                  -->
+	<!-- EV Power Profile -->
+	<!--                  -->
+	<xs:complexType name="EVPowerProfileEntryListType">
+		<xs:sequence>
+			<xs:element name="EVPowerProfileEntry" type="PowerScheduleEntryType" maxOccurs="2048"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="EVPowerProfileType">
+		<xs:sequence>
+			<xs:element name="TimeAnchor" type="xs:unsignedLong"/>
+			<xs:choice>
+				<xs:element name="Dynamic_EVPPTControlMode" type="Dynamic_EVPPTControlModeType"/>
+				<xs:element name="Scheduled_EVPPTControlMode" type="Scheduled_EVPPTControlModeType"/>
+			</xs:choice>
+			<xs:element name="EVPowerProfileEntries" type="EVPowerProfileEntryListType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- Control Modes - Scheduled -->
+	<xs:complexType name="Scheduled_EVPPTControlModeType">
+		<xs:sequence>
+			<xs:element name="SelectedScheduleTupleID" type="v2gci_ct:numericIDType"/>
+			<xs:element name="PowerToleranceAcceptance" type="powerToleranceAcceptanceType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="powerToleranceAcceptanceType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="PowerToleranceNotConfirmed"/>
+			<xs:enumeration value="PowerToleranceConfirmed"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- Control Modes - Dynamic -->
+	<xs:complexType name="Dynamic_EVPPTControlModeType"/>
+	<!--                 -->
+	<!-- EV Energy Offer -->
+	<!--                 -->
+	<xs:complexType name="EVEnergyOfferType">
+		<xs:sequence>
+			<xs:element name="EVPowerSchedule" type="EVPowerScheduleType"/>
+			<xs:element name="EVAbsolutePriceSchedule" type="EVAbsolutePriceScheduleType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="EVPowerScheduleType">
+		<xs:sequence>
+			<xs:element name="TimeAnchor" type="xs:unsignedLong"/>
+			<xs:element name="EVPowerScheduleEntries" type="EVPowerScheduleEntryListType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="EVPowerScheduleEntryListType">
+		<xs:sequence>
+			<xs:element name="EVPowerScheduleEntry" type="EVPowerScheduleEntryType" maxOccurs="1024"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="EVPowerScheduleEntryType">
+		<xs:sequence>
+			<xs:element name="Duration" type="xs:unsignedInt"/>
+			<xs:element name="Power" type="v2gci_ct:RationalNumberType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="EVAbsolutePriceScheduleType">
+		<xs:sequence>
+			<xs:element name="TimeAnchor" type="xs:unsignedLong"/>
+			<xs:element name="Currency" type="currencyType"/>
+			<xs:element name="PriceAlgorithm" type="v2gci_ct:identifierType"/>
+			<xs:element name="EVPriceRuleStacks" type="EVPriceRuleStackListType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="EVPriceRuleStackListType">
+		<xs:sequence>
+			<xs:element name="EVPriceRuleStack" type="EVPriceRuleStackType" maxOccurs="1024"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="EVPriceRuleStackType">
+		<xs:sequence>
+			<xs:element name="Duration" type="xs:unsignedInt"/>
+			<xs:element name="EVPriceRule" type="EVPriceRuleType" maxOccurs="8"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="EVPriceRuleType">
+		<xs:sequence>
+			<xs:element name="EnergyFee" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="PowerRangeStart" type="v2gci_ct:RationalNumberType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- ––––––––––––––––– -->
+	<!-- Certificate Types -->
+	<!-- ––––––––––––––––– -->
+	<xs:simpleType name="certificateType">
+		<xs:restriction base="xs:base64Binary">
+			<xs:maxLength value="1600"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="EMAIDListType">
+		<xs:sequence>
+			<xs:element name="EMAID" type="v2gci_ct:identifierType" maxOccurs="8"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="SubCertificatesType">
+		<xs:sequence>
+			<xs:element name="Certificate" type="certificateType" maxOccurs="3"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="CertificateChainType">
+		<xs:sequence>
+			<xs:element name="Certificate" type="certificateType"/>
+			<xs:element name="SubCertificates" type="SubCertificatesType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="SignedCertificateChainType">
+		<xs:sequence>
+			<xs:element name="Certificate" type="certificateType"/>
+			<xs:element name="SubCertificates" type="SubCertificatesType" minOccurs="0"/>
+		</xs:sequence>
+		<xs:attribute name="Id" type="xs:ID" use="required"/>
+	</xs:complexType>
+	<xs:complexType name="ContractCertificateChainType">
+		<xs:sequence>
+			<xs:element name="Certificate" type="certificateType"/>
+			<xs:element name="SubCertificates" type="SubCertificatesType"/>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

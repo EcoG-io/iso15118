@@ -1,0 +1,427 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="urn:iso:std:iso:15118:-20:WPT" xmlns:v2gci_ct="urn:iso:std:iso:15118:-20:CommonTypes" targetNamespace="urn:iso:std:iso:15118:-20:WPT" elementFormDefault="qualified" attributeFormDefault="qualified" version="15118:-20">
+	<xs:import namespace="urn:iso:std:iso:15118:-20:CommonTypes" schemaLocation="V2G_CI_CommonTypes.xsd"/>
+	<!--              -->
+	<!-- –––––––––––– -->
+	<!-- WPT Messages -->
+	<!-- –––––––––––– -->
+	<!--                               -->
+	<!-- WPT Fine Positioning Setup -->
+	<!--                               -->
+	<xs:element name="WPT_FinePositioningSetupReq" type="WPT_FinePositioningSetupReqType"/>
+	<xs:complexType name="WPT_FinePositioningSetupReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="EVProcessing" type="v2gci_ct:processingType"/>
+					<xs:element name="EVDeviceFinePositioningMethodList" type="WPT_FinePositioningMethodListType"/>
+					<xs:element name="EVDevicePairingMethodList" type="WPT_PairingMethodListType"/>
+					<xs:element name="EVDeviceAlignmentCheckMethodList" type="WPT_AlignmentCheckMethodListType"/>
+					<xs:element name="NaturalOffset" type="xs:unsignedShort"/>
+					<xs:element name="VendorSpecificDataContainer" type="WPT_DataContainerType" minOccurs="0" maxOccurs="16"/>
+					<!-- optional LF System information -->
+					<xs:element name="LF_SystemSetupData" type="WPT_LF_SystemSetupDataType" minOccurs="0"/>
+					<!-- end LF System information -->
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="WPT_FinePositioningSetupRes" type="WPT_FinePositioningSetupResType"/>
+	<xs:complexType name="WPT_FinePositioningSetupResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="PrimaryDeviceFinePositioningMethodList" type="WPT_FinePositioningMethodListType"/>
+					<xs:element name="PrimaryDevicePairingMethodList" type="WPT_PairingMethodListType"/>
+					<xs:element name="PrimaryDeviceAlignmentCheckMethodList" type="WPT_AlignmentCheckMethodListType"/>
+					<xs:element name="NaturalOffset" type="xs:unsignedShort"/>
+					<xs:element name="VendorSpecificDataContainer" type="WPT_DataContainerType" minOccurs="0" maxOccurs="16"/>
+					<!-- optional LF System information -->
+					<xs:element name="LF_SystemSetupData" type="WPT_LF_SystemSetupDataType" minOccurs="0"/>
+					<!-- end LF System information -->
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                         -->
+	<!-- WPT FinePositioning -->
+	<!--                         -->
+	<xs:element name="WPT_FinePositioningReq" type="WPT_FinePositioningReqType"/>
+	<xs:complexType name="WPT_FinePositioningReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="EVProcessing" type="v2gci_ct:processingType"/>
+					<xs:element name="EVResultCode" type="WPT_EVResultType"/>
+					<xs:element name="VendorSpecificDataContainer" type="WPT_DataContainerType" minOccurs="0" maxOccurs="16"/>
+					<!-- optional LF System information -->
+					<xs:element name="WPT_LF_DataPackageList" type="WPT_LF_DataPackageListType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="WPT_FinePositioningRes" type="WPT_FinePositioningResType"/>
+	<xs:complexType name="WPT_FinePositioningResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
+					<xs:element name="VendorSpecificDataContainer" type="WPT_DataContainerType" minOccurs="0" maxOccurs="16"/>
+					<!-- optional LF System information -->
+					<xs:element name="WPT_LF_DataPackageList" type="WPT_LF_DataPackageListType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--             -->
+	<!-- WPT Pairing -->
+	<!--             -->
+	<xs:element name="WPT_PairingReq" type="WPT_PairingReqType"/>
+	<xs:complexType name="WPT_PairingReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="EVProcessing" type="v2gci_ct:processingType"/>
+					<xs:element name="ObservedIDCode" type="v2gci_ct:numericIDType" minOccurs="0"/>
+					<xs:element name="EVResultCode" type="WPT_EVResultType"/>
+					<xs:element name="VendorSpecificDataContainer" type="WPT_DataContainerType" minOccurs="0" maxOccurs="16"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="WPT_PairingRes" type="WPT_PairingResType"/>
+	<xs:complexType name="WPT_PairingResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
+					<xs:element name="ObservedIDCode" type="v2gci_ct:numericIDType" minOccurs="0"/>
+					<xs:element name="AlternativeSECCList" type="AlternativeSECCListType" minOccurs="0"/>
+					<xs:element name="VendorSpecificDataContainer" type="WPT_DataContainerType" minOccurs="0" maxOccurs="16"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                                -->
+	<!-- WPT Charge Parameter Discovery -->
+	<!--                                -->
+	<xs:element name="WPT_ChargeParameterDiscoveryReq" type="WPT_ChargeParameterDiscoveryReqType"/>
+	<xs:complexType name="WPT_ChargeParameterDiscoveryReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:ChargeParameterDiscoveryReqType">
+				<xs:sequence>
+					<xs:element name="EVPCMaxReceivablePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="SDMaxGroundClearence" type="xs:unsignedShort"/>
+					<xs:element name="SDMinGroundClearence" type="xs:unsignedShort"/>
+					<xs:element name="EVPCNaturalFrequency" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVPCDeviceLocalControl" type="xs:boolean"/>
+					<xs:element name="VendorSpecificDataContainer" type="WPT_DataContainerType" minOccurs="0" maxOccurs="16"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="WPT_ChargeParameterDiscoveryRes" type="WPT_ChargeParameterDiscoveryResType"/>
+	<xs:complexType name="WPT_ChargeParameterDiscoveryResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:ChargeParameterDiscoveryResType">
+				<xs:sequence>
+					<xs:element name="PDInputPowerClass" type="WPT_PowerClassType"/>
+					<xs:element name="SDMinOutputPower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="SDMaxOutputPower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="SDMaxGroundClearanceSupport" type="xs:unsignedShort"/>
+					<xs:element name="SDMinGroundClearanceSupport" type="xs:unsignedShort"/>
+					<xs:element name="PDMinCoilCurrent" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="PDMaxCoilCurrent" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="SDManufacturerSpecificDataContainer" type="WPT_DataContainerType" minOccurs="0" maxOccurs="16"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                     -->
+	<!-- WPT Alignment Check -->
+	<!--                     -->
+	<xs:element name="WPT_AlignmentCheckReq" type="WPT_AlignmentCheckReqType"/>
+	<xs:complexType name="WPT_AlignmentCheckReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="EVProcessing" type="v2gci_ct:processingType"/>
+					<xs:element name="TargetCoilCurrent" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVResultCode" type="WPT_EVResultType"/>
+					<xs:element name="VendorSpecificDataContainer" type="WPT_DataContainerType" minOccurs="0" maxOccurs="16"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="WPT_AlignmentCheckRes" type="WPT_AlignmentCheckResType"/>
+	<xs:complexType name="WPT_AlignmentCheckResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
+					<xs:element name="PowerTransmitted" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="SupplyDeviceCurrent" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="VendorSpecificDataContainer" type="WPT_DataContainerType" minOccurs="0" maxOccurs="16"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                 -->
+	<!-- WPT Charge Loop -->
+	<!--                 -->
+	<xs:element name="WPT_ChargeLoopReq" type="WPT_ChargeLoopReqType"/>
+	<xs:complexType name="WPT_ChargeLoopReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:ChargeLoopReqType">
+				<xs:sequence>
+					<xs:element name="EVPCPowerRequest" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVPCPowerOutput" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVPCChargeDiagnostics" type="WPT_EVPCChargeDiagnosticsType"/>
+					<xs:element name="EVPCOperatingFrequency" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVPCPowerControlParameter" type="WPT_EVPCPowerControlParameterType" minOccurs="0"/>
+					<xs:element name="ManufacturerSpecificDataContainer" type="WPT_DataContainerType" minOccurs="0" maxOccurs="16"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="WPT_ChargeLoopRes" type="WPT_ChargeLoopResType"/>
+	<xs:complexType name="WPT_ChargeLoopResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:ChargeLoopResType">
+				<xs:sequence>
+					<xs:element name="EVPCPowerRequest" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="SDPowerInput" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="SPCMaxOutputPowerLimit" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="SPCMinOutputPowerLimit" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="SPCChargeDiagnostics" type="WPT_SPCChargeDiagnosticsType"/>
+					<xs:element name="SPCOperatingFrequency" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="SPCPowerControlParameter" type="WPT_SPCPowerControlParameterType" minOccurs="0"/>
+					<xs:element name="ManufacturerSpecificDataContainer" type="WPT_DataContainerType" minOccurs="0" maxOccurs="16"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                        -->
+	<!-- –––––––––––––––––––––– -->
+	<!-- Message Specific Types -->
+	<!-- –––––––––––––––––––––– -->
+	<xs:simpleType name="WPT_FinePositioningMethodType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Manual"/>
+			<xs:enumeration value="LF_TxEV"/>
+			<xs:enumeration value="LF_TxPrimaryDevice"/>
+			<xs:enumeration value="LPE"/>
+			<xs:enumeration value="Proprietary"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="WPT_FinePositioningMethodListType">
+		<xs:sequence>
+			<xs:element name="WPT_FinePositioningMethod" type="WPT_FinePositioningMethodType" maxOccurs="8"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="WPT_PairingMethodType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="External confirmation"/>
+			<xs:enumeration value="LPE"/>
+			<xs:enumeration value="LF_TxEV"/>
+			<xs:enumeration value="LF_TxPrimaryDevice"/>
+			<xs:enumeration value="Optical"/>
+			<xs:enumeration value="Proprietary"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="WPT_PairingMethodListType">
+		<xs:sequence>
+			<xs:element name="WPT_PairingMethod" type="WPT_PairingMethodType" maxOccurs="8"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="WPT_AlignmentCheckMethodType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="PowerCheck"/>
+			<xs:enumeration value="LPE"/>
+			<xs:enumeration value="Proprietary"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="WPT_AlignmentCheckMethodListType">
+		<xs:sequence>
+			<xs:element name="WPT_AlignmentCheckMethod" type="WPT_AlignmentCheckMethodType" maxOccurs="8"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="WPT_EVPCChargeDiagnosticsType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="EVPCNoIssue"/>
+			<xs:enumeration value="EVPCTempOverheatDetected"/>
+			<xs:enumeration value="EVPCPowerTransferAnomalyDetected"/>
+			<xs:enumeration value="EVPCAnomalyDetected"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="WPT_SPCChargeDiagnosticsType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="SPCNoIssue"/>
+			<xs:enumeration value="SPCFODDetected"/>
+			<xs:enumeration value="SPCLOPDetected"/>
+			<xs:enumeration value="SPCTempOverheatDetected"/>
+			<xs:enumeration value="SPCPowerTransferAnomalyDetected"/>
+			<xs:enumeration value="SPCAnomalyDetected"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="WPT_PowerClassType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="MF-WPT1"/>
+			<xs:enumeration value="MF-WPT2"/>
+			<xs:enumeration value="MF-WPT3"/>
+			<xs:enumeration value="MF-WPT4"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="WPT_EVResultType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="EVResultUnknown"/>
+			<xs:enumeration value="EVResultSuccess"/>
+			<xs:enumeration value="EVResultFailed"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="WPT_EVPCPowerControlParameterType">
+		<xs:sequence>
+			<xs:element name="EVPCCoilCurrentRequest" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="EVPCCoilCurrentInformation" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="EVPCCurrentOutputInformation" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="EVPCVoltageOutputInformation" type="v2gci_ct:RationalNumberType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_SPCPowerControlParameterType">
+		<xs:sequence>
+			<xs:element name="SPCPrimaryDeviceCoilCurrentInformation" type="v2gci_ct:RationalNumberType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_LF_SystemSetupDataType">
+		<xs:sequence>
+			<xs:choice>
+				<xs:element name="LF_TransmitterSetupData" type="WPT_LF_TransmitterDataType"/>
+				<xs:element name="LF_ReceiverSetupData" type="WPT_LF_ReceiverDataType"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_LF_TransmitterDataType">
+		<xs:sequence>
+			<xs:element name="NumberOfTransmitters" type="xs:unsignedByte"/>
+			<xs:element name="SignalFrequency" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="TxSpecData" type="WPT_TxRxSpecDataType" minOccurs="2" maxOccurs="255"/>
+			<xs:element name="TxPackageSpecData" type="WPT_TxRxPackageSpecDataType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_LF_ReceiverDataType">
+		<xs:sequence>
+			<xs:element name="NumberOfReceivers" type="xs:unsignedByte"/>
+			<xs:element name="RxSpecData" type="WPT_TxRxSpecDataType" minOccurs="2" maxOccurs="255"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_TxRxSpecDataType">
+		<xs:sequence>
+			<xs:element name="TxRxIdentifier" type="v2gci_ct:numericIDType"/>
+			<xs:element name="TxRxPosition" type="WPT_CoordinateXYZType"/>
+			<xs:element name="TxRxOrientation" type="WPT_CoordinateXYZType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_CoordinateXYZType">
+		<xs:sequence>
+			<xs:element name="Coord_X" type="xs:short"/>
+			<xs:element name="Coord_Y" type="xs:short"/>
+			<xs:element name="Coord_Z" type="xs:short"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_TxRxPackageSpecDataType">
+		<xs:sequence>
+			<xs:element name="PulseSequenceOrder" type="WPT_TxRxPulseOrderType" minOccurs="2" maxOccurs="255"/>
+			<xs:element name="PulseSeparationTime" type="xs:unsignedShort"/>
+			<xs:element name="PulseDuration" type="xs:unsignedShort"/>
+			<xs:element name="PackageSeparationTime" type="xs:unsignedShort"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_TxRxPulseOrderType">
+		<xs:sequence>
+			<xs:element name="IndexNumber" type="xs:unsignedShort"/>
+			<xs:element name="TxRxIdentifier" type="v2gci_ct:numericIDType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_LF_TxDataListType">
+		<xs:sequence>
+			<xs:element name="WPT_LF_TxDataList" type="WPT_LF_TxDataType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_LF_TxDataType">
+		<xs:sequence>
+			<xs:element name="TxIdentifier" type="v2gci_ct:numericIDType"/>
+			<xs:element name="EIRP" type="v2gci_ct:RationalNumberType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_LF_RxDataListType">
+		<xs:sequence>
+			<xs:element name="WPT_LF_RxDataList" type="WPT_LF_RxDataType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_LF_RxDataType">
+		<xs:sequence>
+			<xs:element name="RxIdentifier" type="v2gci_ct:numericIDType"/>
+			<xs:element name="RSSIData" type="WPT_LF_RxRSSIListType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_LF_RxRSSIListType">
+		<xs:sequence>
+			<xs:element name="RSSIDataList" type="WPT_LF_RxRSSIType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_LF_RxRSSIType">
+		<xs:sequence>
+			<xs:element name="TxIdentifier" type="v2gci_ct:numericIDType"/>
+			<xs:element name="RSSI" type="v2gci_ct:RationalNumberType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_LF_DataPackageListType">
+		<xs:sequence>
+			<xs:element name="NumPackages" type="xs:unsignedByte"/>
+			<xs:element name="WPT_LF_DataPackage" type="WPT_LF_DataPackageType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="WPT_LF_DataPackageType">
+		<xs:sequence>
+			<xs:element name="PackageIndex" type="xs:unsignedByte"/>
+			<xs:choice>
+				<xs:element name="LF_TxData" type="WPT_LF_TxDataListType"/>
+				<xs:element name="LF_RxData" type="WPT_LF_RxDataListType"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="AlternativeSECCListType">
+		<xs:sequence>
+			<xs:element name="AlternativeSECC" type="AlternativeSECCType" maxOccurs="8"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!--AlternativeSECCTYpe is connection information for an alternative SECC-->
+	<xs:complexType name="AlternativeSECCType">
+		<xs:sequence>
+			<xs:element name="SSID" type="v2gci_ct:identifierType" minOccurs="0"/>
+			<xs:element name="BSSID" type="bssidType" minOccurs="0"/>
+			<xs:element name="IPAddress" type="ipaddressType" minOccurs="0"/>
+			<xs:element name="Port" type="xs:unsignedShort" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!--BSSIDType: hexa-decimal string representation of the MAC address of the AP in upper case-->
+	<xs:simpleType name="bssidType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="12"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!--IPAddressType: hexa-decimal string representation of the IPv6 address of the SECC 
+	including colons, in upper case-->
+	<xs:simpleType name="ipaddressType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="39"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- ––––––––––––––   -->
+	<!-- Simple WPT Types -->
+	<!-- ––––––––––––––   -->
+	<xs:simpleType name="WPT_DataContainerType">
+		<xs:restriction base="xs:base64Binary">
+			<xs:maxLength value="256"/>
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>

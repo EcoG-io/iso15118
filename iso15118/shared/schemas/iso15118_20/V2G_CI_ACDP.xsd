@@ -1,0 +1,174 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="urn:iso:std:iso:15118:-20:ACDP" xmlns:v2gci_ct="urn:iso:std:iso:15118:-20:CommonTypes" targetNamespace="urn:iso:std:iso:15118:-20:ACDP" elementFormDefault="qualified" attributeFormDefault="qualified" version="15118:-20">
+	<xs:import namespace="urn:iso:std:iso:15118:-20:CommonTypes" schemaLocation="V2G_CI_CommonTypes.xsd"/>
+	<!--               -->
+	<!-- ––––––––––––– -->
+	<!-- ACDP Messages -->
+	<!-- ––––––––––––– -->
+	<!--                          -->
+	<!-- ACDP Vehicle Positioning -->
+	<!--                          -->
+	<xs:element name="ACDP_VehiclePositioningReq" type="ACDP_VehiclePositioningReqType"/>
+	<xs:complexType name="ACDP_VehiclePositioningReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="EVMobilityStatus" type="xs:boolean"/>
+					<xs:element name="EVPositioningSupport" type="xs:boolean"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="ACDP_VehiclePositioningRes" type="ACDP_VehiclePositioningResType"/>
+	<xs:complexType name="ACDP_VehiclePositioningResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
+					<xs:element name="EVSEPositioningSupport" type="xs:boolean"/>
+					<xs:element name="EVRelativeXDeviation" type="xs:short"/>
+					<xs:element name="EVRelativeYDeviation" type="xs:short"/>
+					<xs:element name="ContactWindowXc" type="xs:short"/>
+					<xs:element name="ContactWindowYc" type="xs:short"/>
+					<xs:element name="EVInChargePosition" type="xs:boolean"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--              -->
+	<!-- ACDP Connect -->
+	<!--              -->
+	<xs:element name="ACDP_ConnectReq" type="ACDP_ConnectReqType"/>
+	<xs:complexType name="ACDP_ConnectReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="EVElectricalChargingDeviceStatus" type="electricalChargingDeviceStatusType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="ACDP_ConnectRes" type="ACDP_ConnectResType"/>
+	<xs:complexType name="ACDP_ConnectResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
+					<xs:element name="EVSEElectricalChargingDeviceStatus" type="electricalChargingDeviceStatusType"/>
+					<xs:element name="EVSEMechanicalChargingDeviceStatus" type="mechanicalChargingDeviceStatusType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                 -->
+	<!-- ACDP Disconnect -->
+	<!--                 -->
+	<xs:element name="ACDP_DisconnectReq" type="ACDP_ConnectReqType"/>
+	<!--
+	<xs:complexType name="ACDP_DisconnectReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType"/>
+		</xs:complexContent>
+	</xs:complexType>
+	-->
+	<xs:element name="ACDP_DisconnectRes" type="ACDP_ConnectResType"/>
+	<!--
+	<xs:complexType name="ACDP_DisconnectResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType"/>
+		</xs:complexContent>
+	</xs:complexType>
+	-->
+	<!--                    -->
+	<!-- ACDP System Status -->
+	<!--                    -->
+	<xs:element name="ACDP_SystemStatusReq" type="ACDP_SystemStatusReqType"/>
+	<xs:complexType name="ACDP_SystemStatusReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GRequestType">
+				<xs:sequence>
+					<xs:element name="EVTechnicalStatus" type="EVTechnicalStatusType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="ACDP_SystemStatusRes" type="ACDP_SystemStatusResType"/>
+	<xs:complexType name="ACDP_SystemStatusResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSEMechanicalChargingDeviceStatus" type="mechanicalChargingDeviceStatusType"/>
+					<xs:element name="EVSEReadyToCharge" type="xs:boolean"/>
+					<xs:element name="EVSEIsolationStatus" type="isolationStatusType"/>
+					<xs:element name="EVSEDisabled" type="xs:boolean"/>
+					<xs:element name="EVSEUtilityInterruptEvent" type="xs:boolean"/>
+					<xs:element name="EVSEEmergencyShutdown" type="xs:boolean"/>
+					<xs:element name="EVSEMalfunction" type="xs:boolean"/>
+					<xs:element name="EVInChargePosition" type="xs:boolean"/>
+					<xs:element name="EVAssociationStatus" type="xs:boolean"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                        -->
+	<!-- –––––––––––––––––––––– -->
+	<!-- Message Specific Types -->
+	<!-- –––––––––––––––––––––– -->
+	<xs:simpleType name="cpStatusType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="StateA"/>
+			<xs:enumeration value="StateB"/>
+			<xs:enumeration value="StateC"/>
+			<xs:enumeration value="StateD"/>
+			<xs:enumeration value="StateE"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="errorCodeType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="OK_NoEVError"/>
+			<xs:enumeration value="FAILED"/>
+			<xs:enumeration value="FAILED_EmergencyEvent"/>
+			<xs:enumeration value="FAILED_Breaker"/>
+			<xs:enumeration value="FAILED_RESSTemperatureInhibit"/>
+			<xs:enumeration value="FAILED_RESS"/>
+			<xs:enumeration value="FAILED_ChargingCurrentDifferential"/>
+			<xs:enumeration value="FAILED_ChargingVoltageOutOfRange"/>
+			<xs:enumeration value="FAILED_Reserved1"/>
+			<xs:enumeration value="FAILED_Reserved2"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="isolationStatusType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Invalid"/>
+			<xs:enumeration value="Safe"/>
+			<xs:enumeration value="Warning"/>
+			<xs:enumeration value="Fault"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="electricalChargingDeviceStatusType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="State_A"/>
+			<xs:enumeration value="State_B"/>
+			<xs:enumeration value="State_C"/>
+			<xs:enumeration value="State_D"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="mechanicalChargingDeviceStatusType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Home"/>
+			<xs:enumeration value="Moving"/>
+			<xs:enumeration value="EndPosition"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="EVTechnicalStatusType">
+		<xs:sequence>
+			<xs:element name="EVReadyToCharge" type="xs:boolean"/>
+			<xs:element name="EVImmobilizationRequest" type="xs:boolean"/>
+			<xs:element name="EVImmobilized" type="xs:boolean" minOccurs="0"/>
+			<xs:element name="EVWLANStrength" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVCPStatus" type="cpStatusType" minOccurs="0"/>
+			<xs:element name="EVSOC" type="v2gci_ct:percentValueType" minOccurs="0"/>
+			<xs:element name="EVErrorCode" type="errorCodeType" minOccurs="0"/>
+			<xs:element name="EVTimeout" type="xs:boolean" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

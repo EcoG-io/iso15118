@@ -1,0 +1,10 @@
+# lines starting with a `#` will be ignored.
+# Each line is a file pattern followed by one or more owners.
+
+# For more info about the structure and rules, check:
+# https://docs.gitlab.com/ee/user/project/code_owners.html
+
+@tropxy @mueltin @shalinnijel2
+
+
+

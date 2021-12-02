@@ -1,0 +1,250 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="urn:iso:std:iso:15118:-20:AC" xmlns:v2gci_ct="urn:iso:std:iso:15118:-20:CommonTypes" targetNamespace="urn:iso:std:iso:15118:-20:AC" elementFormDefault="qualified" attributeFormDefault="qualified" version="15118:-20">
+	<xs:import namespace="urn:iso:std:iso:15118:-20:CommonTypes" schemaLocation="V2G_CI_CommonTypes.xsd"/>
+	<!--             -->
+	<!-- ––––––––––– -->
+	<!-- AC Messages -->
+	<!-- ––––––––––– -->
+	<!--                               -->
+	<!-- AC Charge Parameter Discovery -->
+	<!--                               -->
+	<xs:element name="AC_ChargeParameterDiscoveryReq" type="AC_ChargeParameterDiscoveryReqType"/>
+	<xs:complexType name="AC_ChargeParameterDiscoveryReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:ChargeParameterDiscoveryReqType">
+				<xs:sequence>
+					<xs:element ref="AC_CPDReqEnergyTransferMode"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="AC_ChargeParameterDiscoveryRes" type="AC_ChargeParameterDiscoveryResType"/>
+	<xs:complexType name="AC_ChargeParameterDiscoveryResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:ChargeParameterDiscoveryResType">
+				<xs:sequence>
+					<xs:element ref="AC_CPDResEnergyTransferMode"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                -->
+	<!-- AC Charge Loop -->
+	<!--                -->
+	<xs:element name="AC_ChargeLoopReq" type="AC_ChargeLoopReqType"/>
+	<xs:complexType name="AC_ChargeLoopReqType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:ChargeLoopReqType">
+				<xs:sequence>
+					<xs:element ref="v2gci_ct:CLReqControlMode"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="AC_ChargeLoopRes" type="AC_ChargeLoopResType"/>
+	<xs:complexType name="AC_ChargeLoopResType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:ChargeLoopResType">
+				<xs:sequence>
+					<xs:element name="EVSETargetFrequency" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element ref="v2gci_ct:CLResControlMode"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                        -->
+	<!-- –––––––––––––––––––––– -->
+	<!-- Message Specific Types -->
+	<!-- –––––––––––––––––––––– -->
+	<!--                               -->
+	<!-- AC Charge Parameter Discovery -->
+	<!--                               -->
+	<!-- Energy Transfer Mode - AC -->
+	<xs:element name="AC_CPDReqEnergyTransferMode" type="AC_CPDReqEnergyTransferModeType"/>
+	<xs:complexType name="AC_CPDReqEnergyTransferModeType">
+		<xs:sequence>
+			<xs:element name="EVMaximumChargePower" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="EVMaximumChargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVMaximumChargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVMinimumChargePower" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="EVMinimumChargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVMinimumChargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="AC_CPDResEnergyTransferMode" type="AC_CPDResEnergyTransferModeType"/>
+	<xs:complexType name="AC_CPDResEnergyTransferModeType">
+		<xs:sequence>
+			<xs:element name="EVSEMaximumChargePower" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="EVSEMaximumChargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVSEMaximumChargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVSEMinimumChargePower" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="EVSEMinimumChargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVSEMinimumChargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVSENominalFrequency" type="v2gci_ct:RationalNumberType"/>
+			<xs:element name="MaximumPowerAsymmetry" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVSEPowerRampLimitation" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVSEPresentActivePower" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVSEPresentActivePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+			<xs:element name="EVSEPresentActivePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- Energy Transfer Mode - AC BPT -->
+	<xs:element name="BPT_AC_CPDReqEnergyTransferMode" type="BPT_AC_CPDReqEnergyTransferModeType" substitutionGroup="AC_CPDReqEnergyTransferMode"/>
+	<xs:complexType name="BPT_AC_CPDReqEnergyTransferModeType">
+		<xs:complexContent>
+			<xs:extension base="AC_CPDReqEnergyTransferModeType">
+				<xs:sequence>
+					<xs:element name="EVMaximumDischargePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVMaximumDischargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMaximumDischargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumDischargePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVMinimumDischargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumDischargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="BPT_AC_CPDResEnergyTransferMode" type="BPT_AC_CPDResEnergyTransferModeType" substitutionGroup="AC_CPDResEnergyTransferMode"/>
+	<xs:complexType name="BPT_AC_CPDResEnergyTransferModeType">
+		<xs:complexContent>
+			<xs:extension base="AC_CPDResEnergyTransferModeType">
+				<xs:sequence>
+					<xs:element name="EVSEMaximumDischargePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVSEMaximumDischargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSEMaximumDischargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSEMinimumDischargePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVSEMinimumDischargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSEMinimumDischargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                -->
+	<!-- AC Charge Loop -->
+	<!--                -->
+	<!-- Control Modes - Scheduled -->
+	<xs:element name="Scheduled_AC_CLReqControlMode" type="Scheduled_AC_CLReqControlModeType" substitutionGroup="v2gci_ct:CLReqControlMode"/>
+	<xs:complexType name="Scheduled_AC_CLReqControlModeType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:Scheduled_CLReqControlModeType">
+				<xs:sequence>
+					<xs:element name="EVMaximumChargePower" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMaximumChargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMaximumChargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumChargePower" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumChargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumChargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVPresentActivePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVPresentActivePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVPresentActivePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVPresentReactivePower" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVPresentReactivePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVPresentReactivePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="Scheduled_AC_CLResControlMode" type="Scheduled_AC_CLResControlModeType" substitutionGroup="v2gci_ct:CLResControlMode"/>
+	<xs:complexType name="Scheduled_AC_CLResControlModeType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:Scheduled_CLResControlModeType">
+				<xs:sequence>
+					<xs:element name="EVSETargetActivePower" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSETargetActivePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSETargetActivePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSETargetReactivePower" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSETargetReactivePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSETargetReactivePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSEPresentActivePower" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSEPresentActivePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSEPresentActivePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!-- Control Modes - Scheduled - BPT -->
+	<xs:element name="BPT_Scheduled_AC_CLReqControlMode" type="BPT_Scheduled_AC_CLReqControlModeType" substitutionGroup="Scheduled_AC_CLReqControlMode"/>
+	<xs:complexType name="BPT_Scheduled_AC_CLReqControlModeType">
+		<xs:complexContent>
+			<xs:extension base="Scheduled_AC_CLReqControlModeType">
+				<xs:sequence>
+					<xs:element name="EVMaximumDischargePower" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMaximumDischargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMaximumDischargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumDischargePower" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumDischargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumDischargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="BPT_Scheduled_AC_CLResControlMode" type="BPT_Scheduled_AC_CLResControlModeType" substitutionGroup="Scheduled_AC_CLResControlMode"/>
+	<xs:complexType name="BPT_Scheduled_AC_CLResControlModeType">
+		<xs:complexContent>
+			<xs:extension base="Scheduled_AC_CLResControlModeType"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<!-- Control Modes - Dynamic -->
+	<xs:element name="Dynamic_AC_CLReqControlMode" type="Dynamic_AC_CLReqControlModeType" substitutionGroup="v2gci_ct:CLReqControlMode"/>
+	<xs:complexType name="Dynamic_AC_CLReqControlModeType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:Dynamic_CLReqControlModeType">
+				<xs:sequence>
+					<xs:element name="EVMaximumChargePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVMaximumChargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMaximumChargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumChargePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVMinimumChargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumChargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVPresentActivePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVPresentActivePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVPresentActivePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVPresentReactivePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVPresentReactivePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVPresentReactivePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="Dynamic_AC_CLResControlMode" type="Dynamic_AC_CLResControlModeType" substitutionGroup="v2gci_ct:CLResControlMode"/>
+	<xs:complexType name="Dynamic_AC_CLResControlModeType">
+		<xs:complexContent>
+			<xs:extension base="v2gci_ct:Dynamic_CLResControlModeType">
+				<xs:sequence>
+					<xs:element name="EVSETargetActivePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVSETargetActivePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSETargetActivePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSETargetReactivePower" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSETargetReactivePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSETargetReactivePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSEPresentActivePower" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSEPresentActivePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVSEPresentActivePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!-- Control Modes - Dynamic - BPT -->
+	<xs:element name="BPT_Dynamic_AC_CLReqControlMode" type="BPT_Dynamic_AC_CLReqControlModeType" substitutionGroup="Dynamic_AC_CLReqControlMode"/>
+	<xs:complexType name="BPT_Dynamic_AC_CLReqControlModeType">
+		<xs:complexContent>
+			<xs:extension base="Dynamic_AC_CLReqControlModeType">
+				<xs:sequence>
+					<xs:element name="EVMaximumDischargePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVMaximumDischargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMaximumDischargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumDischargePower" type="v2gci_ct:RationalNumberType"/>
+					<xs:element name="EVMinimumDischargePower_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumDischargePower_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMaximumV2XEnergyRequest" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumV2XEnergyRequest" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="BPT_Dynamic_AC_CLResControlMode" type="BPT_Dynamic_AC_CLResControlModeType" substitutionGroup="Dynamic_AC_CLResControlMode"/>
+	<xs:complexType name="BPT_Dynamic_AC_CLResControlModeType">
+		<xs:complexContent>
+			<xs:extension base="Dynamic_AC_CLResControlModeType"/>
+		</xs:complexContent>
+	</xs:complexType>
+</xs:schema>

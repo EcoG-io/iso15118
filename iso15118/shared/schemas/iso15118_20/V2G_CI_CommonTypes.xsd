@@ -1,0 +1,321 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="urn:iso:std:iso:15118:-20:CommonTypes" xmlns:xmlsig="http://www.w3.org/2000/09/xmldsig#" targetNamespace="urn:iso:std:iso:15118:-20:CommonTypes" elementFormDefault="qualified" attributeFormDefault="qualified" version="15118:-20">
+	<xs:import namespace="http://www.w3.org/2000/09/xmldsig#" schemaLocation="xmldsig-core-schema.xsd"/>
+	<!--                     -->
+	<!-- ––––––––––––––––––– -->
+	<!-- Basic Message Types -->
+	<!-- ––––––––––––––––––– -->
+	<!--        -->
+	<!-- Header -->
+	<!--        -->
+	<xs:complexType name="MessageHeaderType">
+		<xs:sequence>
+			<xs:element name="SessionID" type="sessionIDType"/>
+			<xs:element name="TimeStamp" type="xs:unsignedLong"/>
+			<xs:element ref="xmlsig:Signature" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!--             -->
+	<!-- V2G Message -->
+	<!--             -->
+	<xs:complexType name="V2GMessageType" abstract="true">
+		<xs:sequence>
+			<xs:element name="Header" type="MessageHeaderType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!--                          -->
+	<!-- V2G Request and Response -->
+	<!--                          -->
+	<xs:complexType name="V2GRequestType" abstract="true">
+		<xs:complexContent>
+			<xs:extension base="V2GMessageType"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="V2GResponseType" abstract="true">
+		<xs:complexContent>
+			<xs:extension base="V2GMessageType">
+				<xs:sequence>
+					<xs:element name="ResponseCode" type="responseCodeType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                            -->
+	<!-- Charge Parameter Discovery -->
+	<!--                            -->
+	<xs:complexType name="ChargeParameterDiscoveryReqType" abstract="true">
+		<xs:complexContent>
+			<xs:extension base="V2GRequestType"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="ChargeParameterDiscoveryResType" abstract="true">
+		<xs:complexContent>
+			<xs:extension base="V2GResponseType"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--             -->
+	<!-- Charge Loop -->
+	<!--             -->
+	<xs:complexType name="ChargeLoopReqType" abstract="true">
+		<xs:complexContent>
+			<xs:extension base="V2GRequestType">
+				<xs:sequence>
+					<xs:element name="DisplayParameters" type="DisplayParametersType" minOccurs="0"/>
+					<xs:element name="MeterInfoRequested" type="xs:boolean"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="ChargeLoopResType" abstract="true">
+		<xs:complexContent>
+			<xs:extension base="V2GResponseType">
+				<xs:sequence>
+					<xs:element name="EVSEStatus" type="EVSEStatusType" minOccurs="0"/>
+					<xs:element name="MeterInfo" type="MeterInfoType" minOccurs="0"/>
+					<xs:element name="Receipt" type="ReceiptType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!--                        -->
+	<!-- –––––––––––––––––––––– -->
+	<!-- Message Specific Types -->
+	<!-- –––––––––––––––––––––– -->
+	<!--             -->
+	<!-- Charge Loop -->
+	<!--             -->
+	<!-- Control Modes -->
+	<xs:element name="CLReqControlMode" type="CLReqControlModeType"/>
+	<xs:complexType name="CLReqControlModeType" abstract="true"/>
+	<xs:element name="CLResControlMode" type="CLResControlModeType"/>
+	<xs:complexType name="CLResControlModeType" abstract="true"/>
+	<!-- Control Modes - Scheduled -->
+	<xs:complexType name="Scheduled_CLReqControlModeType" abstract="true">
+		<xs:complexContent>
+			<xs:extension base="CLReqControlModeType">
+				<xs:sequence>
+					<xs:element name="EVTargetEnergyRequest" type="RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMaximumEnergyRequest" type="RationalNumberType" minOccurs="0"/>
+					<xs:element name="EVMinimumEnergyRequest" type="RationalNumberType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="Scheduled_CLResControlModeType" abstract="true">
+		<xs:complexContent>
+			<xs:extension base="CLResControlModeType"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<!-- Control Modes - Dynamic -->
+	<xs:complexType name="Dynamic_CLReqControlModeType" abstract="true">
+		<xs:complexContent>
+			<xs:extension base="CLReqControlModeType">
+				<xs:sequence>
+					<xs:element name="DepartureTime" type="xs:unsignedInt" minOccurs="0"/>
+					<xs:element name="EVTargetEnergyRequest" type="RationalNumberType"/>
+					<xs:element name="EVMaximumEnergyRequest" type="RationalNumberType"/>
+					<xs:element name="EVMinimumEnergyRequest" type="RationalNumberType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="Dynamic_CLResControlModeType" abstract="true">
+		<xs:complexContent>
+			<xs:extension base="CLResControlModeType">
+				<xs:sequence>
+					<xs:element name="DepartureTime" type="xs:unsignedInt" minOccurs="0"/>
+					<xs:element name="MinimumSOC" type="percentValueType" minOccurs="0"/>
+					<xs:element name="TargetSOC" type="percentValueType" minOccurs="0"/>
+					<xs:element name="AckMaxDelay" type="xs:unsignedShort" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!-- ––––––––––––––––––– -->
+	<!-- Common Simple Types -->
+	<!-- ––––––––––––––––––– -->
+	<!-- Binary Types -->
+	<!-- ID Types -->
+	<xs:simpleType name="numericIDType">
+		<xs:restriction base="xs:unsignedInt">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="4294967295"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="sessionIDType">
+		<xs:restriction base="xs:hexBinary">
+			<xs:length value="8"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- Enumerations -->
+	<xs:simpleType name="evseNotificationType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Pause"/>
+			<xs:enumeration value="ExitStandby"/>
+			<xs:enumeration value="Terminate"/>
+			<xs:enumeration value="ScheduleRenegotiation"/>
+			<xs:enumeration value="ServiceRenegotiation"/>
+			<xs:enumeration value="MeteringConfirmation"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="processingType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Finished"/>
+			<xs:enumeration value="Ongoing"/>
+			<xs:enumeration value="Ongoing_WaitingForCustomerInteraction"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="responseCodeType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="OK"/>
+			<xs:enumeration value="OK_CertificateExpiresSoon"/>
+			<xs:enumeration value="OK_NewSessionEstablished"/>
+			<xs:enumeration value="OK_OldSessionJoined"/>
+			<xs:enumeration value="OK_PowerToleranceConfirmed"/>
+			<xs:enumeration value="WARNING_AuthorizationSelectionInvalid"/>
+			<xs:enumeration value="WARNING_CertificateExpired"/>
+			<xs:enumeration value="WARNING_CertificateNotYetValid"/>
+			<xs:enumeration value="WARNING_CertificateRevoked"/>
+			<xs:enumeration value="WARNING_CertificateValidationError"/>
+			<xs:enumeration value="WARNING_ChallengeInvalid"/>
+			<xs:enumeration value="WARNING_EIMAuthorizationFailure"/>
+			<xs:enumeration value="WARNING_eMSPUnknown"/>
+			<xs:enumeration value="WARNING_EVPowerProfileViolation"/>
+			<xs:enumeration value="WARNING_GeneralPnCAuthorizationError"/>
+			<xs:enumeration value="WARNING_NoCertificateAvailable"/>
+			<xs:enumeration value="WARNING_NoContractMatchingPCIDFound"/>
+			<xs:enumeration value="WARNING_PowerToleranceNotConfirmed"/>
+			<xs:enumeration value="WARNING_ScheduleRenegotiationFailed"/>
+			<xs:enumeration value="WARNING_StandbyNotAllowed"/>
+			<xs:enumeration value="WARNING_WPT"/>
+			<xs:enumeration value="FAILED"/>
+			<xs:enumeration value="FAILED_AssociationError"/>
+			<xs:enumeration value="FAILED_ContactorError"/>
+			<xs:enumeration value="FAILED_EVPowerProfileInvalid"/>
+			<xs:enumeration value="FAILED_EVPowerProfileViolation"/>
+			<xs:enumeration value="FAILED_MeteringSignatureNotValid"/>
+			<xs:enumeration value="FAILED_NoEnergyTransferServiceSelected"/>
+			<xs:enumeration value="FAILED_NoServiceRenegotiationSupported"/>
+			<xs:enumeration value="FAILED_PauseNotAllowed"/>
+			<xs:enumeration value="FAILED_PowerDeliveryNotApplied"/>
+			<xs:enumeration value="FAILED_PowerToleranceNotConfirmed"/>
+			<xs:enumeration value="FAILED_ScheduleRenegotiation"/>
+			<xs:enumeration value="FAILED_ScheduleSelectionInvalid"/>
+			<xs:enumeration value="FAILED_SequenceError"/>
+			<xs:enumeration value="FAILED_ServiceIDInvalid"/>
+			<xs:enumeration value="FAILED_ServiceSelectionInvalid"/>
+			<xs:enumeration value="FAILED_SignatureError"/>
+			<xs:enumeration value="FAILED_UnknownSession"/>
+			<xs:enumeration value="FAILED_WrongChargeParameter"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- Integers -->
+	<xs:simpleType name="percentValueType">
+		<xs:restriction base="xs:byte">
+			<xs:minInclusive value="0"/>
+			<xs:maxInclusive value="100"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- Strings -->
+	<xs:simpleType name="identifierType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="255"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="nameType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="80"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="descriptionType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="160"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- –––––––––––––––––––– -->
+	<!-- Common Complex Types -->
+	<!-- –––––––––––––––––––– -->
+	<xs:complexType name="DisplayParametersType">
+		<xs:sequence>
+			<xs:element name="PresentSOC" type="percentValueType" minOccurs="0"/>
+			<xs:element name="MinimumSOC" type="percentValueType" minOccurs="0"/>
+			<xs:element name="TargetSOC" type="percentValueType" minOccurs="0"/>
+			<xs:element name="MaximumSOC" type="percentValueType" minOccurs="0"/>
+			<xs:element name="RemainingTimeToMinimumSOC" type="xs:unsignedInt" minOccurs="0"/>
+			<xs:element name="RemainingTimeToTargetSOC" type="xs:unsignedInt" minOccurs="0"/>
+			<xs:element name="RemainingTimeToMaximumSOC" type="xs:unsignedInt" minOccurs="0"/>
+			<xs:element name="ChargingComplete" type="xs:boolean" minOccurs="0"/>
+			<xs:element name="BatteryEnergyCapacity" type="RationalNumberType" minOccurs="0"/>
+			<xs:element name="InletHot" type="xs:boolean" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="EVSEStatusType">
+		<xs:sequence>
+			<xs:element name="NotificationMaxDelay" type="xs:unsignedShort"/>
+			<xs:element name="EVSENotification" type="evseNotificationType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="RationalNumberType">
+		<xs:sequence>
+			<xs:element name="Exponent" type="xs:byte"/>
+			<xs:element name="Value" type="xs:short"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- –––––––––––––– -->
+	<!-- Metering Types -->
+	<!-- –––––––––––––– -->
+	<xs:simpleType name="meterIDType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="32"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="meterSignatureType">
+		<xs:restriction base="xs:base64Binary">
+			<xs:maxLength value="64"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="MeterInfoType">
+		<xs:sequence>
+			<xs:element name="MeterID" type="meterIDType"/>
+			<xs:element name="ChargedEnergyReadingWh" type="xs:unsignedLong"/>
+			<xs:element name="BPT_DischargedEnergyReadingWh" type="xs:unsignedLong" minOccurs="0"/>
+			<xs:element name="CapacitiveEnergyReadingVARh" type="xs:unsignedLong" minOccurs="0"/>
+			<xs:element name="BPT_InductiveEnergyReadingVARh" type="xs:unsignedLong" minOccurs="0"/>
+			<xs:element name="MeterSignature" type="meterSignatureType" minOccurs="0"/>
+			<xs:element name="MeterStatus" type="xs:short" minOccurs="0"/>
+			<xs:element name="MeterTimestamp" type="xs:unsignedLong" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- –––––––––––––––––––––– -->
+	<!-- Absolute Pricing Types -->
+	<!-- –––––––––––––––––––––– -->
+	<xs:complexType name="DetailedCostType">
+		<xs:sequence>
+			<xs:element name="Amount" type="RationalNumberType"/>
+			<xs:element name="CostPerUnit" type="RationalNumberType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="DetailedTaxType">
+		<xs:sequence>
+			<xs:element name="TaxRuleID" type="numericIDType"/>
+			<xs:element name="Amount" type="RationalNumberType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="ReceiptType">
+		<xs:sequence>
+			<xs:element name="TimeAnchor" type="xs:unsignedLong"/>
+			<xs:element name="EnergyCosts" type="DetailedCostType" minOccurs="0"/>
+			<xs:element name="OccupancyCosts" type="DetailedCostType" minOccurs="0"/>
+			<xs:element name="AdditionalServicesCosts" type="DetailedCostType" minOccurs="0"/>
+			<xs:element name="OverstayCosts" type="DetailedCostType" minOccurs="0"/>
+			<xs:element name="TaxCosts" type="DetailedTaxType" minOccurs="0" maxOccurs="10"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- ––––––––––––––––––– -->
+	<!-- Authorization Types -->
+	<!-- ––––––––––––––––––– -->
+	<xs:complexType name="ListOfRootCertificateIDsType">
+		<xs:sequence>
+			<xs:element name="RootCertificateID" type="xmlsig:X509IssuerSerialType" maxOccurs="20"/>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>
