@@ -112,7 +112,7 @@ This integration test was tested under:
 - Linux - Ubuntu and Debian distros
 - MacOs
 
-[1]: https://www.iso.org/standard/55366.html
+[^1]: https://www.iso.org/standard/55366.html
 [^2]: https://www.switch-ev.com/news-and-events/new-features-and-timeline-for-iso15118-20
 [^3]: https://python-poetry.org/docs/#installation
 [^4]: https://exificient.github.io/
