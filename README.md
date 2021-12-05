@@ -39,7 +39,7 @@ There are two recommended ways of running the project:
    apt update && apt install -y default-jre
 
    ```
-   The JRE engine is only a temporary requirement until we replace the Java-based EXI codec (EXIficient) with our own RUST-based EXI codec.
+   The JRE engine is only a temporary requirement until we replace the Java-based EXI codec (EXIficient)[^4] with our own RUST-based EXI codec.
    
    Install the module using `poetry` and run the main script related
    to the EVCC or SECC instance you want to run. Switch to the iso15118 directory
@@ -115,3 +115,4 @@ This integration test was tested under:
 [1]: https://www.iso.org/standard/55366.html
 [^2]: https://www.switch-ev.com/news-and-events/new-features-and-timeline-for-iso15118-20
 [^3]: https://python-poetry.org/docs/#installation
+[^4]: https://exificient.github.io/
