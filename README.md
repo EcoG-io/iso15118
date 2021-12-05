@@ -1,10 +1,10 @@
 # ISO15118
 
-Python Implementation of the ISO15118 -2 [[1]] and -20 [^2] protocols
+Python Implementation of the ISO 15118 -2 [^1] and -20 [^2] protocols
 
 ## How to fire it up :fire:
 
-The 15118 -2 and -20 code live under the directory `iso15118`.
+The ISO 15118 -2 and -20 code lives in the directory `iso15118`.
 The primary dependencies to install the project are the following:
 
 > - Linux Distro (Non-Linux Systems are not supported)
@@ -12,13 +12,13 @@ The primary dependencies to install the project are the following:
 > - Python >= 3.7
 
 Also, since the project depends on external custom packages, it is necessary
-to set the credentials for Switch PYPI server as ENVs:
+to set the credentials for the Switch PYPI server as ENVs:
    ```shell
    $ export PYPI_USER=****
    $ export PYPI_PASS=****
    ```
 
-Contact André <andre@switch-ev> if you require the credentials.
+Contact André <andre@switch-ev.com> if you require the credentials.
 
 There are two recommended ways of running the project:
 
@@ -28,8 +28,8 @@ There are two recommended ways of running the project:
    $ make build
    $ make dev
    ```
-   Currently only SECC will be spawned as the goal of JOSEV is to run iso15118
-   as a SECC
+   Currently, only SECC will be spawned as the goal of JOSEV is to run iso15118
+   as an SECC
 
 
 2. Local Installation
@@ -39,7 +39,9 @@ There are two recommended ways of running the project:
    apt update && apt install -y default-jre
 
    ```
-   Install the module using `poetry` and running the main script related
+   The JRE engine is only a temporary requirement until we replace the Java-based EXI codec (EXIficient)[^4] with our own RUST-based EXI codec.
+   
+   Install the module using `poetry` and run the main script related
    to the EVCC or SECC instance you want to run. Switch to the iso15118 directory
    and run:
    ```bash
@@ -59,20 +61,20 @@ There are two recommended ways of running the project:
 Option number `1` has the advantage of running within Docker, where everything
 is fired up automatically, including tests and linting. Currently, the 
 docker-compose does not set the `network-mode` as 'host', but this may be 
-required in order to bridge correctly IPV6 frames.
+required in order to bridge correctly IPv6 frames.
 
-The project also requires a MQTT broker connection, so be sure to set up
+The project also requires an MQTT broker connection, so be sure to set up
 a broker correctly and to add the necessary credentials and URL.
 
 For more information about the MQTT API used by Switch, please contact us.
 
 Finally, the project includes a few configuration variables whose default
-values can be modified by setting them as an environmental variables.
+values can be modified by setting them as environmental variables.
 The following table provides a few of the available variables:
 
 | ENV                        | Default Value         | Description                                                                              |
 | -------------------------- | --------------------- | ---------------------------------------------------------------------------------------- |
-| NETWORK_INTERFACE          | `eth0`                | HomePlug Network Interface from which high-level communication (HLC) will be established |
+| NETWORK_INTERFACE          | `eth0`                | HomePlug Green PHY Network Interface from which the high-level communication (HLC) will be established |
 | MQTT_HOST                  | `localhost`           | MQTT Broker URL                                                                          |
 | MQTT_PORT                  | `9001`                | MQTT Broker PORT                                                                          |
 | MQTT_USER                  | `None`                | Username for Client Authorization                                                     |
@@ -86,11 +88,11 @@ The following table provides a few of the available variables:
 The project includes an environment file for dev purposes on the root directoy
 `.env.development`, which contains all settings that can be set.
 
-In order to tun the project, in production, an `.env` file must be created with
+In order to run the project in production, an `.env` file must be created with
 the desired settings. This means, if development settings are desired, one can
-simply copy `.env.development` to `.env`.
+simply copy the content of `.env.development` to `.env`.
 
-If docker is used, the command `make run` will try to get the `.env`file;
+If Docker is used, the command `make run` will try to get the `.env` file;
 The command `make dev` will fetch the contents of `.env.development`.
 
 
@@ -110,6 +112,7 @@ This integration test was tested under:
 - Linux - Ubuntu and Debian distros
 - MacOs
 
-[1]: https://www.iso.org/standard/55366.html
+[^1]: https://www.iso.org/standard/55366.html
 [^2]: https://www.switch-ev.com/news-and-events/new-features-and-timeline-for-iso15118-20
 [^3]: https://python-poetry.org/docs/#installation
+[^4]: https://exificient.github.io/
