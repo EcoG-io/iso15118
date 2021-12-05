@@ -1,6 +1,6 @@
 # ISO15118
 
-Python Implementation of the ISO 15118 -2 [[1]] and -20 [^2] protocols
+Python Implementation of the ISO 15118 -2 [^1] and -20 [^2] protocols
 
 ## How to fire it up :fire:
 
