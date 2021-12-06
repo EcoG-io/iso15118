@@ -10,6 +10,8 @@ services:
       dockerfile: iso15118/secc/Dockerfile
     depends_on:
       - redis
+    networks:
+      - ipv6_net
 
   evcc:
     hostname: evcc
@@ -22,8 +24,26 @@ services:
     depends_on:
       - redis
       - secc
+    networks:
+      - ipv6_net
 
   redis:
     image: redis:6.2.6-alpine
     ports:
      - "6379:6379"
+
+
+networks:
+  ipv6_net:
+    enable_ipv6: true
+    driver: bridge
+    # driver_opts is here just a precaution as some docker compose versions do not process the above "enable_ipv6"
+    driver_opts:
+      com.docker.network.enable_ipv6: "true"
+    ipam:
+      driver: default
+      config:
+      #- subnet: 172.16.238.0/24
+      #  gateway: 172.16.238.1
+       - subnet: 2001:db8:a::/64
+         gateway: 2001:db8:a::1

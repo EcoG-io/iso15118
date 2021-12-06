@@ -1,3 +1,6 @@
+# The shell to run the makefile with must be defined to work properly in Linux systems
+SHELL := /bin/bash
+
 # all the recipes are phony (no files to check).
 .PHONY: .install-poetry docs tests build dev run poetry-update poetry-install install-local run-evcc run-secc run-ocpp mypy reformat black flake8 code-quality
 
@@ -36,15 +39,21 @@ tests: .install-poetry
 	#poetry run flake8 pytest -vv tests
 	poetry run pytest -vv tests
 
-build:
+.generate_v2_certs:
+	cd iso15118/shared/pki; ./create_certs.sh -v iso-2
+
+.generate_v20_certs:
+	cd iso15118/shared/pki; ./create_certs.sh -v iso-20
+
+build: .check-env-vars .generate_v2_certs
 	xargs -n 1 cp -v template.Dockerfile<<<"iso15118/evcc/Dockerfile iso15118/secc/Dockerfile"
-    # @ is used as a separator and allow us to escape '/', so we can substitute the '/' itself
-    # This command will convert: 's/secc/secc/g' -> 's/secc/evcc/g'
-	sed -i '.bkp' 's@/secc/g@/evcc/g@g' iso15118/evcc/Dockerfile
+	# @ is used as a separator and allow us to escape '/', so we can substitute the '/' itself
+	# This command will convert: 's/secc/secc/g' -> 's/secc/evcc/g'
+	sed -i.bkp 's@/secc/g@/evcc/g@g' iso15118/evcc/Dockerfile
 	docker-compose build
 
 dev:
-    # the dev file apply changes to the original compose file
+	# the dev file apply changes to the original compose file
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 run:
