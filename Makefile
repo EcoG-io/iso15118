@@ -1,5 +1,5 @@
 # all the recipes are phony (no files to check).
-.PHONY: .install-poetry .check-env-vars docs tests build dev run poetry-config poetry-update poetry-install install-local run-evcc run-secc run-ocpp mypy reformat black flake8 code-quality
+.PHONY: .install-poetry docs tests build dev run poetry-update poetry-install install-local run-evcc run-secc run-ocpp mypy reformat black flake8 code-quality
 
 export PATH := ${HOME}/.local/bin:$(PATH)
 
@@ -29,10 +29,6 @@ help:
 .install-poetry:
 	@if [ -z ${IS_POETRY} ]; then pip install poetry; fi
 
-.check-env-vars:
-	@test $${PYPI_USER?Please set environment variable PYPI_USER}
-	@test $${PYPI_PASS?Please set environment variable PYPI_PASS}
-
 docs: .install-poetry
 	# poetry run sphinx-build -b html docs/source docs/build
 
@@ -40,7 +36,7 @@ tests: .install-poetry
 	#poetry run flake8 pytest -vv tests
 	poetry run pytest -vv tests
 
-build: .check-env-vars
+build:
 	xargs -n 1 cp -v template.Dockerfile<<<"iso15118/evcc/Dockerfile iso15118/secc/Dockerfile"
     # @ is used as a separator and allow us to escape '/', so we can substitute the '/' itself
     # This command will convert: 's/secc/secc/g' -> 's/secc/evcc/g'
@@ -54,17 +50,10 @@ dev:
 run:
 	docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
 
-poetry-config: .install-poetry .check-env-vars
-	# For external packages, poetry saves metadata
-	# in it's cache, which can raise versioning problems, if the package
-	# suffered version support changes. So the next line must be issued
-	yes | poetry cache clear --all mqtt_api
-	poetry config http-basic.pypi-switch ${PYPI_USER} ${PYPI_PASS}
-
-poetry-update: poetry-config
+poetry-update:
 	poetry update
 
-poetry-install: poetry-config
+poetry-install:
 	poetry update
 	poetry install
 
