@@ -25,8 +25,6 @@ services:
       - mqtt
       - redis
       - secc
-    networks:
-      - ipv6_net
     network_mode: host
 
   mqtt:
