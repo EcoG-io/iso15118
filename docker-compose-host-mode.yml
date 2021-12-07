@@ -1,0 +1,40 @@
+version: '3.9'
+services:
+  secc:
+    hostname: secc
+    build:
+      context: .
+      args:
+        - PYPI_USER=${PYPI_USER}
+        - PYPI_PASS=${PYPI_PASS}
+      dockerfile: iso15118/secc/Dockerfile
+    depends_on:
+      - mqtt
+      - redis
+    network_mode: host
+
+  evcc:
+    hostname: evcc
+    build:
+      context: .
+      args:
+        - PYPI_USER=${PYPI_USER}
+        - PYPI_PASS=${PYPI_PASS}
+      dockerfile: iso15118/evcc/Dockerfile
+    depends_on:
+      - mqtt
+      - redis
+      - secc
+    networks:
+      - ipv6_net
+    network_mode: host
+
+  mqtt:
+    build: ./mqtt
+    ports:
+     - "9001:9001"
+
+  redis:
+    image: redis:6.2.6-alpine
+    ports:
+     - "6379:6379"

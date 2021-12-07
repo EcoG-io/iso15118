@@ -88,16 +88,7 @@ class UDPServer(asyncio.DatagramProtocol):
         # aton stands for "Ascii TO Numeric"
         multicast_group_bin = socket.inet_pton(socket.AF_INET6, SDP_MULTICAST_GROUP)
 
-        nic: str = ""
-
-        try:
-            nic = get_nic(secc_settings.NETWORK_INTERFACE)
-        except NoLinkLocalAddressError as exc:
-            logger.exception(
-                "Could not assign an interface for the UDP "
-                "server, unable to find network interface card. "
-                f"{exc}"
-            )
+        nic = get_nic(secc_settings.NETWORK_INTERFACE)
 
         interface_idx = socket.if_nametoindex(nic)
         join_multicast_group_req = (

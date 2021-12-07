@@ -8,7 +8,9 @@ from typing import Tuple, Union
 import psutil
 
 from iso15118.shared import settings
-from iso15118.shared.exceptions import MACAddressNotFound, NoLinkLocalAddressError
+from iso15118.shared.exceptions import (MACAddressNotFound,
+                                        NoLinkLocalAddressError,
+                                        InterfaceNotFound)
 
 logging.config.fileConfig(
     fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
@@ -173,7 +175,7 @@ def get_tcp_port() -> int:
     return randint(49152, 65535)
 
 
-def get_nic(settings_nic: str = None, exclude_loopback_nic: bool = False) -> str:
+def get_nic(nic: str = None, exclude_loopback_nic: bool = False) -> str:
     """
     Provides the network interface card (NIC) to use for UDP and TCP client
     and server. First, the value for settings.NETWORK_INTERFACE is
@@ -185,7 +187,7 @@ def get_nic(settings_nic: str = None, exclude_loopback_nic: bool = False) -> str
     See ifconfig on Unix-based systems and ipconfig on Windows.
 
     Args:
-        settings_nic (str): The Network interface identifier
+        nic (str): The Network interface identifier
         exclude_loopback_nic (bool): Flag to exclude the loopback from the
                                      result
     Returns:
@@ -195,17 +197,23 @@ def get_nic(settings_nic: str = None, exclude_loopback_nic: bool = False) -> str
         NoLinkLocalAddressError, in the unlikely case no suitable NIC
         can be found.
     """
-    if settings_nic:
-        return settings_nic
-
-    # In case no NIC was provided in an EVCC or SECC settings file
     nics_with_addresses = psutil.net_if_addrs()
-    for nic in nics_with_addresses:
-        ip_address = _search_link_local_addr(nic, nics_with_addresses[nic])
-        if ip_address:
-            if nic in ["lo0", "lo"] and exclude_loopback_nic:
-                continue
+
+    if nic:
+        if nic in nics_with_addresses:
             return nic
+        else:
+            raise InterfaceNotFound(
+                f"No interface {nic} with this name was found"
+            )
+    else:
+        # In case no NIC was provided in an EVCC or SECC settings file
+        for nic in nics_with_addresses:
+            ip_address = _search_link_local_addr(nic, nics_with_addresses[nic])
+            if ip_address:
+                if nic in ["lo0", "lo"] and exclude_loopback_nic:
+                    continue
+                return nic
 
     raise NoLinkLocalAddressError(
         "Could not find a suitable network "
