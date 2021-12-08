@@ -114,7 +114,7 @@ def validate_nic(nic: str) -> None:
         nic (str): The network interface card identifier
 
     Raises:
-        InterfaceNotFound if the specified interface could not be found
+        InterfaceNotFoundError if the specified interface could not be found
         or if no IPv6 link-local address could be found
     """
     try:
