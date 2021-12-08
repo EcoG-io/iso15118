@@ -31,7 +31,6 @@ RUN sed -i 's/secc/secc/g' pyproject.toml
 # However, if we run poetry config virtualenvs.create false, then we dont.
 # Do not create a virtual poetry env as we already are in an isolated container
 RUN poetry config virtualenvs.create false
-RUN poetry config http-basic.pypi-switch $PYPI_USER $PYPI_PASS
 # Install dependencies and the project in the venv
 RUN poetry update && poetry install --no-interaction --no-ansi
 
@@ -63,16 +62,14 @@ RUN python -m venv /venv
 # copy dependencies and wheel from the build stage
 COPY --from=build /usr/src/app/dist/ dist/
 # This will install the wheel in the venv
-# We need to specify the Switch Pypis server as extra-index to look for, in
-# order to install switch custom libs
-RUN /venv/bin/pip install dist/*.whl --extra-index-url https://$PYPI_USER:$PYPI_PASS@pypi.switch-ev.com/simple
+RUN /venv/bin/pip install dist/*.whl
 
 
-# Generating the certs inside the Docker, didnt work (Certificate verification failed), but the command is kept 
+# Generating the certs inside the container didn't work (error: Certificate verification failed), but the command is kept
 # here so we can investigate this issue later on
 # RUN cd /venv/lib/python3.10/site-packages/iso15118/shared/pki && ./create_certs.sh -v iso-2
 
-# This is not the ideal way to provide the certificate chain to the docker, but for now it works
+# This is not the ideal way to provide the certificate chain to the container, but for now it works
 COPY --from=build /usr/src/app/iso15118/shared/pki/ /venv/lib/python3.10/site-packages/iso15118/shared/pki/
 
 

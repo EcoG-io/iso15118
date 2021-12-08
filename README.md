@@ -70,19 +70,13 @@ Also both SECC and EVCC are spawned, automatically.
 
 
 For option number `2`, the certificates need to be provided. The project includes
-a script to help on the generation of -2 or/and -20 certificates. This script
-is under `iso15118/shared/pki/` directory and is called `create_certs.sh`.
+a script to help on the generation of -2 and -20 certificates. This script
+is located under `iso15118/shared/pki/` directory and is called `create_certs.sh`.
 The following command provides a helper for the script usage:
 
 ```bash
 $ ./create_certs.sh -h
 ```
-
-The project also requires an MQTT broker connection, so be sure to set up
-a broker correctly and to add the necessary credentials and URL.
-
-For more information about the MQTT API used by Switch, please contact us.
-
 
 ---
 **IPv6 WARNING**
@@ -94,25 +88,24 @@ an IPv6 local-link address assigned.
 For Docker, the `docker-compose.yml` was configured to create an `IPv6` network
 called `ipv6_net`, which enables the containers to acquire a local-link address,
 which is required to establish an ISO 15118 communication. This configuration is
-fine, if the user wants to test, in isolation, the EVCC and SECC and allow ISO 15118
+fine if the user wants to test, in isolation, the EVCC and SECC and allow ISO 15118
 communication. This configuration works for both Linux and BSD systems.
 
-However, the usage of an internal `ipv6_net` in docker, does not allow the host
-to reach link-local addresses. This would pose a problem, as it would require 
+However, the usage of an internal `ipv6_net` network, in Docker, does not allow the
+host to reach link-local addresses. This would pose a problem, as it would require
 the application to use the global-link address, which is not supported by ISO 15118.
 
 The solution is to use the `network_mode: host` feature of Docker, which replicates
-the host network topology within the Docker world, i.e., the containers and the 
-host share the same network. This way, the virtual network interface created by 
-the HomePlugGreenPHY module can be directly accessible by the Docker container and
-it is possible to use the local-link address.
+the host network topology within the Docker world, i.e. the containers and the
+host share the same network. This way, Docker can directly access the virtual
+network interface created by the HomePlug Green PHY module, making it possible
+to use the local-link address.
 
 Currently, `network_mode: host` just works within Linux environments [^5] [^6].
-Since Switch team relies mostly on MacOS and since this project is on a 
-development stage, `network_mode` is not used by default, but it is possible to
-use it, if the contents of the file `docker-compose-host-mode.yml` are copied
-to the main compose file, `docker-compose.yml`. In that case, it is advised to
-back up the compose file.
+Since the Switch team relies mostly on MacOS and this project is on a development stage,
+`network_mode` is not used by default, but it is possible to use it if the contents of the
+file `docker-compose-host-mode.yml` are copied to the main compose file, `docker-compose.yml`.
+In that case, it is advised to back up the compose file.
 
 
 ---
@@ -127,16 +120,9 @@ The following table provides a few of the available variables:
 | ENV                        | Default Value    | Description                                                                                            |
 | -------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------ |
 | NETWORK_INTERFACE          | `eth0`           | HomePlug Green PHY Network Interface from which the high-level communication (HLC) will be established |
-| MQTT_HOST                  | `localhost`      | MQTT Broker URL                                                                                        |
-| MQTT_PORT                  | `9001`           | MQTT Broker PORT                                                                                       |
-| MQTT_USER                  | `None`           | Username for Client Authorization                                                                      |
-| MQTT_PASS                  | `None`           | Password for Client Authorization                                                                      |
-| 15118_MQTT_SUBSCRIBE_TOPIC | `iso15118/cs`    | Mqtt Subscription Topic                                                                                |
-| 15118_MQTT_PUBLISH_TOPIC   | `iso15118/josev` | Mqtt Publish Topic                                                                                     |
 | REDIS_HOST                 | `localhost`      | Redis Host URL                                                                                         |
 | REDIS_PORT                 | `10001`          | Redis Port                                                                                             |
 
-|
 
 The project includes a few environmental files, in the root directory, for 
 different purposes:
@@ -154,10 +140,10 @@ of `.env.dev.local` to `.env`.
 
 If Docker is used, the command `make run` will try to get the `.env` file;
 The command `make dev` will fetch the contents of `.env.dev.docker` - thus,
-in this case, the user does not need to create a `.env` file, as docker will
+in this case, the user does not need to create a `.env` file, as Docker will
 automatically fetch the `.env.dev.docker` one.
 
-The key-values pair defined in the `.env` file, directly affect the settings
+The key-value pair defined in the `.env` file directly affect the settings
 defined in `secc_settings.py` and `evcc_settings.py`. In these scripts, the
 user will find all the settings that can be configured.
 
