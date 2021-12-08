@@ -7,10 +7,9 @@ from typing import Tuple
 
 from iso15118.evcc.evcc_settings import NETWORK_INTERFACE
 from iso15118.shared import settings
-from iso15118.shared.exceptions import NoLinkLocalAddressError
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.messages.v2gtp import V2GTPMessage
-from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT, get_nic
+from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT, validate_nic
 from iso15118.shared.notifications import (
     ReceiveTimeoutNotification,
     UDPPacketNotification,
@@ -81,17 +80,9 @@ class UDPClient(DatagramProtocol):
         # with bind(), since bind() controls which interface(s) the socket
         # receives multicast packets from.
 
-        nic: str = ""
+        validate_nic(NETWORK_INTERFACE)
 
-        try:
-            nic = get_nic(NETWORK_INTERFACE)
-        except NoLinkLocalAddressError as exc:
-            logger.exception(
-                "Can't assign interface for UDP server, unable "
-                f"to find network interface card. {exc}"
-            )
-
-        interface_index = socket.if_nametoindex(nic)
+        interface_index = socket.if_nametoindex(NETWORK_INTERFACE)
         sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_IF, interface_index)
 
         transport, _ = await loop.create_datagram_endpoint(

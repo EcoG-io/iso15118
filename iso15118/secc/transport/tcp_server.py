@@ -5,7 +5,7 @@ from typing import Tuple
 
 from iso15118.secc.secc_settings import NETWORK_INTERFACE
 from iso15118.shared import settings
-from iso15118.shared.network import get_link_local_addr, get_tcp_port
+from iso15118.shared.network import get_link_local_full_addr, get_tcp_port
 from iso15118.shared.notifications import TCPClientNotification
 from iso15118.shared.security import get_ssl_context
 
@@ -93,7 +93,7 @@ class TCPServer(asyncio.Protocol):
         # Allows address to be reused
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        self.full_ipv6_address, nic = await get_link_local_addr(port, NETWORK_INTERFACE)
+        self.full_ipv6_address = await get_link_local_full_addr(port, NETWORK_INTERFACE)
         self.ipv6_address_host = self.full_ipv6_address[0]
 
         # Bind the socket to the IP address and port for receiving
@@ -112,7 +112,7 @@ class TCPServer(asyncio.Protocol):
 
         logger.debug(
             f"{server_type} server started at "
-            f"address {self.ipv6_address_host}%{nic} and "
+            f"address {self.ipv6_address_host}%{NETWORK_INTERFACE} and "
             f"port {port}"
         )
 

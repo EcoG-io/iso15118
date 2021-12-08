@@ -10,7 +10,7 @@ import psutil
 from iso15118.shared import settings
 from iso15118.shared.exceptions import (MACAddressNotFound,
                                         NoLinkLocalAddressError,
-                                        InterfaceNotFound)
+                                        InvalidInterface)
 
 logging.config.fileConfig(
     fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
@@ -21,10 +21,10 @@ SDP_MULTICAST_GROUP = "FF02::1"
 SDP_SERVER_PORT = 15118
 
 
-def _search_link_local_addr(nic: str, nic_addr_list: list) -> Union[IPv6Address, None]:
+def _get_link_local_addr(nic: str) -> Union[IPv6Address, None]:
     """
     Provides the IPv6 link-local address for the network interface card
-    (NIC) provided.
+    (NIC) address list provided.
 
     Args:
         nic_addr_list   A list of tuples per network interface card (NIC),
@@ -32,12 +32,14 @@ def _search_link_local_addr(nic: str, nic_addr_list: list) -> Union[IPv6Address,
                         More info: https://psutil.readthedocs.io/en/latest/#psutil.net_if_addrs
 
     Returns:
-        The first IPv6 link-local address from the given list of NIC
-        addresses
+        The IPv6 link-local address from the given list of NIC
+        addresses, if exists
 
     Raises:
         NoLinkLocalAddressError if no IPv6 link-local address can be found
     """
+    nics_with_addresses = psutil.net_if_addrs()
+    nic_addr_list = nics_with_addresses[nic]
     for nic_addr in nic_addr_list:
         addr_family = nic_addr[0]
         # Remove any interface after the IP address with .split('%')[0] to
@@ -47,13 +49,11 @@ def _search_link_local_addr(nic: str, nic_addr_list: list) -> Union[IPv6Address,
         if addr_family == socket.AF_INET6 and IPv6Address(address).is_link_local:
             return IPv6Address(address)
 
-    logger.debug(
-        "Could not find IPv6 link-local address for network " f"interface card {nic}"
-    )
-    return None
+    raise NoLinkLocalAddressError(
+        f"No link-local address was found for interface {nic}")
 
 
-async def get_full_ipv6_address(host: str, port: int) -> Tuple[str, int, int, int]:
+async def _get_full_ipv6_address(host: str, port: int) -> Tuple[str, int, int, int]:
     """
     loop.getaddrinfo returns a list of tuples containing
     [(address_family, socktype, proto, canonname, socket_address)].
@@ -104,67 +104,66 @@ async def get_full_ipv6_address(host: str, port: int) -> Tuple[str, int, int, in
     return socket_address
 
 
-async def get_link_local_addr(
-    port: int, evcc_settings_nic: str
-) -> Tuple[Tuple[str, int, int, int], str]:
-    """
-    Provides the IPv6 link-local address for the network interface card
-    (NIC) configured in the secc_settings.py file. If no NIC is configured, the
-    available NICs are scanned for the first available IPv6 link-local
-    address.
+def validate_nic(nic: str) -> None:
 
-    psutil.net_if_addrs() returns the addresses associated to each NIC
-    (network interface card) installed on the system as a dictionary whose
-    keys are the NIC names and value is a list of named tuples for each
-    address assigned to the NIC.
-    More info: https://psutil.readthedocs.io/en/latest/#psutil.net_if_addrs
+    """
+    Checks if the Network Interface Card (NIC) provided exists on the system
+    and contains a link-local address
+
+    Args:
+        nic (str): The Network interface identifier
+
+    Raises:
+        InterfaceNotFound if the specified interface could not be found
+        or if no IPv6 link-local address could be found
+    """
+    try:
+        _get_link_local_addr(nic)
+    except KeyError as exc:
+        raise InvalidInterface(
+            f"No interface {nic} with this name was found"
+        ) from exc
+    except NoLinkLocalAddressError as exc:
+        raise InvalidInterface(f"Interface {nic} has no link-local address "
+                               f"associated with it") from exc
+
+
+async def get_link_local_full_addr(
+        port: int,
+        nic: str
+) -> Tuple[str, int, int, int]:
+    """
+    Provides the full IPv6 link-local address for the network interface card
+    (NIC) specified. The full address contains the entire socket address, for example,
+
+    ('fe80::4fd:9dc8:b138:3bcc', 65334, 0, 5)
+    where:
+
+    'fe80::4fd:9dc8:b138:3bcc' - is the IPv6 base address (host)
+    65334 - port
+    0 - flowinfo
+    5 - scope_id
+
+    Note:
+        psutil.net_if_addrs() returns a dict, whose keys are the NIC names installed
+        on the system and the values are a list of named tuples for each address
+        assigned to the NIC.
+        More info: https://psutil.readthedocs.io/en/latest/#psutil.net_if_addrs
 
     Args:
         port:   The port used for the IPv6 link-local address
-        evcc_settings_nic:    The Network Interface Card, if configured in the corresponding
-                settings file (either evcc_settings.py or secc_settings.py)
+        nic:    The Network Interface Card
 
     Returns:
-        A tuple containing an IPv6 link-local address tuple (in the form of
+        An IPv6 link-local address tuple (in the form of
         (IPv6 base address, port, flowinfo, scope_ip), where the tuple entries
-        are of type Tuple[str, int, int, int]) and the network interface card
-
-    Raises:
-        NoLinkLocalAddressError if no IPv6 link-local address can be found
+        are of type Tuple[str, int, int, int])
     """
-    nics_with_addresses = psutil.net_if_addrs()
+    ip_address = _get_link_local_addr(nic)
 
-    if evcc_settings_nic:
-        try:
-            nic_addr_list = nics_with_addresses[evcc_settings_nic]
-            ip_address = _search_link_local_addr(evcc_settings_nic, nic_addr_list)
-
-            if ip_address:
-                nic_address = str(ip_address) + f"%{evcc_settings_nic}"
-                socket_address = await get_full_ipv6_address(nic_address, port)
-                return socket_address, evcc_settings_nic
-
-            raise NoLinkLocalAddressError(
-                f"Network interface card (NIC) '{evcc_settings_nic}' configured in "
-                "settings does not yield a local-link IPv6 address."
-            )
-        except KeyError as exc:
-            raise NoLinkLocalAddressError(
-                f"Network interface card (NIC) "
-                f"'{evcc_settings_nic}' configured in settings but "
-                "not found."
-            ) from exc
-    else:
-        # In case no NIC was provided in an EVCC or SECC settings file
-        for nic in nics_with_addresses:
-            ip_address = _search_link_local_addr(nic, nics_with_addresses[nic])
-            # TODO: Once we move to a linux container, remove the MacOS lo0
-            if ip_address and nic not in ["lo0", "lo"]:
-                nic_address = str(ip_address) + f"%{nic}"
-                socket_address = await get_full_ipv6_address(nic_address, port)
-                return socket_address, nic
-
-        raise NoLinkLocalAddressError("Could not find IPv6 link-local address")
+    nic_address = str(ip_address) + f"%{nic}"
+    socket_address = await _get_full_ipv6_address(nic_address, port)
+    return socket_address
 
 
 def get_tcp_port() -> int:
@@ -175,85 +174,20 @@ def get_tcp_port() -> int:
     return randint(49152, 65535)
 
 
-def get_nic(nic: str = None, exclude_loopback_nic: bool = False) -> str:
-    """
-    Provides the network interface card (NIC) to use for UDP and TCP client
-    and server. First, the value for settings.NETWORK_INTERFACE is
-    looked up and returned, if not an empty string. If no NIC is provided
-    in secc_settings.py, then the first NIC, which has an IPv6 link-local
-    address, is returned.
-
-    An example for a NIC is 'en0' or 'lo0'.
-    See ifconfig on Unix-based systems and ipconfig on Windows.
-
-    Args:
-        nic (str): The Network interface identifier
-        exclude_loopback_nic (bool): Flag to exclude the loopback from the
-                                     result
-    Returns:
-        A network interface card (NIC) (for example 'en0')
-
-    Raises:
-        NoLinkLocalAddressError, in the unlikely case no suitable NIC
-        can be found.
-    """
-    nics_with_addresses = psutil.net_if_addrs()
-
-    if nic:
-        if nic in nics_with_addresses:
-            return nic
-        else:
-            raise InterfaceNotFound(
-                f"No interface {nic} with this name was found"
-            )
-    else:
-        # In case no NIC was provided in an EVCC or SECC settings file
-        for nic in nics_with_addresses:
-            ip_address = _search_link_local_addr(nic, nics_with_addresses[nic])
-            if ip_address:
-                if nic in ["lo0", "lo"] and exclude_loopback_nic:
-                    continue
-                return nic
-
-    raise NoLinkLocalAddressError(
-        "Could not find a suitable network "
-        "interface card with an IPv6 "
-        "link-local address"
-    )
-
-
-def get_nic_mac_address(nic_id: str = "") -> str:
+def get_nic_mac_address(nic: str) -> str:
     """
     This method returns the MAC Addess of a specific NIC or the first one
     associated with a IPv6 link-local address.
+    Args:
+        nic (str): The Network Interface Card
 
-    psutil.net_if_addrs() returns a dict where the keys are the NIC names
-    and the values are a list with the different family addresses, e.g. for en0
+    Returns:
+        A MAC address in the format '8c:85:90:a3:96:e3' (str)
 
-    {'en0': [snicaddr(family=<AddressFamily.AF_INET: 2>,
-             address='192.168.21.132', netmask='255.255.255.0',
-             broadcast='192.168.21.255', ptp=None),
-             snicaddr(family=<AddressFamily.AF_LINK: 18>,
-             address='8c:85:90:a3:96:e3',
-             netmask=None, broadcast=None, ptp=None),
-             snicaddr(family=<AddressFamily.AF_INET6: 30>,
-             address='fe80::100d:a038:a617:6568%en0',
-             netmask='ffff:ffff:ffff:ffff::',
-             broadcast=None, ptp=None)
-             ],
-     }
     """
     nics_with_addresses = psutil.net_if_addrs()
-    if not nic_id:
-        try:
-            nic_id = get_nic(settings_nic=nic_id, exclude_loopback_nic=True)
-        except NoLinkLocalAddressError:
-            raise MACAddressNotFound(
-                "Incapable of finding a suitable NIC"
-            ) from NoLinkLocalAddressError
-    if nic_id in nics_with_addresses:
-        nic = nics_with_addresses[nic_id]
-        for addr in nic:
-            if addr.family == psutil.AF_LINK:
-                return addr.address
-    raise MACAddressNotFound(f"MAC not found for NIC {nic_id}")
+    nic_addr_list = nics_with_addresses[nic]
+    for addr in nic_addr_list:
+        if addr.family == psutil.AF_LINK:
+            return addr.address
+    raise MACAddressNotFound(f"MAC not found for NIC {nic}")

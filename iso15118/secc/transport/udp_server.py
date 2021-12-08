@@ -5,11 +5,10 @@ import struct
 from asyncio import DatagramTransport
 from typing import Tuple
 
-from iso15118.secc import secc_settings
+from iso15118.secc.secc_settings import NETWORK_INTERFACE
 from iso15118.shared import settings
-from iso15118.shared.exceptions import NoLinkLocalAddressError
 from iso15118.shared.messages.v2gtp import V2GTPMessage
-from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT, get_nic
+from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT, validate_nic
 from iso15118.shared.notifications import (
     ReceiveTimeoutNotification,
     UDPPacketNotification,
@@ -88,9 +87,9 @@ class UDPServer(asyncio.DatagramProtocol):
         # aton stands for "Ascii TO Numeric"
         multicast_group_bin = socket.inet_pton(socket.AF_INET6, SDP_MULTICAST_GROUP)
 
-        nic = get_nic(secc_settings.NETWORK_INTERFACE)
+        validate_nic(NETWORK_INTERFACE)
 
-        interface_idx = socket.if_nametoindex(nic)
+        interface_idx = socket.if_nametoindex(NETWORK_INTERFACE)
         join_multicast_group_req = (
             multicast_group_bin
             + struct.pack("@I", interface_idx)  # address + interface

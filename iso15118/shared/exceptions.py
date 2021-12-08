@@ -1,10 +1,11 @@
 from typing import Any
 
 
-class InterfaceNotFound(Exception):
+class InvalidInterface(Exception):
     """
     This error is raised when the specified interface is not found under the
-    available list of interfaces
+    available list of interfaces or a link-local address is not associated with
+    it
     """
 
 
