@@ -109,7 +109,7 @@ class UDPServer(asyncio.DatagramProtocol):
 
         logger.debug(
             "UDP server started at address "
-            f"{SDP_MULTICAST_GROUP}%{nic} "
+            f"{SDP_MULTICAST_GROUP}%{NETWORK_INTERFACE} "
             f"and port {SDP_SERVER_PORT}"
         )
 
