@@ -13,7 +13,13 @@ async def main():
     the SECC (Supply Equipment Communication Controller)
     """
     session_handler = CommunicationSessionHandler()
-    await session_handler.start_session_handler()
+    try:
+        await session_handler.start_session_handler()
+    except Exception as exc:
+        logger.error(f"SECC terminated: {exc}")
+        # Re-raise so the process ends with a non-zero exit code and the
+        # watchdog can restart the service
+        raise
 
 
 def run():

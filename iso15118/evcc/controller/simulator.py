@@ -3,7 +3,6 @@ This module contains a dummy implementation of the abstract class for an EVCC to
 retrieve data from the EV. The DummyEVController overrides all abstract methods from
 EVControllerInterface.
 """
-import asyncio
 import logging.config
 from typing import List, Optional, Tuple
 
@@ -169,7 +168,9 @@ class SimEVController(EVControllerInterface):
             return False
         else:
             self.charging_loop_cycles += 1
-            asyncio.sleep(0.5)
+            # The line below can just be called once process_message in all states
+            # are converted to async calls
+            # await asyncio.sleep(0.5)
             return True
 
     def store_contract_cert_and_priv_key(self, contract_cert: bytes, priv_key: bytes):

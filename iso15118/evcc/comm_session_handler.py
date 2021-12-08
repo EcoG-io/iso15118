@@ -232,19 +232,16 @@ class CommunicationSessionHandler:
             )
             return
 
+        self.udp_client = UDPClient(self._rcv_queue)
         self.list_of_tasks = [
+            self.udp_client.start(),
             self.get_from_rcv_queue(self._rcv_queue),
             self.restart_sdp(True),
         ]
-        self.udp_client = await UDPClient.create(self._rcv_queue)
+
         logger.debug("Communication session handler started")
 
-        try:
-            await wait_till_finished(self.list_of_tasks)
-        except Exception:
-            logger.exception("Communication session handler has crashed")
-            # TODO: Reraise so the process ends with a non-zero exit code.
-            raise
+        await wait_till_finished(self.list_of_tasks)
 
     async def send_sdp(self):
         """
@@ -253,6 +250,10 @@ class CommunicationSessionHandler:
         can establish a TCP connection to the SECC's TCP server, given the
         IP address and port contained in the SDP Response
         """
+        # the following loop is to allow the synchronization of the udp client
+        # and the task to handle the SDP restart
+        while not self.udp_client.started:
+            await asyncio.sleep(0.1)
         security = Security.NO_TLS
         if USE_TLS:
             security = Security.TLS
