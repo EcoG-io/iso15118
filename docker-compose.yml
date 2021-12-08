@@ -4,9 +4,6 @@ services:
     hostname: secc
     build:
       context: .
-      args:
-        - PYPI_USER=${PYPI_USER}
-        - PYPI_PASS=${PYPI_PASS}
       dockerfile: iso15118/secc/Dockerfile
     depends_on:
       - redis
@@ -17,9 +14,6 @@ services:
     hostname: evcc
     build:
       context: .
-      args:
-        - PYPI_USER=${PYPI_USER}
-        - PYPI_PASS=${PYPI_PASS}
       dockerfile: iso15118/evcc/Dockerfile
     depends_on:
       - redis

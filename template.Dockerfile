@@ -1,9 +1,6 @@
 # Build image
 FROM python:3.10.0-buster as build
 
-ARG PYPI_USER
-ARG PYPI_PASS
-
 WORKDIR /usr/src/app
 
 ENV PYTHONFAULTHANDLER=1 \
@@ -52,8 +49,6 @@ RUN poetry build
 
 # Runtime image (which is smaller than the build one)
 FROM python:3.10.0-buster
-ARG PYPI_USER
-ARG PYPI_PASS
 WORKDIR /usr/src/app
 # Installs Java
 RUN apt update && apt install -y default-jre

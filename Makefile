@@ -45,7 +45,7 @@ tests: .install-poetry
 .generate_v20_certs:
 	cd iso15118/shared/pki; ./create_certs.sh -v iso-20
 
-build: .check-env-vars .generate_v2_certs
+build: .generate_v2_certs
 	# `xargs` will copy the Dockerfile template, so that it can be individually
 	# used by the secc and evcc services
 	xargs -n 1 cp -v template.Dockerfile<<<"iso15118/evcc/Dockerfile iso15118/secc/Dockerfile"
