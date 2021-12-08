@@ -1,7 +1,7 @@
 from typing import Any
 
 
-class InvalidInterface(Exception):
+class InvalidInterfaceError(Exception):
     """
     This error is raised when the specified interface is not found under the
     available list of interfaces or a link-local address is not associated with

@@ -143,8 +143,8 @@ The command `make dev` will fetch the contents of `.env.dev.docker` - thus,
 in this case, the user does not need to create a `.env` file, as Docker will
 automatically fetch the `.env.dev.docker` one.
 
-The key-value pair defined in the `.env` file directly affect the settings
-defined in `secc_settings.py` and `evcc_settings.py`. In these scripts, the
+The key-value pairs defined in the `.env` file directly affect the settings
+present in `secc_settings.py` and `evcc_settings.py`. In these scripts, the
 user will find all the settings that can be configured.
 
 ## Integration Test with an EV Simulator

@@ -10,7 +10,7 @@ import psutil
 from iso15118.shared import settings
 from iso15118.shared.exceptions import (MACAddressNotFound,
                                         NoLinkLocalAddressError,
-                                        InvalidInterface)
+                                        InvalidInterfaceError)
 
 logging.config.fileConfig(
     fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
@@ -111,7 +111,7 @@ def validate_nic(nic: str) -> None:
     and contains a link-local address
 
     Args:
-        nic (str): The Network interface identifier
+        nic (str): The network interface card identifier
 
     Raises:
         InterfaceNotFound if the specified interface could not be found
@@ -120,12 +120,12 @@ def validate_nic(nic: str) -> None:
     try:
         _get_link_local_addr(nic)
     except KeyError as exc:
-        raise InvalidInterface(
+        raise InvalidInterfaceError(
             f"No interface {nic} with this name was found"
         ) from exc
     except NoLinkLocalAddressError as exc:
-        raise InvalidInterface(f"Interface {nic} has no link-local address "
-                               f"associated with it") from exc
+        raise InvalidInterfaceError(f"Interface {nic} has no link-local address "
+                                    f"associated with it") from exc
 
 
 async def get_link_local_full_addr(
