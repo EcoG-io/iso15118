@@ -15,7 +15,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
     DCEVSEStatusCode,
-    EnergyTransferMode,
     EnergyTransferModeEnum,
     EVSENotification,
     IsolationLevel,
@@ -55,20 +54,10 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_evse_id()."""
         return "UK123E1234"
 
-    def get_supported_energy_transfer_modes(
-        self, as_enums: bool = False
-    ) -> Union[List[EnergyTransferMode], List[EnergyTransferModeEnum]]:
+    def get_supported_energy_transfer_modes(self) -> List[EnergyTransferModeEnum]:
         """Overrides EVSEControllerInterface.get_supported_energy_transfer_modes()."""
-        ac_single_phase = EnergyTransferMode(
-            value=EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
-        )
-        ac_three_phase = EnergyTransferMode(
-            value=EnergyTransferModeEnum.AC_THREE_PHASE_CORE
-        )
-
-        if as_enums:
-            return [ac_single_phase.value, ac_three_phase.value]
-
+        ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
+        ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
         return [ac_single_phase, ac_three_phase]
 
     def is_authorised(self) -> bool:

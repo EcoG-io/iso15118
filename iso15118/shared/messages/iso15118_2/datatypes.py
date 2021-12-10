@@ -442,10 +442,11 @@ class EnergyTransferModeEnum(str, Enum):
     DC_UNIQUE = "DC_unique"
 
 
-class EnergyTransferMode(BaseModel):
+class EnergyTransferModeList(BaseModel):
     """See section 8.5.2.4 in ISO 15118-2"""
 
-    value: EnergyTransferModeEnum = Field(..., alias="EnergyTransferMode")
+    energy_modes: List[EnergyTransferModeEnum] = Field(..., max_items=6,
+                                                       alias="EnergyTransferMode")
 
 
 class ServiceID(IntEnum):
@@ -493,8 +494,8 @@ class ServiceDetails(BaseModel):
 class ChargeService(ServiceDetails):
     """See section 8.5.2.3 in ISO 15118-2"""
 
-    supported_energy_transfer_mode: List[EnergyTransferMode] = Field(
-        ..., max_items=6, alias="SupportedEnergyTransferMode"
+    supported_energy_transfer_mode: EnergyTransferModeList = Field(
+        ..., alias="SupportedEnergyTransferMode"
     )
 
 
@@ -798,7 +799,7 @@ class ParameterSet(BaseModel):
     parameters: List[Parameter] = Field(..., max_items=16, alias="Parameter")
 
 
-class AuthOptions(BaseModel):
+class AuthOptionsList(BaseModel):
     """
     See section 8.5.2.9 in ISO 15118-2
 
@@ -806,7 +807,7 @@ class AuthOptions(BaseModel):
     about the authorization method than about payment, thus the name AuthOption
     """
 
-    value: AuthEnum = Field(..., alias="PaymentOption")
+    auth_options: List[AuthEnum] = Field(..., min_items=1, max_items=2, alias="PaymentOption")
 
 
 class RelativeTimeInterval(BaseModel):
@@ -881,10 +882,11 @@ class SelectedServiceList(BaseModel):
     )
 
 
-class Service(BaseModel):
+
+class ServiceList(BaseModel):
     """See section 8.5.2.2 in ISO 15118-2"""
 
-    service_details: ServiceDetails = Field(..., alias="Service")
+    services: List[ServiceDetails] = Field(..., max_items=8, alias="Service")
 
 
 class ServiceParameterList(BaseModel):

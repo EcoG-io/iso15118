@@ -47,10 +47,8 @@ from iso15118.shared.messages.iso15118_2.body import (
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
-    AuthOptions,
     ChargeProgress,
     ChargingSession,
-    EnergyTransferMode,
     EVSENotification,
     EVSEProcessing,
     RootCertificateID,
@@ -158,15 +156,15 @@ class ServiceDiscovery(StateEVCC):
             self.stop_state_machine("ChargeService not offered")
             return
 
-        self.select_auth_mode(service_discovery_res.auth_option_list)
+        self.select_auth_mode(service_discovery_res.auth_option_list.auth_options)
         self.select_services(service_discovery_res)
         self.select_energy_transfer_mode()
         offered_energy_modes = (
-            service_discovery_res.charge_service.supported_energy_transfer_mode
+            service_discovery_res.charge_service.supported_energy_transfer_mode.energy_modes
         )
 
         if (
-            EnergyTransferMode(value=self.comm_session.selected_energy_mode)
+            self.comm_session.selected_energy_mode
             not in offered_energy_modes
         ):
             self.stop_state_machine(
@@ -223,7 +221,7 @@ class ServiceDiscovery(StateEVCC):
                 self.comm_session.ev_controller.get_energy_transfer_mode()
             )
 
-    def select_auth_mode(self, auth_option_list: List[AuthOptions]):
+    def select_auth_mode(self, auth_option_list: List[AuthEnum]):
         """
         Check if an authorization mode (aka payment option in ISO 15118-2) was
         saved from a previously paused communication session and reuse for
@@ -240,15 +238,12 @@ class ServiceDiscovery(StateEVCC):
             )
             evcc_settings.RESUME_SELECTED_AUTH_OPTION = None
         else:
-            # Chose Plug & Charge (pnc) or External Identification Means (eim)
+            # Choose Plug & Charge (pnc) or External Identification Means (eim)
             # as the selected authorization option. The car manufacturer might
             # have a mechanism to determine a user-defined or default
             # authorization option. This implementation favors pnc, but
             # feel free to change if need be.
-            if (
-                AuthOptions(value=AuthEnum.PNC_V2) in auth_option_list
-                and self.comm_session.is_tls
-            ):
+            if AuthEnum.PNC_V2 in auth_option_list and self.comm_session.is_tls:
                 self.comm_session.selected_auth_option = AuthEnum.PNC_V2
             else:
                 self.comm_session.selected_auth_option = AuthEnum.EIM_V2
@@ -272,15 +267,15 @@ class ServiceDiscovery(StateEVCC):
 
         offered_services: str = ""
 
-        for service in service_discovery_res.service_list:
+        for service in service_discovery_res.service_list.services:
             offered_services += (
                 "\nService ID: "
-                f"{service.service_details.service_id}, "
+                f"{service.service_id}, "
                 "Service name: "
-                f"{service.service_details.service_name}"
+                f"{service.service_name}"
             )
             if (
-                service.service_details.service_category == ServiceCategory.CERTIFICATE
+                service.service_category == ServiceCategory.CERTIFICATE
                 and self.comm_session.selected_auth_option
                 and self.comm_session.selected_auth_option == AuthEnum.PNC_V2
                 and self.comm_session.ev_controller.is_cert_install_needed()
@@ -288,7 +283,7 @@ class ServiceDiscovery(StateEVCC):
                 # Make sure to send a ServiceDetailReq for the
                 # Certificate service
                 self.comm_session.service_details_to_request.append(
-                    service.service_details.service_id
+                    service.service_id
                 )
 
                 # TODO We should actually first ask for the ServiceDetails and

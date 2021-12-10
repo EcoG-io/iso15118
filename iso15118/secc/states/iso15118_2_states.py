@@ -62,7 +62,7 @@ from iso15118.shared.messages.iso15118_2.body import (
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
-    AuthOptions,
+    AuthOptionsList,
     Certificate,
     CertificateChain,
     ChargeProgress,
@@ -70,12 +70,13 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargingSession,
     DCEVSEChargeParameter,
     DHPublicKey,
+    EnergyTransferModeList,
     EncryptedPrivateKey,
     EVSENotification,
     EVSEProcessing,
     Parameter,
     ParameterSet,
-    Service,
+    ServiceList,
     ServiceCategory,
     ServiceDetails,
     ServiceID,
@@ -245,36 +246,34 @@ class ServiceDiscovery(StateSECC):
         Currently no filter based on service scope is applied since its string
         value is not standardized in any way
         """
-        # The datatype in ISO 15118-2 is called "PaymentOption", but it's rather
-        # about the authorization method than about payment, thus 'auth_options'
-        auth_options: List[AuthOptions] = []
+        auth_options: List[AuthEnum] = []
         if self.comm_session.selected_auth_option:
             # In case the EVCC resumes a paused charging session, the SECC
             # must only offer the auth option the EVCC selected previously
             if self.comm_session.selected_auth_option == AuthEnum.EIM_V2:
-                auth_options.append(AuthOptions(value=AuthEnum.EIM_V2))
-                self.comm_session.offered_auth_options.append(AuthEnum.EIM_V2)
+                auth_options.append(AuthEnum.EIM_V2)
             else:
-                auth_options.append(AuthOptions(value=AuthEnum.PNC_V2))
-                self.comm_session.offered_auth_options.append(AuthEnum.PNC_V2)
+                auth_options.append(AuthEnum.PNC_V2)
         else:
             supported_auth_options = self.comm_session.config.supported_auth_options
             if AuthEnum.EIM in supported_auth_options:
-                auth_options.append(AuthOptions(value=AuthEnum.EIM_V2))
-                self.comm_session.offered_auth_options.append(AuthEnum.EIM_V2)
+                auth_options.append(AuthEnum.EIM_V2)
             if AuthEnum.PNC in supported_auth_options and self.comm_session.is_tls:
-                auth_options.append(AuthOptions(value=AuthEnum.PNC_V2))
-                self.comm_session.offered_auth_options.append(AuthEnum.PNC_V2)
+                auth_options.append(AuthEnum.PNC_V2)
+
+        self.comm_session.offered_auth_options = auth_options
+
+        energy_modes = self.comm_session.evse_controller.get_supported_energy_transfer_modes()
 
         charge_service = ChargeService(
             service_id=ServiceID.CHARGING,
             service_name=ServiceName.CHARGING,
             service_category=ServiceCategory.CHARGING,
             free_service=self.comm_session.config.free_charging_service,
-            supported_energy_transfer_mode=self.comm_session.evse_controller.get_supported_energy_transfer_modes(),
+            supported_energy_transfer_mode=EnergyTransferModeList(energy_modes=energy_modes),
         )
 
-        service_list: List[Service] = []
+        service_list: List[ServiceDetails] = []
         # Value-added services (VAS), like installation of contract certificates
         # and the Internet service, are only allowed with TLS-secured comm.
         if self.comm_session.is_tls:
@@ -289,7 +288,7 @@ class ServiceDiscovery(StateSECC):
                     free_service=self.comm_session.config.free_cert_install_service,
                 )
 
-                service_list.append(Service(service_details=cert_install_service))
+                service_list.append(cert_install_service)
 
             # Add more value-added services (VAS) here if need be
 
@@ -298,14 +297,13 @@ class ServiceDiscovery(StateSECC):
         # an EXI decoding error. The XSD definition does not allow an empty list
         # (otherwise it would also say: minOccurs="0"):
         # <xs:element name="Service" type="ServiceType" maxOccurs="8"/>
+        offered_services = None
         if len(service_list) > 0:
-            offered_services = service_list
-        else:
-            offered_services = None
+            offered_services = ServiceList(service_list=service_list)
 
         service_discovery_res = ServiceDiscoveryRes(
             response_code=ResponseCode.OK,
-            auth_option_list=auth_options,
+            auth_option_list=AuthOptionsList(auth_options=auth_options),
             charge_service=charge_service,
             service_list=offered_services,
         )
@@ -919,9 +917,7 @@ class ChargeParameterDiscovery(StateSECC):
 
         if (
             charge_params_req.requested_energy_mode
-            not in self.comm_session.evse_controller.get_supported_energy_transfer_modes(
-                True
-            )
+            not in self.comm_session.evse_controller.get_supported_energy_transfer_modes()
         ):
             self.stop_state_machine(
                 f"{charge_params_req.requested_energy_mode} not "

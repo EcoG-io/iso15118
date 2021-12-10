@@ -22,7 +22,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ACEVSEChargeParameter,
     ACEVSEStatus,
-    AuthOptions,
+    AuthOptionsList,
     CertificateChain,
     ChargeProgress,
     ChargeService,
@@ -55,7 +55,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     RootCertificateID,
     SAScheduleTuple,
     SelectedServiceList,
-    Service,
+    ServiceList,
     ServiceCategory,
     ServiceParameterList,
 )
@@ -570,11 +570,9 @@ class ServiceDiscoveryReq(BodyBase):
 class ServiceDiscoveryRes(Response):
     """See section 8.4.3.3.3 in ISO 15118-2"""
 
-    auth_option_list: List[AuthOptions] = Field(
-        ..., min_items=1, max_items=2, alias="PaymentOptionList"
-    )
+    auth_option_list: AuthOptionsList = Field(...,  alias="PaymentOptionList")
     charge_service: ChargeService = Field(..., alias="ChargeService")
-    service_list: List[Service] = Field(None, max_items=8, alias="ServiceList")
+    service_list: ServiceList = Field(None, alias="ServiceList")
 
 
 class SessionSetupReq(BodyBase):

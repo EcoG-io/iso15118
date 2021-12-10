@@ -12,7 +12,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
     DCEVSEChargeParameter,
     DCEVSEStatus,
-    EnergyTransferMode,
     EnergyTransferModeEnum,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
@@ -45,16 +44,10 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_supported_energy_transfer_modes(
-        self, as_enums: bool = False
-    ) -> Union[List[EnergyTransferMode], List[EnergyTransferModeEnum]]:
+    def get_supported_energy_transfer_modes(self) -> List[EnergyTransferModeEnum]:
         """
         The MQTT interface needs to provide the information on the available energy
         transfer modes, which depends on the socket the EV is connected to
-
-        Args:
-            as_enums: Whether or not you want a list of EnergyTransferMode elements
-                      or of the actual enum values (of type EnergyTransferModeEnum)
 
         Relevant for:
         - ISO 15118-2
