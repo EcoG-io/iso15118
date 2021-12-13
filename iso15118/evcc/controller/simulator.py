@@ -20,7 +20,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     PVEVMaxVoltage,
     PVEVMinCurrent,
     PVPMax,
-    SAScheduleTuple,
+    SAScheduleTupleEntry,
     UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
@@ -114,7 +114,7 @@ class SimEVController(EVControllerInterface):
         return True
 
     def process_sa_schedules(
-        self, sa_schedules: List[SAScheduleTuple]
+        self, sa_schedules: List[SAScheduleTupleEntry]
     ) -> Tuple[ChargeProgress, int, List[ProfileEntry]]:
         """Overrides EVControllerInterface.process_sa_schedules()."""
         schedule = sa_schedules.pop()

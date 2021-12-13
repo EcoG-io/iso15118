@@ -54,6 +54,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ResponseCode,
     RootCertificateID,
     SAScheduleTuple,
+    SAScheduleList,
     SelectedServiceList,
     ServiceList,
     ServiceCategory,
@@ -274,9 +275,7 @@ class ChargeParameterDiscoveryRes(Response):
     """See section 8.4.3.8.3 in ISO 15118-2"""
 
     evse_processing: EVSEProcessing = Field(..., alias="EVSEProcessing")
-    sa_schedule_list: List[SAScheduleTuple] = Field(
-        None, max_items=3, alias="SAScheduleList"
-    )
+    sa_schedule_list: SAScheduleList = Field(None, alias="SAScheduleList")
     ac_charge_parameter: ACEVSEChargeParameter = Field(
         None, alias="AC_EVSEChargeParameter"
     )

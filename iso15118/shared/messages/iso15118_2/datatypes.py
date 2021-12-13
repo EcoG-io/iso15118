@@ -882,7 +882,6 @@ class SelectedServiceList(BaseModel):
     )
 
 
-
 class ServiceList(BaseModel):
     """See section 8.5.2.2 in ISO 15118-2"""
 
@@ -1011,10 +1010,17 @@ class SAScheduleTupleEntry(BaseModel):
     sales_tariff: SalesTariff = Field(None, alias="SalesTariff")
 
 
+# TODO: DELETE
 class SAScheduleTuple(BaseModel):
     """See section 8.5.2.13 in ISO 15118-2"""
 
     tuple: SAScheduleTupleEntry = Field(..., alias="SAScheduleTuple")
+
+
+class SAScheduleList(BaseModel):
+    values: List[SAScheduleTupleEntry] = Field(...,
+                                               max_items=3,
+                                               alias="SAScheduleTuple")
 
 
 class EMAID(BaseModel):

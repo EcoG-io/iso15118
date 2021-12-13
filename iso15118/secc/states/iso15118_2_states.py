@@ -76,12 +76,13 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     EVSEProcessing,
     Parameter,
     ParameterSet,
+    SAScheduleList,
     ServiceList,
     ServiceCategory,
     ServiceDetails,
     ServiceID,
     ServiceName,
-    ServiceParameterList,
+    ServiceParameterList
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -299,7 +300,7 @@ class ServiceDiscovery(StateSECC):
         # <xs:element name="Service" type="ServiceType" maxOccurs="8"/>
         offered_services = None
         if len(service_list) > 0:
-            offered_services = ServiceList(service_list=service_list)
+            offered_services = ServiceList(services=service_list)
 
         service_discovery_res = ServiceDiscoveryRes(
             response_code=ResponseCode.OK,
@@ -957,7 +958,7 @@ class ChargeParameterDiscovery(StateSECC):
             evse_processing=EVSEProcessing.FINISHED
             if sa_schedule_list
             else EVSEProcessing.ONGOING,
-            sa_schedule_list=sa_schedule_list,
+            sa_schedule_list=SAScheduleList(values=sa_schedule_list),
             ac_charge_parameter=ac_evse_charge_params,
             dc_charge_parameter=dc_evse_charge_params,
         )
@@ -973,14 +974,14 @@ class ChargeParameterDiscovery(StateSECC):
             # operator (MO), but for testing purposes you can set it here
             # TODO We should probably have a test mode setting
             for schedule in sa_schedule_list:
-                if schedule.tuple.sales_tariff:
+                if schedule.sales_tariff:
                     try:
                         signature = create_signature(
                             [
                                 (
-                                    schedule.tuple.sales_tariff.id,
+                                    schedule.sales_tariff.id,
                                     to_exi(
-                                        schedule.tuple.sales_tariff,
+                                        schedule.sales_tariff,
                                         Namespace.ISO_V2_MSG_DEF,
                                     ),
                                 )
@@ -1077,7 +1078,7 @@ class PowerDelivery(StateSECC):
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
 
         if power_delivery_req.sa_schedule_tuple_id not in [
-            schedule.tuple.sa_schedule_tuple_id
+            schedule.sa_schedule_tuple_id
             for schedule in self.comm_session.offered_schedules
         ]:
             self.stop_state_machine(

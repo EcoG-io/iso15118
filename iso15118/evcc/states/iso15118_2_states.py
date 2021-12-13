@@ -715,7 +715,7 @@ class ChargeParameterDiscovery(StateEVCC):
                 schedule_id,
                 charging_profile,
             ) = self.comm_session.ev_controller.process_sa_schedules(
-                charge_params_res.sa_schedule_list
+                charge_params_res.sa_schedule_list.values
             )
 
             power_delivery_req = PowerDeliveryReq(

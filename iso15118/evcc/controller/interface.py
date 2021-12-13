@@ -13,7 +13,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVChargeParameter,
     EnergyTransferModeEnum,
     ProfileEntry,
-    SAScheduleTuple,
+    SAScheduleTupleEntry,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -126,7 +126,7 @@ class EVControllerInterface(ABC):
 
     @abstractmethod
     def process_sa_schedules(
-        self, sa_schedules: List[SAScheduleTuple]
+        self, sa_schedules: List[SAScheduleTupleEntry]
     ) -> Tuple[ChargeProgress, int, List[ProfileEntry]]:
         """
         Processes the SAScheduleList provided with the ChargeParameterDiscoveryRes

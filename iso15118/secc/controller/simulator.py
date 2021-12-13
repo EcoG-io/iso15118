@@ -31,7 +31,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     RelativeTimeInterval,
     SalesTariff,
     SalesTariffEntry,
-    SAScheduleTuple,
     SAScheduleTupleEntry,
     UnitSymbol,
 )
@@ -66,9 +65,9 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_sa_schedule_list(
         self, max_schedule_entries: Optional[int], departure_time: int = 0
-    ) -> Optional[List[SAScheduleTuple]]:
+    ) -> Optional[List[SAScheduleTupleEntry]]:
         """Overrides EVSEControllerInterface.get_sa_schedule_list()."""
-        sa_schedule_list: List[SAScheduleTuple] = []
+        sa_schedule_list: List[SAScheduleTupleEntry] = []
         p_max_schedule_entries: List[PMaxScheduleEntry] = []
 
         # PMaxSchedule
@@ -102,12 +101,12 @@ class SimEVSEController(EVSEControllerInterface):
             p_max_schedule=p_max_schedule_entries,
             sales_tariff=sales_tariff,
         )
-        sa_schedule_tuple = SAScheduleTuple(tuple=sa_schedule_tuple_entry)
+
         # TODO We could also implement an optional SalesTariff, but for the sake of
         #      time we'll do that later (after the basics are implemented).
         #      When implementing the SalesTariff, we also need to apply a digital
         #      signature to it.
-        sa_schedule_list.append(sa_schedule_tuple)
+        sa_schedule_list.append(sa_schedule_tuple_entry)
 
         # TODO We need to take care of [V2G2-741], which says that the SECC needs to
         #      resend a previously agreed SAScheduleTuple and the "period of time
