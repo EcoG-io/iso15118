@@ -145,9 +145,7 @@ class CertificateInstallationReq(BodyBase):
     oem_provisioning_cert: bytes = Field(
         ..., max_length=800, alias="OEMProvisioningCert"
     )
-    root_cert_ids: List[RootCertificateID] = Field(
-        ..., max_items=20, alias="ListOfRootCertificateIDs"
-    )
+    root_cert_ids: RootCertificateID = Field(..., alias="ListOfRootCertificateIDs")
 
 
 class CertificateInstallationRes(Response):
@@ -174,9 +172,8 @@ class CertificateUpdateReq(BodyBase):
         ..., alias="ContractSignatureCertChain"
     )
     emaid: EMAID = Field(..., alias="eMAID")
-    list_of_root_cert_ids: List[RootCertificateID] = Field(
-        ..., alias="ListOfRootCertificateIDs"
-    )
+    list_of_root_cert_ids: RootCertificateID = Field(...,
+                                                     alias="ListOfRootCertificateIDs")
 
 
 class CertificateUpdateRes(Response):

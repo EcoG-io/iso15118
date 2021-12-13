@@ -1004,8 +1004,9 @@ class CertificateInstallationReq(V2GRequest):
     oem_prov_cert_chain: SignedCertificateChain = Field(
         ..., alias="OEMProvisioningCertificateChain"
     )
-    list_of_root_cert_ids: List[RootCertificateID] = Field(
-        ..., max_items=20, alias="ListOfRootCertificateIDs"
+    list_of_root_cert_ids: RootCertificateID = Field(
+        ...,
+        alias="ListOfRootCertificateIDs"
     )
     # XSD type unsignedShort (16 bit integer) with value range [0..65535]
     max_contract_cert_chains: int = Field(

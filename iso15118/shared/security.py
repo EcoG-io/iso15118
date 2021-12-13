@@ -692,13 +692,14 @@ def create_signature(
         id_attr, exi_encoded = body_element
         reference = Reference(
             uri="#" + id_attr,
-            transforms=[
-                Transform(
-                    details=TransformDetails(
+            transforms=Transform(
+                details=[
+                    TransformDetails(
                         algorithm="http://www.w3.org/TR/canonical-exi/"
                     )
-                )
-            ],
+                ]
+            )
+            ,
             digest_method=DigestMethod(
                 algorithm="http://www.w3.org/2001/04/xmlenc#sha256"
             ),

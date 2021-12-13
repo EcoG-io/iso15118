@@ -319,4 +319,5 @@ class Processing(str, Enum):
 class RootCertificateID(BaseModel):
     """See section 8.3.5.3.27 in ISO 15118-20"""
 
-    x509_issuer_serial: X509IssuerSerial = Field(..., alias="RootCertificateID")
+    x509_issuer_serial: List[X509IssuerSerial] = Field(..., max_items=20,
+                                                       alias="RootCertificateID")

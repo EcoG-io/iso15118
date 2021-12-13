@@ -10,7 +10,7 @@ class TransformDetails(BaseModel):
 
 
 class Transform(BaseModel):
-    details: TransformDetails = Field(..., alias="Transform")
+    details: List[TransformDetails] = Field(..., alias="Transform")
 
 
 class DigestMethod(BaseModel):
@@ -25,8 +25,14 @@ class CanonicalizationMethod(BaseModel):
     algorithm: str = Field(..., alias="Algorithm")
 
 
+# TODO: Question for Marc: Reference in xmldisg-core-schema has the following Schema
+# <attribute name="Id" type="ID" use="optional"/>
+#   <attribute name="URI" type="anyURI" use="optional"/>
+#   <attribute name="Type" type="anyURI" use="optional"/>
+# where the attributes are optional. why not all of them were included and the one it was,
+# is mandatory?
 class Reference(BaseModel):
-    transforms: List[Transform] = Field(..., alias="Transforms")
+    transforms: Transform = Field(..., alias="Transforms")
     digest_method: DigestMethod = Field(..., alias="DigestMethod")
     digest_value: bytes = Field(..., alias="DigestValue")
     # 'URI' is actually an XML attribute, but JSON (our serialisation method)
@@ -62,7 +68,7 @@ class X509IssuerSerial(BaseModel):
 class SignedElement(BaseModel):
     """
     The element of a BodyBase (the message inside the Body element of a
-    V2GMessage) that needs to be digitally signed and referernced in the
+    V2GMessage) that needs to be digitally signed and referenced in the
     SignedInfo field of the header.
 
     Example:
