@@ -471,7 +471,7 @@ class PaymentServiceSelection(StateSECC):
                 charge_service_selected = True
                 continue
             if service.service_id not in [
-                offered_service.service_details.service_id
+                offered_service.service_id
                 for offered_service in self.comm_session.offered_services
             ]:
                 self.stop_state_machine(
