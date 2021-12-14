@@ -452,7 +452,7 @@ class MeteringReceiptRes(Response):
 class PaymentDetailsReq(BodyBase):
     """See section 8.4.3.6.2 in ISO 15118-2"""
 
-    emaid: EMAID = Field(..., alias="eMAID")
+    emaid: str = Field(..., alias="eMAID")
     cert_chain: CertificateChain = Field(..., alias="ContractSignatureCertChain")
 
 

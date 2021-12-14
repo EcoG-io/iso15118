@@ -712,10 +712,7 @@ class PaymentDetails(StateSECC):
 
         try:
             leaf_cert = payment_details_req.cert_chain.certificate
-            sub_ca_certs = [
-                sub_ca_cert.certificate
-                for sub_ca_cert in payment_details_req.cert_chain.sub_certificates
-            ]
+            sub_ca_certs = payment_details_req.cert_chain.sub_certificates.certificate
             # TODO There should be an OCPP setting that determines whether
             #      or not the charging station should verify (is in
             #      possession of MO or V2G Root certificates) or if it

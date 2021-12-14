@@ -538,7 +538,7 @@ class CertificateInstallation(StateEVCC):
             return
 
         payment_details_req = PaymentDetailsReq(
-            emaid=EMAID(value=get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER))),
+            emaid=get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER)),
             cert_chain=load_cert_chain(
                 protocol=Protocol.ISO_15118_2,
                 leaf_path=CertPath.CONTRACT_LEAF_DER,

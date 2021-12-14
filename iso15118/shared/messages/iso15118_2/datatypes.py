@@ -1026,11 +1026,20 @@ class SAScheduleList(BaseModel):
 
 
 class EMAID(BaseModel):
-    # 'Id' is actually an XML attribute, but JSON (our serialisation method)
-    # doesn't have attributes. The EXI codec has to en-/decode accordingly.
+    """
+    This is the complex datatype defined in the XML schemas as EMAIDType, containing
+    an id attribute; not to be confused with the simple type eMAIDType, which is
+    of string type
+
+    'Id' is actually an XML attribute, but JSON (our serialisation method)
+    doesn't have attributes. The EXI codec has to en-/decode accordingly.
+    """
+
     id: str = Field(None, alias="Id")
     value: str = Field(..., min_length=14, max_length=15, alias="value")
 
+    # TODO: I guess this str should be EMAID and not eMAID, for the reasons
+    # mentioned in the above docstring
     def __str__(self):
         # The XSD conform element name
         return "eMAID"
