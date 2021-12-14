@@ -50,6 +50,9 @@ class UDPClient(DatagramProtocol):
         This method creates an IPv6 socket configured to send multicast datagrams
         """
 
+        # raises an exception if the interface chosen is invalid
+        validate_nic(NETWORK_INTERFACE)
+
         # Initialise the socket for IPv6 datagrams
         # Address family (determines network layer protocol, here IPv6)
         # Socket type (datagram, determines transport layer protocol UDP)
@@ -63,14 +66,11 @@ class UDPClient(DatagramProtocol):
         ttl = struct.pack("@i", 1)
         sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_HOPS, ttl)
 
-        # The IP_MULTICAST_IF or IPV6_MULTICAST_IF settings tell the socket to
-        # which interface shall send its multicast packets. It's a separate,
-        # independent, setting from the interface that bounds the socket to
-        # with bind(), since bind() controls which interface(s) the socket
-        # receives multicast packets from.
-
-        validate_nic(NETWORK_INTERFACE)
-
+        # Restrict multicast operation to the given interface
+        # The IP_MULTICAST_IF or IPV6_MULTICAST_IF settings, tell the socket
+        # which interface it shall send its multicast packets. It can be seen
+        # as the dual of bind(), since bind() controls which interface(s) the
+        # socket receives multicast packets from.
         interface_index = socket.if_nametoindex(NETWORK_INTERFACE)
         sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_IF, interface_index)
 

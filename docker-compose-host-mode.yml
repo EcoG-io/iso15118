@@ -4,12 +4,8 @@ services:
     hostname: secc
     build:
       context: .
-      args:
-        - PYPI_USER=${PYPI_USER}
-        - PYPI_PASS=${PYPI_PASS}
       dockerfile: iso15118/secc/Dockerfile
     depends_on:
-      - mqtt
       - redis
     network_mode: host
 
@@ -17,20 +13,11 @@ services:
     hostname: evcc
     build:
       context: .
-      args:
-        - PYPI_USER=${PYPI_USER}
-        - PYPI_PASS=${PYPI_PASS}
       dockerfile: iso15118/evcc/Dockerfile
     depends_on:
-      - mqtt
       - redis
       - secc
     network_mode: host
-
-  mqtt:
-    build: ./mqtt
-    ports:
-     - "9001:9001"
 
   redis:
     image: redis:6.2.6-alpine

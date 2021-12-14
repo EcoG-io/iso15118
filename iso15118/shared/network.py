@@ -177,7 +177,7 @@ def get_tcp_port() -> int:
 def get_nic_mac_address(nic: str) -> str:
     """
     This method returns the MAC Addess of a specific NIC or the first one
-    associated with a IPv6 link-local address.
+    associated with an IPv6 link-local address.
     Args:
         nic (str): The Network Interface Card
 
