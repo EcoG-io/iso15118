@@ -11,15 +11,6 @@ The primary dependencies to install the project are the following:
 > - Poetry [^3]
 > - Python >= 3.7
 
-Also, since the project depends on external custom packages, it is necessary
-to set the credentials for the Switch PYPI server as ENVs:
-
-```shell
-$ export PYPI_USER=****
-$ export PYPI_PASS=****
-```
-
-Contact André <andre@switch-ev.com>, if you require the credentials.
 
 There are two recommended ways of running the project:
 
@@ -35,7 +26,7 @@ There are two recommended ways of running the project:
    Install JRE engine with the following command:
 
    ```bash
-   apt update && apt install -y default-jre
+   sudo apt update && sudo apt install -y default-jre
 
    ```
 
