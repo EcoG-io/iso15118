@@ -105,6 +105,11 @@ class CustomJSONDecoder(json.JSONDecoder):
                 if len(dct[field]) <= 15:
                     continue
 
+            if field == "Certificate" and isinstance(dct[field], list):
+                certificate_list = [b64decode(value) for value in dct[field]]
+                dct[field] = certificate_list
+                continue
+
             dct[field] = b64decode(dct[field])
         return dct
 
@@ -211,9 +216,8 @@ def from_exi(
         )
 
     try:
-        decoded_dict = json.loads(
-            exi_codec.decode(exi_message, namespace), cls=CustomJSONDecoder
-        )
+        exi_decoded = exi_codec.decode(exi_message, namespace)
+        decoded_dict = json.loads(exi_decoded, cls=CustomJSONDecoder)
     except Exception as exc:
         raise EXIDecodingError(f"EXIDecodingError: {exc}") from exc
 

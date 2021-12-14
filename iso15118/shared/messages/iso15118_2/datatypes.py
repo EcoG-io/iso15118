@@ -407,7 +407,7 @@ class ACEVSEChargeParameter(BaseModel):
 class Certificate(BaseModel):
     """See sections 8.5.2.5 and 8.5.2.26 in ISO 15118-2"""
 
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
+    certificate: List[bytes] = Field(..., max_length=800, alias="Certificate")
 
 
 class CertificateChain(BaseModel):
@@ -417,7 +417,7 @@ class CertificateChain(BaseModel):
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
     certificate: bytes = Field(..., max_length=800, alias="Certificate")
-    sub_certificates: List[Certificate] = Field(None, alias="SubCertificates")
+    sub_certificates: Certificate = Field(None, alias="SubCertificates")
 
     def __str__(self):
         return type(self).__name__

@@ -506,10 +506,7 @@ class CertificateInstallation(StateEVCC):
                 ),
             ],
             leaf_cert=cert_install_res.cps_cert_chain.certificate,
-            sub_ca_certs=[
-                cert.certificate
-                for cert in cert_install_res.cps_cert_chain.sub_certificates
-            ],
+            sub_ca_certs=cert_install_res.cps_cert_chain.sub_certificates.certificate,
             root_ca_cert_path=CertPath.V2G_ROOT_DER,
         ):
             self.stop_state_machine(

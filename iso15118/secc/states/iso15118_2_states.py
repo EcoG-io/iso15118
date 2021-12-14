@@ -602,10 +602,12 @@ class CertificateInstallation(StateSECC):
         contract_cert_chain = CertificateChain(
             id="id1",
             certificate=load_cert(CertPath.CONTRACT_LEAF_DER),
-            sub_certificates=[
-                Certificate(certificate=load_cert(CertPath.MO_SUB_CA2_DER)),
-                Certificate(certificate=load_cert(CertPath.MO_SUB_CA1_DER)),
-            ],
+            sub_certificates=Certificate(
+                certificate=[
+                    load_cert(CertPath.MO_SUB_CA2_DER),
+                    load_cert(CertPath.MO_SUB_CA1_DER)
+                ]
+            )
         )
         encrypted_priv_key = EncryptedPrivateKey(
             id="id2", value=encrypted_priv_key_bytes
@@ -614,16 +616,19 @@ class CertificateInstallation(StateSECC):
         emaid = EMAID(
             id="id4", value=get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER))
         )
+        cps_certificate_chain = CertificateChain(
+            certificate=load_cert(CertPath.CPS_LEAF_DER),
+            sub_certificates=Certificate(
+                certificate=[
+                    load_cert(CertPath.CPS_SUB_CA2_DER),
+                    load_cert(CertPath.CPS_SUB_CA1_DER)
+                ]
+            ),
+        )
 
         cert_install_res = CertificateInstallationRes(
             response_code=ResponseCode.OK,
-            cps_cert_chain=CertificateChain(
-                certificate=load_cert(CertPath.CPS_LEAF_DER),
-                sub_certificates=[
-                    Certificate(certificate=load_cert(CertPath.CPS_SUB_CA2_DER)),
-                    Certificate(certificate=load_cert(CertPath.CPS_SUB_CA1_DER)),
-                ],
-            ),
+            cps_cert_chain=cps_certificate_chain,
             contract_cert_chain=contract_cert_chain,
             encrypted_private_key=encrypted_priv_key,
             dh_public_key=dh_public_key,

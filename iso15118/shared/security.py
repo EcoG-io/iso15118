@@ -351,29 +351,27 @@ def load_cert_chain(
     sub_ca1_cert = load_cert(sub_ca1_path) if sub_ca1_path else None
 
     if protocol == Protocol.ISO_15118_2:
-        sub_ca_certs_v2: List[CertificateV2] = [CertificateV2(certificate=sub_ca2_cert)]
+        sub_ca_certs_v2: List[bytes] = [sub_ca2_cert]
         if sub_ca1_cert:
-            sub_ca_certs_v2.append(CertificateV2(certificate=sub_ca1_cert))
+            sub_ca_certs_v2.append(sub_ca1_cert)
         return CertificateChainV2(
-            certificate=leaf_cert, sub_certificates=sub_ca_certs_v2
+            certificate=leaf_cert, sub_certificates=CertificateV2(certificate=sub_ca_certs_v2)
         )
 
     if protocol.ns.startswith(Namespace.ISO_V20_BASE):
-        sub_ca_certs_v20: List[CertificateV20] = [
-            CertificateV20(certificate=sub_ca2_cert)
-        ]
+        sub_ca_certs_v20: List[bytes] = [sub_ca2_cert]
         if sub_ca1_cert:
-            sub_ca_certs_v20.append(CertificateV20(certificate=sub_ca1_cert))
+            sub_ca_certs_v20.append(sub_ca1_cert)
 
         if id:
             # In ISO 15118-20, there's a distinction between a CertificateChain
             # and a SignedCertificateChain (which includes the id attribute).
             return SignedCertificateChain(
-                id=id, certificate=leaf_cert, sub_certificates=sub_ca_certs_v20
+                id=id, certificate=leaf_cert, sub_certificates=CertificateV20(certificate=sub_ca_certs_v20)
             )
 
         return CertificateChainV20(
-            certificate=leaf_cert, sub_certificates=sub_ca_certs_v20
+            certificate=leaf_cert, sub_certificates=CertificateV20(certificate=sub_ca_certs_v20)
         )
 
     raise InvalidProtocolError(f"'{protocol}' is not a valid Protocol enum")
