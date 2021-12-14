@@ -920,19 +920,7 @@ class ChargingStatus(StateEVCC):
             )
             logger.debug(f"ChargeProgress is set to {ChargeProgress.RENEGOTIATE}")
         elif ac_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
-            power_delivery_req = PowerDeliveryReq(
-                charge_progress=ChargeProgress.STOP,
-                sa_schedule_tuple_id=self.comm_session.selected_schedule,
-            )
-            self.create_next_message(
-                PowerDelivery,
-                power_delivery_req,
-                Timeouts.POWER_DELIVERY_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
-            self.comm_session.charging_session_stop = ChargingSession.TERMINATE
-            # TODO Implement also a mechanism for pausing
-            logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
+            self.stop_charging()
 
         elif self.comm_session.ev_controller.continue_charging():
             self.create_next_message(
@@ -941,6 +929,23 @@ class ChargingStatus(StateEVCC):
                 Timeouts.CHARGING_STATUS_REQ,
                 Namespace.ISO_V2_MSG_DEF,
             )
+        else:
+            self.stop_charging()
+
+    def stop_charging(self):
+        power_delivery_req = PowerDeliveryReq(
+            charge_progress=ChargeProgress.STOP,
+            sa_schedule_tuple_id=self.comm_session.selected_schedule,
+        )
+        self.create_next_message(
+            PowerDelivery,
+            power_delivery_req,
+            Timeouts.POWER_DELIVERY_REQ,
+            Namespace.ISO_V2_MSG_DEF,
+        )
+        self.comm_session.charging_session_stop = ChargingSession.TERMINATE
+        # TODO Implement also a mechanism for pausing
+        logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
 
 
 class CurrentDemand(StateEVCC):
