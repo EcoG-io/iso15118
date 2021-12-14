@@ -15,7 +15,13 @@ async def main():
     # TODO: we need to read the ISO 15118 version and the Security value
     #  from some settings file
     session_handler = CommunicationSessionHandler()
-    await session_handler.start_session_handler()
+    try:
+        await session_handler.start_session_handler()
+    except Exception as exc:
+        logger.error(f"EVCC terminated: {exc}")
+        # Re-raise so the process ends with a non-zero exit code and the
+        # watchdog can restart the service
+        raise
 
 
 def run():

@@ -1,6 +1,14 @@
 from typing import Any
 
 
+class InvalidInterfaceError(Exception):
+    """
+    This error is raised when the specified interface is not found under the
+    available list of interfaces or a link-local address is not associated with
+    it
+    """
+
+
 class NoLinkLocalAddressError(Exception):
     """
     Is thrown if no IPv6 link-local address can be found. Used by TCP/TLS

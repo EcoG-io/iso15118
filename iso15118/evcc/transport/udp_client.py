@@ -3,14 +3,13 @@ import logging.config
 import socket
 import struct
 from asyncio import DatagramProtocol, DatagramTransport
-from typing import Tuple
+from typing import Tuple, Optional
 
 from iso15118.evcc.evcc_settings import NETWORK_INTERFACE
 from iso15118.shared import settings
-from iso15118.shared.exceptions import NoLinkLocalAddressError
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.messages.v2gtp import V2GTPMessage
-from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT, get_nic
+from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT, validate_nic
 from iso15118.shared.notifications import (
     ReceiveTimeoutNotification,
     UDPPacketNotification,
@@ -38,31 +37,23 @@ class UDPClient(DatagramProtocol):
     https://docs.python.org/3/library/asyncio-protocol.html
     """
 
-    # The UDP transport protocol
-    _transport: DatagramTransport
-    _last_message_sent: V2GTPMessage
-
     def __init__(self, session_handler_queue: asyncio.Queue):
         self._session_handler_queue: asyncio.Queue = session_handler_queue
         # Indication whether or not the UDP client connection is open or closed
-        _closed: bool = False
+        self.started: bool = False
         self._rcv_queue: asyncio.Queue = asyncio.Queue()
+        self._transport: Optional[DatagramTransport] = None
 
     @staticmethod
-    async def create(session_handler_queue: asyncio.Queue):
+    def _create_socket() -> 'socket':
         """
-        This method is necessary because Python does not allow
-        async def __init__.
-        Therefore, we need to create a separate async method to be
-        our constructor.
+        This method creates an IPv6 socket configured to send multicast datagrams
         """
-        # Get a reference to the event loop as we plan to use a low-level API
-        # (see loop.create_datagram_endpoint())
-        loop = asyncio.get_running_loop()
 
-        self = UDPClient(session_handler_queue)
+        # raises an exception if the interface chosen is invalid
+        validate_nic(NETWORK_INTERFACE)
 
-        # Initialise socket for IPv6 datagrams
+        # Initialise the socket for IPv6 datagrams
         # Address family (determines network layer protocol, here IPv6)
         # Socket type (datagram, determines transport layer protocol UDP)
         sock = socket.socket(family=socket.AF_INET6, type=socket.SOCK_DGRAM)
@@ -75,34 +66,36 @@ class UDPClient(DatagramProtocol):
         ttl = struct.pack("@i", 1)
         sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_HOPS, ttl)
 
-        # The IP_MULTICAST_IF or IPV6_MULTICAST_IF settings tell your socket
-        # which interface to send its multicast packets on. It's a separate,
-        # independent setting from the interface that you bound your socket to
-        # with bind(), since bind() controls which interface(s) the socket
-        # receives multicast packets from.
-
-        nic: str = ""
-
-        try:
-            nic = get_nic(NETWORK_INTERFACE)
-        except NoLinkLocalAddressError as exc:
-            logger.exception(
-                "Can't assign interface for UDP server, unable "
-                f"to find network interface card. {exc}"
-            )
-
-        interface_index = socket.if_nametoindex(nic)
+        # Restrict multicast operation to the given interface
+        # The IP_MULTICAST_IF or IPV6_MULTICAST_IF settings tell the socket
+        # which interface it shall send its multicast packets. It can be seen
+        # as the dual of bind(), in the server side, since bind() controls which
+        # interface(s) the socket receives multicast packets from.
+        interface_index = socket.if_nametoindex(NETWORK_INTERFACE)
         sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_IF, interface_index)
 
-        transport, _ = await loop.create_datagram_endpoint(
+        return sock
+
+    async def start(self):
+        """
+        Starts the UDP client service
+
+        """
+        # Get a reference to the event loop as we plan to use a low-level API
+        # (see loop.create_datagram_endpoint())
+        loop = asyncio.get_running_loop()
+        self._transport, _ = await loop.create_datagram_endpoint(
             protocol_factory=lambda: self,
-            sock=sock,
+            sock=self._create_socket(),
         )
 
-        self._transport = transport
-        logger.debug("UDP client started")
-
-        return self
+    def connection_made(self, transport):
+        """
+        Callback of the lower level API, which is called when the connection to
+        the socket succeeds
+        """
+        logger.debug("UDP client socket ready")
+        self.started = True
 
     def datagram_received(self, data: bytes, addr: Tuple[str, int]):
         """
@@ -125,9 +118,11 @@ class UDPClient(DatagramProtocol):
 
     def error_received(self, exc):
         logger.exception(f"Error received: {exc}")
+        self.started = False
 
     def connection_lost(self, exc):
         logger.exception(f"Client closed: {exc}")
+        self.started = False
 
     def send(self, message: V2GTPMessage):
         """
@@ -178,7 +173,6 @@ class UDPClient(DatagramProtocol):
         self._transport.sendto(
             message.to_bytes(), (SDP_MULTICAST_GROUP, SDP_SERVER_PORT)
         )
-        self._last_message_sent = message
 
         logger.debug(f"Message sent: {message}")
 

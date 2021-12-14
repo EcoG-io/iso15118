@@ -156,7 +156,7 @@ class CommunicationSessionHandler:
         constructor.
         """
 
-        self.udp_server = await UDPServer.create(self._rcv_queue)
+        self.udp_server = UDPServer(self._rcv_queue)
         self.tcp_server = TCPServer(self._rcv_queue)
 
         self.list_of_tasks = [
@@ -170,12 +170,7 @@ class CommunicationSessionHandler:
 
         logger.debug("Communication session handler started")
 
-        try:
-            await wait_till_finished(self.list_of_tasks)
-        except Exception:
-            logger.exception("Communication session handler has crashed")
-            # TODO: Reraise so the process ends with a non-zero exit code.
-            raise
+        await wait_till_finished(self.list_of_tasks)
 
     async def get_from_rcv_queue(self, queue: asyncio.Queue):
         """

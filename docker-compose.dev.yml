@@ -1,6 +1,6 @@
 version: '3.9'
 services:
   secc:
-    env_file: .env.dev
+    env_file: .env.dev.docker
   evcc:
-    env_file: .env.dev
+    env_file: .env.dev.docker
