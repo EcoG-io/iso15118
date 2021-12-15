@@ -809,7 +809,6 @@ class Authorization(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
-        self.expecting_authorization_req: bool = True
 
     def process_message(
         self,
@@ -820,16 +819,9 @@ class Authorization(StateSECC):
             V2GMessageV20,
         ],
     ):
-        msg = self.check_msg_v2(
-            message,
-            [AuthorizationReq, ChargeParameterDiscoveryReq],
-            self.expecting_authorization_req,
-        )
-        if not msg:
-            return
+        msg = self.check_msg_v2(message, [AuthorizationReq])
 
-        if msg.body.charge_parameter_discovery_req:
-            ChargeParameterDiscovery(self.comm_session).process_message(message)
+        if not msg:
             return
 
         authorization_req: AuthorizationReq = msg.body.authorization_req
@@ -861,10 +853,12 @@ class Authorization(StateSECC):
                 )
                 return
 
+        auth_status: EVSEProcessing = EVSEProcessing.ONGOING
+        next_state: Type["State"] = Authorization
         if self.comm_session.evse_controller.is_authorised():
             auth_status = EVSEProcessing.FINISHED
-        else:
-            auth_status = EVSEProcessing.ONGOING
+            next_state = ChargeParameterDiscovery
+
         # TODO Need to distinguish between ONGOING and
         #      ONGOING_WAITING_FOR_CUSTOMER
 
@@ -873,16 +867,11 @@ class Authorization(StateSECC):
         )
 
         self.create_next_message(
-            None,
+            next_state,
             authorization_res,
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.ISO_V2_MSG_DEF,
         )
-
-        if auth_status == EVSEProcessing.FINISHED:
-            self.expecting_authorization_req = False
-        else:
-            self.expecting_authorization_req = True
 
 
 class ChargeParameterDiscovery(StateSECC):
