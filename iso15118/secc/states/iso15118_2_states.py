@@ -791,20 +791,22 @@ class Authorization(StateSECC):
     The ISO 15118-2 state in which the SECC processes an
     AuthorizationReq message from the EVCC.
 
-    The EVCC may send one of the following two requests in this state:
-    1. an AuthorizationReq
-    2. a ChargeParameterDiscoveryReq
+    At this state, the application will assert if the authorization has been
+    concluded by running the method `is_authorised` from the evcc_controller.
+    If the method returns `True`, then the authorization step is finished and
+    the state machine can move on to the `ChargeParameterDiscovery` state,
+    otherwise will stay in this state and answer to the EV with
+    `EVSEProcessing=Ongoing`.
 
-    Upon first initialisation of this state, we expect an
-    AuthorizationReq, but after that, the next possible request could
-    be either another AuthorizationReq (if EVSEProcessing=Ongoing in the
-    AuthorizationRes) or a ChargeParameterDiscoveryReq. So we remain in this
-    state until we know which is the following request from the EVCC and then
-    transition to the appropriate state (or terminate if the incoming message
-    doesn't fit any of the expected requests).
+    Warning:
+        This method is incomplete, as it wont allow answering with a Failed
+        response, for a rejected authorization. `is_authorized` shall return
+        one out of three responses: `ongoing`, `accepted` or `rejected`.
+        In case of rejected and according to table 112 from ISO 15118-2, the
+        errors allowed to be used are: FAILED, FAILED_Challenge_Invalid or
+        FAILED_Certificate_Revoked.
+        Please check: https://dev.azure.com/switch-ev/Josev/_backlogs/backlog/Josev%20Team/Stories/?workitem=1049
 
-    As a result, the create_next_message() method might be called with
-    next_state = None.
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):

@@ -113,6 +113,7 @@ The following table provides a few of the available variables:
 | NETWORK_INTERFACE          | `eth0`           | HomePlug Green PHY Network Interface from which the high-level communication (HLC) will be established |
 | REDIS_HOST                 | `localhost`      | Redis Host URL                                                                                         |
 | REDIS_PORT                 | `10001`          | Redis Port                                                                                             |
+| LOG_LEVEL                  | `INFO`           | Level of the Python log service                                                                        |
 
 
 The project includes a few environmental files, in the root directory, for 
