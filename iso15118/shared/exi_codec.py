@@ -240,7 +240,7 @@ def from_exi(
         if namespace == Namespace.ISO_V2_MSG_DEF:
             return V2GMessageV2.parse_obj(decoded_dict["V2G_Message"])
 
-        if namespace.startswith("urn:iso:std:iso:15118:-20"):
+        if namespace.startswith(Namespace.ISO_V20_BASE):
             # The message name is the first key of the dict
             msg_name = next(iter(decoded_dict))
             # When parsing the dict, we need to remove the first key, which is
@@ -272,9 +272,13 @@ def from_exi(
         # TODO Add support for DIN SPEC 70121
 
         raise EXIDecodingError(
-            "EXI decoding error: can't identify protocol to " "use for decoding"
+            "Can't identify protocol to " "use for decoding"
         )
     except ValidationError as exc:
         raise EXIDecodingError(
-            f"EXI decoding error: {exc}. \n\nDecoded dict: " f"{decoded_dict}"
+            f"Error parsing the decoded EXI into a class: {exc}. \n\nDecoded dict: " f"{decoded_dict}"
+        ) from exc
+    except EXIDecodingError as exc:
+        raise EXIDecodingError(
+            f"EXI decoding error: {exc.error}. \n\nDecoded dict: " f"{decoded_dict}"
         ) from exc
