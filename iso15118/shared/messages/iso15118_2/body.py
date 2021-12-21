@@ -487,9 +487,7 @@ class PowerDeliveryReq(BodyBase):
     charge_progress: ChargeProgress = Field(..., alias="ChargeProgress")
     # XSD type unsignedByte with value range [1..255]
     sa_schedule_tuple_id: int = Field(..., ge=1, le=255, alias="SAScheduleTupleID")
-    charging_profile: List[ProfileEntry] = Field(
-        None, max_items=24, alias="ChargingProfile"
-    )
+    charging_profile: ProfileEntry = Field(None, alias="ChargingProfile")
     dc_ev_power_delivery_parameter: DCEVPowerDeliveryParameter = Field(
         None, alias="DC_EVPowerDeliveryParameter"
     )

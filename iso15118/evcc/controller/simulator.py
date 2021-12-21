@@ -115,10 +115,10 @@ class SimEVController(EVControllerInterface):
 
     def process_sa_schedules(
         self, sa_schedules: List[SAScheduleTupleEntry]
-    ) -> Tuple[ChargeProgress, int, List[ProfileEntry]]:
+    ) -> Tuple[ChargeProgress, int, ProfileEntry]:
         """Overrides EVControllerInterface.process_sa_schedules()."""
         schedule = sa_schedules.pop()
-        profile_entry_list: List[ProfileEntry] = []
+        profile_entry_list: List[ProfileEntryDetails] = []
 
         # The charging schedule coming from the SECC is called 'schedule', the
         # pendant coming from the EVCC (after having processed the offered
@@ -129,7 +129,7 @@ class SimEVController(EVControllerInterface):
                 start=p_max_schedule_entry.time_interval.start,
                 max_power=p_max_schedule_entry.p_max,
             )
-            profile_entry_list.append(ProfileEntry(entry_details=profile_entry_details))
+            profile_entry_list.append(profile_entry_details)
 
             # The last PMaxSchedule element has an optional 'duration' field. if
             # 'duration' is present, then there'll be no more PMaxSchedule element
@@ -144,9 +144,7 @@ class SimEVController(EVControllerInterface):
                     ),
                     max_power=zero_power,
                 )
-                profile_entry_list.append(
-                    ProfileEntry(entry_details=last_profile_entry_details)
-                )
+                profile_entry_list.append(last_profile_entry_details)
 
         # TODO If a SalesTariff is present and digitally signed (and TLS is used),
         #      verify each sales tariff with the mobility operator sub 2 certificate
@@ -154,7 +152,7 @@ class SimEVController(EVControllerInterface):
         return (
             ChargeProgress.START,
             schedule.sa_schedule_tuple_id,
-            profile_entry_list,
+            ProfileEntry(values=profile_entry_list),
         )
 
     def continue_charging(self) -> bool:

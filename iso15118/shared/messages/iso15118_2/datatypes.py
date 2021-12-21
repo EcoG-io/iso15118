@@ -513,7 +513,7 @@ class ProfileEntryDetails(BaseModel):
 class ProfileEntry(BaseModel):
     """See section 8.5.2.10 in ISO 15118-2"""
 
-    entry_details: ProfileEntryDetails = Field(..., alias="ProfileEntry")
+    values: List[ProfileEntryDetails] = Field(..., max_items=24, alias="ProfileEntry")
 
 
 class ChargingSession(str, Enum):
