@@ -829,7 +829,9 @@ class PMaxScheduleEntryDetails(BaseModel):
 class PMaxScheduleEntry(BaseModel):
     """See section 8.5.2.14 in ISO 15118-2"""
 
-    entry_details: PMaxScheduleEntryDetails = Field(..., alias="PMaxScheduleEntry")
+    entry_details: List[PMaxScheduleEntryDetails] = Field(...,
+                                                          max_items=1024,
+                                                          alias="PMaxScheduleEntry")
 
 
 class ResponseCode(str, Enum):
@@ -1006,17 +1008,8 @@ class SAScheduleTupleEntry(BaseModel):
 
     # XSD type unsignedByte with value range [1..255]
     sa_schedule_tuple_id: int = Field(..., ge=1, le=255, alias="SAScheduleTupleID")
-    p_max_schedule: List[PMaxScheduleEntry] = Field(
-        ..., max_items=1024, alias="PMaxSchedule"
-    )
+    p_max_schedule: PMaxScheduleEntry = Field(..., alias="PMaxSchedule")
     sales_tariff: SalesTariff = Field(None, alias="SalesTariff")
-
-
-# TODO: DELETE
-class SAScheduleTuple(BaseModel):
-    """See section 8.5.2.13 in ISO 15118-2"""
-
-    tuple: SAScheduleTupleEntry = Field(..., alias="SAScheduleTuple")
 
 
 class SAScheduleList(BaseModel):

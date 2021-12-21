@@ -124,11 +124,10 @@ class SimEVController(EVControllerInterface):
         # pendant coming from the EVCC (after having processed the offered
         # schedule(s)) is called 'profile'. Therefore, we use the prefix
         # 'schedule_' for data from the SECC, and 'profile_' for data from the EVCC.
-        for p_max_schedule_entry in schedule.tuple.p_max_schedule:
-            schedule_entry_details = p_max_schedule_entry.entry_details
+        for p_max_schedule_entry in schedule.p_max_schedule.entry_details:
             profile_entry_details = ProfileEntryDetails(
-                start=schedule_entry_details.time_interval.start,
-                max_power=schedule_entry_details.p_max,
+                start=p_max_schedule_entry.time_interval.start,
+                max_power=p_max_schedule_entry.p_max,
             )
             profile_entry_list.append(ProfileEntry(entry_details=profile_entry_details))
 
@@ -136,12 +135,12 @@ class SimEVController(EVControllerInterface):
             # 'duration' is present, then there'll be no more PMaxSchedule element
             # (with p_max set to 0 kW). Instead, the 'duration' informs how long the
             # current power level applies before the offered charging schedule ends.
-            if schedule_entry_details.time_interval.duration:
+            if p_max_schedule_entry.time_interval.duration:
                 zero_power = PVPMax(multiplier=0, value=0, unit=UnitSymbol.WATT)
                 last_profile_entry_details = ProfileEntryDetails(
                     start=(
-                        schedule_entry_details.time_interval.start
-                        + schedule_entry_details.time_interval.duration
+                        p_max_schedule_entry.time_interval.start
+                        + p_max_schedule_entry.time_interval.duration
                     ),
                     max_power=zero_power,
                 )
@@ -154,7 +153,7 @@ class SimEVController(EVControllerInterface):
 
         return (
             ChargeProgress.START,
-            schedule.tuple.sa_schedule_tuple_id,
+            schedule.sa_schedule_tuple_id,
             profile_entry_list,
         )
 

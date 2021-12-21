@@ -53,7 +53,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     PVRemainingTimeToFullSOC,
     ResponseCode,
     RootCertificateID,
-    SAScheduleTuple,
     SAScheduleList,
     SelectedServiceList,
     ServiceList,
