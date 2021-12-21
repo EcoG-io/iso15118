@@ -21,7 +21,7 @@ from iso15118.secc.failed_responses import (
     init_failed_responses_iso_v2,
     init_failed_responses_iso_v20,
 )
-from iso15118.secc.secc_settings import ENFORCE_TLS, EVSE_CONTROLLER
+from iso15118.secc.secc_settings import Config
 from iso15118.secc.transport.tcp_server import TCPServer
 from iso15118.secc.transport.udp_server import UDPServer
 from iso15118.shared.comm_session import V2GCommunicationSession
@@ -62,14 +62,17 @@ class SECCCommunicationSession(V2GCommunicationSession):
         self,
         transport: Tuple[StreamReader, StreamWriter],
         session_handler_queue: asyncio.Queue,
+        config: Config
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
         from iso15118.secc.states.sap_states import SupportedAppProtocol
 
         super().__init__(transport, SupportedAppProtocol, session_handler_queue, self)
+
+        self.config = config
         # The EVSE controller that implements the interface EVSEControllerInterface
-        self.evse_controller: EVSEControllerInterface = EVSE_CONTROLLER()
+        self.evse_controller: EVSEControllerInterface = config.evse_controller()
         # The authorization option(s) offered with ServiceDiscoveryRes in
         # ISO 15118-2 and with AuthorizationSetupRes in ISO 15118-20
         self.offered_auth_options: Optional[List[AuthEnum]] = []
@@ -133,11 +136,12 @@ class CommunicationSessionHandler:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self):
+    def __init__(self, config: Config):
 
         self.list_of_tasks = []
         self.udp_server = None
         self.tcp_server = None
+        self.config = config
 
         # Receiving queue for UDP or TCP packets and session
         # triggers (e.g. pause/terminate)
@@ -156,8 +160,8 @@ class CommunicationSessionHandler:
         constructor.
         """
 
-        self.udp_server = UDPServer(self._rcv_queue)
-        self.tcp_server = TCPServer(self._rcv_queue)
+        self.udp_server = UDPServer(self._rcv_queue, self.config.iface)
+        self.tcp_server = TCPServer(self._rcv_queue, self.config.iface)
 
         self.list_of_tasks = [
             self.get_from_rcv_queue(self._rcv_queue),
@@ -165,7 +169,7 @@ class CommunicationSessionHandler:
             self.tcp_server.start_tls(),
         ]
 
-        if not ENFORCE_TLS:
+        if not self.config.enforce_tls:
             self.list_of_tasks.append(self.tcp_server.start_no_tls())
 
         logger.debug("Communication session handler started")
@@ -203,7 +207,7 @@ class CommunicationSessionHandler:
                         comm_session.resume()
                     except KeyError:
                         comm_session = SECCCommunicationSession(
-                            notification.transport, self._rcv_queue
+                            notification.transport, self._rcv_queue, self.config
                         )
 
                     task = asyncio.create_task(
@@ -251,7 +255,7 @@ class CommunicationSessionHandler:
                 sdp_request = SDPRequest.from_payload(v2gtp_msg.payload)
                 logger.debug(f"SDPRequest received: {sdp_request}")
 
-                if ENFORCE_TLS or sdp_request.security == Security.TLS:
+                if self.config.enforce_tls or sdp_request.security == Security.TLS:
                     port = self.tcp_server.port_tls
                 else:
                     port = self.tcp_server.port_no_tls
@@ -262,7 +266,7 @@ class CommunicationSessionHandler:
                 )
 
                 sdp_response = create_sdp_response(
-                    sdp_request, ipv6_bytes, port, ENFORCE_TLS
+                    sdp_request, ipv6_bytes, port, self.config.enforce_tls
                 )
             except InvalidSDPRequestError as exc:
                 logger.exception(

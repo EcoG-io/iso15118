@@ -5,10 +5,9 @@ import struct
 from asyncio import DatagramTransport
 from typing import Tuple, Optional
 
-from iso15118.secc.secc_settings import NETWORK_INTERFACE
 from iso15118.shared import settings
 from iso15118.shared.messages.v2gtp import V2GTPMessage
-from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT, validate_nic
+from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT
 from iso15118.shared.notifications import (
     ReceiveTimeoutNotification,
     UDPPacketNotification,
@@ -41,14 +40,15 @@ class UDPServer(asyncio.DatagramProtocol):
     https://docs.python.org/3/library/asyncio-protocol.html
     """
 
-    def __init__(self, session_handler_queue: asyncio.Queue):
+    def __init__(self, session_handler_queue: asyncio.Queue, iface: str):
         self.started: bool = False
+        self.iface = iface
         self._session_handler_queue: asyncio.Queue = session_handler_queue
         self._rcv_queue: asyncio.Queue = asyncio.Queue()
         self._transport: Optional[DatagramTransport] = None
 
     @staticmethod
-    def _create_socket() -> 'socket':
+    def _create_socket(iface: str) -> 'socket':
         """
         This method is necessary because Python does not allow
         async def __init__.
@@ -79,9 +79,7 @@ class UDPServer(asyncio.DatagramProtocol):
         # aton stands for "Ascii TO Numeric"
         multicast_group_bin = socket.inet_pton(socket.AF_INET6, SDP_MULTICAST_GROUP)
 
-        validate_nic(NETWORK_INTERFACE)
-
-        interface_idx = socket.if_nametoindex(NETWORK_INTERFACE)
+        interface_idx = socket.if_nametoindex(iface)
         join_multicast_group_req = (
             multicast_group_bin
             + struct.pack("@I", interface_idx)  # address + interface
@@ -100,13 +98,13 @@ class UDPServer(asyncio.DatagramProtocol):
         # One protocol instance will be created to serve all client requests
         self._transport, _ = await loop.create_datagram_endpoint(
             lambda: self,
-            sock=self._create_socket(),
+            sock=self._create_socket(self.iface),
             reuse_address=True,
         )
 
         logger.debug(
             "UDP server started at address "
-            f"{SDP_MULTICAST_GROUP}%{NETWORK_INTERFACE} "
+            f"{SDP_MULTICAST_GROUP}%{self.iface} "
             f"and port {SDP_SERVER_PORT}"
         )
         tasks = [self.rcv_task()]
