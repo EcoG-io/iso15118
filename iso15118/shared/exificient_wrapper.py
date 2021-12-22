@@ -1,17 +1,12 @@
-import binascii
 import json
-import logging.config
-import os
+import logging
 from builtins import Exception
 
 from py4j.java_gateway import JavaGateway
 
-from iso15118.shared import settings
+from iso15118.shared.settings import JAR_FILE_PATH
 from iso15118.shared.messages.enums import Protocol
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 
@@ -24,9 +19,8 @@ def compare_messages(json_to_encode, decoded_json):
 class ExiCodec:
     def __init__(self):
         logging.getLogger("py4j").setLevel(logging.CRITICAL)
-        path_to_jar_file = os.path.join(settings.ROOT_DIR, "../shared/EXICodec.jar")
         self.gateway = JavaGateway.launch_gateway(
-            classpath=path_to_jar_file,
+            classpath=JAR_FILE_PATH,
             die_on_exit=False,
             javaopts=["--add-opens", "java.base/java.lang=ALL-UNNAMED"],
         )

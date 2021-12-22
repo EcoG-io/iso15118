@@ -104,17 +104,18 @@ Finally, the project includes a few configuration variables, whose default
 values can be modified by setting them as environmental variables.
 The following table provides a few of the available variables:
 
-| ENV                 | Default Value | Description                                                                                            |
-| ------------------- | ------------- | ------------------------------------------------------------------------------------------------------ |
-| NETWORK_INTERFACE   | `eth0`        | HomePlug Green PHY Network Interface from which the high-level communication (HLC) will be established |
-| SECC_CONTROLLER_SIM | `False`       | Whether or not to simulate the SECC Controller Interface                                               |
-| SECC_ENFORCE_TLS    | `False`       | Whether or not the SECC will enforce a TLS connection                                                  |
-| EVCC_CONTROLLER_SIM | `False`       | Whether or not to simulate the EVCC Controller Interface                                               |
-| EVCC_USE_TLS        | `True`        | Whether or not the EVCC signals the preference to communicate with a TLS connection                    |
-| EVCC_ENFORCE_TLS    | `False`       | Whether or not the EVCC will only accept TLS connections                                               |
-| REDIS_HOST          | `localhost`   | Redis Host URL                                                                                         |
-| REDIS_PORT          | `6379`        | Redis Port                                                                                             |
-| LOG_LEVEL           | `INFO`        | Level of the Python log service                                                                        |
+| ENV                 | Default Value                | Description                                                                                            |
+| ------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------ |
+| NETWORK_INTERFACE   | `eth0`                       | HomePlug Green PHY Network Interface from which the high-level communication (HLC) will be established |
+| SECC_CONTROLLER_SIM | `False`                      | Whether or not to simulate the SECC Controller Interface                                               |
+| SECC_ENFORCE_TLS    | `False`                      | Whether or not the SECC will enforce a TLS connection                                                  |
+| EVCC_CONTROLLER_SIM | `False`                      | Whether or not to simulate the EVCC Controller Interface                                               |
+| EVCC_USE_TLS        | `True`                       | Whether or not the EVCC signals the preference to communicate with a TLS connection                    |
+| EVCC_ENFORCE_TLS    | `False`                      | Whether or not the EVCC will only accept TLS connections                                               |
+| PKI_PATH            | `<CWD>/iso15118/shared/pki/` | Path for the location of the PKI where the certificates are located                                    |
+| REDIS_HOST          | `localhost`                  | Redis Host URL                                                                                         |
+| REDIS_PORT          | `6379`                       | Redis Port                                                                                             |
+| LOG_LEVEL           | `INFO`                       | Level of the Python log service                                                                        |
 
 The project includes a few environmental files, in the root directory, for
 different purposes:

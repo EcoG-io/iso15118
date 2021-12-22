@@ -1,4 +1,4 @@
-import logging.config
+import logging
 import secrets
 from datetime import datetime
 from enum import Enum, auto
@@ -27,7 +27,6 @@ from cryptography.x509 import (
     load_der_x509_certificate,
 )
 
-from iso15118.shared import settings
 from iso15118.shared.exceptions import (
     CertAttributeError,
     CertChainLengthError,
@@ -67,9 +66,6 @@ from iso15118.shared.messages.xmldsig import (
 )
 from iso15118.shared.settings import PKI_PATH
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 

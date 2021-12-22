@@ -3,13 +3,11 @@ This module contains the abstract class for an SECC-specific state,
 which extends the state shared between the EVCC and SECC.
 """
 
-import logging.config
+import logging
 from abc import ABC
 from typing import List, Optional, Type, TypeVar, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.shared import settings
-from iso15118.shared.exceptions import FaultyStateImplementationError
 from iso15118.shared.messages.app_protocol import (
     ResponseCodeSAP,
     SupportedAppProtocolReq,
@@ -42,9 +40,6 @@ from iso15118.shared.messages.iso15118_20.common_types import V2GRequest
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 

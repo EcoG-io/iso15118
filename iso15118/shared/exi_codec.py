@@ -1,12 +1,12 @@
 import base64
 import json
-import logging.config
+import logging
 from base64 import b64decode, b64encode
-from typing import Optional, Union
+from typing import Union
 
 from pydantic import ValidationError
 
-from iso15118.shared import settings
+from iso15118.shared.settings import MESSAGE_LOG_JSON, MESSAGE_LOG_EXI
 from iso15118.shared.exceptions import EXIDecodingError, EXIEncodingError
 from iso15118.shared.exificient_wrapper import ExiCodec
 from iso15118.shared.messages import BaseModel
@@ -35,9 +35,6 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.xmldsig import SignedInfo
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 exi_codec = ExiCodec()
 
@@ -162,7 +159,7 @@ def to_exi(msg_element: BaseModel, protocol_ns: str) -> bytes:
                                {exc}"
         ) from exc
 
-    if settings.MESSAGE_LOG_JSON:
+    if MESSAGE_LOG_JSON:
         logger.debug(
             f"Message to encode: \n{msg_content} " f"\nXSD namespace: {protocol_ns}"
         )
@@ -178,7 +175,7 @@ def to_exi(msg_element: BaseModel, protocol_ns: str) -> bytes:
             f"EXIEncodingError for {str(msg_element)}: " f"{exc}"
         ) from exc
 
-    if settings.MESSAGE_LOG_EXI:
+    if MESSAGE_LOG_EXI:
         logger.debug(f"EXI-encoded message: \n{exi_stream.hex()}")
         logger.debug(
             "EXI-encoded message (Base64):" f"\n{base64.b64encode(exi_stream).hex()}"
@@ -204,7 +201,7 @@ def from_exi(
     Raises:
         EXIDecodingError
     """
-    if settings.MESSAGE_LOG_EXI:
+    if MESSAGE_LOG_EXI:
         logger.debug(
             f"EXI-encoded message: \n{exi_message.hex()}"
             f"\n XSD namespace: {namespace}"
@@ -220,7 +217,7 @@ def from_exi(
     except Exception as exc:
         raise EXIDecodingError(f"EXIDecodingError: {exc}") from exc
 
-    if settings.MESSAGE_LOG_JSON:
+    if MESSAGE_LOG_JSON:
         logger.debug(
             f"Decoded message: \n{decoded_dict}" f"\nXSD namespace: {namespace}"
         )

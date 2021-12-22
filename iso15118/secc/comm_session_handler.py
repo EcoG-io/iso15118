@@ -11,7 +11,7 @@ at once, i.e. creating, storing, and deleting those sessions as needed.
 """
 
 import asyncio
-import logging.config
+import logging
 import socket
 from asyncio.streams import StreamReader, StreamWriter
 from typing import Dict, List, Optional, Tuple, Union
@@ -45,10 +45,8 @@ from iso15118.shared.notifications import (
     TCPClientNotification,
     UDPPacketNotification,
 )
-from iso15118.shared.settings import LOGGER_CONF_PATH
 from iso15118.shared.utils import cancel_task, wait_till_finished
 
-logging.config.fileConfig(fname=LOGGER_CONF_PATH, disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 

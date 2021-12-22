@@ -1,11 +1,10 @@
 import asyncio
-import logging.config
+import logging
 import socket
 import struct
 from asyncio import DatagramProtocol, DatagramTransport
 from typing import Tuple, Optional
 
-from iso15118.shared import settings
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT
@@ -14,9 +13,6 @@ from iso15118.shared.notifications import (
     UDPPacketNotification,
 )
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 

@@ -1,10 +1,11 @@
 import asyncio
 import logging
 from typing import Optional
+from iso15118.shared.logging import _init_logger
 from iso15118.secc.secc_settings import Config
 from iso15118.secc.comm_session_handler import CommunicationSessionHandler
 
-logging.basicConfig(level=logging.DEBUG)
+_init_logger()
 logger = logging.getLogger(__name__)
 
 

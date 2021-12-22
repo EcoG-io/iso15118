@@ -1,10 +1,11 @@
 import asyncio
 import logging
 from typing import Optional
+from iso15118.shared.logging import _init_logger
 from iso15118.evcc.evcc_settings import Config
 from iso15118.evcc.comm_session_handler import CommunicationSessionHandler
 
-logging.basicConfig(level=logging.DEBUG)
+_init_logger()
 logger = logging.getLogger(__name__)
 
 
@@ -15,7 +16,6 @@ async def main(env_path: Optional[str] = None):
     """
     # TODO: we need to read the ISO 15118 version and the Security value
     #  from some settings file
-
     try:
         # get configuration
         config = Config()

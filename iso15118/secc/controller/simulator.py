@@ -2,12 +2,11 @@
 This module contains the code to retrieve (hardware-related) data from the EVSE
 (Electric Vehicle Supply Equipment).
 """
-import logging.config
+import logging
 import time
 from typing import List, Optional, Union
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
-from iso15118.shared import settings
 from iso15118.shared.exceptions import InvalidProtocolError
 from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -40,9 +39,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 

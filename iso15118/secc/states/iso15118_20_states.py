@@ -4,7 +4,7 @@ V2GMessage objects of the ISO 15118-20 protocol, from SessionSetupReq to
 SessionStopReq.
 """
 
-import logging.config
+import logging
 import time
 from typing import List, Union
 
@@ -40,9 +40,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.security import get_random_bytes, verify_signature
-from iso15118.shared.settings import LOGGER_CONF_PATH
 
-logging.config.fileConfig(fname=LOGGER_CONF_PATH, disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 

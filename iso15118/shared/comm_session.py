@@ -6,7 +6,7 @@ receiving, and processing messages during an ISO 15118 communication session.
 """
 
 import asyncio
-import logging.config
+import logging
 from abc import ABC, abstractmethod
 from asyncio.streams import StreamReader, StreamWriter
 from typing import List, Optional, Tuple, Type, Union
@@ -14,7 +14,6 @@ from typing import List, Optional, Tuple, Type, Union
 from pydantic import ValidationError
 from typing_extensions import TYPE_CHECKING
 
-from iso15118.shared import settings
 from iso15118.shared.exceptions import (
     EXIDecodingError,
     FaultyStateImplementationError,
@@ -41,9 +40,6 @@ from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import Pause, State, Terminate
 from iso15118.shared.utils import wait_till_finished
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:

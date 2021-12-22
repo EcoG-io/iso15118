@@ -4,7 +4,7 @@ V2GMessage objects of the ISO 15118-2 protocol, from SessionSetupReq to
 SessionStopReq.
 """
 
-import logging.config
+import logging
 import time
 from typing import List, Optional, Type, Union
 
@@ -101,10 +101,8 @@ from iso15118.shared.security import (
     verify_certs,
     verify_signature,
 )
-from iso15118.shared.settings import LOGGER_CONF_PATH
 from iso15118.shared.states import State, Terminate
 
-logging.config.fileConfig(fname=LOGGER_CONF_PATH, disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 

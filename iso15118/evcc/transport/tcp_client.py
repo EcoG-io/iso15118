@@ -1,14 +1,10 @@
 import asyncio
-import logging.config
+import logging
 import socket
 from ipaddress import IPv6Address
 
-from iso15118.shared import settings
 from iso15118.shared.security import get_ssl_context
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 SLEEP = 10

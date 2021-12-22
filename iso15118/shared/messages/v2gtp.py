@@ -1,17 +1,12 @@
-import logging.config
-from dataclasses import dataclass
-from typing import Optional, Union
+import logging
+from typing import Union
 
-from iso15118.shared import settings
 from iso15118.shared.exceptions import (
     InvalidPayloadTypeError,
     InvalidProtocolError,
     InvalidV2GTPMessageError,
 )
-from iso15118.shared.messages.app_protocol import (
-    SupportedAppProtocolReq,
-    SupportedAppProtocolRes,
-)
+
 from iso15118.shared.messages.enums import (
     INT_32_MAX,
     DINPayloadTypes,
@@ -20,15 +15,7 @@ from iso15118.shared.messages.enums import (
     Protocol,
     V2GTPVersion,
 )
-from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
-from iso15118.shared.messages.iso15118_20.common_types import (
-    V2GMessage as V2GMessageV20,
-)
-from iso15118.shared.messages.iso15118_20.common_types import V2GRequest, V2GResponse
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 

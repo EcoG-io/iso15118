@@ -5,7 +5,7 @@ SupportedAppProtocolRes. These states are independent of the protocol
 SupportedAppProtocolReq and -Res message pair to mutually agree upon a protocol.
 """
 
-import logging.config
+import logging
 import time
 from typing import Type, Union
 
@@ -14,7 +14,6 @@ from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.states.evcc_state import StateEVCC
 from iso15118.evcc.states.iso15118_2_states import SessionSetup as SessionSetupV2
 from iso15118.evcc.states.iso15118_20_states import SessionSetup as SessionSetupV20
-from iso15118.shared import settings
 from iso15118.shared.exceptions import MessageProcessingError
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
@@ -40,9 +39,6 @@ from iso15118.shared.messages.iso15118_20.common_types import V2GRequest
 from iso15118.shared.messages.timeouts import Timeouts as TimeoutsShared
 from iso15118.shared.states import State, Terminate
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 

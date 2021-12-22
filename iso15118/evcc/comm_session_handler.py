@@ -8,7 +8,7 @@ with the SECC to properly exchange all messages in a V2G communication session.
 """
 
 import asyncio
-import logging.config
+import logging
 from asyncio.streams import StreamReader, StreamWriter
 from ipaddress import IPv6Address
 from typing import List, Optional, Tuple, Union
@@ -45,10 +45,8 @@ from iso15118.shared.notifications import (
     StopNotification,
     UDPPacketNotification,
 )
-from iso15118.shared.settings import LOGGER_CONF_PATH
 from iso15118.shared.utils import cancel_task, wait_till_finished
 
-logging.config.fileConfig(fname=LOGGER_CONF_PATH, disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 SDP_MAX_REQUEST_COUNTER = 50

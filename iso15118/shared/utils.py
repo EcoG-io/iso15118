@@ -5,16 +5,12 @@ supposed to run concurrently.
 
 import asyncio
 import json
-import logging.config
+import logging
 import os
 from contextlib import suppress
 from typing import Any, Awaitable, List
 
-from iso15118.shared import settings
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 
