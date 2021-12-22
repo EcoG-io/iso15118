@@ -9,7 +9,6 @@ import time
 from typing import Union
 
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
-from iso15118.evcc.evcc_settings import MAX_CONTRACT_CERTS
 from iso15118.evcc.states.evcc_state import StateEVCC
 from iso15118.shared import settings
 from iso15118.shared.exceptions import PrivateKeyReadError
@@ -170,7 +169,7 @@ class AuthorizationSetup(StateEVCC):
                             )
                         )
                     ],
-                    max_contract_cert_chains=MAX_CONTRACT_CERTS,
+                    max_contract_cert_chains=self.comm_session.config.max_contract_certs,
                     prioritized_emaids=self.comm_session.ev_controller.get_prioritised_emaids(),
                 )
 

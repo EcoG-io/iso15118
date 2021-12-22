@@ -46,13 +46,12 @@ class SimEVController(EVControllerInterface):
     def __init__(self):
         self.charging_loop_cycles: int = 0
 
-    def get_evcc_id(self, protocol: Protocol) -> str:
+    def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
-        from iso15118.evcc.evcc_settings import NETWORK_INTERFACE
 
         if protocol in (Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121):
             try:
-                hex_str = get_nic_mac_address(NETWORK_INTERFACE)
+                hex_str = get_nic_mac_address(iface)
                 return hex_str.replace(":", "").upper()
             except MACAddressNotFound as exc:
                 logger.warning(

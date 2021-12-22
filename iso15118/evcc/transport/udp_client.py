@@ -5,11 +5,10 @@ import struct
 from asyncio import DatagramProtocol, DatagramTransport
 from typing import Tuple, Optional
 
-from iso15118.evcc.evcc_settings import NETWORK_INTERFACE
 from iso15118.shared import settings
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.messages.v2gtp import V2GTPMessage
-from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT, validate_nic
+from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT
 from iso15118.shared.notifications import (
     ReceiveTimeoutNotification,
     UDPPacketNotification,
@@ -37,21 +36,19 @@ class UDPClient(DatagramProtocol):
     https://docs.python.org/3/library/asyncio-protocol.html
     """
 
-    def __init__(self, session_handler_queue: asyncio.Queue):
+    def __init__(self, session_handler_queue: asyncio.Queue, iface: str):
         self._session_handler_queue: asyncio.Queue = session_handler_queue
         # Indication whether or not the UDP client connection is open or closed
         self.started: bool = False
         self._rcv_queue: asyncio.Queue = asyncio.Queue()
         self._transport: Optional[DatagramTransport] = None
+        self.iface = iface
 
     @staticmethod
-    def _create_socket() -> 'socket':
+    def _create_socket(iface: str) -> 'socket':
         """
         This method creates an IPv6 socket configured to send multicast datagrams
         """
-
-        # raises an exception if the interface chosen is invalid
-        validate_nic(NETWORK_INTERFACE)
 
         # Initialise the socket for IPv6 datagrams
         # Address family (determines network layer protocol, here IPv6)
@@ -71,7 +68,7 @@ class UDPClient(DatagramProtocol):
         # which interface it shall send its multicast packets. It can be seen
         # as the dual of bind(), in the server side, since bind() controls which
         # interface(s) the socket receives multicast packets from.
-        interface_index = socket.if_nametoindex(NETWORK_INTERFACE)
+        interface_index = socket.if_nametoindex(iface)
         sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_IF, interface_index)
 
         return sock
@@ -86,7 +83,7 @@ class UDPClient(DatagramProtocol):
         loop = asyncio.get_running_loop()
         self._transport, _ = await loop.create_datagram_endpoint(
             protocol_factory=lambda: self,
-            sock=self._create_socket(),
+            sock=self._create_socket(self.iface),
         )
 
     def connection_made(self, transport):

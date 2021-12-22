@@ -3,7 +3,6 @@ import logging.config
 import socket
 from ipaddress import IPv6Address
 
-from iso15118.evcc.evcc_settings import NETWORK_INTERFACE
 from iso15118.shared import settings
 from iso15118.shared.security import get_ssl_context
 
@@ -34,7 +33,8 @@ class TCPClient(asyncio.Protocol):
             host: IPv6Address,
             port: int,
             session_handler_queue: asyncio.Queue,
-            is_tls: bool
+            is_tls: bool,
+            iface: str
     ) -> "TCPClient":
         """
         TCPClient setup
@@ -46,7 +46,7 @@ class TCPClient(asyncio.Protocol):
         # which includes the scope id. This is why, in the next line,
         # we concatenate the host IP with the NIC defined with the
         # NETWORK_INTERFACE env
-        full_host_address = host.compressed + f"%{NETWORK_INTERFACE}"
+        full_host_address = host.compressed + f"%{iface}"
 
         try:
             self.reader, self.writer = await asyncio.open_connection(

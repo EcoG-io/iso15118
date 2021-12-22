@@ -39,6 +39,7 @@ class Config:
         if not env_path:
             env_path = os.getcwd() + "/.env"
         env.read_env(path=env_path)  # read .env file, if it exists
+
         self.iface = env.str("NETWORK_INTERFACE", default="eth0")
         # validate the NIC selected
         validate_nic(self.iface)
