@@ -798,14 +798,13 @@ class Authorization(StateSECC):
     otherwise will stay in this state and answer to the EV with
     `EVSEProcessing=Ongoing`.
 
-    Warning:
-        This method is incomplete, as it wont allow answering with a Failed
-        response, for a rejected authorization. `is_authorized` shall return
-        one out of three responses: `ongoing`, `accepted` or `rejected`.
-        In case of rejected and according to table 112 from ISO 15118-2, the
-        errors allowed to be used are: FAILED, FAILED_Challenge_Invalid or
-        FAILED_Certificate_Revoked.
-        Please check: https://dev.azure.com/switch-ev/Josev/_backlogs/backlog/Josev%20Team/Stories/?workitem=1049
+    TODO: This method is incomplete, as it wont allow answering with a Failed
+          response, for a rejected authorization. `is_authorized` shall return
+          one out of three responses: `ongoing`, `accepted` or `rejected`.
+          In case of rejected and according to table 112 from ISO 15118-2, the
+          errors allowed to be used are: FAILED, FAILED_Challenge_Invalid or
+          FAILED_Certificate_Revoked.
+          Please check: https://dev.azure.com/switch-ev/Josev/_backlogs/backlog/Josev%20Team/Stories/?workitem=1049
 
     """
 
