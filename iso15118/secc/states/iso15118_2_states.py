@@ -791,25 +791,25 @@ class Authorization(StateSECC):
     The ISO 15118-2 state in which the SECC processes an
     AuthorizationReq message from the EVCC.
 
-    The EVCC may send one of the following two requests in this state:
-    1. an AuthorizationReq
-    2. a ChargeParameterDiscoveryReq
+    At this state, the application will assert if the authorization has been
+    concluded by running the method `is_authorised` from the evcc_controller.
+    If the method returns `True`, then the authorization step is finished and
+    the state machine can move on to the `ChargeParameterDiscovery` state,
+    otherwise will stay in this state and answer to the EV with
+    `EVSEProcessing=Ongoing`.
 
-    Upon first initialisation of this state, we expect an
-    AuthorizationReq, but after that, the next possible request could
-    be either another AuthorizationReq (if EVSEProcessing=Ongoing in the
-    AuthorizationRes) or a ChargeParameterDiscoveryReq. So we remain in this
-    state until we know which is the following request from the EVCC and then
-    transition to the appropriate state (or terminate if the incoming message
-    doesn't fit any of the expected requests).
+    TODO: This method is incomplete, as it wont allow answering with a Failed
+          response, for a rejected authorization. `is_authorized` shall return
+          one out of three responses: `ongoing`, `accepted` or `rejected`.
+          In case of rejected and according to table 112 from ISO 15118-2, the
+          errors allowed to be used are: FAILED, FAILED_Challenge_Invalid or
+          FAILED_Certificate_Revoked.
+          Please check: https://dev.azure.com/switch-ev/Josev/_backlogs/backlog/Josev%20Team/Stories/?workitem=1049
 
-    As a result, the create_next_message() method might be called with
-    next_state = None.
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
-        self.expecting_authorization_req: bool = True
 
     def process_message(
         self,
@@ -820,16 +820,9 @@ class Authorization(StateSECC):
             V2GMessageV20,
         ],
     ):
-        msg = self.check_msg_v2(
-            message,
-            [AuthorizationReq, ChargeParameterDiscoveryReq],
-            self.expecting_authorization_req,
-        )
-        if not msg:
-            return
+        msg = self.check_msg_v2(message, [AuthorizationReq])
 
-        if msg.body.charge_parameter_discovery_req:
-            ChargeParameterDiscovery(self.comm_session).process_message(message)
+        if not msg:
             return
 
         authorization_req: AuthorizationReq = msg.body.authorization_req
@@ -861,10 +854,12 @@ class Authorization(StateSECC):
                 )
                 return
 
+        auth_status: EVSEProcessing = EVSEProcessing.ONGOING
+        next_state: Type["State"] = Authorization
         if self.comm_session.evse_controller.is_authorised():
             auth_status = EVSEProcessing.FINISHED
-        else:
-            auth_status = EVSEProcessing.ONGOING
+            next_state = ChargeParameterDiscovery
+
         # TODO Need to distinguish between ONGOING and
         #      ONGOING_WAITING_FOR_CUSTOMER
 
@@ -873,16 +868,11 @@ class Authorization(StateSECC):
         )
 
         self.create_next_message(
-            None,
+            next_state,
             authorization_res,
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.ISO_V2_MSG_DEF,
         )
-
-        if auth_status == EVSEProcessing.FINISHED:
-            self.expecting_authorization_req = False
-        else:
-            self.expecting_authorization_req = True
 
 
 class ChargeParameterDiscovery(StateSECC):
