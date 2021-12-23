@@ -17,7 +17,7 @@ from typing import List
 from pydantic import Field, validator
 
 from iso15118.shared.messages import BaseModel
-from iso15118.shared.messages.enums import INT_32_MAX
+from iso15118.shared.messages.enums import UINT_32_MAX
 from iso15118.shared.messages.xmldsig import Signature, X509IssuerSerial
 
 
@@ -215,7 +215,7 @@ class DetailedCost(BaseModel):
 class DetailedTax(BaseModel):
     """See section 8.3.5.3.60 in ISO 15118-20"""
 
-    tax_rule_id: int = Field(..., ge=1, le=INT_32_MAX, alias="TaxRuleID")
+    tax_rule_id: int = Field(..., ge=1, le=UINT_32_MAX, alias="TaxRuleID")
     amount: RationalNumber = Field(..., alias="Amount")
 
 

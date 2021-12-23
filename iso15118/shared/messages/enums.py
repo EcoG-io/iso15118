@@ -4,7 +4,9 @@ from typing import List, Union
 
 logger = logging.getLogger(__name__)
 
-INT_32_MAX = 4294967295
+UINT_32_MAX = 2**32 - 1
+INT_16_MAX = 2**15 - 1
+INT_16_MIN = -2**15
 
 
 class AuthEnum(str, Enum):
