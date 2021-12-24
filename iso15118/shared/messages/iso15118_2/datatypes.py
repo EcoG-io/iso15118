@@ -45,7 +45,8 @@ class PhysicalValue(BaseModel):
 
     Those classes also inherit the private attribute `_max_limit`, which is used
     to set the maximum limit of each specific physical type and used in the
-    `validate_value_range` method.
+    `validate_value_range` method. This private attribute is not added to the
+    Pydantic model in anyway: https://github.com/samuelcolvin/pydantic/issues/655
 
     The minimum limit is fixed to 0, as in ISO 15118-2 there are no PhysicalValues
     that can go below that value.
