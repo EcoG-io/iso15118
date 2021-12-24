@@ -42,11 +42,37 @@ class PhysicalValue(BaseModel):
     All classes inheriting from PhysicalValue start with 'PV'
     (abbreviation for 'Physical Value') and define value and unit fields.
     See Table 68 in section 8.5.2.7 in ISO 15118-2
+
+    Those classes also inherit the private attribute `_max_limit`, which is used
+    to set the maximum limit of each specific physical type and used in the
+    `validate_value_range` method.
+
+    The minimum limit is fixed to 0, as in ISO 15118-2 there are no PhysicalValues
+    that can go below that value.
     """
-    # XSD int 16 range
+    _max_limit: int = 0
+    # XSD int16 range [-32768, 32767]
     value: int = Field(..., ge=INT_16_MIN, le=INT_16_MAX, alias="Value")
     # XSD type byte with value range [-3..3]
     multiplier: int = Field(..., ge=-3, le=3, alias="Multiplier")
+
+    @root_validator
+    def validate_value_range(cls, values):
+        """
+        Validator for the range of the PhysicalValue type
+
+        Raises:
+            ValueError, if the calculated value exceeds the limits set
+        """
+        value = values.get("value")
+        multiplier = values.get("multiplier")
+        calculated_value = value * 10 ** multiplier
+        if calculated_value > cls._max_limit or calculated_value < 0:
+            raise ValueError(
+                f'{cls.__name__[2:]} value limit exceeded: {calculated_value} \n'
+                f'Max: {cls._max_limit} \n'
+                f'Min: 0')
+        return values
 
 
 class PVChargingProfileEntryMaxPower(PhysicalValue):
@@ -55,23 +81,11 @@ class PVChargingProfileEntryMaxPower(PhysicalValue):
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for ChargingProfileEntryMaxPower.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 200000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEAmount(PhysicalValue):
@@ -80,24 +94,11 @@ class PVEAmount(PhysicalValue):
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for EAmount.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
-
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 200000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVEnergyCapacity(PhysicalValue):
@@ -106,24 +107,11 @@ class PVEVEnergyCapacity(PhysicalValue):
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for EVEnergyCapacity.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+   Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
-
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 200000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVEnergyRequest(PhysicalValue):
@@ -132,63 +120,26 @@ class PVEVEnergyRequest(PhysicalValue):
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for EVEnergyRequest.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
-
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 200000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVMaxCurrent(PhysicalValue):
     """
     See Table 68 in section 8.5.2.7 in ISO 15118-2
     """
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 400
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVMaxCurrentLimit(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 400
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVMaxPowerLimit(PhysicalValue):
@@ -197,100 +148,39 @@ class PVEVMaxPowerLimit(PhysicalValue):
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for EVMaxPowerLimit.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
-
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 200000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVMaxVoltage(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 1000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVMaxVoltageLimit(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 1000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVMinCurrent(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 400
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVSECurrentRegulationTolerance(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 400
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVSEEnergyToBeDelivered(PhysicalValue):
@@ -299,62 +189,26 @@ class PVEVSEEnergyToBeDelivered(PhysicalValue):
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for EVSEEnergyToBeDelivered.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
 
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 200000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVSEMaxCurrent(PhysicalValue):
     """See sections 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 400
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVSEMaxCurrentLimit(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 400
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVSEMaxPowerLimit(PhysicalValue):
@@ -363,195 +217,74 @@ class PVEVSEMaxPowerLimit(PhysicalValue):
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for EVSEMaxPowerLimit.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
-
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 200000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVSEMaxVoltageLimit(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 1000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVSENominalVoltage(PhysicalValue):
     """See section 8.5.2.7  in ISO 15118-2"""
 
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 1000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVSEMinCurrentLimit(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 400
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVSEMinVoltageLimit(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 1000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVSEPeakCurrentRipple(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 400
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVSEPresentCurrent(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 400
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVSEPresentVoltage(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 1000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVTargetCurrent(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 400
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVEVTargetVoltage(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 1000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVPMax(PhysicalValue):
@@ -559,24 +292,12 @@ class PVPMax(PhysicalValue):
     See Table 68 in section 8.5.2.7 in ISO 15118-2
     XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for PMax.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
 
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 200000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVRemainingTimeToBulkSOC(PhysicalValue):
@@ -584,24 +305,12 @@ class PVRemainingTimeToBulkSOC(PhysicalValue):
     See Table 68 in section 8.5.2.7 in ISO 15118-2
     XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 172800 for RemainingTimeToBulkSOC.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (172800 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (multiplier = 2 and value = 1728 => 1728 * 10 ^ 2)
     """
 
+    _max_limit: int = 172800
     unit: Literal[UnitSymbol.SECONDS] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 172800
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVRemainingTimeToFullSOC(PhysicalValue):
@@ -609,24 +318,12 @@ class PVRemainingTimeToFullSOC(PhysicalValue):
     See Table 68 in section 8.5.2.7 in ISO 15118-2
     XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 172800 for RemainingTimeToFullSOC.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (172800 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 2 and value = 1728 => 1728 * 10 ^ 2)
     """
 
+    _max_limit: int = 172800
     unit: Literal[UnitSymbol.SECONDS] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 172800
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class PVStartValue(PhysicalValue):
@@ -634,24 +331,12 @@ class PVStartValue(PhysicalValue):
     See Table 68 in section 8.5.2.7 in ISO 15118-2
     XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for StartValue.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
 
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
-
-    @root_validator
-    def check_max_value(cls, values):
-        max_limit = 200000
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        max_value = value * 10 ** multiplier
-        if max_value > max_limit or max_value < 0:
-            raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {max_value} \n'
-                f'Max: {max_limit} \n'
-                f'Min: 0')
-        return values
 
 
 class EVChargeParameter(BaseModel):
