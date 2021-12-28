@@ -54,11 +54,10 @@ class Config:
         if env.bool("SECC_CONTROLLER_SIM", default=False):
             self.evse_controller = SimEVSEController
 
-        # Indicates whether or not the SECC should always enforce a
-        # TLS-secured communication
-        # session. If True, the SECC will only fire up a TCP server with an
-        # SSL session context
-        # and ignore the Security byte value from the SDP request.
+        # Indicates whether or not the SECC should always enforce a TLS-secured
+        # communication session. If True, the SECC will only fire up a TCP server
+        # with an SSL session context and ignore the Security byte value from the
+        # SDP request.
         self.enforce_tls = env.bool("SECC_ENFORCE_TLS", default=False)
 
         # Indicates whether or not the ChargeService (energy transfer) is free.
