@@ -17,7 +17,8 @@ from typing import List, Literal
 from pydantic import Field, root_validator, validator
 
 from iso15118.shared.messages import BaseModel
-from iso15118.shared.messages.enums import UINT_32_MAX, INT_16_MAX, INT_16_MIN, AuthEnum
+from iso15118.shared.messages.enums import (UINT_32_MAX, INT_16_MAX, INT_16_MIN,
+                                            INT_8_MAX, INT_8_MIN, AuthEnum)
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
 from iso15118.shared.validators import one_field_must_be_set
 
@@ -707,7 +708,7 @@ class MeterInfo(BaseModel):
     sig_meter_reading: bytes = Field(None, max_length=64, alias="SigMeterReading")
     # XSD type short (16 bit integer) with value range [-32768..32767]
     # A status with a negative value doesn't make much sense though ...
-    meter_status: int = Field(None, ge=-32768, le=32767, alias="MeterStatus")
+    meter_status: int = Field(None, ge=INT_16_MIN, le=INT_16_MAX, alias="MeterStatus")
     # XSD type short (16 bit integer) with value range [-32768..32767].
     # However, that doesn't make any sense as TMeter is supposed to be a Unix
     # time stamp. Should be unsignedLong
@@ -733,9 +734,9 @@ class Parameter(BaseModel):
     name: str = Field(..., alias="Name")
     bool_value: bool = Field(None, alias="boolValue")
     # XSD type byte with value range [-128..127]
-    byte_value: int = Field(None, ge=-128, le=127, alias="byteValue")
+    byte_value: int = Field(None, ge=INT_8_MIN, le=INT_8_MAX, alias="byteValue")
     # XSD type short (16 bit integer) with value range [-32768..32767]
-    short_value: int = Field(None, ge=-32768, le=32767, alias="shortValue")
+    short_value: int = Field(None, ge=INT_16_MIN, le=INT_16_MAX, alias="shortValue")
     int_value: int = Field(None, alias="intValue")
     physical_value: PhysicalValue = Field(None, alias="physicalValue")
     str_value: str = Field(None, alias="stringValue")
