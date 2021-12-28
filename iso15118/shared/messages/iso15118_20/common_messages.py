@@ -19,7 +19,7 @@ from pydantic import Field, root_validator, validator
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import AuthEnum
 from iso15118.shared.messages.iso15118_20.common_types import (
-    INT_32_MAX,
+    UINT_32_MAX,
     EVSEStatus,
     MeterInfo,
     Processing,
@@ -517,7 +517,7 @@ class PriceSchedule(BaseModel):
     """See sections 8.3.5.3.49 and 8.3.5.3.62 in ISO 15118-20"""
 
     time_anchor: int = Field(..., alias="TimeAnchor")
-    price_schedule_id: int = Field(..., ge=1, le=INT_32_MAX, alias="PriceScheduleID")
+    price_schedule_id: int = Field(..., ge=1, le=UINT_32_MAX, alias="PriceScheduleID")
     price_schedule_description: str = Field(
         None, max_length=160, alias="PriceScheduleDescription"
     )
@@ -555,7 +555,7 @@ class PriceLevelSchedule(PriceSchedule):
 class TaxRule(BaseModel):
     """See section 8.3.5.3.51 in ISO 15118-20"""
 
-    tax_rule_id: int = Field(..., ge=1, le=INT_32_MAX, alias="TaxRuleID")
+    tax_rule_id: int = Field(..., ge=1, le=UINT_32_MAX, alias="TaxRuleID")
     tax_rule_name: str = Field(None, max_length=80, alias="TaxRuleName")
     tax_rate: RationalNumber = Field(..., alias="TaxRate")
     tax_included_in_price: bool = Field(None, alias="TaxIncludedInPrice")
@@ -574,7 +574,7 @@ class TaxRuleList(BaseModel):
 class PriceRule(BaseModel):
     """See section 8.3.5.3.54 in ISO 15118-20"""
 
-    price_rule_id: int = Field(..., ge=1, le=INT_32_MAX, alias="PriceRuleID")
+    price_rule_id: int = Field(..., ge=1, le=UINT_32_MAX, alias="PriceRuleID")
     energy_fee: RationalNumber = Field(..., alias="EnergyFee")
     parking_fee: RationalNumber = Field(None, alias="EnergyFee")
     parking_fee_period: int = Field(None, alias="ParkingFeePeriod")
@@ -589,7 +589,7 @@ class PriceRule(BaseModel):
 class PriceRuleStack(BaseModel):
     """See section 8.3.5.3.53 in ISO 15118-20"""
 
-    price_rule_stack_id: int = Field(..., ge=1, le=INT_32_MAX, alias="PriceRuleStackID")
+    price_rule_stack_id: int = Field(..., ge=1, le=UINT_32_MAX, alias="PriceRuleStackID")
     duration: int = Field(..., alias="Duration")
     price_rule: List[PriceRule] = Field(..., max_items=8, alias="PriceRule")
 
@@ -605,7 +605,7 @@ class PriceRuleStackList(BaseModel):
 class OverstayRule(BaseModel):
     """See section 8.3.5.3.56 in ISO 15118-20"""
 
-    overstay_rule_id: int = Field(..., ge=1, le=INT_32_MAX, alias="OverstayRuleID")
+    overstay_rule_id: int = Field(..., ge=1, le=UINT_32_MAX, alias="OverstayRuleID")
     overstay_rule_description: str = Field(
         None, max_length=160, alias="OverstayRuleDescription"
     )
@@ -618,7 +618,7 @@ class OverstayRuleList(BaseModel):
     """See section 8.3.5.3.55 in ISO 15118-20"""
 
     overstay_rule_list_id: int = Field(
-        ..., ge=1, le=INT_32_MAX, alias="OverstayRuleListID"
+        ..., ge=1, le=UINT_32_MAX, alias="OverstayRuleListID"
     )
     overstay_time_threshold: int = Field(None, alias="OverstayTimeThreshold")
     overstay_power_threshold: RationalNumber = Field(
@@ -810,7 +810,7 @@ class ScheduledEVPowerProfile(BaseModel):
     """See section 8.3.5.3.12 in ISO 15118-20"""
 
     selected_schedule_tuple_id: int = Field(
-        ..., ge=1, le=INT_32_MAX, alias="SelectedScheduleTupleID"
+        ..., ge=1, le=UINT_32_MAX, alias="SelectedScheduleTupleID"
     )
     power_tolerance_acceptance: PowerToleranceAcceptance = Field(
         ..., alias="PowerToleranceAcceptance"
@@ -895,7 +895,7 @@ class ScheduledSignedMeterData(BaseModel):
     """See section 8.3.5.3.38 in ISO 15118-20"""
 
     selected_schedule_tuple_id: int = Field(
-        ..., ge=1, le=INT_32_MAX, alias="SelectedScheduleTupleID"
+        ..., ge=1, le=UINT_32_MAX, alias="SelectedScheduleTupleID"
     )
 
 

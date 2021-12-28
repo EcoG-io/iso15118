@@ -8,7 +8,7 @@ from iso15118.shared.exceptions import (
 )
 
 from iso15118.shared.messages.enums import (
-    INT_32_MAX,
+    UINT_32_MAX,
     DINPayloadTypes,
     ISOV2PayloadTypes,
     ISOV20PayloadTypes,
@@ -146,10 +146,10 @@ class V2GTPMessage:
             is_valid = False
 
         payload_length = cls.get_payload_length(header)
-        if payload_length > INT_32_MAX:
+        if payload_length > UINT_32_MAX:
             logger.error(
                 f"Payload length of {payload_length} bytes for V2GTP "
-                f"message exceeds limit of {INT_32_MAX} bytes"
+                f"message exceeds limit of {UINT_32_MAX} bytes"
             )
             is_valid = False
 

@@ -74,7 +74,7 @@ class SimEVController(EVControllerInterface):
         ev_max_voltage = PVEVMaxVoltage(
             multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
         )
-        ev_max_current = PVEVMaxCurrent(multiplier=0, value=16, unit=UnitSymbol.AMPERE)
+        ev_max_current = PVEVMaxCurrent(multiplier=-3, value=32000, unit=UnitSymbol.AMPERE)
         ev_min_current = PVEVMinCurrent(multiplier=0, value=10, unit=UnitSymbol.AMPERE)
         ac_charge_params = ACEVChargeParameter(
             departure_time=0,

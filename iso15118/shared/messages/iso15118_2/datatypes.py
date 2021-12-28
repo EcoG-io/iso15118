@@ -17,7 +17,8 @@ from typing import List, Literal
 from pydantic import Field, root_validator, validator
 
 from iso15118.shared.messages import BaseModel
-from iso15118.shared.messages.enums import INT_32_MAX, AuthEnum
+from iso15118.shared.messages.enums import (UINT_32_MAX, INT_16_MAX, INT_16_MIN,
+                                            INT_8_MAX, INT_8_MIN, AuthEnum)
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
 from iso15118.shared.validators import one_field_must_be_set
 
@@ -25,7 +26,7 @@ from iso15118.shared.validators import one_field_must_be_set
 class UnitSymbol(str, Enum):
     """
     These are the physical units used in the PhysicalValue subclasses.
-    See section 8.5.2.7 in ISO 15118-2.
+    See Table 68 in section 8.5.2.7 in ISO 15118-2.
     """
 
     HOURS = "h"
@@ -41,281 +42,302 @@ class PhysicalValue(BaseModel):
     """
     All classes inheriting from PhysicalValue start with 'PV'
     (abbreviation for 'Physical Value') and define value and unit fields.
-    See section 8.5.2.7 in ISO 15118-2
-    """
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
 
+    Those classes also inherit the private attribute `_max_limit`, which is used
+    to set the maximum limit of each specific physical type and used in the
+    `validate_value_range` method. This private attribute is not added to the
+    Pydantic model in anyway: https://github.com/samuelcolvin/pydantic/issues/655
+
+    The minimum limit is fixed to 0, as in ISO 15118-2 there are no PhysicalValues
+    that can go below that value.
+    """
+    _max_limit: int = 0
+    # XSD int16 range [-32768, 32767]
+    value: int = Field(..., ge=INT_16_MIN, le=INT_16_MAX, alias="Value")
     # XSD type byte with value range [-3..3]
     multiplier: int = Field(..., ge=-3, le=3, alias="Multiplier")
+
+    @root_validator
+    def validate_value_range(cls, values):
+        """
+        Validator for the range of the PhysicalValue type
+
+        Raises:
+            ValueError, if the calculated value exceeds the limits set
+        """
+        value = values.get("value")
+        multiplier = values.get("multiplier")
+        calculated_value = value * 10 ** multiplier
+        if calculated_value > cls._max_limit or calculated_value < 0:
+            raise ValueError(
+                f'{cls.__name__[2:]} value limit exceeded: {calculated_value} \n'
+                f'Max: {cls._max_limit} \n'
+                f'Min: 0')
+        return values
 
 
 class PVChargingProfileEntryMaxPower(PhysicalValue):
     """
-    See section 8.5.2.7 in ISO 15118-2
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for ChargingProfileEntryMaxPower.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
-
-    value: int = Field(..., ge=0, le=200000, alias="Value")
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
 
 class PVEAmount(PhysicalValue):
     """
-    See section 8.5.2.7 in ISO 15118-2
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for EAmount.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
-
-    value: int = Field(..., ge=0, le=200000, alias="Value")
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
 
 
 class PVEVEnergyCapacity(PhysicalValue):
     """
-    See section 8.5.2.7 in ISO 15118-2
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for EVEnergyCapacity.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+   Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
-
-    value: int = Field(..., ge=0, le=200000, alias="Value")
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
 
 
 class PVEVEnergyRequest(PhysicalValue):
     """
-    See section 8.5.2.7 in ISO 15118-2
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for EVEnergyRequest.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
-
-    value: int = Field(..., ge=0, le=200000, alias="Value")
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
 
 
 class PVEVMaxCurrent(PhysicalValue):
     """
-    See section 8.5.2.7 in ISO 15118-2
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
     """
-
-    value: int = Field(..., ge=0, le=400, alias="Value")
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVMaxCurrentLimit(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=400, alias="Value")
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVMaxPowerLimit(PhysicalValue):
     """
-    See section 8.5.2.7 in ISO 15118-2
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for EVMaxPowerLimit.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
-
-    value: int = Field(..., ge=0, le=200000, alias="Value")
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
 
 class PVEVMaxVoltage(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=1000, alias="Value")
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVEVMaxVoltageLimit(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=1000, alias="Value")
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVEVMinCurrent(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=400, alias="Value")
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSECurrentRegulationTolerance(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=400, alias="Value")
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEEnergyToBeDelivered(PhysicalValue):
     """
-    See section 8.5.2.7 in ISO 15118-2
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for EVSEEnergyToBeDelivered.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
 
-    value: int = Field(..., ge=0, le=200000, alias="Value")
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
 
 
 class PVEVSEMaxCurrent(PhysicalValue):
     """See sections 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=400, alias="Value")
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEMaxCurrentLimit(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=400, alias="Value")
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEMaxPowerLimit(PhysicalValue):
     """
-    See section 8.5.2.7 in ISO 15118-2
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
 
     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for EVSEMaxPowerLimit.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
-
-    value: int = Field(..., ge=0, le=200000, alias="Value")
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
 
 class PVEVSEMaxVoltageLimit(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=1000, alias="Value")
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVEVSENominalVoltage(PhysicalValue):
     """See section 8.5.2.7  in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=1000, alias="Value")
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVEVSEMinCurrentLimit(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=400, alias="Value")
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEMinVoltageLimit(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=1000, alias="Value")
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVEVSEPeakCurrentRipple(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=400, alias="Value")
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEPresentCurrent(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=400, alias="Value")
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEPresentVoltage(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=1000, alias="Value")
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVEVTargetCurrent(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=400, alias="Value")
+    _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVTargetVoltage(PhysicalValue):
-    """See section 8.5.2.7 in ISO 15118-2"""
+    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    value: int = Field(..., ge=0, le=1000, alias="Value")
+    _max_limit: int = 1000
     unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
 
 
 class PVPMax(PhysicalValue):
     """
-    See section 8.5.2.7 in ISO 15118-2
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
     XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for PMax.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
 
-    value: int = Field(..., ge=0, le=200000, alias="Value")
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
 
 class PVRemainingTimeToBulkSOC(PhysicalValue):
     """
-    See section 8.5.2.7 in ISO 15118-2
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
     XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 200000 for RemainingTimeToBulkSOC.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (17280 x 10 ^ multiplier, where multiplier = 1)
+    But Table 68 shows a max value of 172800 for RemainingTimeToBulkSOC.
+    Therefore, you'll have to use the multiplier to reach the max value
+    (multiplier = 2 and value = 1728 => 1728 * 10 ^ 2)
     """
 
-    value: int = Field(..., ge=0, le=172800, alias="Value")
+    _max_limit: int = 172800
     unit: Literal[UnitSymbol.SECONDS] = Field(..., alias="Unit")
 
 
 class PVRemainingTimeToFullSOC(PhysicalValue):
     """
-    See section 8.5.2.7 in ISO 15118-2
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
     XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 200000 for RemainingTimeToFullSOC.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (17280 x 10 ^ multiplier, where multiplier = 1)
+    But Table 68 shows a max value of 172800 for RemainingTimeToFullSOC.
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 2 and value = 1728 => 1728 * 10 ^ 2)
     """
 
-    value: int = Field(..., ge=0, le=172800, alias="Value")
+    _max_limit: int = 172800
     unit: Literal[UnitSymbol.SECONDS] = Field(..., alias="Unit")
 
 
 class PVStartValue(PhysicalValue):
     """
-    See section 8.5.2.7 in ISO 15118-2
+    See Table 68 in section 8.5.2.7 in ISO 15118-2
     XSD type short (16 bit integer) with value range [-32768..32767].
     But Table 68 shows a max value of 200000 for StartValue.
-    Therefore, you'll have to set the multiplier to 1 if you want to reach
-    the max value (20000 x 10 ^ multiplier, where multiplier = 1)
+    Therefore, you'll have to use the multiplier to reach the max value
+    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
 
-    value: int = Field(..., ge=0, le=200000, alias="Value")
+    _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
 
@@ -323,7 +345,7 @@ class EVChargeParameter(BaseModel):
     """See section 8.4.3.8.2 in ISO 15118-2"""
 
     # XSD type unsignedInt (32-bit unsigned integer) with value range
-    departure_time: int = Field(None, ge=0, le=INT_32_MAX, alias="DepartureTime")
+    departure_time: int = Field(None, ge=0, le=UINT_32_MAX, alias="DepartureTime")
 
 
 class ACEVChargeParameter(EVChargeParameter):
@@ -686,7 +708,7 @@ class MeterInfo(BaseModel):
     sig_meter_reading: bytes = Field(None, max_length=64, alias="SigMeterReading")
     # XSD type short (16 bit integer) with value range [-32768..32767]
     # A status with a negative value doesn't make much sense though ...
-    meter_status: int = Field(None, ge=-32768, le=32767, alias="MeterStatus")
+    meter_status: int = Field(None, ge=INT_16_MIN, le=INT_16_MAX, alias="MeterStatus")
     # XSD type short (16 bit integer) with value range [-32768..32767].
     # However, that doesn't make any sense as TMeter is supposed to be a Unix
     # time stamp. Should be unsignedLong
@@ -712,9 +734,9 @@ class Parameter(BaseModel):
     name: str = Field(..., alias="Name")
     bool_value: bool = Field(None, alias="boolValue")
     # XSD type byte with value range [-128..127]
-    byte_value: int = Field(None, ge=-128, le=127, alias="byteValue")
+    byte_value: int = Field(None, ge=INT_8_MIN, le=INT_8_MAX, alias="byteValue")
     # XSD type short (16 bit integer) with value range [-32768..32767]
-    short_value: int = Field(None, ge=-32768, le=32767, alias="shortValue")
+    short_value: int = Field(None, ge=INT_16_MIN, le=INT_16_MAX, alias="shortValue")
     int_value: int = Field(None, alias="intValue")
     physical_value: PhysicalValue = Field(None, alias="physicalValue")
     str_value: str = Field(None, alias="stringValue")
