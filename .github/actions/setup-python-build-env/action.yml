@@ -13,4 +13,3 @@ runs:
     run: |
       pip install --user poetry
       pip install "mypy==0.910"
-      pip install pytest
