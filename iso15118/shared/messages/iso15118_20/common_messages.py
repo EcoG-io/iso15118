@@ -589,7 +589,9 @@ class PriceRule(BaseModel):
 class PriceRuleStack(BaseModel):
     """See section 8.3.5.3.53 in ISO 15118-20"""
 
-    price_rule_stack_id: int = Field(..., ge=1, le=UINT_32_MAX, alias="PriceRuleStackID")
+    price_rule_stack_id: int = Field(
+        ..., ge=1, le=UINT_32_MAX, alias="PriceRuleStackID"
+    )
     duration: int = Field(..., alias="Duration")
     price_rule: List[PriceRule] = Field(..., max_items=8, alias="PriceRule")
 

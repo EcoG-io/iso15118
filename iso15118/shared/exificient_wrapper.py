@@ -4,8 +4,8 @@ from builtins import Exception
 
 from py4j.java_gateway import JavaGateway
 
-from iso15118.shared.settings import JAR_FILE_PATH
 from iso15118.shared.messages.enums import Protocol
+from iso15118.shared.settings import JAR_FILE_PATH
 
 logger = logging.getLogger(__name__)
 

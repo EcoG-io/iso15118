@@ -60,7 +60,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         self,
         transport: Tuple[StreamReader, StreamWriter],
         session_handler_queue: asyncio.Queue,
-        config: Config
+        config: Config,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel

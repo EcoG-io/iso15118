@@ -6,7 +6,6 @@ from iso15118.shared.exceptions import (
     InvalidProtocolError,
     InvalidV2GTPMessageError,
 )
-
 from iso15118.shared.messages.enums import (
     UINT_32_MAX,
     DINPayloadTypes,

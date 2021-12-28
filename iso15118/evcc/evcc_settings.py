@@ -1,15 +1,15 @@
 import logging
 import os
 from dataclasses import dataclass
-from typing import Optional, Type, List
-from iso15118.evcc.controller.simulator import SimEVController
-from iso15118.evcc.controller.interface import EVControllerInterface
-from iso15118.shared.messages.enums import Protocol
-from iso15118.shared.network import validate_nic
+from typing import List, Optional, Type
 
 import environs
 from marshmallow.validate import Range
 
+from iso15118.evcc.controller.interface import EVControllerInterface
+from iso15118.evcc.controller.simulator import SimEVController
+from iso15118.shared.messages.enums import Protocol
+from iso15118.shared.network import validate_nic
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class Config:
         validate_nic(self.iface)
 
         # Redis Configuration
-        self.redis_host = env.str("REDIS_HOST", default='localhost')
+        self.redis_host = env.str("REDIS_HOST", default="localhost")
         self.redis_port = env.int("REDIS_PORT", default=6379)
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
@@ -58,15 +58,17 @@ class Config:
 
         # How often shall SDP (SECC Discovery Protocol) retries happen before reverting
         # to using nominal duty cycle PWM-based charging?
-        self.sdp_retry_cycles = env.int("SDP_RETRY_CYCLES", default=1,
-                                        validate=lambda n: n > 0)
+        self.sdp_retry_cycles = env.int(
+            "SDP_RETRY_CYCLES", default=1, validate=lambda n: n > 0
+        )
 
         # For ISO 15118-20 only
         # Maximum amount of contract certificates (and associated certificate chains)
         # the EV can store. That value is used in the CertificateInstallationReq.
         # Must be an integer between 0 and 65535, should be bigger than 0.
-        self.max_contract_certs = env.int("MAX_CONTRACT_CERTS", default=3,
-                                          validate=Range(min=1, max=65535))
+        self.max_contract_certs = env.int(
+            "MAX_CONTRACT_CERTS", default=3, validate=Range(min=1, max=65535)
+        )
 
         # Indicates the security level (either TCP (unencrypted) or TLS (encrypted)) the EVCC
         # shall send in the SDP request
@@ -83,8 +85,7 @@ class Config:
         # the protocols are listed here determines the priority (i.e. first list entry
         # has higher priority than second list entry). A list entry must be a member
         # of the Protocol enum
-        self.supported_protocols = [Protocol.ISO_15118_2,
-                                    Protocol.ISO_15118_20_AC]
+        self.supported_protocols = [Protocol.ISO_15118_2, Protocol.ISO_15118_20_AC]
 
         env.seal()  # raise all errors at once, if any
 

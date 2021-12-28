@@ -1,14 +1,14 @@
 import logging
 import os
 from dataclasses import dataclass
-from typing import Optional, Type, List
-from iso15118.secc.controller.simulator import SimEVSEController
-from iso15118.secc.controller.interface import EVSEControllerInterface
-from iso15118.shared.messages.enums import AuthEnum, Protocol
-from iso15118.shared.network import validate_nic
+from typing import List, Optional, Type
 
 import environs
 
+from iso15118.secc.controller.interface import EVSEControllerInterface
+from iso15118.secc.controller.simulator import SimEVSEController
+from iso15118.shared.messages.enums import AuthEnum, Protocol
+from iso15118.shared.network import validate_nic
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class Config:
         validate_nic(self.iface)
 
         # Redis Configuration
-        self.redis_host = env.str("REDIS_HOST", default='localhost')
+        self.redis_host = env.str("REDIS_HOST", default="localhost")
         self.redis_port = env.int("REDIS_PORT", default=6379)
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
@@ -68,19 +68,22 @@ class Config:
         # Indicates whether or not the installation of a contract certificate is free.
         # Should be configurable via OCPP messages.
         # Must be one of the bool values True or False
-        self.free_cert_install_service = env.bool("FREE_CERT_INSTALL_SERVICE", default=True)
+        self.free_cert_install_service = env.bool(
+            "FREE_CERT_INSTALL_SERVICE", default=True
+        )
 
         # Indicates whether or not the installation/update of a contract certificate
         # shall be offered to the EV. Should be configurable via OCPP messages.
         # Must be one of the bool values True or False
-        self.allow_cert_install_service = env.bool("ALLOW_CERT_INSTALL_SERVICE", default=True)
+        self.allow_cert_install_service = env.bool(
+            "ALLOW_CERT_INSTALL_SERVICE", default=True
+        )
 
         # Supported protocols, used for SupportedAppProtocol (SAP). The order in which
         # the protocols are listed here determines the priority (i.e. first list entry
         # has higher priority than second list entry). A list entry must be a member
         # of the Protocol enum
-        self.supported_protocols = [Protocol.ISO_15118_2,
-                                    Protocol.ISO_15118_20_AC]
+        self.supported_protocols = [Protocol.ISO_15118_2, Protocol.ISO_15118_20_AC]
 
         # Supported authentication options (named payment options in ISO 15118-2).
         # Note: SECC will not offer 'pnc' if chosen transport protocol is not TLS

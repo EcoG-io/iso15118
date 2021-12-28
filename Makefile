@@ -25,6 +25,8 @@ help:
 	@echo "  mypy                             installs the dependencies in the env"
 	@echo "  code-quality                     runs mypy, flake8, black and reformats the code"
 	@echo "  tests                            run all the tests, locally"
+	@echo "  release version=<mj.mn.p>        bumps the project version to <mj.mn.p>, using poetry;"
+	@echo "                                   If no version is provided, poetry outputs the current project version"
 	@echo ""
 	@echo "Check the Makefile to know exactly what each target is doing."
 
@@ -89,3 +91,7 @@ flake8:
 	flake8 --config ../.flake8 iso15118 tests
 
 code-quality: reformat mypy black flake8
+
+release: .install-poetry
+	@echo "Please remember to update the CHANGELOG.md, before tagging the release"
+	@poetry version ${version}
