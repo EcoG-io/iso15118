@@ -27,5 +27,5 @@ jobs:
       run: |
         poetry update
         poetry install
-#        poetry run pytest tests
+        # poetry run pytest tests
         make black
