@@ -4,15 +4,11 @@ V2GMessage objects of the ISO 15118-20 protocol, from SessionSetupReq to
 SessionStopReq.
 """
 
-import logging.config
+import logging
 import time
 from typing import List, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.secc_settings import (
-    ALLOW_CERT_INSTALL_SERVICE,
-    SUPPORTED_AUTH_OPTIONS,
-)
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exi_codec import to_exi
 from iso15118.shared.messages.app_protocol import (
@@ -44,9 +40,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.security import get_random_bytes, verify_signature
-from iso15118.shared.settings import LOGGER_CONF_PATH
 
-logging.config.fileConfig(fname=LOGGER_CONF_PATH, disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 
@@ -178,10 +172,11 @@ class AuthorizationSetup(StateSECC):
 
         auth_options: List[AuthEnum] = []
         eim_as_res, pnc_as_res = None, None
-        if AuthEnum.EIM in SUPPORTED_AUTH_OPTIONS:
+        supported_auth_options = self.comm_session.config.supported_auth_options
+        if AuthEnum.EIM in supported_auth_options:
             auth_options.append(AuthEnum.EIM)
             eim_as_res = EIMAuthSetupResParams()
-        if AuthEnum.PNC in SUPPORTED_AUTH_OPTIONS:
+        if AuthEnum.PNC in supported_auth_options:
             auth_options.append(AuthEnum.PNC)
             pnc_as_res = PnCAuthSetupResParams(
                 gen_challenge=get_random_bytes(16),
@@ -197,7 +192,7 @@ class AuthorizationSetup(StateSECC):
             ),
             response_code=ResponseCode.OK,
             auth_services=auth_options,
-            cert_install_service=ALLOW_CERT_INSTALL_SERVICE,
+            cert_install_service=self.comm_session.config.allow_cert_install_service,
             eim_as_res=eim_as_res,
             pnc_as_res=pnc_as_res,
         )

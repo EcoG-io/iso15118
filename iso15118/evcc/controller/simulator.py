@@ -3,11 +3,10 @@ This module contains a dummy implementation of the abstract class for an EVCC to
 retrieve data from the EV. The DummyEVController overrides all abstract methods from
 EVControllerInterface.
 """
-import logging.config
+import logging
 from typing import List, Optional, Tuple
 
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
-from iso15118.shared import settings
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
 from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -32,9 +31,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import EMAID
 from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
 from iso15118.shared.network import get_nic_mac_address
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 
@@ -46,13 +42,12 @@ class SimEVController(EVControllerInterface):
     def __init__(self):
         self.charging_loop_cycles: int = 0
 
-    def get_evcc_id(self, protocol: Protocol) -> str:
+    def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
-        from iso15118.evcc.evcc_settings import NETWORK_INTERFACE
 
         if protocol in (Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121):
             try:
-                hex_str = get_nic_mac_address(NETWORK_INTERFACE)
+                hex_str = get_nic_mac_address(iface)
                 return hex_str.replace(":", "").upper()
             except MACAddressNotFound as exc:
                 logger.warning(

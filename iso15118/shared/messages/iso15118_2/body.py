@@ -9,13 +9,12 @@ Pydantic's Field class is used to be able to create a json schema of each model
 (or class) that matches the definitions in the XSD schema, including the XSD
 element names by using the 'alias' attribute.
 """
-import logging.config
+import logging
 from abc import ABC
 from typing import List, Optional, Tuple, Type
 
 from pydantic import Field, root_validator, validator
 
-from iso15118.shared import settings
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import AuthEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -62,9 +61,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 )
 from iso15118.shared.validators import one_field_must_be_set
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 

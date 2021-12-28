@@ -4,14 +4,13 @@ V2GMessage objects of the ISO 15118-2 protocol, from SessionSetupRes to
 SessionStopRes.
 """
 
-import logging.config
+import logging
 from time import time
 from typing import List, Union
 
 from iso15118.evcc import evcc_settings
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.states.evcc_state import StateEVCC
-from iso15118.shared import settings
 from iso15118.shared.exceptions import DecryptionError, PrivateKeyReadError
 from iso15118.shared.exi_codec import to_exi
 from iso15118.shared.messages.app_protocol import (
@@ -84,9 +83,6 @@ from iso15118.shared.security import (
 )
 from iso15118.shared.states import Terminate
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 

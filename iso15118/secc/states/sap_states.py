@@ -5,16 +5,13 @@ SupportedAppProtocolReq. These states are independent of the protocol
 SupportedAppProtocolReq and -Res message pair to mutually agree upon a protocol.
 """
 
-import logging.config
+import logging
 from typing import Type, Union
 
-from iso15118.secc import secc_settings
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.states.iso15118_2_states import SessionSetup as SessionSetupV2
 from iso15118.secc.states.iso15118_20_states import SessionSetup as SessionSetupV20
 from iso15118.secc.states.secc_state import StateSECC
-from iso15118.shared import settings
-from iso15118.shared.exceptions import FaultyStateImplementationError
 from iso15118.shared.messages.app_protocol import (
     ResponseCodeSAP,
     SupportedAppProtocolReq,
@@ -28,9 +25,6 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.states import State, Terminate
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 
@@ -64,7 +58,7 @@ class SupportedAppProtocol(StateSECC):
         sap_req.app_protocol.sort(key=lambda proto: proto.priority)
         sap_res: Union[SupportedAppProtocolRes, None] = None
         supported_ns_list = [
-            protocol.ns.value for protocol in secc_settings.SUPPORTED_PROTOCOLS
+            protocol.ns.value for protocol in self.comm_session.config.supported_protocols
         ]
         next_state: Type[State] = Terminate  # some default that is not None
 

@@ -66,17 +66,14 @@ run:
 poetry-update:
 	poetry update
 
-poetry-install:
-	poetry update
-	poetry install
-
-install-local: poetry-install
+install-local:
+	pip install .
 
 run-evcc:
-	python iso15118/evcc/start_evcc.py
+	$(shell which python) iso15118/evcc/start_evcc.py
 
 run-secc:
-	python iso15118/secc/start_secc.py
+	$(shell which python) iso15118/secc/start_secc.py
 
 
 mypy:

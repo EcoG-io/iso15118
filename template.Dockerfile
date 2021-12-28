@@ -33,7 +33,6 @@ RUN poetry update && poetry install --no-interaction --no-ansi
 
 # Copy the project to the system
 COPY iso15118/ iso15118/
-COPY logging.conf iso15118/shared/
 
 # Run the tests and linting
 #RUN poetry run pytest -vv --cov-config .coveragerc --cov-report term-missing  --durations=3 --cov=.
@@ -65,7 +64,7 @@ RUN /venv/bin/pip install dist/*.whl
 # RUN cd /venv/lib/python3.10/site-packages/iso15118/shared/pki && ./create_certs.sh -v iso-2
 
 # This is not the ideal way to provide the certificate chain to the container, but for now it works
-COPY --from=build /usr/src/app/iso15118/shared/pki/ /venv/lib/python3.10/site-packages/iso15118/shared/pki/
+COPY --from=build /usr/src/app/iso15118/shared/pki/ /usr/src/app/iso15118/shared/pki/
 
 
 # This will run the entrypoint script defined in the pyproject.toml

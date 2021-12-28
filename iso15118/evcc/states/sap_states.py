@@ -5,17 +5,15 @@ SupportedAppProtocolRes. These states are independent of the protocol
 SupportedAppProtocolReq and -Res message pair to mutually agree upon a protocol.
 """
 
-import logging.config
+import logging
 import time
 from typing import Type, Union
 
 from iso15118.evcc import evcc_settings
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
-from iso15118.evcc.evcc_settings import SUPPORTED_PROTOCOLS
 from iso15118.evcc.states.evcc_state import StateEVCC
 from iso15118.evcc.states.iso15118_2_states import SessionSetup as SessionSetupV2
 from iso15118.evcc.states.iso15118_20_states import SessionSetup as SessionSetupV20
-from iso15118.shared import settings
 from iso15118.shared.exceptions import MessageProcessingError
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
@@ -41,9 +39,6 @@ from iso15118.shared.messages.iso15118_20.common_types import V2GRequest
 from iso15118.shared.messages.timeouts import Timeouts as TimeoutsShared
 from iso15118.shared.states import State, Terminate
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 
@@ -76,7 +71,10 @@ class SupportedAppProtocol(StateEVCC):
         next_msg: Union[
             SupportedAppProtocolReq, SupportedAppProtocolRes, BodyBase, V2GRequest
         ] = SessionSetupReqV2(
-            evcc_id=self.comm_session.ev_controller.get_evcc_id(Protocol.ISO_15118_2)
+            evcc_id=self.comm_session.ev_controller.get_evcc_id(
+                Protocol.ISO_15118_2,
+                self.comm_session.config.iface
+            )
         )
         next_ns: Namespace = Namespace.ISO_V2_MSG_DEF
         next_state: Type[State] = Terminate  # some default that is not None
@@ -100,7 +98,8 @@ class SupportedAppProtocol(StateEVCC):
                     next_msg = SessionSetupReqV20(
                         header=header,
                         evcc_id=self.comm_session.ev_controller.get_evcc_id(
-                            self.comm_session.protocol
+                            self.comm_session.protocol,
+                            self.comm_session.config.iface
                         ),
                     )
                     next_ns = Namespace.ISO_V20_COMMON_MSG
@@ -112,7 +111,7 @@ class SupportedAppProtocol(StateEVCC):
                         "EVCC sent an invalid protocol namespace in "
                         f"its previous SupportedAppProtocolReq: "
                         f"{protocol.protocol_ns}. Allowed "
-                        f"namespaces are: {SUPPORTED_PROTOCOLS}"
+                        f"namespaces are: {self.comm_session.config.supported_protocols}"
                     )
                     raise MessageProcessingError("SupportedAppProtocolReq")
                 break
@@ -137,6 +136,7 @@ class SupportedAppProtocol(StateEVCC):
         If there's no stored session ID, we'll set the session ID equal to zero.
         The session ID is also stored as a comm session variable.
         """
+        # TODO: get the session id from Redis
         if evcc_settings.RESUME_SESSION_ID:
             self.comm_session.session_id = evcc_settings.RESUME_SESSION_ID
             evcc_settings.RESUME_SESSION_ID = None

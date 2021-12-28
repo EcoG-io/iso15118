@@ -11,7 +11,6 @@ The primary dependencies to install the project are the following:
 > - Poetry [^3]
 > - Python >= 3.7
 
-
 There are two recommended ways of running the project:
 
 1. Building and running the docker file:
@@ -59,7 +58,6 @@ is fired up automatically, including certificates generation, tests and linting.
 
 Also both SECC and EVCC are spawned, automatically.
 
-
 For option number `2`, the certificates need to be provided. The project includes
 a script to help on the generation of -2 and -20 certificates. This script
 is located under `iso15118/shared/pki/` directory and is called `create_certs.sh`.
@@ -70,11 +68,11 @@ $ ./create_certs.sh -h
 ```
 
 ---
+
 **IPv6 WARNING**
 
 For the system to work locally, the network interface to be used needs to have
 an IPv6 local-link address assigned.
-
 
 For Docker, the `docker-compose.yml` was configured to create an `IPv6` network
 called `ipv6_net`, which enables the containers to acquire a local-link address,
@@ -98,9 +96,7 @@ Since the Switch team relies mostly on MacOS and this project is on a developmen
 file `docker-compose-host-mode.yml` are copied to the main compose file, `docker-compose.yml`.
 In that case, it is advised to back up the compose file.
 
-
 ---
-
 
 ## Environment Settings
 
@@ -108,21 +104,25 @@ Finally, the project includes a few configuration variables, whose default
 values can be modified by setting them as environmental variables.
 The following table provides a few of the available variables:
 
-| ENV                        | Default Value    | Description                                                                                            |
-| -------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------ |
-| NETWORK_INTERFACE          | `eth0`           | HomePlug Green PHY Network Interface from which the high-level communication (HLC) will be established |
-| REDIS_HOST                 | `localhost`      | Redis Host URL                                                                                         |
-| REDIS_PORT                 | `10001`          | Redis Port                                                                                             |
-| LOG_LEVEL                  | `INFO`           | Level of the Python log service                                                                        |
+| ENV                 | Default Value                | Description                                                                                                                                                     |
+| ------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| NETWORK_INTERFACE   | `eth0`                       | HomePlug Green PHY Network Interface from which the high-level communication (HLC) will be established                                                          |
+| SECC_CONTROLLER_SIM | `False`                      | Whether or not to simulate the SECC Controller Interface                                                                                                        |
+| SECC_ENFORCE_TLS    | `False`                      | Whether or not the SECC will enforce a TLS connection                                                                                                           |
+| EVCC_CONTROLLER_SIM | `False`                      | Whether or not to simulate the EVCC Controller Interface                                                                                                        |
+| EVCC_USE_TLS        | `True`                       | Whether or not the EVCC signals the preference to communicate with a TLS connection                                                                             |
+| EVCC_ENFORCE_TLS    | `False`                      | Whether or not the EVCC will only accept TLS connections                                                                                                        |
+| PKI_PATH            | `<CWD>/iso15118/shared/pki/` | Path for the location of the PKI where the certificates are located. By default, the system will look for the PKI directory under the current working directory |
+| REDIS_HOST          | `localhost`                  | Redis Host URL                                                                                                                                                  |
+| REDIS_PORT          | `6379`                       | Redis Port                                                                                                                                                      |
+| LOG_LEVEL           | `INFO`                       | Level of the Python log service                                                                                                                                 |
 
-
-The project includes a few environmental files, in the root directory, for 
+The project includes a few environmental files, in the root directory, for
 different purposes:
 
-* `.env.dev.docker` - ENV file with development settings, tailored to be used with docker
-* `.env.dev.local` - ENV file with development settings, tailored to be used with 
-the local host
-
+- `.env.dev.docker` - ENV file with development settings, tailored to be used with docker
+- `.env.dev.local` - ENV file with development settings, tailored to be used with
+  the local host
 
 If the user runs the project locally, e.g. using `$ make build && make run-secc`,
 it is required to create a `.env` file, containing the required settings.

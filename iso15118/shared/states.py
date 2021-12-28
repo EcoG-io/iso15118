@@ -1,10 +1,9 @@
-import logging.config
+import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional, Type, Union
 
 from pydantic import ValidationError
 
-from iso15118.shared import settings
 from iso15118.shared.exceptions import (
     EXIEncodingError,
     InvalidPayloadTypeError,
@@ -31,9 +30,6 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.messages.xmldsig import Signature
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:

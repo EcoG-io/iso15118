@@ -8,22 +8,15 @@ with the SECC to properly exchange all messages in a V2G communication session.
 """
 
 import asyncio
-import logging.config
+import logging
 from asyncio.streams import StreamReader, StreamWriter
 from ipaddress import IPv6Address
 from typing import List, Optional, Tuple, Union
 
 from pydantic.error_wrappers import ValidationError
 
-from iso15118.evcc import evcc_settings
+from iso15118.evcc.evcc_settings import Config
 from iso15118.evcc.controller.interface import EVControllerInterface
-from iso15118.evcc.evcc_settings import (
-    ENFORCE_TLS,
-    EV_CONTROLLER,
-    SDP_RETRY_CYCLES,
-    SUPPORTED_PROTOCOLS,
-    USE_TLS,
-)
 from iso15118.evcc.transport.tcp_client import TCPClient
 from iso15118.evcc.transport.udp_client import UDPClient
 from iso15118.shared.comm_session import V2GCommunicationSession
@@ -52,10 +45,8 @@ from iso15118.shared.notifications import (
     StopNotification,
     UDPPacketNotification,
 )
-from iso15118.shared.settings import LOGGER_CONF_PATH
 from iso15118.shared.utils import cancel_task, wait_till_finished
 
-logging.config.fileConfig(fname=LOGGER_CONF_PATH, disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 SDP_MAX_REQUEST_COUNTER = 50
@@ -71,6 +62,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         self,
         transport: Tuple[StreamReader, StreamWriter],
         session_handler_queue: asyncio.Queue,
+        config: Config
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -83,8 +75,10 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         # Session, so we dont need to do this self injection, since self
         # is already injected by default on a child
         super().__init__(transport, SupportedAppProtocol, session_handler_queue, self)
+
+        self.config = config
         # The EV controller that implements the interface EVControllerInterface
-        self.ev_controller: EVControllerInterface = EV_CONTROLLER()
+        self.ev_controller: EVControllerInterface = self.config.ev_controller()
         # The authorization option (called PaymentOption in ISO 15118-2) the
         # EVCC selected from the authorization options offered by the SECC
         self.selected_auth_option: Optional[AuthEnum] = None
@@ -108,7 +102,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         self.renegotiation_requested = False
         # The ID of the EVSE that controls the power flow to the EV
         self.evse_id: str = ""
-        self.is_tls = USE_TLS
+        self.is_tls = self.config.use_tls
 
     def create_sap(self) -> Union[SupportedAppProtocolReq, None]:
         """
@@ -124,7 +118,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         app_protocols = []
         schema_id = 0
         priority = 0
-        for protocol in SUPPORTED_PROTOCOLS:
+        for protocol in self.config.supported_protocols:
             # A SchemaID (schema_id) is simply a running counter, enabling the
             # SECC to refer to a specific entry. It can, in principle, be
             # randomly chosen by the EVCC as long as it's in the value range of
@@ -188,9 +182,21 @@ class EVCCCommunicationSession(V2GCommunicationSession):
             "Writing session variables to settings for use when "
             "resuming the communication session later"
         )
-        RESUME_SESSION_ID = self.session_id
-        evcc_settings.RESUME_SELECTED_AUTH_OPTION = self.selected_auth_option
-        evcc_settings.RESUME_REQUESTED_ENERGY_MODE = self.selected_energy_mode
+
+        # === PAUSING RELATED INFORMATION ===
+        # If a charging session needs to be paused, the EVCC needs to persist certain
+        # information that must be provided again once the communication session
+        # resumes. This information includes:
+        # - Session ID: int or None
+        # - Selected authorization option: must be a member of AuthEnum enum or None
+        # - Requested energy transfer mode: must be a member of EnergyTransferModeEnum
+        #                                   or None
+        # TODO Check what ISO 15118-20 demands for pausing
+
+        # TODO: save the settings into redis
+        # RESUME_SESSION_ID = self.session_id
+        # RESUME_SELECTED_AUTH_OPTION = self.selected_auth_option
+        # RESUME_REQUESTED_ENERGY_MODE = self.selected_energy_mode
 
 
 class CommunicationSessionHandler:
@@ -201,13 +207,14 @@ class CommunicationSessionHandler:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self):
+    def __init__(self, config: Config):
         self.list_of_tasks = []
         self.udp_client = None
         self.tcp_client = None
         self.tls_client = None
+        self.config = config
         self.sdp_retries_number = SDP_MAX_REQUEST_COUNTER
-        self._sdp_retry_cycles = SDP_RETRY_CYCLES
+        self._sdp_retry_cycles = self.config.sdp_retry_cycles
 
         # Receiving queue for UDP client to notify about incoming datagrams
         self._rcv_queue = asyncio.Queue(0)
@@ -224,15 +231,7 @@ class CommunicationSessionHandler:
         async def __init__. Therefore, we need to create a separate async
         method to be our constructor.
         """
-        if not SDP_RETRY_CYCLES or SDP_RETRY_CYCLES <= 0:
-            logger.error(
-                "The EVCC setting SDP_RETRY_CYCLES must set to a "
-                "value greater than or equal to 1, otherwise the "
-                "communication session handler cannot start"
-            )
-            return
-
-        self.udp_client = UDPClient(self._rcv_queue)
+        self.udp_client = UDPClient(self._rcv_queue, self.config.iface)
         self.list_of_tasks = [
             self.udp_client.start(),
             self.get_from_rcv_queue(self._rcv_queue),
@@ -255,7 +254,7 @@ class CommunicationSessionHandler:
         while not self.udp_client.started:
             await asyncio.sleep(0.1)
         security = Security.NO_TLS
-        if USE_TLS:
+        if self.config.use_tls:
             security = Security.TLS
         sdp_request = SDPRequest(security=security, transport_protocol=Transport.TCP)
         v2gtp_msg = V2GTPMessage(
@@ -311,7 +310,7 @@ class CommunicationSessionHandler:
         if new_sdp_cycle:
             if self._sdp_retry_cycles == 0:
                 raise SDPFailedError(
-                    f"EVCC tried {SDP_RETRY_CYCLES} times to initiate a "
+                    f"EVCC tried {self.config.sdp_retry_cycles} times to initiate a "
                     "V2GCommunicationSession, but maximum number of SDP retry "
                     f"cycles is now reached. {shutdown_msg}"
                 )
@@ -347,7 +346,7 @@ class CommunicationSessionHandler:
                 f"{host.compressed} at port {port} ..."
             )
             self.tcp_client = await TCPClient.create(
-                host, port, self._rcv_queue, is_tls
+                host, port, self._rcv_queue, is_tls, self.config.iface
             )
             logger.debug("TCP client connected")
         except Exception as exc:
@@ -358,7 +357,8 @@ class CommunicationSessionHandler:
             return
 
         comm_session = EVCCCommunicationSession(
-            (self.tcp_client.reader, self.tcp_client.writer), self._rcv_queue
+            (self.tcp_client.reader, self.tcp_client.writer), self._rcv_queue,
+            self.config
         )
 
         try:
@@ -419,13 +419,13 @@ class CommunicationSessionHandler:
             #
             # The rationale behind this might be that the EV OEM trades convenience
             # (the EV driver can always charge) over security.
-            if (not secc_signals_tls and ENFORCE_TLS) or (
-                secc_signals_tls and not USE_TLS
+            if (not secc_signals_tls and self.config.enforce_tls) or (
+                secc_signals_tls and not self.config.use_tls
             ):
                 logger.error(
                     "Security mismatch, can't initiate communication session."
-                    f"\nEVCC setting USE_TLS: {USE_TLS}"
-                    f"\nEVCC setting ENFORCE_TLS: {ENFORCE_TLS}"
+                    f"\nEVCC setting USE_TLS: {self.config.use_tls}"
+                    f"\nEVCC setting ENFORCE_TLS: {self.config.enforce_tls}"
                     f"\nSDP response signals TLS: {secc_signals_tls}"
                 )
                 return

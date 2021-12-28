@@ -1,5 +1,5 @@
 import asyncio
-import logging.config
+import logging
 import socket
 from ipaddress import IPv6Address
 from random import randint
@@ -7,14 +7,10 @@ from typing import Tuple, Union
 
 import psutil
 
-from iso15118.shared import settings
 from iso15118.shared.exceptions import (MACAddressNotFound,
                                         NoLinkLocalAddressError,
                                         InvalidInterfaceError)
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 SDP_MULTICAST_GROUP = "FF02::1"

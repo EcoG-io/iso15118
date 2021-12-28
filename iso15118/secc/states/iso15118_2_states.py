@@ -4,17 +4,11 @@ V2GMessage objects of the ISO 15118-2 protocol, from SessionSetupReq to
 SessionStopReq.
 """
 
-import logging.config
+import logging
 import time
 from typing import List, Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.secc_settings import (
-    ALLOW_CERT_INSTALL_SERVICE,
-    FREE_CERT_INSTALL_SERVICE,
-    FREE_CHARGING_SERVICE,
-    SUPPORTED_AUTH_OPTIONS,
-)
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
     CertAttributeError,
@@ -92,7 +86,6 @@ from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
-from iso15118.shared.messages.sdp import Security
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.security import (
@@ -108,10 +101,8 @@ from iso15118.shared.security import (
     verify_certs,
     verify_signature,
 )
-from iso15118.shared.settings import LOGGER_CONF_PATH
 from iso15118.shared.states import State, Terminate
 
-logging.config.fileConfig(fname=LOGGER_CONF_PATH, disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 
@@ -267,10 +258,11 @@ class ServiceDiscovery(StateSECC):
                 auth_options.append(AuthOptions(value=AuthEnum.PNC_V2))
                 self.comm_session.offered_auth_options.append(AuthEnum.PNC_V2)
         else:
-            if AuthEnum.EIM in SUPPORTED_AUTH_OPTIONS:
+            supported_auth_options = self.comm_session.config.supported_auth_options
+            if AuthEnum.EIM in supported_auth_options:
                 auth_options.append(AuthOptions(value=AuthEnum.EIM_V2))
                 self.comm_session.offered_auth_options.append(AuthEnum.EIM_V2)
-            if AuthEnum.PNC in SUPPORTED_AUTH_OPTIONS and self.comm_session.is_tls:
+            if AuthEnum.PNC in supported_auth_options and self.comm_session.is_tls:
                 auth_options.append(AuthOptions(value=AuthEnum.PNC_V2))
                 self.comm_session.offered_auth_options.append(AuthEnum.PNC_V2)
 
@@ -278,7 +270,7 @@ class ServiceDiscovery(StateSECC):
             service_id=ServiceID.CHARGING,
             service_name=ServiceName.CHARGING,
             service_category=ServiceCategory.CHARGING,
-            free_service=FREE_CHARGING_SERVICE,
+            free_service=self.comm_session.config.free_charging_service,
             supported_energy_transfer_mode=self.comm_session.evse_controller.get_supported_energy_transfer_modes(),
         )
 
@@ -286,7 +278,7 @@ class ServiceDiscovery(StateSECC):
         # Value-added services (VAS), like installation of contract certificates
         # and the Internet service, are only allowed with TLS-secured comm.
         if self.comm_session.is_tls:
-            if ALLOW_CERT_INSTALL_SERVICE and (
+            if self.comm_session.config.allow_cert_install_service and (
                 category_filter is None
                 or category_filter == ServiceCategory.CERTIFICATE
             ):
@@ -294,7 +286,7 @@ class ServiceDiscovery(StateSECC):
                     service_id=2,
                     service_name=ServiceName.CERTIFICATE,
                     service_category=ServiceCategory.CERTIFICATE,
-                    free_service=FREE_CERT_INSTALL_SERVICE,
+                    free_service=self.comm_session.config.free_cert_install_service,
                 )
 
                 service_list.append(Service(service_details=cert_install_service))

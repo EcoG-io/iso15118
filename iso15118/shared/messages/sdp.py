@@ -1,14 +1,10 @@
-import logging.config
+import logging
 from enum import IntEnum
 from ipaddress import IPv6Address
 from typing import Union
 
-from iso15118.shared import settings
 from iso15118.shared.exceptions import InvalidSDPRequestError, InvalidSDPResponseError
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 MIN_TCP_PORT = 49152

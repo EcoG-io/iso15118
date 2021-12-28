@@ -1,12 +1,7 @@
-import logging.config
-from enum import Enum, IntEnum, auto
+import logging
+from enum import Enum, IntEnum
 from typing import List, Union
 
-from iso15118.shared import settings
-
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 INT_32_MAX = 4294967295

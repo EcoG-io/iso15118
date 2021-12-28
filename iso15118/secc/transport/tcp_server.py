@@ -1,17 +1,12 @@
 import asyncio
-import logging.config
+import logging
 import socket
 from typing import Tuple
 
-from iso15118.secc.secc_settings import NETWORK_INTERFACE
-from iso15118.shared import settings
 from iso15118.shared.network import get_link_local_full_addr, get_tcp_port
 from iso15118.shared.notifications import TCPClientNotification
 from iso15118.shared.security import get_ssl_context
 
-logging.config.fileConfig(
-    fname=settings.LOGGER_CONF_PATH, disable_existing_loggers=False
-)
 logger = logging.getLogger(__name__)
 
 
@@ -26,11 +21,12 @@ class TCPServer(asyncio.Protocol):
     # (host, port, flowinfo, scope_id)
     ipv6_address_host: str
 
-    def __init__(self, session_handler_queue: asyncio.Queue) -> None:
+    def __init__(self, session_handler_queue: asyncio.Queue, iface: str) -> None:
         self._session_handler_queue = session_handler_queue
         # The dynamic TCP port number in the range of (49152-65535)
         self.port_no_tls = get_tcp_port()
         self.port_tls = get_tcp_port()
+        self.iface = iface
 
         # Making sure the TCP and TLS port are definitely different
         while self.port_no_tls == self.port_tls:
@@ -93,7 +89,7 @@ class TCPServer(asyncio.Protocol):
         # Allows address to be reused
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        self.full_ipv6_address = await get_link_local_full_addr(port, NETWORK_INTERFACE)
+        self.full_ipv6_address = await get_link_local_full_addr(port, self.iface)
         self.ipv6_address_host = self.full_ipv6_address[0]
 
         # Bind the socket to the IP address and port for receiving
@@ -112,7 +108,7 @@ class TCPServer(asyncio.Protocol):
 
         logger.debug(
             f"{server_type} server started at "
-            f"address {self.ipv6_address_host}%{NETWORK_INTERFACE} and "
+            f"address {self.ipv6_address_host}%{self.iface} and "
             f"port {port}"
         )
 
