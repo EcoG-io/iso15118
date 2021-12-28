@@ -52,9 +52,8 @@ class PhysicalValue(BaseModel):
     that can go below that value.
     """
     _max_limit: int = 0
-    # XSD int16 range is [-32768, 32767], but there are no physical types which
-    # have values below 0, so we enforce the limit here.
-    value: int = Field(..., ge=0, le=INT_16_MAX, alias="Value")
+    # XSD int16 range [-32768, 32767]
+    value: int = Field(..., ge=INT_16_MIN, le=INT_16_MAX, alias="Value")
     # XSD type byte with value range [-3..3]
     multiplier: int = Field(..., ge=-3, le=3, alias="Multiplier")
 
@@ -69,7 +68,7 @@ class PhysicalValue(BaseModel):
         value = values.get("value")
         multiplier = values.get("multiplier")
         calculated_value = value * 10 ** multiplier
-        if calculated_value > cls._max_limit:
+        if calculated_value > cls._max_limit or calculated_value < 0:
             raise ValueError(
                 f'{cls.__name__[2:]} value limit exceeded: {calculated_value} \n'
                 f'Max: {cls._max_limit} \n'

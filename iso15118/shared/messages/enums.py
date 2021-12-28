@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 
 UINT_32_MAX = 2**32 - 1
 INT_16_MAX = 2**15 - 1
+INT_16_MIN = -2**15
 
 
 class AuthEnum(str, Enum):
