@@ -28,4 +28,4 @@ jobs:
         poetry update
         poetry install
         # poetry run pytest tests
-        make black
+        poetry run black --check --diff --line-length=88 slac tests
