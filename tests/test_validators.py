@@ -24,5 +24,5 @@ def test_one_field_must_be_set():
         assert one_field_must_be_set(fields_to_test, two_values_set, True)
 
     with pytest.raises(ValueError):
-        no_values_set = {"no_accpted_value": 1234}
+        no_values_set = {"no_accepted_value": 1234}
         assert one_field_must_be_set(fields_to_test, no_values_set, True)
