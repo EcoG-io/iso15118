@@ -62,7 +62,7 @@ from iso15118.shared.messages.iso15118_2.body import (
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
-    AuthOptionsList,
+    AuthOptionList,
     SubCertificates,
     CertificateChain,
     ChargeProgress,
@@ -304,7 +304,7 @@ class ServiceDiscovery(StateSECC):
 
         service_discovery_res = ServiceDiscoveryRes(
             response_code=ResponseCode.OK,
-            auth_option_list=AuthOptionsList(auth_options=auth_options),
+            auth_option_list=AuthOptionList(auth_options=auth_options),
             charge_service=charge_service,
             service_list=offered_services,
         )
@@ -636,21 +636,27 @@ class CertificateInstallation(StateSECC):
         )
 
         try:
-            signature = create_signature(
-                [
-                    (
-                        contract_cert_chain.id,
-                        to_exi(contract_cert_chain, Namespace.ISO_V2_MSG_DEF),
-                    ),
-                    (
-                        encrypted_priv_key.id,
-                        to_exi(encrypted_priv_key, Namespace.ISO_V2_MSG_DEF),
-                    ),
-                    (dh_public_key.id, to_exi(dh_public_key, Namespace.ISO_V2_MSG_DEF)),
-                    (emaid.id, to_exi(emaid, Namespace.ISO_V2_MSG_DEF)),
-                ],
-                load_priv_key(KeyPath.CPS_LEAF_PEM, KeyEncoding.PEM),
+            # Elements to sign, containing its id and the exi encoded stream
+            contract_cert_tuple = (
+                contract_cert_chain.id,
+                to_exi(contract_cert_chain, Namespace.ISO_V2_MSG_DEF)
             )
+            encrypted_priv_key_tuple = (
+                encrypted_priv_key.id,
+                to_exi(encrypted_priv_key, Namespace.ISO_V2_MSG_DEF),
+            )
+            dh_public_key_tuple = (
+                dh_public_key.id,
+                to_exi(dh_public_key, Namespace.ISO_V2_MSG_DEF)
+            )
+            emaid_tuple = (emaid.id, to_exi(emaid, Namespace.ISO_V2_MSG_DEF))
+
+            elements_to_sign = [contract_cert_tuple, encrypted_priv_key_tuple,
+                                dh_public_key_tuple, emaid_tuple]
+            # The private key to be used for the signature
+            signature_key = load_priv_key(KeyPath.CPS_LEAF_PEM, KeyEncoding.PEM)
+
+            signature = create_signature(elements_to_sign, signature_key)
 
             self.create_next_message(
                 PaymentDetails,

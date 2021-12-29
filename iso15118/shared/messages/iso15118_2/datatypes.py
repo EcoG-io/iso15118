@@ -14,7 +14,7 @@ element names by using the 'alias' attribute.
 from enum import Enum, IntEnum
 from typing import List, Literal
 
-from pydantic import Field, root_validator, validator, conbytes
+from pydantic import Field, root_validator, validator, conbytes, constr
 
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
@@ -27,6 +27,12 @@ from iso15118.shared.messages.enums import (
 )
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
 from iso15118.shared.validators import one_field_must_be_set
+
+
+# https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
+# constrained types
+Certificate = conbytes(max_length=800)
+eMAID = constr(min_length=14, max_length=15)
 
 
 class UnitSymbol(str, Enum):
@@ -402,10 +408,6 @@ class ACEVSEChargeParameter(BaseModel):
     ac_evse_status: ACEVSEStatus = Field(..., alias="AC_EVSEStatus")
     evse_nominal_voltage: PVEVSENominalVoltage = Field(..., alias="EVSENominalVoltage")
     evse_max_current: PVEVSEMaxCurrent = Field(..., alias="EVSEMaxCurrent")
-
-
-# https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
-Certificate = conbytes(max_length=800)
 
 
 class SubCertificates(BaseModel):
@@ -819,7 +821,7 @@ class ParameterSet(BaseModel):
     parameters: List[Parameter] = Field(..., max_items=16, alias="Parameter")
 
 
-class AuthOptionsList(BaseModel):
+class AuthOptionList(BaseModel):
     """
     See section 8.5.2.9 in ISO 15118-2
 
@@ -1018,7 +1020,7 @@ class SalesTariff(BaseModel):
 
     def __str__(self):
         # The XSD conform element name
-        return "SalesTariff"
+        return type(self).__name__
 
 
 class SAScheduleTupleEntry(BaseModel):
@@ -1039,18 +1041,17 @@ class SAScheduleList(BaseModel):
 class EMAID(BaseModel):
     """
     This is the complex datatype defined in the XML schemas as EMAIDType, containing
-    an id attribute; not to be confused with the simple type eMAIDType, which is
-    of string type
+    an id attribute; not to be confused with the simple type, that EMAID is
+    derived from, called eMAIDType, which is of string type, with a min length of
+    14 and a max length of 15 characters.
 
     'Id' is actually an XML attribute, but JSON (our serialisation method)
     doesn't have attributes. The EXI codec has to en-/decode accordingly.
     """
 
     id: str = Field(None, alias="Id")
-    value: str = Field(..., min_length=14, max_length=15, alias="value")
+    value: eMAID = Field(..., alias="value")
 
-    # TODO: I guess this str should be EMAID and not eMAID, for the reasons
-    # mentioned in the above docstring
     def __str__(self):
         # The XSD conform element name
         return "eMAID"

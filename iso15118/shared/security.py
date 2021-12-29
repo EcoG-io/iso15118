@@ -663,7 +663,7 @@ def create_signature(
        it, encrypting with the private key provided.
 
     Args:
-        elements_to_sign: A list of tuples [int, bytes], where the first entry
+        elements_to_sign: A list of tuples [str, bytes], where the first entry
                           of each tuple is the Id field (XML attribute) and the
                           second entry is the EXI encoded bytes representation
                           of the element for which a Reference element in the

@@ -19,10 +19,11 @@ from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import AuthEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
     EMAID,
+    eMAID,
     ACEVChargeParameter,
     ACEVSEChargeParameter,
     ACEVSEStatus,
-    AuthOptionsList,
+    AuthOptionList,
     CertificateChain,
     ChargeProgress,
     ChargeService,
@@ -451,7 +452,7 @@ class MeteringReceiptRes(Response):
 class PaymentDetailsReq(BodyBase):
     """See section 8.4.3.6.2 in ISO 15118-2"""
 
-    emaid: str = Field(..., alias="eMAID")
+    emaid: eMAID = Field(..., alias="eMAID")
     cert_chain: CertificateChain = Field(..., alias="ContractSignatureCertChain")
 
 
@@ -563,7 +564,7 @@ class ServiceDiscoveryReq(BodyBase):
 class ServiceDiscoveryRes(Response):
     """See section 8.4.3.3.3 in ISO 15118-2"""
 
-    auth_option_list: AuthOptionsList = Field(...,  alias="PaymentOptionList")
+    auth_option_list: AuthOptionList = Field(...,  alias="PaymentOptionList")
     charge_service: ChargeService = Field(..., alias="ChargeService")
     service_list: ServiceList = Field(None, alias="ServiceList")
 

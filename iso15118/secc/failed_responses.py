@@ -62,7 +62,7 @@ from iso15118.shared.messages.iso15118_2.body import (
 from iso15118.shared.messages.iso15118_2.body import (
     WeldingDetectionRes as WeldingDetectionResV2,
 )
-from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEStatus, AuthOptionsList
+from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEStatus, AuthOptionList
 from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain as CertificateChainV2,
 )
@@ -189,7 +189,7 @@ def init_failed_responses_iso_v2() -> dict:
         ),
         ServiceDiscoveryReqV2: ServiceDiscoveryResV2(
             response_code=ResponseCodeV2.FAILED,
-            auth_option_list=AuthOptionsList(auth_options=[AuthEnum.EIM_V2]),
+            auth_option_list=AuthOptionList(auth_options=[AuthEnum.EIM_V2]),
             charge_service=ChargeService(
                 service_id=ServiceID.CHARGING,
                 service_category=ServiceCategory.CHARGING,

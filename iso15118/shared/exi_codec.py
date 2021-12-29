@@ -142,6 +142,8 @@ def to_exi(msg_element: BaseModel, protocol_ns: str) -> bytes:
             str(msg_element) == "CertificateChain"
             and protocol_ns == Namespace.ISO_V2_MSG_DEF
         ):
+            # TODO: If we add `ContractSignatureCertChain` as the return of __str__
+            #       for the CertificateChain class, do we still need this if clause?
             # In case of CertificateInstallationRes and CertificateUpdateRes,
             # str(message) would not be 'ContractSignatureCertChain' but
             # 'CertificateChain' (the type of ContractSignatureCertChain)
@@ -149,11 +151,16 @@ def to_exi(msg_element: BaseModel, protocol_ns: str) -> bytes:
         elif str(msg_element) == "CertificateChain" and protocol_ns.startswith(
             Namespace.ISO_V20_BASE
         ):
+            # TODO: If we add `CPSCertificateChain` as the return of __str__
+            #       for a unique class for V20 or even call it CPSCertificateChain
+            #       do we still need this if clause?
             # In case of CertificateInstallationRes,
             # str(message) would not be 'CPSCertificateChain' but
             # 'CertificateChain' (the type of CPSCertificateChain)
             message_dict = {"CPSCertificateChain": msg_to_dct}
         elif str(msg_element) == "SignedCertificateChain":
+            # TODO: If we add `OEMProvisioningCertificateChain` as the return of __str__
+            #       for the SignedCertificateChain class, do we still need this if clause?
             # In case of CertificateInstallationReq,
             # str(message) would not be 'OEMProvisioningCertificateChain' but
             # 'SignedCertificateChain' (the type of OEMProvisioningCertificateChain)
