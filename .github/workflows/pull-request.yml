@@ -25,7 +25,8 @@ jobs:
     - name: Code Quality Check
       shell: bash
       run: |
-        poetry update
-        poetry install
+        make build
+        #poetry update
+        #poetry install
         # poetry run pytest tests
-        poetry run black --check --diff --line-length=88 iso15118 tests
+        #poetry run black --check --diff --line-length=88 iso15118 tests
