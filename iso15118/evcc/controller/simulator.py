@@ -13,7 +13,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
     EnergyTransferModeEnum,
-    ProfileEntry,
+    ChargingProfile,
     ProfileEntryDetails,
     PVEAmount,
     PVEVMaxCurrent,
@@ -115,7 +115,7 @@ class SimEVController(EVControllerInterface):
 
     def process_sa_schedules(
         self, sa_schedules: List[SAScheduleTupleEntry]
-    ) -> Tuple[ChargeProgress, int, ProfileEntry]:
+    ) -> Tuple[ChargeProgress, int, ChargingProfile]:
         """Overrides EVControllerInterface.process_sa_schedules()."""
         schedule = sa_schedules.pop()
         profile_entry_list: List[ProfileEntryDetails] = []
@@ -152,7 +152,7 @@ class SimEVController(EVControllerInterface):
         return (
             ChargeProgress.START,
             schedule.sa_schedule_tuple_id,
-            ProfileEntry(values=profile_entry_list),
+            ChargingProfile(profile_entries=profile_entry_list),
         )
 
     def continue_charging(self) -> bool:
