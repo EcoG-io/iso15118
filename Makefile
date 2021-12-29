@@ -48,14 +48,14 @@ tests: .install-poetry
 	cd iso15118/shared/pki; ./create_certs.sh -v iso-20
 
 build: .generate_v2_certs
-	# `xargs` will copy the Dockerfile template, so that it can be individually
-	# used by the secc and evcc services
-	xargs -n 1 cp -v template.Dockerfile<<<"iso15118/evcc/Dockerfile iso15118/secc/Dockerfile"
-	# The following command will convert: 's/secc/secc/g' -> 's/secc/evcc/g',
-	# in the evcc Dockerfile.
-	# This conversion is required, otherwise we wouldn't be able to spawn the evcc start script.
-	# @ is used as a separator and allows us to escape '/', so we can substitute the '/' itself
-	sed -i.bkp 's@/secc/g@/evcc/g@g' iso15118/evcc/Dockerfile
+	@# `xargs` will copy the Dockerfile template, so that it can be individually
+	@# used by the secc and evcc services
+	@xargs -n 1 cp -v template.Dockerfile<<<"iso15118/evcc/Dockerfile iso15118/secc/Dockerfile"
+	@# The following command will convert: 's/secc/secc/g' -> 's/secc/evcc/g',
+	@# in the evcc Dockerfile.
+	@# This conversion is required, otherwise we wouldn't be able to spawn the evcc start script.
+	@# @ is used as a separator and allows us to escape '/', so we can substitute the '/' itself
+	@sed -i.bkp 's@/secc/g@/evcc/g@g' iso15118/evcc/Dockerfile
 	docker-compose build
 
 dev:
