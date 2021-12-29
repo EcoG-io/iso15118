@@ -35,6 +35,7 @@ RUN poetry update && poetry install --no-interaction --no-ansi
 COPY iso15118/ iso15118/
 
 # Run the tests and linting
+COPY tests/ tests/
 RUN poetry run pytest -vv --cov-config .coveragerc --cov-report term-missing  --durations=3 --cov=.
 RUN poetry run black --check --diff --line-length=88 iso15118 tests
 #RUN flake8 --config .flake8 iso15118 tests
