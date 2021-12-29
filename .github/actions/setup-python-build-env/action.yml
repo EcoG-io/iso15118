@@ -11,5 +11,5 @@ runs:
   - name: Install Poetry
     shell: bash
     run: |
-      pip install poetry
+      pip install --user poetry
       pip install "mypy==0.910"
