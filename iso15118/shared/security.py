@@ -42,14 +42,12 @@ from iso15118.shared.exceptions import (
 )
 from iso15118.shared.exi_codec import to_exi
 from iso15118.shared.messages.enums import Namespace, Protocol
-from iso15118.shared.messages.iso15118_2.datatypes import Certificate as CertificateV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
-    CertificateChain as CertificateChainV2,
+    SubCertificates as SubCertificatesV2,
+    CertificateChain as CertificateChainV2
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     Certificate as CertificateV20,
-)
-from iso15118.shared.messages.iso15118_20.common_messages import (
     CertificateChain as CertificateChainV20,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import SignedCertificateChain
@@ -355,7 +353,7 @@ def load_cert_chain(
         if sub_ca1_cert:
             sub_ca_certs_v2.append(sub_ca1_cert)
         return CertificateChainV2(
-            certificate=leaf_cert, sub_certificates=CertificateV2(certificate=sub_ca_certs_v2)
+            certificate=leaf_cert, sub_certificates=SubCertificatesV2(certificates=sub_ca_certs_v2)
         )
 
     if protocol.ns.startswith(Namespace.ISO_V20_BASE):

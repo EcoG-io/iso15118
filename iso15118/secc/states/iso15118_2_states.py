@@ -63,7 +63,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
     AuthOptionsList,
-    Certificate,
+    SubCertificates,
     CertificateChain,
     ChargeProgress,
     ChargeService,
@@ -602,8 +602,8 @@ class CertificateInstallation(StateSECC):
         contract_cert_chain = CertificateChain(
             id="id1",
             certificate=load_cert(CertPath.CONTRACT_LEAF_DER),
-            sub_certificates=Certificate(
-                certificate=[
+            sub_certificates=SubCertificates(
+                certificates=[
                     load_cert(CertPath.MO_SUB_CA2_DER),
                     load_cert(CertPath.MO_SUB_CA1_DER)
                 ]
@@ -618,8 +618,8 @@ class CertificateInstallation(StateSECC):
         )
         cps_certificate_chain = CertificateChain(
             certificate=load_cert(CertPath.CPS_LEAF_DER),
-            sub_certificates=Certificate(
-                certificate=[
+            sub_certificates=SubCertificates(
+                certificates=[
                     load_cert(CertPath.CPS_SUB_CA2_DER),
                     load_cert(CertPath.CPS_SUB_CA1_DER)
                 ]
@@ -712,7 +712,7 @@ class PaymentDetails(StateSECC):
 
         try:
             leaf_cert = payment_details_req.cert_chain.certificate
-            sub_ca_certs = payment_details_req.cert_chain.sub_certificates.certificate
+            sub_ca_certs = payment_details_req.cert_chain.sub_certificates.certificates
             # TODO There should be an OCPP setting that determines whether
             #      or not the charging station should verify (is in
             #      possession of MO or V2G Root certificates) or if it

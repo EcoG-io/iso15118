@@ -14,7 +14,7 @@ element names by using the 'alias' attribute.
 from enum import Enum, IntEnum
 from typing import List, Literal
 
-from pydantic import Field, root_validator, validator
+from pydantic import Field, root_validator, validator, conbytes
 
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
@@ -404,20 +404,28 @@ class ACEVSEChargeParameter(BaseModel):
     evse_max_current: PVEVSEMaxCurrent = Field(..., alias="EVSEMaxCurrent")
 
 
-class Certificate(BaseModel):
-    """See sections 8.5.2.5 and 8.5.2.26 in ISO 15118-2"""
+# https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
+Certificate = conbytes(max_length=800)
 
-    certificate: List[bytes] = Field(..., max_length=800, alias="Certificate")
+
+class SubCertificates(BaseModel):
+    """See sections 8.5.2.5 and 8.5.2.26 in ISO 15118-2
+
+    According with the schemas, SubCertificates can contain up to 4 certificates.
+    However, according with requirement [V2G2-656]:
+     `The number of Certificates in the SubCertificates shall not exceed 2`
+    TODO: Check with Marc
+    """
+
+    certificates: List[Certificate] = Field(..., max_items=4, alias="Certificate")
 
 
 class CertificateChain(BaseModel):
     """See section 8.5.2.5 in ISO 15118-2"""
 
     id: str = Field(None, alias="Id")
-    # Note that the type here must be bytes and not Certificate, otherwise we
-    # end up with a json structure that does not match the XSD schema
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
-    sub_certificates: Certificate = Field(None, alias="SubCertificates")
+    certificate: Certificate = Field(..., alias="Certificate")
+    sub_certificates: SubCertificates = Field(None, alias="SubCertificates")
 
     def __str__(self):
         return type(self).__name__
