@@ -178,7 +178,7 @@ class AuthorizationSetup(StateEVCC):
             except PrivateKeyReadError as exc:
                 self.stop_state_machine(
                     "Can't read private key necessary to sign "
-                    f"CertificateInstallationReq: {exc.error}"
+                    f"CertificateInstallationReq: {exc}"
                 )
                 return
 
@@ -213,7 +213,7 @@ class AuthorizationSetup(StateEVCC):
                 except PrivateKeyReadError as exc:
                     self.stop_state_machine(
                         "Can't read private key necessary to sign "
-                        f"AuthorizationReq: {exc.error}"
+                        f"AuthorizationReq: {exc}"
                     )
                     return
             else:

@@ -592,7 +592,7 @@ class CertificateInstallation(StateSECC):
         except PrivateKeyReadError as exc:
             self.stop_state_machine(
                 "Can't read private key to encrypt for "
-                f"CertificateInstallationRes: {exc.error}",
+                f"CertificateInstallationRes: {exc}",
                 message,
                 ResponseCode.FAILED,
             )
@@ -662,7 +662,7 @@ class CertificateInstallation(StateSECC):
         except PrivateKeyReadError as exc:
             self.stop_state_machine(
                 "Can't read private key needed to create signature "
-                f"for CertificateInstallationRes: {exc.error}",
+                f"for CertificateInstallationRes: {exc}",
                 message,
                 ResponseCode.FAILED,
             )
@@ -993,7 +993,7 @@ class ChargeParameterDiscovery(StateSECC):
                     except PrivateKeyReadError as exc:
                         logger.warning(
                             "Can't read private key to needed to create "
-                            f"signature for SalesTariff: {exc.error}"
+                            f"signature for SalesTariff: {exc}"
                         )
                         # If a SalesTariff isn't signed, that's not the end of the
                         # world, no reason to stop the charging process here

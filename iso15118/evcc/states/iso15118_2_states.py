@@ -420,7 +420,7 @@ class PaymentServiceSelection(StateEVCC):
                 except PrivateKeyReadError as exc:
                     self.stop_state_machine(
                         "Can't read private key necessary to sign "
-                        f"CertificateInstallationReq: {exc.error}"
+                        f"CertificateInstallationReq: {exc}"
                     )
                     return
             else:
@@ -533,7 +533,7 @@ class CertificateInstallation(StateEVCC):
             self.stop_state_machine(
                 "Can't read private key needed to decrypt "
                 "encrypted private key contained in "
-                f"CertificateInstallationRes. {exc.error}"
+                f"CertificateInstallationRes. {exc}"
             )
             return
 
@@ -603,7 +603,7 @@ class PaymentDetails(StateEVCC):
             )
         except PrivateKeyReadError as exc:
             self.stop_state_machine(
-                f"Can't read private key to sign AuthorizationReq: " f"{exc.error}"
+                f"Can't read private key to sign AuthorizationReq: " f"{exc}"
             )
             return
 
@@ -892,7 +892,7 @@ class ChargingStatus(StateEVCC):
             except PrivateKeyReadError as exc:
                 self.stop_state_machine(
                     "Can't read private key necessary to sign "
-                    f"MeteringReceiptReq: {exc.error}"
+                    f"MeteringReceiptReq: {exc}"
                 )
                 return
         elif ac_evse_status.evse_notification == EVSENotification.RE_NEGOTIATION:

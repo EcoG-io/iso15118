@@ -200,7 +200,7 @@ class SessionStateMachine(ABC):
             )
             raise exc
         except FaultyStateImplementationError as exc:
-            logger.exception(f"{exc.__class__.__name__}: {exc.error}")
+            logger.exception(f"{exc.__class__.__name__}: {exc}")
             raise exc
         except ValidationError as exc:
             logger.exception(f"{exc.__class__.__name__}: {exc.raw_errors}")
@@ -450,9 +450,9 @@ class V2GCommunicationSession(SessionStateMachine):
                 if isinstance(exc, MessageProcessingError):
                     message_name = exc.message_name
                 if isinstance(exc, FaultyStateImplementationError):
-                    additional_info = ": " + exc.error
+                    additional_info = f": {exc}"
                 if isinstance(exc, EXIDecodingError):
-                    additional_info = ": " + exc.__str__()
+                    additional_info = f": {exc}"
 
                 stop_reason: str = f"{exc.__class__.__name__} occurred while processing message " \
                                    f"{message_name} in state {str(self.current_state)}{additional_info}"

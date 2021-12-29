@@ -691,7 +691,16 @@ class DCEVSEChargeParameter(BaseModel):
 
 
 class DHPublicKey(BaseModel):
-    """See section 8.5.2.29 in ISO 15118-2"""
+    """See section 8.5.2.29 in ISO 15118-2
+
+    'Id' is actually an XML attribute, but JSON (our serialisation method)
+    doesn't have attributes. The EXI codec has to en-/decode accordingly.
+    id: str = Field(..., alias="Id")
+    The XSD doesn't explicitly state a Value element for
+    DiffieHellmanPublickeyType but its base XSD type named
+    dHpublickeyType has an XSD element <xs:maxLength value="65"/>. That's why
+    we add this 'value' field
+    """
 
     id: str = Field(..., alias="Id")
     value: bytes = Field(..., max_length=65, alias="value")
