@@ -1,3 +1,10 @@
+"""
+DataTypes for the construction of the XML signature syntax
+Please check:
+https://en.wikipedia.org/wiki/XML_Signature
+https://www.w3.org/TR/xmldsig-core1/
+"""
+
 from typing import List
 
 from pydantic import Field
