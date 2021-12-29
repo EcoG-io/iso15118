@@ -31,7 +31,9 @@ from iso15118.shared.validators import one_field_must_be_set
 
 # https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
 # constrained types
+# Check Annex C.6 or the certificateType in V2G_CI_MsgDataTypes.xsd
 Certificate = conbytes(max_length=800)
+# Check Annex C.6 or the eMAIDType in V2G_CI_MsgDataTypes.xsd
 eMAID = constr(min_length=14, max_length=15)
 
 
