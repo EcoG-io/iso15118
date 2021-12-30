@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Improved secc and evcc configuration handling and updated readme by @tropxy in https://github.com/SwitchEV/iso15118/pull/6
+- Improved SECC and EVCC configuration handling and updated readme by @tropxy in https://github.com/SwitchEV/iso15118/pull/6
 
 ### Changed
 - Updated README.md by @MarcMueltin in https://github.com/SwitchEV/iso15118/pull/1
