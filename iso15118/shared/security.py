@@ -60,7 +60,7 @@ from iso15118.shared.messages.xmldsig import (
     SignatureValue,
     SignedInfo,
     Transform,
-    TransformDetails,
+    Transforms,
 )
 from iso15118.shared.settings import PKI_PATH
 
@@ -688,9 +688,9 @@ def create_signature(
         id_attr, exi_encoded = body_element
         reference = Reference(
             uri="#" + id_attr,
-            transforms=Transform(
-                details=[
-                    TransformDetails(
+            transforms=Transforms(
+                transform=[
+                    Transform(
                         algorithm="http://www.w3.org/TR/canonical-exi/"
                     )
                 ]
