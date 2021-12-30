@@ -14,7 +14,7 @@ element names by using the 'alias' attribute.
 from enum import Enum, IntEnum
 from typing import List, Literal
 
-from pydantic import Field, root_validator, validator, conbytes, constr
+from pydantic import Field, conbytes, constr, root_validator, validator
 
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
@@ -27,7 +27,6 @@ from iso15118.shared.messages.enums import (
 )
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
 from iso15118.shared.validators import one_field_must_be_set
-
 
 # https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
 # constrained types
@@ -457,8 +456,9 @@ class EnergyTransferModeEnum(str, Enum):
 class EnergyTransferModeList(BaseModel):
     """See section 8.5.2.4 in ISO 15118-2"""
 
-    energy_modes: List[EnergyTransferModeEnum] = Field(..., max_items=6,
-                                                       alias="EnergyTransferMode")
+    energy_modes: List[EnergyTransferModeEnum] = Field(
+        ..., max_items=6, alias="EnergyTransferMode"
+    )
 
 
 class ServiceID(IntEnum):
@@ -525,8 +525,9 @@ class ProfileEntryDetails(BaseModel):
 class ChargingProfile(BaseModel):
     """See section 8.5.2.10 in ISO 15118-2"""
 
-    profile_entries: List[ProfileEntryDetails] = Field(..., max_items=24,
-                                                       alias="ProfileEntry")
+    profile_entries: List[ProfileEntryDetails] = Field(
+        ..., max_items=24, alias="ProfileEntry"
+    )
 
 
 class ChargingSession(str, Enum):
@@ -735,9 +736,9 @@ class FaultCode(str, Enum):
 class RootCertificateID(BaseModel):
     """See section 8.5.2.27 in ISO 15118-2"""
 
-    x509_issuer_serial: List[X509IssuerSerial] = Field(...,
-                                                       max_items=20,
-                                                       alias="RootCertificateID")
+    x509_issuer_serial: List[X509IssuerSerial] = Field(
+        ..., max_items=20, alias="RootCertificateID"
+    )
 
 
 class MeterInfo(BaseModel):
@@ -831,7 +832,9 @@ class AuthOptionList(BaseModel):
     about the authorization method than about payment, thus the name AuthOption
     """
 
-    auth_options: List[AuthEnum] = Field(..., min_items=1, max_items=2, alias="PaymentOption")
+    auth_options: List[AuthEnum] = Field(
+        ..., min_items=1, max_items=2, alias="PaymentOption"
+    )
 
 
 class RelativeTimeInterval(BaseModel):
@@ -851,9 +854,9 @@ class PMaxScheduleEntryDetails(BaseModel):
 class PMaxScheduleEntry(BaseModel):
     """See section 8.5.2.14 in ISO 15118-2"""
 
-    entry_details: List[PMaxScheduleEntryDetails] = Field(...,
-                                                          max_items=1024,
-                                                          alias="PMaxScheduleEntry")
+    entry_details: List[PMaxScheduleEntryDetails] = Field(
+        ..., max_items=1024, alias="PMaxScheduleEntry"
+    )
 
 
 class ResponseCode(str, Enum):
@@ -1035,9 +1038,9 @@ class SAScheduleTupleEntry(BaseModel):
 
 
 class SAScheduleList(BaseModel):
-    values: List[SAScheduleTupleEntry] = Field(...,
-                                               max_items=3,
-                                               alias="SAScheduleTuple")
+    values: List[SAScheduleTupleEntry] = Field(
+        ..., max_items=3, alias="SAScheduleTuple"
+    )
 
 
 class EMAID(BaseModel):

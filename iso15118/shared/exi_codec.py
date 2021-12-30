@@ -232,14 +232,16 @@ def from_exi(
     try:
         exi_decoded = exi_codec.decode(exi_message, namespace)
     except Exception as exc:
-        raise EXIDecodingError(f"EXIDecodingError ({exc.__class__.__name__}): "
-                               f"{exc}") from exc
+        raise EXIDecodingError(
+            f"EXIDecodingError ({exc.__class__.__name__}): " f"{exc}"
+        ) from exc
     try:
         decoded_dict = json.loads(exi_decoded, cls=CustomJSONDecoder)
     except json.JSONDecodeError as exc:
         raise EXIDecodingError(
             f"JSON decoding error ({exc.__class__.__name__}) while "
-            f"processing decoded EXI: {exc}") from exc
+            f"processing decoded EXI: {exc}"
+        ) from exc
 
     if MESSAGE_LOG_JSON:
         logger.debug(
@@ -294,7 +296,8 @@ def from_exi(
         raise EXIDecodingError("Can't identify protocol to use for decoding")
     except ValidationError as exc:
         raise EXIDecodingError(
-            f"Error parsing the decoded EXI into a Pydantic class: {exc}. \n\nDecoded dict: " f"{decoded_dict}"
+            f"Error parsing the decoded EXI into a Pydantic class: {exc}. \n\nDecoded dict: "
+            f"{decoded_dict}"
         ) from exc
     except EXIDecodingError as exc:
         raise EXIDecodingError(

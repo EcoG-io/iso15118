@@ -454,8 +454,10 @@ class V2GCommunicationSession(SessionStateMachine):
                 if isinstance(exc, EXIDecodingError):
                     additional_info = f": {exc}"
 
-                stop_reason: str = f"{exc.__class__.__name__} occurred while processing message " \
-                                   f"{message_name} in state {str(self.current_state)}{additional_info}"
+                stop_reason: str = (
+                    f"{exc.__class__.__name__} occurred while processing message "
+                    f"{message_name} in state {str(self.current_state)}{additional_info}"
+                )
 
                 self.stop_reason = StopNotification(
                     False,
@@ -467,8 +469,10 @@ class V2GCommunicationSession(SessionStateMachine):
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
             except (AttributeError, ValueError) as exc:
-                stop_reason: str = f"{exc.__class__.__name__} occurred while processing message in " \
-                                   f"state {str(self.current_state)}: {exc}"
+                stop_reason: str = (
+                    f"{exc.__class__.__name__} occurred while processing message in "
+                    f"state {str(self.current_state)}: {exc}"
+                )
                 self.stop_reason = StopNotification(
                     False,
                     stop_reason,

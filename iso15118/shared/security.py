@@ -43,14 +43,18 @@ from iso15118.shared.exceptions import (
 from iso15118.shared.exi_codec import to_exi
 from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
+    CertificateChain as CertificateChainV2,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import (
     SubCertificates as SubCertificatesV2,
-    CertificateChain as CertificateChainV2
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
-    SubCertificates as SubCertificatesV20,
     CertificateChain as CertificateChainV20,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import SignedCertificateChain
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    SubCertificates as SubCertificatesV20,
+)
 from iso15118.shared.messages.xmldsig import (
     CanonicalizationMethod,
     DigestMethod,
@@ -349,7 +353,9 @@ def load_cert_chain(
     sub_ca1_cert = load_cert(sub_ca1_path) if sub_ca1_path else None
 
     if protocol == Protocol.ISO_15118_2:
-        sub_ca_certs_v2: SubCertificatesV2 = SubCertificatesV2(certificates=[sub_ca2_cert])
+        sub_ca_certs_v2: SubCertificatesV2 = SubCertificatesV2(
+            certificates=[sub_ca2_cert]
+        )
         if sub_ca1_cert:
             sub_ca_certs_v2.certificates.append(sub_ca1_cert)
         return CertificateChainV2(
@@ -357,7 +363,9 @@ def load_cert_chain(
         )
 
     if protocol.ns.startswith(Namespace.ISO_V20_BASE):
-        sub_ca_certs_v20: SubCertificatesV20 = SubCertificatesV20(certificates=[sub_ca2_cert])
+        sub_ca_certs_v20: SubCertificatesV20 = SubCertificatesV20(
+            certificates=[sub_ca2_cert]
+        )
         if sub_ca1_cert:
             sub_ca_certs_v20.certificates.append(sub_ca1_cert)
 
@@ -689,13 +697,8 @@ def create_signature(
         reference = Reference(
             uri="#" + id_attr,
             transforms=Transforms(
-                transform=[
-                    Transform(
-                        algorithm="http://www.w3.org/TR/canonical-exi/"
-                    )
-                ]
-            )
-            ,
+                transform=[Transform(algorithm="http://www.w3.org/TR/canonical-exi/")]
+            ),
             digest_method=DigestMethod(
                 algorithm="http://www.w3.org/2001/04/xmlenc#sha256"
             ),
@@ -1063,6 +1066,8 @@ class CertPath(str, Enum):
     """
     Provides the path to certificates used for Plug & Charge. The encoding
     format is indicated by the latter part of the enum name (_DER or _PEM)
+
+    TODO: Make filepath flexible, so we can choose between -2 and -20 certificates
 
     NOTE: For a productive environment, the access to certificate should be
           managed in a secure way (e.g. through a hardware security module).

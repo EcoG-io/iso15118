@@ -10,9 +10,9 @@ from iso15118.shared.messages.enums import Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
+    ChargingProfile,
     DCEVChargeParameter,
     EnergyTransferModeEnum,
-    ChargingProfile,
     SAScheduleTupleEntry,
 )
 from iso15118.shared.messages.iso15118_20.ac import (

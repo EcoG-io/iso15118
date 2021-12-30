@@ -163,10 +163,7 @@ class ServiceDiscovery(StateEVCC):
             service_discovery_res.charge_service.supported_energy_transfer_mode.energy_modes
         )
 
-        if (
-            self.comm_session.selected_energy_mode
-            not in offered_energy_modes
-        ):
+        if self.comm_session.selected_energy_mode not in offered_energy_modes:
             self.stop_state_machine(
                 f"Offered energy transfer modes "
                 f"{offered_energy_modes} not compatible with "
@@ -282,9 +279,7 @@ class ServiceDiscovery(StateEVCC):
             ):
                 # Make sure to send a ServiceDetailReq for the
                 # Certificate service
-                self.comm_session.service_details_to_request.append(
-                    service.service_id
-                )
+                self.comm_session.service_details_to_request.append(service.service_id)
 
                 # TODO We should actually first ask for the ServiceDetails and
                 #      based on the service parameter list make absolutely sure
@@ -395,8 +390,7 @@ class PaymentServiceSelection(StateEVCC):
                                 x509_issuer_name=issuer, x509_serial_number=serial
                             )
                         ]
-                        )
-                    ,
+                    ),
                 )
 
                 try:

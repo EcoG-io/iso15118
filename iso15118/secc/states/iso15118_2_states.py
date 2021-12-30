@@ -63,26 +63,26 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
     AuthOptionList,
-    SubCertificates,
     CertificateChain,
     ChargeProgress,
     ChargeService,
     ChargingSession,
     DCEVSEChargeParameter,
     DHPublicKey,
-    EnergyTransferModeList,
     EncryptedPrivateKey,
+    EnergyTransferModeList,
     EVSENotification,
     EVSEProcessing,
     Parameter,
     ParameterSet,
     SAScheduleList,
-    ServiceList,
     ServiceCategory,
     ServiceDetails,
     ServiceID,
+    ServiceList,
     ServiceName,
-    ServiceParameterList
+    ServiceParameterList,
+    SubCertificates,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -264,14 +264,18 @@ class ServiceDiscovery(StateSECC):
 
         self.comm_session.offered_auth_options = auth_options
 
-        energy_modes = self.comm_session.evse_controller.get_supported_energy_transfer_modes()
+        energy_modes = (
+            self.comm_session.evse_controller.get_supported_energy_transfer_modes()
+        )
 
         charge_service = ChargeService(
             service_id=ServiceID.CHARGING,
             service_name=ServiceName.CHARGING,
             service_category=ServiceCategory.CHARGING,
             free_service=self.comm_session.config.free_charging_service,
-            supported_energy_transfer_mode=EnergyTransferModeList(energy_modes=energy_modes),
+            supported_energy_transfer_mode=EnergyTransferModeList(
+                energy_modes=energy_modes
+            ),
         )
 
         service_list: List[ServiceDetails] = []
@@ -605,9 +609,9 @@ class CertificateInstallation(StateSECC):
             sub_certificates=SubCertificates(
                 certificates=[
                     load_cert(CertPath.MO_SUB_CA2_DER),
-                    load_cert(CertPath.MO_SUB_CA1_DER)
+                    load_cert(CertPath.MO_SUB_CA1_DER),
                 ]
-            )
+            ),
         )
         encrypted_priv_key = EncryptedPrivateKey(
             id="id2", value=encrypted_priv_key_bytes
@@ -621,7 +625,7 @@ class CertificateInstallation(StateSECC):
             sub_certificates=SubCertificates(
                 certificates=[
                     load_cert(CertPath.CPS_SUB_CA2_DER),
-                    load_cert(CertPath.CPS_SUB_CA1_DER)
+                    load_cert(CertPath.CPS_SUB_CA1_DER),
                 ]
             ),
         )
@@ -639,7 +643,7 @@ class CertificateInstallation(StateSECC):
             # Elements to sign, containing its id and the exi encoded stream
             contract_cert_tuple = (
                 contract_cert_chain.id,
-                to_exi(contract_cert_chain, Namespace.ISO_V2_MSG_DEF)
+                to_exi(contract_cert_chain, Namespace.ISO_V2_MSG_DEF),
             )
             encrypted_priv_key_tuple = (
                 encrypted_priv_key.id,
@@ -647,12 +651,16 @@ class CertificateInstallation(StateSECC):
             )
             dh_public_key_tuple = (
                 dh_public_key.id,
-                to_exi(dh_public_key, Namespace.ISO_V2_MSG_DEF)
+                to_exi(dh_public_key, Namespace.ISO_V2_MSG_DEF),
             )
             emaid_tuple = (emaid.id, to_exi(emaid, Namespace.ISO_V2_MSG_DEF))
 
-            elements_to_sign = [contract_cert_tuple, encrypted_priv_key_tuple,
-                                dh_public_key_tuple, emaid_tuple]
+            elements_to_sign = [
+                contract_cert_tuple,
+                encrypted_priv_key_tuple,
+                dh_public_key_tuple,
+                emaid_tuple,
+            ]
             # The private key to be used for the signature
             signature_key = load_priv_key(KeyPath.CPS_LEAF_PEM, KeyEncoding.PEM)
 

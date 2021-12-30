@@ -19,7 +19,6 @@ from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import AuthEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
     EMAID,
-    eMAID,
     ACEVChargeParameter,
     ACEVSEChargeParameter,
     ACEVSEStatus,
@@ -27,6 +26,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain,
     ChargeProgress,
     ChargeService,
+    ChargingProfile,
     ChargingSession,
     DCEVChargeParameter,
     DCEVPowerDeliveryParameter,
@@ -38,7 +38,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     EnergyTransferModeEnum,
     EVSEProcessing,
     MeterInfo,
-    ChargingProfile,
     PVEVMaxCurrentLimit,
     PVEVMaxPowerLimit,
     PVEVMaxVoltageLimit,
@@ -56,9 +55,10 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     RootCertificateID,
     SAScheduleList,
     SelectedServiceList,
-    ServiceList,
     ServiceCategory,
+    ServiceList,
     ServiceParameterList,
+    eMAID,
 )
 from iso15118.shared.validators import one_field_must_be_set
 
@@ -172,8 +172,9 @@ class CertificateUpdateReq(BodyBase):
         ..., alias="ContractSignatureCertChain"
     )
     emaid: EMAID = Field(..., alias="eMAID")
-    list_of_root_cert_ids: RootCertificateID = Field(...,
-                                                     alias="ListOfRootCertificateIDs")
+    list_of_root_cert_ids: RootCertificateID = Field(
+        ..., alias="ListOfRootCertificateIDs"
+    )
 
 
 class CertificateUpdateRes(Response):
@@ -564,7 +565,7 @@ class ServiceDiscoveryReq(BodyBase):
 class ServiceDiscoveryRes(Response):
     """See section 8.4.3.3.3 in ISO 15118-2"""
 
-    auth_option_list: AuthOptionList = Field(...,  alias="PaymentOptionList")
+    auth_option_list: AuthOptionList = Field(..., alias="PaymentOptionList")
     charge_service: ChargeService = Field(..., alias="ChargeService")
     service_list: ServiceList = Field(None, alias="ServiceList")
 

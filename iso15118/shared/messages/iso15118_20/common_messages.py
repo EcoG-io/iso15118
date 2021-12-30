@@ -14,7 +14,7 @@ element names by using the 'alias' attribute.
 from enum import Enum
 from typing import List
 
-from pydantic import Field, root_validator, validator, conbytes, constr
+from pydantic import Field, conbytes, constr, root_validator, validator
 
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import AuthEnum
@@ -30,7 +30,6 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     V2GResponse,
 )
 from iso15118.shared.validators import one_field_must_be_set
-
 
 # https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
 # constrained types
@@ -54,6 +53,7 @@ class ECDHCurve(str, Enum):
 #       class EMAIDList(BaseModel):
 #           """See Annex C.1 in ISO 15118-20"""
 #           emaids: List[IdentifierType] = Field(..., max_items=8, alias="EMAID")
+
 
 class EMAID(BaseModel):
     """See Annex C.1 in ISO 15118-20"""
@@ -1018,8 +1018,7 @@ class CertificateInstallationReq(V2GRequest):
         ..., alias="OEMProvisioningCertificateChain"
     )
     list_of_root_cert_ids: RootCertificateID = Field(
-        ...,
-        alias="ListOfRootCertificateIDs"
+        ..., alias="ListOfRootCertificateIDs"
     )
     # XSD type unsignedShort (16 bit integer) with value range [0..65535]
     max_contract_cert_chains: int = Field(
