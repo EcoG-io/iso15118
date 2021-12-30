@@ -14,7 +14,7 @@ element names by using the 'alias' attribute.
 from enum import Enum
 from typing import List
 
-from pydantic import Field, root_validator, validator
+from pydantic import Field, root_validator, validator, conbytes, constr
 
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import AuthEnum
@@ -32,6 +32,14 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 from iso15118.shared.validators import one_field_must_be_set
 
 
+# https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
+# constrained types
+# Check Annex C.1 or V2G_CI_CommonTypes.xsd
+CertificateType = conbytes(max_length=1600)
+# Check Annex C.1 or V2G_CI_CommonTypes.xsd
+IdentifierType = constr(max_length=255)
+
+
 class ECDHCurve(str, Enum):
     """
     See section 8.3.5.3.39 in ISO 15118-20.
@@ -42,16 +50,21 @@ class ECDHCurve(str, Enum):
     x448 = "X448"
 
 
+# TODO: I believe this should be
+#       class EMAIDList(BaseModel):
+#           """See Annex C.1 in ISO 15118-20"""
+#           emaids: List[IdentifierType] = Field(..., max_items=8, alias="EMAID")
+
 class EMAID(BaseModel):
     """See Annex C.1 in ISO 15118-20"""
 
     emaid: str = Field(..., max_length=255, alias="EMAID")
 
 
-class Certificate(BaseModel):
-    """A DER encoded X.509 certificate"""
+class SubCertificates(BaseModel):
+    """See Annex C.1 or V2G_CI_CommonTypes.xsd in ISO 15118-20"""
 
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
+    certificates: List[CertificateType] = Field(..., max_items=3, alias="Certificate")
 
 
 class CertificateChain(BaseModel):
@@ -59,8 +72,8 @@ class CertificateChain(BaseModel):
 
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
-    sub_certificates: List[Certificate] = Field(None, alias="SubCertificates")
+    certificate: CertificateType = Field(..., alias="Certificate")
+    sub_certificates: SubCertificates = Field(None, alias="SubCertificates")
 
 
 class SignedCertificateChain(BaseModel):
@@ -71,8 +84,8 @@ class SignedCertificateChain(BaseModel):
     id: str = Field(..., max_length=255, alias="Id")
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
-    sub_certificates: List[Certificate] = Field(None, alias="SubCertificates")
+    certificate: CertificateType = Field(..., alias="Certificate")
+    sub_certificates: SubCertificates = Field(None, alias="SubCertificates")
 
     def __str__(self):
         return type(self).__name__
@@ -83,8 +96,8 @@ class ContractCertificateChain(BaseModel):
 
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
-    sub_certificates: List[Certificate] = Field(..., alias="SubCertificates")
+    certificate: CertificateType = Field(..., alias="Certificate")
+    sub_certificates: SubCertificates = Field(..., alias="SubCertificates")
 
 
 class SessionSetupReq(V2GRequest):
@@ -1012,6 +1025,8 @@ class CertificateInstallationReq(V2GRequest):
     max_contract_cert_chains: int = Field(
         ..., ge=0, le=65535, alias="MaximumContractCertificateChains"
     )
+    # TODO: I believe this should be
+    #       prioritized_emaids: EMAIDList = Field(None, alias="PrioritizedEMAIDs")
     prioritized_emaids: List[EMAID] = Field(
         None, max_items=8, alias="PrioritizedEMAIDs"
     )
