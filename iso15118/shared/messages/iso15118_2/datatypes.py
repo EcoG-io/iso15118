@@ -17,8 +17,14 @@ from typing import List, Literal
 from pydantic import Field, root_validator, validator
 
 from iso15118.shared.messages import BaseModel
-from iso15118.shared.messages.enums import (UINT_32_MAX, INT_16_MAX, INT_16_MIN,
-                                            INT_8_MAX, INT_8_MIN, AuthEnum)
+from iso15118.shared.messages.enums import (
+    INT_8_MAX,
+    INT_8_MIN,
+    INT_16_MAX,
+    INT_16_MIN,
+    UINT_32_MAX,
+    AuthEnum,
+)
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
 from iso15118.shared.validators import one_field_must_be_set
 
@@ -52,6 +58,7 @@ class PhysicalValue(BaseModel):
     The minimum limit is fixed to 0, as in ISO 15118-2 there are no PhysicalValues
     that can go below that value.
     """
+
     _max_limit: int = 0
     # XSD int16 range [-32768, 32767]
     value: int = Field(..., ge=INT_16_MIN, le=INT_16_MAX, alias="Value")
@@ -71,9 +78,10 @@ class PhysicalValue(BaseModel):
         calculated_value = value * 10 ** multiplier
         if calculated_value > cls._max_limit or calculated_value < 0:
             raise ValueError(
-                f'{cls.__name__[2:]} value limit exceeded: {calculated_value} \n'
-                f'Max: {cls._max_limit} \n'
-                f'Min: 0')
+                f"{cls.__name__[2:]} value limit exceeded: {calculated_value} \n"
+                f"Max: {cls._max_limit} \n"
+                f"Min: 0"
+            )
         return values
 
 
@@ -86,6 +94,7 @@ class PVChargingProfileEntryMaxPower(PhysicalValue):
     Therefore, you'll have to use the multiplier to reach the max value
     (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
+
     _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
@@ -99,19 +108,21 @@ class PVEAmount(PhysicalValue):
     Therefore, you'll have to use the multiplier to reach the max value
     (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
+
     _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
 
 
 class PVEVEnergyCapacity(PhysicalValue):
     """
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
+     See Table 68 in section 8.5.2.7 in ISO 15118-2
 
-    Value is of XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 200000 for EVEnergyCapacity.
-   Therefore, you'll have to use the multiplier to reach the max value
-    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
+     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
+     But Table 68 shows a max value of 200000 for EVEnergyCapacity.
+    Therefore, you'll have to use the multiplier to reach the max value
+     (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
+
     _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
 
@@ -125,6 +136,7 @@ class PVEVEnergyRequest(PhysicalValue):
     Therefore, you'll have to use the multiplier to reach the max value
     (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
+
     _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
 
@@ -133,6 +145,7 @@ class PVEVMaxCurrent(PhysicalValue):
     """
     See Table 68 in section 8.5.2.7 in ISO 15118-2
     """
+
     _max_limit: int = 400
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
@@ -153,6 +166,7 @@ class PVEVMaxPowerLimit(PhysicalValue):
     Therefore, you'll have to use the multiplier to reach the max value
     (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
+
     _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
@@ -222,6 +236,7 @@ class PVEVSEMaxPowerLimit(PhysicalValue):
     Therefore, you'll have to use the multiplier to reach the max value
     (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
     """
+
     _max_limit: int = 200000
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 

@@ -3,7 +3,7 @@ import logging
 import socket
 import struct
 from asyncio import DatagramProtocol, DatagramTransport
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.messages.v2gtp import V2GTPMessage
@@ -41,7 +41,7 @@ class UDPClient(DatagramProtocol):
         self.iface = iface
 
     @staticmethod
-    def _create_socket(iface: str) -> 'socket':
+    def _create_socket(iface: str) -> "socket":
         """
         This method creates an IPv6 socket configured to send multicast datagrams
         """

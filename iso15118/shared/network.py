@@ -7,9 +7,11 @@ from typing import Tuple, Union
 
 import psutil
 
-from iso15118.shared.exceptions import (MACAddressNotFound,
-                                        NoLinkLocalAddressError,
-                                        InvalidInterfaceError)
+from iso15118.shared.exceptions import (
+    InvalidInterfaceError,
+    MACAddressNotFound,
+    NoLinkLocalAddressError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +48,8 @@ def _get_link_local_addr(nic: str) -> Union[IPv6Address, None]:
             return IPv6Address(address)
 
     raise NoLinkLocalAddressError(
-        f"No link-local address was found for interface {nic}")
+        f"No link-local address was found for interface {nic}"
+    )
 
 
 async def _get_full_ipv6_address(host: str, port: int) -> Tuple[str, int, int, int]:
@@ -120,14 +123,12 @@ def validate_nic(nic: str) -> None:
             f"No interface {nic} with this name was found"
         ) from exc
     except NoLinkLocalAddressError as exc:
-        raise InvalidInterfaceError(f"Interface {nic} has no link-local address "
-                                    f"associated with it") from exc
+        raise InvalidInterfaceError(
+            f"Interface {nic} has no link-local address " f"associated with it"
+        ) from exc
 
 
-async def get_link_local_full_addr(
-        port: int,
-        nic: str
-) -> Tuple[str, int, int, int]:
+async def get_link_local_full_addr(port: int, nic: str) -> Tuple[str, int, int, int]:
     """
     Provides the full IPv6 link-local address for the network interface card
     (NIC) specified. The full address contains the entire socket address, for example,

@@ -15,8 +15,8 @@ from typing import List, Optional, Tuple, Union
 
 from pydantic.error_wrappers import ValidationError
 
-from iso15118.evcc.evcc_settings import Config
 from iso15118.evcc.controller.interface import EVControllerInterface
+from iso15118.evcc.evcc_settings import Config
 from iso15118.evcc.transport.tcp_client import TCPClient
 from iso15118.evcc.transport.udp_client import UDPClient
 from iso15118.shared.comm_session import V2GCommunicationSession
@@ -62,7 +62,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         self,
         transport: Tuple[StreamReader, StreamWriter],
         session_handler_queue: asyncio.Queue,
-        config: Config
+        config: Config,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -357,8 +357,9 @@ class CommunicationSessionHandler:
             return
 
         comm_session = EVCCCommunicationSession(
-            (self.tcp_client.reader, self.tcp_client.writer), self._rcv_queue,
-            self.config
+            (self.tcp_client.reader, self.tcp_client.writer),
+            self._rcv_queue,
+            self.config,
         )
 
         try:

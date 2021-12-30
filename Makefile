@@ -25,6 +25,8 @@ help:
 	@echo "  mypy                             installs the dependencies in the env"
 	@echo "  code-quality                     runs mypy, flake8, black and reformats the code"
 	@echo "  tests                            run all the tests, locally"
+	@echo "  release version=<mj.mn.p>        bumps the project version to <mj.mn.p>, using poetry;"
+	@echo "                                   If no version is provided, poetry outputs the current project version"
 	@echo ""
 	@echo "Check the Makefile to know exactly what each target is doing."
 
@@ -46,14 +48,14 @@ tests: .install-poetry
 	cd iso15118/shared/pki; ./create_certs.sh -v iso-20
 
 build: .generate_v2_certs
-	# `xargs` will copy the Dockerfile template, so that it can be individually
-	# used by the secc and evcc services
-	xargs -n 1 cp -v template.Dockerfile<<<"iso15118/evcc/Dockerfile iso15118/secc/Dockerfile"
-	# The following command will convert: 's/secc/secc/g' -> 's/secc/evcc/g',
-	# in the evcc Dockerfile.
-	# This conversion is required, otherwise we wouldn't be able to spawn the evcc start script.
-	# @ is used as a separator and allows us to escape '/', so we can substitute the '/' itself
-	sed -i.bkp 's@/secc/g@/evcc/g@g' iso15118/evcc/Dockerfile
+	@# `xargs` will copy the Dockerfile template, so that it can be individually
+	@# used by the secc and evcc services
+	@xargs -n 1 cp -v template.Dockerfile<<<"iso15118/evcc/Dockerfile iso15118/secc/Dockerfile"
+	@# The following command will convert: 's/secc/secc/g' -> 's/secc/evcc/g',
+	@# in the evcc Dockerfile.
+	@# This conversion is required, otherwise we wouldn't be able to spawn the evcc start script.
+	@# @ is used as a separator and allows us to escape '/', so we can substitute the '/' itself
+	@sed -i.bkp 's@/secc/g@/evcc/g@g' iso15118/evcc/Dockerfile
 	docker-compose build
 
 dev:
@@ -89,3 +91,7 @@ flake8:
 	flake8 --config ../.flake8 iso15118 tests
 
 code-quality: reformat mypy black flake8
+
+release: .install-poetry
+	@echo "Please remember to update the CHANGELOG.md, before tagging the release"
+	@poetry version ${version}

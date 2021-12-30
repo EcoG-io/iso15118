@@ -1,4 +1,5 @@
 import os
+
 import environs
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -17,5 +18,3 @@ MESSAGE_LOG_JSON = env.bool("MESSAGE_LOG_JSON", default=True)
 MESSAGE_LOG_EXI = env.bool("MESSAGE_LOG_EXI", default=False)
 
 env.seal()  # raise all errors at once, if any
-
-

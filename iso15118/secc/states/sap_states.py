@@ -58,7 +58,8 @@ class SupportedAppProtocol(StateSECC):
         sap_req.app_protocol.sort(key=lambda proto: proto.priority)
         sap_res: Union[SupportedAppProtocolRes, None] = None
         supported_ns_list = [
-            protocol.ns.value for protocol in self.comm_session.config.supported_protocols
+            protocol.ns.value
+            for protocol in self.comm_session.config.supported_protocols
         ]
         next_state: Type[State] = Terminate  # some default that is not None
 

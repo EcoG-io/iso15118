@@ -3,7 +3,7 @@ import logging
 import socket
 import struct
 from asyncio import DatagramTransport
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT
@@ -41,7 +41,7 @@ class UDPServer(asyncio.DatagramProtocol):
         self._transport: Optional[DatagramTransport] = None
 
     @staticmethod
-    def _create_socket(iface: str) -> 'socket':
+    def _create_socket(iface: str) -> "socket":
         """
         This method is necessary because Python does not allow
         async def __init__.
@@ -73,10 +73,9 @@ class UDPServer(asyncio.DatagramProtocol):
         multicast_group_bin = socket.inet_pton(socket.AF_INET6, SDP_MULTICAST_GROUP)
 
         interface_idx = socket.if_nametoindex(iface)
-        join_multicast_group_req = (
-            multicast_group_bin
-            + struct.pack("@I", interface_idx)  # address + interface
-        )
+        join_multicast_group_req = multicast_group_bin + struct.pack(
+            "@I", interface_idx
+        )  # address + interface
         sock.setsockopt(
             socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, join_multicast_group_req
         )

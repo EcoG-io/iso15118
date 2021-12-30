@@ -26,11 +26,11 @@ class TCPClient(asyncio.Protocol):
 
     @staticmethod
     async def create(
-            host: IPv6Address,
-            port: int,
-            session_handler_queue: asyncio.Queue,
-            is_tls: bool,
-            iface: str
+        host: IPv6Address,
+        port: int,
+        session_handler_queue: asyncio.Queue,
+        is_tls: bool,
+        iface: str,
     ) -> "TCPClient":
         """
         TCPClient setup

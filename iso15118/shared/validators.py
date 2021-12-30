@@ -57,7 +57,7 @@ def one_field_must_be_set(
     """
     set_fields: List = []
     for field_name in field_options:
-        field = values.get(f"{field_name}")
+        field = values.get(field_name)
         if field:
             set_fields.append(field)
 

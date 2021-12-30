@@ -1,0 +1,29 @@
+name: PR Python 🐍 to Switch Repo
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  code-quality-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Set up Python 3.10.0
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10.0
+
+    - name: Setup the Python Environment by installing Poetry
+      uses: ./.github/actions/setup-python-build-env
+
+    - name: Create env file
+      run: |
+        cp .env.dev.local .env
+
+    - name: Code Quality Check
+      shell: bash
+      run: |
+        cp template.Dockerfile iso15118/secc/Dockerfile
+        docker-compose build secc

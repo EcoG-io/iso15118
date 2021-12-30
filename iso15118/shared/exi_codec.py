@@ -6,7 +6,6 @@ from typing import Union
 
 from pydantic import ValidationError
 
-from iso15118.shared.settings import MESSAGE_LOG_JSON, MESSAGE_LOG_EXI
 from iso15118.shared.exceptions import EXIDecodingError, EXIEncodingError
 from iso15118.shared.exificient_wrapper import ExiCodec
 from iso15118.shared.messages import BaseModel
@@ -34,6 +33,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
 from iso15118.shared.messages.xmldsig import SignedInfo
+from iso15118.shared.settings import MESSAGE_LOG_EXI, MESSAGE_LOG_JSON
 
 logger = logging.getLogger(__name__)
 exi_codec = ExiCodec()
