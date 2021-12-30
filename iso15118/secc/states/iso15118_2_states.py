@@ -994,10 +994,11 @@ class ChargeParameterDiscovery(StateSECC):
                     try:
                         element_to_sign = (
                             schedule.sales_tariff.id,
-                            to_exi(schedule.sales_tariff, Namespace.ISO_V2_MSG_DEF)
+                            to_exi(schedule.sales_tariff, Namespace.ISO_V2_MSG_DEF),
                         )
-                        signature_key = load_priv_key(KeyPath.MO_SUB_CA2_PEM,
-                                                      KeyEncoding.PEM)
+                        signature_key = load_priv_key(
+                            KeyPath.MO_SUB_CA2_PEM, KeyEncoding.PEM
+                        )
                         signature = create_signature([element_to_sign], signature_key)
                     except PrivateKeyReadError as exc:
                         logger.warning(
