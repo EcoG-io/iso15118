@@ -4,7 +4,7 @@ This module contains the abstract class for an EVCC to retrieve data from the EV
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from iso15118.shared.messages.datatypes import (
     DCEVChargeParams,
@@ -31,11 +31,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     SAScheduleTuple,
     ProfileEntry,
 )
-from iso15118.shared.messages.iso15118_20.ac import (
-    ACChargeParameterDiscoveryReqParams,
-    BPTACChargeParameterDiscoveryReqParams,
-)
-from iso15118.shared.messages.iso15118_20.common_messages import EMAIDList
 from iso15118.shared.messages.enums import Protocol, ServiceV20
 
 from iso15118.shared.messages.iso15118_20.ac import (
@@ -43,7 +38,7 @@ from iso15118.shared.messages.iso15118_20.ac import (
     BPTACChargeParameterDiscoveryReqParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
-    EMAID,
+    EMAIDList,
     ParameterSet as ParameterSetV20,
     ScheduledScheduleExchangeReqParams,
     DynamicScheduleExchangeReqParams,
@@ -305,7 +300,7 @@ class EVControllerInterface(ABC):
 
     @abstractmethod
     def process_sa_schedules(
-        self, sa_schedules: List[SAScheduleTupleEntry]
+        self, sa_schedules: List[SAScheduleTuple]
     ) -> Tuple[ChargeProgress, int, ChargingProfile]:
         """
         Processes the SAScheduleList provided with the ChargeParameterDiscoveryRes

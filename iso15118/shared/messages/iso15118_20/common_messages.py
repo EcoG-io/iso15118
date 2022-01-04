@@ -40,6 +40,8 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     NumericID,
     Name,
     Description,
+    Identifier,
+    Certificate,
 )
 from iso15118.shared.validators import one_field_must_be_set
 
@@ -54,24 +56,16 @@ class ECDHCurve(str, Enum):
     x448 = "X448"
 
 
-class EMAID(BaseModel):
+class EMAIDList(BaseModel):
     """See Annex C.1 in ISO 15118-20"""
 
-    emaid: str = Field(..., max_length=255, alias="EMAID")
-
-
-class Certificate(BaseModel):
-    """A DER encoded X.509 certificate"""
-
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
+    emaids: List[Identifier] = Field(..., max_items=8, alias="EMAID")
 
 
 class SubCertificates(BaseModel):
     """A list of DER encoded X.509 certificates"""
 
-    certificate: List[bytes] = Field(
-        ..., max_length=1600, max_items=3, alias="Certificate"
-    )
+    certificates: List[Certificate] = Field(..., max_items=3, alias="Certificate")
 
 
 class CertificateChain(BaseModel):
@@ -1101,9 +1095,7 @@ class CertificateInstallationReq(V2GRequest):
     max_contract_cert_chains: int = Field(
         ..., ge=0, le=UINT_16_MAX, alias="MaximumContractCertificateChains"
     )
-    prioritized_emaids: List[EMAID] = Field(
-        None, max_items=8, alias="PrioritizedEMAIDs"
-    )
+    prioritized_emaids: EMAIDList = Field(None, alias="PrioritizedEMAIDs")
 
 
 class SignedInstallationData(BaseModel):

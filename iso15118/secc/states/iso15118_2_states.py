@@ -1129,7 +1129,7 @@ class PowerDelivery(StateSECC):
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
 
         if power_delivery_req.sa_schedule_tuple_id not in [
-            schedule.sa_schedule_tuple_id
+            schedule.tuple_id
             for schedule in self.comm_session.offered_schedules
         ]:
             self.stop_state_machine(

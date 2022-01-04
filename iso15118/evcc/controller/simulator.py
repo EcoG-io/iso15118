@@ -4,7 +4,7 @@ retrieve data from the EV. The DummyEVController overrides all abstract methods 
 EVControllerInterface.
 """
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
@@ -69,7 +69,7 @@ from iso15118.shared.messages.iso15118_20.ac import (
     BPTACChargeParameterDiscoveryReqParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
-    EMAID,
+    EMAIDList,
     ParameterSet as ParameterSetV20,
     ScheduledScheduleExchangeReqParams,
     DynamicScheduleExchangeReqParams,
@@ -130,7 +130,6 @@ class SimEVController(EVControllerInterface):
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
 
-    def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
 
@@ -383,7 +382,7 @@ class SimEVController(EVControllerInterface):
         return schedule.sa_schedule_tuple_id
 
     def process_sa_schedules(
-        self, sa_schedules: List[SAScheduleTupleEntry]
+        self, sa_schedules: List[SAScheduleTuple]
     ) -> Tuple[ChargeProgress, int, ChargingProfile]:
         """Overrides EVControllerInterface.process_sa_schedules()."""
         secc_schedule = sa_schedules.pop()

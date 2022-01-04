@@ -40,9 +40,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
-    SAScheduleTupleEntry,
+    SAScheduleTuple,
     ServiceDetails,
-    Service,
 )
 from iso15118.shared.messages.sdp import SDPRequest, Security, create_sdp_response
 from iso15118.shared.messages.timeouts import Timeouts
@@ -97,7 +96,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         self.evcc_id: Union[bytes, str, None] = None
         # The list of offered charging schedules, sent to the EVCC via the
         # ChargeParameterDiscoveryRes message
-        self.offered_schedules: List[SAScheduleTupleEntry] = []
+        self.offered_schedules: List[SAScheduleTuple] = []
         # Whether or not the SECC received a PowerDeliveryReq with
         # ChargeProgress set to 'Start'
         self.charge_progress_started: bool = False

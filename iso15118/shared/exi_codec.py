@@ -1,10 +1,8 @@
-import base64
 import json
 import logging
 
-from json import JSONDecodeError
-from typing import Union, List
-
+from typing import Union
+from base64 import b64decode, b64encode
 from pydantic import ValidationError
 
 from iso15118.shared.exceptions import EXIDecodingError, EXIEncodingError

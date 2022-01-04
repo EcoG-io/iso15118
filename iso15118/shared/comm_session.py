@@ -306,9 +306,9 @@ class V2GCommunicationSession(SessionStateMachine):
         self.service_renegotiation_supported: bool = False
         # The services which the SECC offers (ISO 15118-20)
         self.offered_services_v20: List[OfferedServiceV20] = []
-        # The value-added services which the EVCC selected (ISO 15118-20)
+        # The value-added services the EVCC selected (ISO 15118-20)
         self.selected_vas_list_v20: List[SelectedVAS] = []
-        # The value-added services which the EVCC selected (ISO 15118-2)
+        # The charge service and value-added services the EVCC selected (ISO 15118-2)
         self.selected_services: List[SelectedServiceV2_DIN] = []
         # The energy service the EVCC selected (ISO 15118-20)
         self.selected_energy_service: Optional[SelectedEnergyService] = None

@@ -748,7 +748,7 @@ class ChargeParameterDiscovery(StateEVCC):
                 schedule_id,
                 charging_profile,
             ) = self.comm_session.ev_controller.process_sa_schedules(
-                charge_params_res.sa_schedule_list.values
+                charge_params_res.sa_schedule_list.schedule_tuples
             )
 
             if self.comm_session.selected_charging_type_is_ac:
