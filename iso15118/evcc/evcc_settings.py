@@ -27,7 +27,7 @@ class Config:
     enforce_tls: bool = False
     supported_protocols: Optional[List[Protocol]] = None
     max_supporting_points: Optional[int] = None
-    
+
     def load_envs(self, env_path: Optional[str] = None) -> None:
         """
         Tries to load the .env file containing all the project settings.

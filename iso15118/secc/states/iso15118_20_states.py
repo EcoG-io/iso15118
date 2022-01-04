@@ -211,8 +211,7 @@ class AuthorizationSetup(StateSECC):
             self.comm_session.gen_challenge = get_random_bytes(16)
             pnc_as_res = PnCAuthSetupResParams(
                 gen_challenge=self.comm_session.gen_challenge,
-                supported_providers=
-                self.comm_session.evse_controller.get_supported_providers(),
+                supported_providers=self.comm_session.evse_controller.get_supported_providers(),
             )
         # TODO [V2G20-2096], [V2G20-2570]
 
@@ -455,8 +454,7 @@ class ServiceDiscovery(StateSECC):
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            service_renegotiation_supported=
-            self.comm_session.evse_controller.service_renegotiation_supported(),
+            service_renegotiation_supported=self.comm_session.evse_controller.service_renegotiation_supported(),
             energy_service_list=offered_energy_services,
             vas_list=offered_vas,
         )

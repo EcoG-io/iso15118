@@ -221,9 +221,7 @@ def to_exi(msg_element: BaseModel, protocol_ns: str) -> bytes:
 
     if MESSAGE_LOG_EXI:
         logger.debug(f"EXI-encoded message: \n{exi_stream.hex()}")
-        logger.debug(
-            "EXI-encoded message (Base64):" f"\n{b64encode(exi_stream).hex()}"
-        )
+        logger.debug("EXI-encoded message (Base64):" f"\n{b64encode(exi_stream).hex()}")
 
     return exi_stream
 

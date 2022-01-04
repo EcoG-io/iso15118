@@ -16,7 +16,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     PVEVSEPresentCurrent,
     PVEVSEPresentVoltage,
     SAScheduleTuple,
-    MeterInfo as MeterInfoV2
+    MeterInfo as MeterInfoV2,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryResParams,
@@ -174,9 +174,7 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     def get_sa_schedule_list(
-        self,
-        max_schedule_entries: Optional[int],
-        departure_time: int = 0
+        self, max_schedule_entries: Optional[int], departure_time: int = 0
     ) -> Optional[List[SAScheduleTuple]]:
         """
         Requests the charging schedule from a secondary actor (SA) like a
