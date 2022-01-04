@@ -19,7 +19,7 @@ from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
     BPTACChargeParameterDiscoveryReqParams,
 )
-from iso15118.shared.messages.iso15118_20.common_messages import EMAID
+from iso15118.shared.messages.iso15118_20.common_messages import EMAIDList
 
 
 @dataclass
@@ -183,7 +183,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_prioritised_emaids(self) -> Optional[List[EMAID]]:
+    def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         """
         Indicates the list of EMAIDs (E-Mobility Account IDs) referencing contract
         certificates that shall be installed into the EV. The EMAIDs are given in

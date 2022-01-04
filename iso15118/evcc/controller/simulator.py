@@ -27,7 +27,7 @@ from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
     BPTACChargeParameterDiscoveryReqParams,
 )
-from iso15118.shared.messages.iso15118_20.common_messages import EMAID
+from iso15118.shared.messages.iso15118_20.common_messages import EMAIDList
 from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
 from iso15118.shared.network import get_nic_mac_address
 
@@ -172,5 +172,5 @@ class SimEVController(EVControllerInterface):
         # TODO Need to store the contract cert and private key
         pass
 
-    def get_prioritised_emaids(self) -> Optional[List[EMAID]]:
+    def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         return None
