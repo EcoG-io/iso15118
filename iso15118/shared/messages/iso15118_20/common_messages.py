@@ -20,6 +20,7 @@ from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import AuthEnum
 from iso15118.shared.messages.iso15118_20.common_types import (
     UINT_32_MAX,
+    Certificate,
     EVSEStatus,
     MeterInfo,
     Processing,
@@ -30,13 +31,6 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     V2GResponse,
 )
 from iso15118.shared.validators import one_field_must_be_set
-
-# https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
-# constrained types
-# Check Annex C.1 or V2G_CI_CommonTypes.xsd
-CertificateType = conbytes(max_length=1600)
-# Check Annex C.1 or V2G_CI_CommonTypes.xsd
-IdentifierType = constr(max_length=255)
 
 
 class ECDHCurve(str, Enum):
@@ -52,7 +46,7 @@ class ECDHCurve(str, Enum):
 # TODO: I believe this should be
 #       class EMAIDList(BaseModel):
 #           """See Annex C.1 in ISO 15118-20"""
-#           emaids: List[IdentifierType] = Field(..., max_items=8, alias="EMAID")
+#           emaids: List[Identifier] = Field(..., max_items=8, alias="EMAID")
 
 
 class EMAID(BaseModel):
@@ -64,7 +58,7 @@ class EMAID(BaseModel):
 class SubCertificates(BaseModel):
     """See Annex C.1 or V2G_CI_CommonTypes.xsd in ISO 15118-20"""
 
-    certificates: List[CertificateType] = Field(..., max_items=3, alias="Certificate")
+    certificates: List[Certificate] = Field(..., max_items=3, alias="Certificate")
 
 
 class CertificateChain(BaseModel):
@@ -72,7 +66,7 @@ class CertificateChain(BaseModel):
 
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: CertificateType = Field(..., alias="Certificate")
+    certificate: Certificate = Field(..., alias="Certificate")
     sub_certificates: SubCertificates = Field(None, alias="SubCertificates")
 
 
@@ -84,7 +78,7 @@ class SignedCertificateChain(BaseModel):
     id: str = Field(..., max_length=255, alias="Id")
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: CertificateType = Field(..., alias="Certificate")
+    certificate: Certificate = Field(..., alias="Certificate")
     sub_certificates: SubCertificates = Field(None, alias="SubCertificates")
 
     def __str__(self):
@@ -96,7 +90,7 @@ class ContractCertificateChain(BaseModel):
 
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: CertificateType = Field(..., alias="Certificate")
+    certificate: Certificate = Field(..., alias="Certificate")
     sub_certificates: SubCertificates = Field(..., alias="SubCertificates")
 
 

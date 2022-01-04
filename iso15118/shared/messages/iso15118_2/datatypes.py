@@ -414,13 +414,13 @@ class ACEVSEChargeParameter(BaseModel):
 class SubCertificates(BaseModel):
     """See sections 8.5.2.5 and 8.5.2.26 in ISO 15118-2
 
-    According with the schemas, SubCertificates can contain up to 4 certificates.
-    However, according with requirement [V2G2-656]:
+    According to the schemas, SubCertificates can contain up to 4 certificates.
+    However, according to requirement [V2G2-656]:
      `The number of Certificates in the SubCertificates shall not exceed 2`
-    TODO: Check with Marc
+    So, we set it here to 2, the max number of certificates allowed.
     """
 
-    certificates: List[Certificate] = Field(..., max_items=4, alias="Certificate")
+    certificates: List[Certificate] = Field(..., max_items=2, alias="Certificate")
 
 
 class CertificateChain(BaseModel):
