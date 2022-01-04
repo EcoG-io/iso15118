@@ -5,9 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2022-01-04
 ### Added
 - Improved SECC and EVCC configuration handling and updated readme by @tropxy in https://github.com/SwitchEV/iso15118/pull/6
-
+- Github actions workflow and reformat of the code by @tropxy in https://github.com/SwitchEV/iso15118/pull/8
 ### Changed
 - Updated README.md by @MarcMueltin in https://github.com/SwitchEV/iso15118/pull/1
 - Simplification of the Authorization process_message method by @tropxy in https://github.com/SwitchEV/iso15118/pull/5
@@ -18,9 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed compatibility with linux by @tropxy in https://github.com/SwitchEV/iso15118/pull/2
 - Fixed 1090 physical types validation error by @tropxy in https://github.com/SwitchEV/iso15118/pull/7
+- Fix of the several messages that misused the List type by @tropxy in https://github.com/SwitchEV/iso15118/pull/4
 
 
 
-## [0.1.0] - 2021-11-20
+## N/A - 2021-11-20
 
-- Initial release.
+- Repository transfer from Josev to this one
