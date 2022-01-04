@@ -20,8 +20,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     EVSENotification,
     IsolationLevel,
     MeterInfo as MeterInfoV2,
+    PMaxSchedule,
     PMaxScheduleEntry,
-    PMaxScheduleEntryDetails,
     PVEVSEMaxCurrent,
     PVEVSENominalVoltage,
     PVEVSEPresentCurrent,
@@ -30,7 +30,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     RelativeTimeInterval,
     SalesTariff,
     SalesTariffEntry,
-    SAScheduleTupleEntry,
+    SAScheduleTuple,
     UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
@@ -331,17 +331,16 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_sa_schedule_list(
         self, max_schedule_entries: Optional[int], departure_time: int = 0
-    ) -> Optional[List[SAScheduleTupleEntry]]:
+    ) -> Optional[List[SAScheduleTuple]]:
         """Overrides EVSEControllerInterface.get_sa_schedule_list()."""
-        sa_schedule_list: List[SAScheduleTupleEntry] = []
+        sa_schedule_list: List[SAScheduleTuple] = []
 
         # PMaxSchedule
         p_max = PVPMax(multiplier=0, value=11000, unit=UnitSymbol.WATT)
-        entry_details = PMaxScheduleEntryDetails(
+        p_max_schedule_entry = PMaxScheduleEntry(
             p_max=p_max, time_interval=RelativeTimeInterval(start=0, duration=3600)
         )
-        p_max_schedule_entries = [entry_details]
-        p_max_schedule_entry = PMaxScheduleEntry(entry_details=p_max_schedule_entries)
+        p_max_schedule = PMaxSchedule(schedule_entries=[p_max_schedule_entry])
 
         # SalesTariff
         sales_tariff_entries: List[SalesTariffEntry] = []
@@ -362,9 +361,9 @@ class SimEVSEController(EVSEControllerInterface):
         )
 
         # Putting the list of SAScheduleTuple entries together
-        sa_schedule_tuple_entry = SAScheduleTupleEntry(
-            sa_schedule_tuple_id=1,
-            p_max_schedule=p_max_schedule_entries,
+        sa_schedule_tuple = SAScheduleTuple(
+            tuple_id=1,
+            p_max_schedule=p_max_schedule,
             sales_tariff=sales_tariff,
         )
 
@@ -372,7 +371,7 @@ class SimEVSEController(EVSEControllerInterface):
         #      time we'll do that later (after the basics are implemented).
         #      When implementing the SalesTariff, we also need to apply a digital
         #      signature to it.
-        sa_schedule_list.append(sa_schedule_tuple_entry)
+        sa_schedule_list.append(sa_schedule_tuple)
 
         # TODO We need to take care of [V2G2-741], which says that the SECC needs to
         #      resend a previously agreed SAScheduleTuple and the "period of time

@@ -974,7 +974,7 @@ class ChargeParameterDiscovery(StateSECC):
             evse_processing=EVSEProcessing.FINISHED
             if sa_schedule_list
             else EVSEProcessing.ONGOING,
-            sa_schedule_list=SAScheduleList(values=sa_schedule_list),
+            sa_schedule_list=SAScheduleList(schedule_tuples=sa_schedule_list),
             ac_charge_parameter=ac_evse_charge_params,
             dc_charge_parameter=dc_evse_charge_params,
         )
@@ -1090,7 +1090,7 @@ class PowerDelivery(StateSECC):
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
 
         if power_delivery_req.sa_schedule_tuple_id not in [
-            schedule.sa_schedule_tuple_id
+            schedule.tuple_id
             for schedule in self.comm_session.offered_schedules
         ]:
             self.stop_state_machine(

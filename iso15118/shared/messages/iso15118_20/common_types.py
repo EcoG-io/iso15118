@@ -14,7 +14,7 @@ from abc import ABC
 from enum import Enum
 from typing import List
 
-from pydantic import Field, validator, conint, constr
+from pydantic import Field, validator, conint, constr, conbytes
 
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
@@ -27,11 +27,17 @@ from iso15118.shared.messages.enums import (
 from iso15118.shared.messages.xmldsig import Signature, X509IssuerSerial
 
 
-# Check V2G_CI_CommonTypes.xsd (numericIDType)
+# https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
+# Check Annex C.1 or V2G_CI_CommonTypes.xsd
+# certificateType (a DER encoded X.509 certificate)
+Certificate = conbytes(max_length=1600)
+# identifierType
+Identifier = constr(max_length=255)
+# numericIDType
 NumericID = conint(ge=1, le=UINT_32_MAX)
-# Check V2G_CI_CommonTypes.xsd (nameType)
+# nameType
 Name = constr(max_length=80)
-# Check V2G_CI_CommonTypes.xsd (descriptionType)
+# descriptionType
 Description = constr(max_length=160)
 
 

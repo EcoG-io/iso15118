@@ -15,7 +15,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     EnergyTransferModeEnum,
     PVEVSEPresentCurrent,
     PVEVSEPresentVoltage,
-    SAScheduleTupleEntry,
+    SAScheduleTuple,
     MeterInfo as MeterInfoV2
 )
 from iso15118.shared.messages.iso15118_20.ac import (
@@ -177,7 +177,7 @@ class EVSEControllerInterface(ABC):
         self,
         max_schedule_entries: Optional[int],
         departure_time: int = 0
-    ) -> Optional[List[SAScheduleTupleEntry]]:
+    ) -> Optional[List[SAScheduleTuple]]:
         """
         Requests the charging schedule from a secondary actor (SA) like a
         charge point operator, if available. If no backend information is given

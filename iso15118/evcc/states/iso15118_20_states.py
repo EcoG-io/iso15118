@@ -183,7 +183,7 @@ class AuthorizationSetup(StateEVCC):
                     ),
                     oem_prov_cert_chain=oem_prov_cert_chain,
                     root_cert_id_list=RootCertificateIDList(
-                        root_cert_id=[
+                        root_cert_ids=[
                             X509IssuerSerial(
                                 x509_issuer_name=issuer, x509_serial_number=serial
                             )

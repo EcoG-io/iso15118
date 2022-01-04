@@ -308,10 +308,10 @@ class V2GCommunicationSession(SessionStateMachine):
         self.service_renegotiation_supported: bool = False
         # The services which the SECC offers (ISO 15118-20)
         self.offered_services_v20: List[OfferedServiceV20] = []
-        # The value-added services which the EVCC selected (ISO 15118-20)
+        # The value-added services the EVCC selected (ISO 15118-20)
         self.selected_vas_list_v20: List[SelectedVAS] = []
-        # The value-added services which the EVCC selected (ISO 15118-2)
-        self.selected_vas_list_v2: List[SelectedServiceV2] = []
+        # The charge service and value-added services the EVCC selected (ISO 15118-2)
+        self.selected_services: List[SelectedServiceV2] = []
         # The energy service the EVCC selected (ISO 15118-20)
         self.selected_energy_service: Optional[SelectedEnergyService] = None
         # The energy mode the EVCC selected (ISO 15118-2)
@@ -472,7 +472,7 @@ class V2GCommunicationSession(SessionStateMachine):
                     await self.send(self.current_state.next_v2gtp_msg)
 
                 if self.current_state.next_state in (Terminate, Pause):
-                    await self.stop(reason="")
+                    await self.stop(reason=self.comm_session.stop_reason.reason)
                     self.comm_session.session_handler_queue.put_nowait(
                         self.comm_session.stop_reason
                     )

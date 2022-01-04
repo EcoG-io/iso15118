@@ -1,10 +1,8 @@
-import base64
 import json
 import logging
 
-from json import JSONDecodeError
-from typing import Union, List
-
+from typing import Union
+from base64 import b64decode, b64encode
 from pydantic import ValidationError
 
 from iso15118.shared.exceptions import EXIDecodingError, EXIEncodingError
@@ -224,7 +222,7 @@ def to_exi(msg_element: BaseModel, protocol_ns: str) -> bytes:
     if MESSAGE_LOG_EXI:
         logger.debug(f"EXI-encoded message: \n{exi_stream.hex()}")
         logger.debug(
-            "EXI-encoded message (Base64):" f"\n{base64.b64encode(exi_stream).hex()}"
+            "EXI-encoded message (Base64):" f"\n{b64encode(exi_stream).hex()}"
         )
 
     return exi_stream
@@ -253,7 +251,7 @@ def from_exi(
             f"\n XSD namespace: {namespace}"
         )
         logger.debug(
-            "EXI-encoded message (Base64):" f"\n{base64.b64encode(exi_message).hex()}"
+            "EXI-encoded message (Base64):" f"\n{b64encode(exi_message).hex()}"
         )
 
     try:

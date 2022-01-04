@@ -89,7 +89,7 @@ class Config:
         # the protocols are listed here determines the priority (i.e. first list entry
         # has higher priority than second list entry). A list entry must be a member
         # of the Protocol enum
-        self.supported_protocols = [Protocol.ISO_15118_2, Protocol.ISO_15118_20_AC]
+        self.supported_protocols = [Protocol.ISO_15118_20_DC, Protocol.ISO_15118_2]
 
         # Indicates the maximum number of entries the EVCC supports within the
         # sub-elements of a ScheduleTuple (e.g. PowerScheduleType and PriceRuleType in

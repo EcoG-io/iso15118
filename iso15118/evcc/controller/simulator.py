@@ -4,7 +4,7 @@ retrieve data from the EV. The DummyEVController overrides all abstract methods 
 EVControllerInterface.
 """
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
@@ -20,7 +20,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     PVEVMaxVoltage,
     PVEVMinCurrent,
     PVPMax,
-    SAScheduleTupleEntry,
+    SAScheduleTuple,
     UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
@@ -39,7 +39,7 @@ from iso15118.shared.messages.iso15118_20.ac import (
     BPTACChargeParameterDiscoveryReqParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
-    EMAID,
+    EMAIDList,
     ParameterSet as ParameterSetV20,
     ScheduledScheduleExchangeReqParams,
     DynamicScheduleExchangeReqParams,
@@ -76,7 +76,6 @@ class SimEVController(EVControllerInterface):
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
 
-    def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
 
@@ -270,7 +269,7 @@ class SimEVController(EVControllerInterface):
         return False
 
     def process_sa_schedules(
-        self, sa_schedules: List[SAScheduleTupleEntry]
+        self, sa_schedules: List[SAScheduleTuple]
     ) -> Tuple[ChargeProgress, int, ChargingProfile]:
         """Overrides EVControllerInterface.process_sa_schedules()."""
         schedule = sa_schedules.pop()
@@ -280,7 +279,7 @@ class SimEVController(EVControllerInterface):
         # pendant coming from the EVCC (after having processed the offered
         # schedule(s)) is called 'profile'. Therefore, we use the prefix
         # 'schedule_' for data from the SECC, and 'profile_' for data from the EVCC.
-        for schedule_entry_details in schedule.p_max_schedule.entry_details:
+        for schedule_entry_details in schedule.p_max_schedule.schedule_entries:
             profile_entry_details = ProfileEntryDetails(
                 start=schedule_entry_details.time_interval.start,
                 max_power=schedule_entry_details.p_max,
@@ -307,7 +306,7 @@ class SimEVController(EVControllerInterface):
 
         return (
             ChargeProgress.START,
-            schedule.sa_schedule_tuple_id,
+            schedule.tuple_id,
             ChargingProfile(profile_entries=profile_entry_list),
         )
 
