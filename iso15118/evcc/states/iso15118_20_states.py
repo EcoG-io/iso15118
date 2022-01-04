@@ -49,7 +49,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader,
     RootCertificateIDList,
-    Processing,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
@@ -190,8 +189,8 @@ class AuthorizationSetup(StateEVCC):
                             )
                         ]
                     ),
-                    max_contract_cert_chains=self.comm_session.config.max_contract_certs,
-                    prioritized_emaids=self.comm_session.ev_controller.get_prioritised_emaids(),
+                    max_contract_cert_chains=self.comm_session.config.max_contract_certs,  # noqa: E501
+                    prioritized_emaids=self.comm_session.ev_controller.get_prioritised_emaids(),  # noqa: E501
                 )
 
                 self.create_next_message(
@@ -309,8 +308,9 @@ class Authorization(StateEVCC):
         if not msg:
             return
 
-        auth_res: AuthorizationRes = msg
+        auth_res: AuthorizationRes = msg  # noqa: F841
         # TODO Act upon the response codes and evse_processing value of auth_res
+        #      (and delete the # noqa: F841)
         # TODO: V2G20-2221 demands to send CertificateInstallationReq if necessary
 
         service_discovery_req = ServiceDiscoveryReq(
@@ -603,9 +603,9 @@ class ServiceSelection(StateEVCC):
         if not msg:
             return
 
-        service_selection_res: ServiceSelectionRes = msg
+        service_selection_res: ServiceSelectionRes = msg  # noqa: F841
         # TODO Act upon the possible negative response codes in service_selection_res
-
+        #      (and delete the # noqa: F841)
         charge_params = self.comm_session.ev_controller.get_charge_params_v20(
             self.comm_session.selected_energy_service
         )
@@ -788,8 +788,9 @@ class DCChargeParameterDiscovery(StateEVCC):
         if not msg:
             return
 
-        dc_cpd_res: DCChargeParameterDiscoveryRes = msg
+        dc_cpd_res: DCChargeParameterDiscoveryRes = msg  # noqa: F841
         # TODO Act upon the possible negative response codes in dc_cpd_res
+        #      (and delete the # noqa: F841)
 
         scheduled_params, dynamic_params = None, None
         if self.comm_session.control_mode == ControlMode.SCHEDULED:

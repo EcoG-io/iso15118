@@ -8,7 +8,6 @@ from typing import List, Optional, Tuple, Union
 
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
-from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
@@ -23,11 +22,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     SAScheduleTuple,
     UnitSymbol,
 )
-from iso15118.shared.messages.iso15118_20.ac import (
-    ACChargeParameterDiscoveryReqParams,
-    BPTACChargeParameterDiscoveryReqParams,
-)
-from iso15118.shared.messages.iso15118_20.common_messages import EMAIDList
 from iso15118.shared.messages.enums import (
     Namespace,
     Protocol,
