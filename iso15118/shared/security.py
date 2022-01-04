@@ -670,6 +670,9 @@ def create_signature(
        and then applying ECDSA (Elliptic Curve Digital Signature Algorithm) to
        it, encrypting with the private key provided.
 
+    (Check Annex J, section J.2 in ISO 15118-2, for a reference of how to
+    generate a signature)
+
     Args:
         elements_to_sign: A list of tuples [str, bytes], where the first entry
                           of each tuple is the Id field (XML attribute) and the
@@ -692,8 +695,7 @@ def create_signature(
     # 1. Step: Reference generation
     reference_list: List[Reference] = []
 
-    for body_element in elements_to_sign:
-        id_attr, exi_encoded = body_element
+    for id_attr, exi_encoded in elements_to_sign:
         reference = Reference(
             uri="#" + id_attr,
             transforms=Transforms(
@@ -780,8 +782,7 @@ def verify_signature(
         True, if the signature can be successfully verified, False otherwise.
     """
     # 1. Step: Digest value check for each reference element
-    for body_element in elements_to_sign:
-        id_attr, exi_encoded = body_element
+    for id_attr, exi_encoded in elements_to_sign:
         logger.debug(f"Verifying digest for element with ID '{id_attr}'")
         calculated_digest = create_digest(exi_encoded)
         message_digests_equal = False

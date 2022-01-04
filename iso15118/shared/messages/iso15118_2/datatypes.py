@@ -733,10 +733,10 @@ class FaultCode(str, Enum):
     UNKNOWN_ERROR = "UnknownError"
 
 
-class RootCertificateID(BaseModel):
+class RootCertificateIDList(BaseModel):
     """See section 8.5.2.27 in ISO 15118-2"""
 
-    x509_issuer_serial: List[X509IssuerSerial] = Field(
+    x509_issuer_serials: List[X509IssuerSerial] = Field(
         ..., max_items=20, alias="RootCertificateID"
     )
 

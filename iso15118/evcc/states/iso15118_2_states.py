@@ -51,7 +51,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargingSession,
     EVSENotification,
     EVSEProcessing,
-    RootCertificateID,
+    RootCertificateIDList,
     SelectedService,
     SelectedServiceList,
     ServiceCategory,
@@ -384,8 +384,8 @@ class PaymentServiceSelection(StateEVCC):
                 cert_install_req = CertificateInstallationReq(
                     id="id1",
                     oem_provisioning_cert=load_cert(CertPath.OEM_LEAF_DER),
-                    root_cert_ids=RootCertificateID(
-                        x509_issuer_serial=[
+                    list_of_root_cert_ids=RootCertificateIDList(
+                        x509_issuer_serials=[
                             X509IssuerSerial(
                                 x509_issuer_name=issuer, x509_serial_number=serial
                             )

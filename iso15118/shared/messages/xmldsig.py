@@ -18,11 +18,12 @@ class Transform(BaseModel):
 
 
 class Transforms(BaseModel):
-    # TODO: Q for Marc: according to requirement [V2G2-767], The maximum number of
-    #       Transforms is limited to one (1) (i.e. per referenced element where a
-    #       signature is to be transmitted for, just one single Transform algorithm can be indicated).
-    #       shouldnt we then limit the elements to 1?
-    transform: List[Transform] = Field(..., alias="Transform")
+    """
+    According to requirement [V2G2-767], the maximum number of transforms
+    is limited to one (1), i.e. just one single Transform algorithm can be
+    indicated.
+    """
+    transform: List[Transform] = Field(..., max_items=1, alias="Transform")
 
 
 class DigestMethod(BaseModel):
@@ -37,13 +38,46 @@ class CanonicalizationMethod(BaseModel):
     algorithm: HttpUrl = Field(..., alias="Algorithm")
 
 
-# TODO: Question for Marc: Reference in xmldisg-core-schema has the following Schema
-#       <attribute name="Id" type="ID" use="optional"/>
-#       <attribute name="URI" type="anyURI" use="optional"/>
-#       <attribute name="Type" type="anyURI" use="optional"/>
-#       where the attributes are optional. why not all of them were included and the one it was,
-#       is mandatory?
 class Reference(BaseModel):
+    """
+    Reference is an object that represents the Reference XML element of a Signature.
+    This element is a reference to the element of a V2G body message that will
+    be signed.
+
+    According to xmldisg-core-schema, "Id", "URI" and "Type" all belong to the
+    Reference complex type, however, according to requirement [V2G2-771], Type
+    shall not be used. Also, the URI is enough to reference the Id attribute of
+    the element in the message body.
+
+    In order to understand how Reference is used and the connection to the V2G
+    body message, the user is invited to check the example in annex J, section
+    J.2 of the ISO 15118-2, which is partially transcribed here:
+
+    V2G body element contains Id="ID1"
+
+    <v2gci_b:AuthorizationReq v2gci_b:Id="ID1">
+        <v2gci_b:GenChallenge>U29tZSBSYW5kb20gRGF0YQ==</v2gci_b:GenChallenge>
+    </v2gci_b:AuthorizationReq>
+
+    The Signature contains the Reference element with a URI which refers to the
+    V2G body element (ID1)
+
+    <xmlsig:Signature>
+        <xmlsig:SignedInfo>
+            <xmlsig:CanonicalizationMethod Algorithm="http://www.w3.org/TR/canonical-exi/"/>
+            <xmlsig:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"/>
+            <xmlsig:Reference URI="#ID1">
+                <xmlsig:Transforms>
+                    <xmlsig:Transform Algorithm="http://www.w3.org/TR/canonical-exi/"/>
+                </xmlsig:Transforms>
+                <xmlsig:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                <xmlsig:DigestValue>0bXgPQBlvuVrMXmERTBR61TKGPwOCRYXT4s8d6mPSqk=</xmlsig:DigestValue>
+            </xmlsig:Reference>
+        </xmlsig:SignedInfo>
+        <xmlsig:SignatureValue></xmlsig:SignatureValue>
+    </xmlsig:Signature>
+
+    """
     transforms: Transforms = Field(..., alias="Transforms")
     digest_method: DigestMethod = Field(..., alias="DigestMethod")
     digest_value: bytes = Field(..., alias="DigestValue")
@@ -53,13 +87,18 @@ class Reference(BaseModel):
 
 
 class SignedInfo(BaseModel):
+    """
+    SignedInfo is an object that belongs to the Signature element as exemplified
+    in annex J, section J.2 of the ISO 15118-2.
+
+    According to the schema, the Reference attribute is unbounded, however, according
+    to requirement [V2G2-909]: "The signature shall not reference more than 4 signed elements",
+    therefore, a limit of 4 to the number of items of the `Reference` is enforced.
+    """
     canonicalization_method: CanonicalizationMethod = Field(
         ..., alias="CanonicalizationMethod"
     )
     signature_method: SignatureMethod = Field(..., alias="SignatureMethod")
-    # TODO: According to the schema, Reference is unbounded, but here
-    #       a limit of 4 entries is enforced. Does that come from a requirement?
-    #       Couldnt find any...
     reference: List[Reference] = Field(..., max_items=4, alias="Reference")
 
     def __str__(self):
