@@ -11,7 +11,7 @@ ENV PYTHONFAULTHANDLER=1 \
   PIP_DEFAULT_TIMEOUT=100 \
   POETRY_VERSION=1.1.11 \
   VIRTUALENV_PIP=21.2.1 \
-  MYPY_VERSION=0.910
+  MYPY_VERSION=0.930
 
 
 RUN pip install "poetry==$POETRY_VERSION" "mypy==$MYPY_VERSION"
@@ -38,8 +38,9 @@ COPY iso15118/ iso15118/
 COPY tests/ tests/
 RUN poetry run pytest -vv --cov-config .coveragerc --cov-report term-missing  --durations=3 --cov=.
 RUN poetry run black --check --diff --line-length=88 iso15118 tests
-#RUN flake8 --config .flake8 iso15118 tests
-#RUN poetry run mypy --config-file mypy.ini cs run.py tests
+RUN poetry run flake8 --config .flake8 iso15118 tests
+# RUN poetry run mypy --config-file mypy.ini iso15118 tests
+
 
 # Generate the wheel to be used by next stage
 RUN poetry build

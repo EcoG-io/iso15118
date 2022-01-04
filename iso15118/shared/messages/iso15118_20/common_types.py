@@ -14,11 +14,17 @@ from abc import ABC
 from enum import Enum
 from typing import List
 
-from pydantic import Field, validator
+from pydantic import Field, conbytes, constr, validator
 
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import UINT_32_MAX
 from iso15118.shared.messages.xmldsig import Signature, X509IssuerSerial
+
+# https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
+# constrained types
+# Check Annex C.1 or V2G_CI_CommonTypes.xsd
+Certificate = conbytes(max_length=1600)
+Identifier = constr(max_length=255)
 
 
 class MessageHeader(BaseModel):
@@ -41,7 +47,8 @@ class MessageHeader(BaseModel):
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
         try:
-            test = int(value, 16)
+            # convert value to int, assuming base 16
+            int(value, 16)
             return value
         except ValueError as exc:
             raise ValueError(
@@ -319,4 +326,6 @@ class Processing(str, Enum):
 class RootCertificateID(BaseModel):
     """See section 8.3.5.3.27 in ISO 15118-20"""
 
-    x509_issuer_serial: X509IssuerSerial = Field(..., alias="RootCertificateID")
+    x509_issuer_serial: List[X509IssuerSerial] = Field(
+        ..., max_items=20, alias="RootCertificateID"
+    )

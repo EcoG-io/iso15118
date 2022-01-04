@@ -260,7 +260,7 @@ class State(ABC):
             try:
                 exi_payload = to_exi(to_be_exi_encoded, namespace)
             except EXIEncodingError as exc:
-                logger.error(f"{exc.error}")
+                logger.error(f"{exc}")
                 self.next_state = Terminate
                 raise
 

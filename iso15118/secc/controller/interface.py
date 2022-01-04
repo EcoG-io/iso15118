@@ -12,14 +12,13 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
     DCEVSEChargeParameter,
     DCEVSEStatus,
-    EnergyTransferMode,
     EnergyTransferModeEnum,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
     PVEVSEPresentCurrent,
     PVEVSEPresentVoltage,
-    SAScheduleTuple,
+    SAScheduleTupleEntry,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
@@ -45,16 +44,10 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_supported_energy_transfer_modes(
-        self, as_enums: bool = False
-    ) -> Union[List[EnergyTransferMode], List[EnergyTransferModeEnum]]:
+    def get_supported_energy_transfer_modes(self) -> List[EnergyTransferModeEnum]:
         """
         The MQTT interface needs to provide the information on the available energy
         transfer modes, which depends on the socket the EV is connected to
-
-        Args:
-            as_enums: Whether or not you want a list of EnergyTransferMode elements
-                      or of the actual enum values (of type EnergyTransferModeEnum)
 
         Relevant for:
         - ISO 15118-2
@@ -79,7 +72,7 @@ class EVSEControllerInterface(ABC):
     @abstractmethod
     def get_sa_schedule_list(
         self, max_schedule_entries: Optional[int], departure_time: int = 0
-    ) -> Optional[List[SAScheduleTuple]]:
+    ) -> Optional[List[SAScheduleTupleEntry]]:
         """
         Requests the charging schedule from a secondary actor (SA) like a
         charge point operator, if available. If no backend information is given
@@ -96,7 +89,7 @@ class EVSEControllerInterface(ABC):
                             implies the need to start charging immediately.
 
         Returns:
-            A list of SAScheduleTuple entries to influence the EV's charging profile
+            A list of SAScheduleTupleEntry values to influence the EV's charging profile
             if the backend/charger can provide the information already, or None if
             the calculation is still ongoing.
 

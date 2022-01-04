@@ -4,23 +4,22 @@ This module contains the abstract class for an EVCC to retrieve data from the EV
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 from iso15118.shared.messages.enums import Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
+    ChargingProfile,
     DCEVChargeParameter,
-    EnergyTransferMode,
     EnergyTransferModeEnum,
-    ProfileEntry,
-    SAScheduleTuple,
+    SAScheduleTupleEntry,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
     BPTACChargeParameterDiscoveryReqParams,
 )
-from iso15118.shared.messages.iso15118_20.common_messages import EMAID
+from iso15118.shared.messages.iso15118_20.common_messages import EMAIDList
 
 
 @dataclass
@@ -127,8 +126,8 @@ class EVControllerInterface(ABC):
 
     @abstractmethod
     def process_sa_schedules(
-        self, sa_schedules: List[SAScheduleTuple]
-    ) -> Tuple[ChargeProgress, int, List[ProfileEntry]]:
+        self, sa_schedules: List[SAScheduleTupleEntry]
+    ) -> Tuple[ChargeProgress, int, ChargingProfile]:
         """
         Processes the SAScheduleList provided with the ChargeParameterDiscoveryRes
         to decide which of the offered schedules to choose and whether or not to
@@ -184,7 +183,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_prioritised_emaids(self) -> Optional[List[EMAID]]:
+    def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         """
         Indicates the list of EMAIDs (E-Mobility Account IDs) referencing contract
         certificates that shall be installed into the EV. The EMAIDs are given in

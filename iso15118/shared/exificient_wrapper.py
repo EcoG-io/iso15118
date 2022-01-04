@@ -26,16 +26,16 @@ class ExiCodec:
         )
 
         self.exi_codec = self.gateway.jvm.com.siemens.ct.exi.main.cmd.EXICodec()
-
+        schemas = self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema
         self.protocol_schema_mapping = {
-            "": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.AppProtocol,
-            "urn:iso:15118:2:2013:MsgDef": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_2,
-            "urn:iso:std:iso:15118:-20:CommonMessages": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_CommonMessages,
-            "urn:iso:std:iso:15118:-20:AC": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_AC,
-            "urn:iso:std:iso:15118:-20:DC": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_DC,
-            "urn:iso:std:iso:15118:-20:WPT": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_WPT,
-            "urn:iso:std:iso:15118:-20:ACDP": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.ISO15118_20_V2G_CI_ACDP,
-            "http://www.w3.org/2000/09/xmldsig#": self.gateway.jvm.com.siemens.ct.exi.main.cmd.BuiltInSchema.XSDCore,
+            "": schemas.AppProtocol,
+            "urn:iso:15118:2:2013:MsgDef": schemas.ISO15118_2,
+            "urn:iso:std:iso:15118:-20:CommonMessages": schemas.ISO15118_20_V2G_CI_CommonMessages,  # noqa: E501
+            "urn:iso:std:iso:15118:-20:AC": schemas.ISO15118_20_V2G_CI_AC,
+            "urn:iso:std:iso:15118:-20:DC": schemas.ISO15118_20_V2G_CI_DC,
+            "urn:iso:std:iso:15118:-20:WPT": schemas.ISO15118_20_V2G_CI_WPT,
+            "urn:iso:std:iso:15118:-20:ACDP": schemas.ISO15118_20_V2G_CI_ACDP,
+            "http://www.w3.org/2000/09/xmldsig#": schemas.XSDCore,
         }
 
         logger.debug(f"EXICodec version: {self.exi_codec.get_version()}")

@@ -14,7 +14,7 @@ element names by using the 'alias' attribute.
 from enum import Enum, IntEnum
 from typing import List, Literal
 
-from pydantic import Field, root_validator, validator
+from pydantic import Field, conbytes, constr, root_validator, validator
 
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
@@ -27,6 +27,13 @@ from iso15118.shared.messages.enums import (
 )
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
 from iso15118.shared.validators import one_field_must_be_set
+
+# https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
+# constrained types
+# Check Annex C.6 or the certificateType in V2G_CI_MsgDataTypes.xsd
+Certificate = conbytes(max_length=800)
+# Check Annex C.6 or the eMAIDType in V2G_CI_MsgDataTypes.xsd
+eMAID = constr(min_length=14, max_length=15)
 
 
 class UnitSymbol(str, Enum):
@@ -404,20 +411,24 @@ class ACEVSEChargeParameter(BaseModel):
     evse_max_current: PVEVSEMaxCurrent = Field(..., alias="EVSEMaxCurrent")
 
 
-class Certificate(BaseModel):
-    """See sections 8.5.2.5 and 8.5.2.26 in ISO 15118-2"""
+class SubCertificates(BaseModel):
+    """See sections 8.5.2.5 and 8.5.2.26 in ISO 15118-2
 
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
+    According to the schemas, SubCertificates can contain up to 4 certificates.
+    However, according to requirement [V2G2-656]:
+     `The number of Certificates in the SubCertificates shall not exceed 2`
+    So, we set it here to 2, the max number of certificates allowed.
+    """
+
+    certificates: List[Certificate] = Field(..., max_items=2, alias="Certificate")
 
 
 class CertificateChain(BaseModel):
     """See section 8.5.2.5 in ISO 15118-2"""
 
     id: str = Field(None, alias="Id")
-    # Note that the type here must be bytes and not Certificate, otherwise we
-    # end up with a json structure that does not match the XSD schema
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
-    sub_certificates: List[Certificate] = Field(None, alias="SubCertificates")
+    certificate: Certificate = Field(..., alias="Certificate")
+    sub_certificates: SubCertificates = Field(None, alias="SubCertificates")
 
     def __str__(self):
         return type(self).__name__
@@ -442,10 +453,12 @@ class EnergyTransferModeEnum(str, Enum):
     DC_UNIQUE = "DC_unique"
 
 
-class EnergyTransferMode(BaseModel):
+class EnergyTransferModeList(BaseModel):
     """See section 8.5.2.4 in ISO 15118-2"""
 
-    value: EnergyTransferModeEnum = Field(..., alias="EnergyTransferMode")
+    energy_modes: List[EnergyTransferModeEnum] = Field(
+        ..., max_items=6, alias="EnergyTransferMode"
+    )
 
 
 class ServiceID(IntEnum):
@@ -493,8 +506,8 @@ class ServiceDetails(BaseModel):
 class ChargeService(ServiceDetails):
     """See section 8.5.2.3 in ISO 15118-2"""
 
-    supported_energy_transfer_mode: List[EnergyTransferMode] = Field(
-        ..., max_items=6, alias="SupportedEnergyTransferMode"
+    supported_energy_transfer_mode: EnergyTransferModeList = Field(
+        ..., alias="SupportedEnergyTransferMode"
     )
 
 
@@ -509,10 +522,12 @@ class ProfileEntryDetails(BaseModel):
     )
 
 
-class ProfileEntry(BaseModel):
+class ChargingProfile(BaseModel):
     """See section 8.5.2.10 in ISO 15118-2"""
 
-    entry_details: ProfileEntryDetails = Field(..., alias="ProfileEntry")
+    profile_entries: List[ProfileEntryDetails] = Field(
+        ..., max_items=24, alias="ProfileEntry"
+    )
 
 
 class ChargingSession(str, Enum):
@@ -682,7 +697,16 @@ class DCEVSEChargeParameter(BaseModel):
 
 
 class DHPublicKey(BaseModel):
-    """See section 8.5.2.29 in ISO 15118-2"""
+    """See section 8.5.2.29 in ISO 15118-2
+
+    'Id' is actually an XML attribute, but JSON (our serialisation method)
+    doesn't have attributes. The EXI codec has to en-/decode accordingly.
+    id: str = Field(..., alias="Id")
+    The XSD doesn't explicitly state a Value element for
+    DiffieHellmanPublickeyType but its base XSD type named
+    dHpublickeyType has an XSD element <xs:maxLength value="65"/>. That's why
+    we add this 'value' field
+    """
 
     id: str = Field(..., alias="Id")
     value: bytes = Field(..., max_length=65, alias="value")
@@ -709,10 +733,12 @@ class FaultCode(str, Enum):
     UNKNOWN_ERROR = "UnknownError"
 
 
-class RootCertificateID(BaseModel):
+class RootCertificateIDList(BaseModel):
     """See section 8.5.2.27 in ISO 15118-2"""
 
-    x509_issuer_serial: X509IssuerSerial = Field(..., alias="RootCertificateID")
+    x509_issuer_serials: List[X509IssuerSerial] = Field(
+        ..., max_items=20, alias="RootCertificateID"
+    )
 
 
 class MeterInfo(BaseModel):
@@ -798,7 +824,7 @@ class ParameterSet(BaseModel):
     parameters: List[Parameter] = Field(..., max_items=16, alias="Parameter")
 
 
-class AuthOptions(BaseModel):
+class AuthOptionList(BaseModel):
     """
     See section 8.5.2.9 in ISO 15118-2
 
@@ -806,7 +832,9 @@ class AuthOptions(BaseModel):
     about the authorization method than about payment, thus the name AuthOption
     """
 
-    value: AuthEnum = Field(..., alias="PaymentOption")
+    auth_options: List[AuthEnum] = Field(
+        ..., min_items=1, max_items=2, alias="PaymentOption"
+    )
 
 
 class RelativeTimeInterval(BaseModel):
@@ -826,7 +854,9 @@ class PMaxScheduleEntryDetails(BaseModel):
 class PMaxScheduleEntry(BaseModel):
     """See section 8.5.2.14 in ISO 15118-2"""
 
-    entry_details: PMaxScheduleEntryDetails = Field(..., alias="PMaxScheduleEntry")
+    entry_details: List[PMaxScheduleEntryDetails] = Field(
+        ..., max_items=1024, alias="PMaxScheduleEntry"
+    )
 
 
 class ResponseCode(str, Enum):
@@ -881,10 +911,10 @@ class SelectedServiceList(BaseModel):
     )
 
 
-class Service(BaseModel):
+class ServiceList(BaseModel):
     """See section 8.5.2.2 in ISO 15118-2"""
 
-    service_details: ServiceDetails = Field(..., alias="Service")
+    services: List[ServiceDetails] = Field(..., max_items=8, alias="Service")
 
 
 class ServiceParameterList(BaseModel):
@@ -995,7 +1025,7 @@ class SalesTariff(BaseModel):
 
     def __str__(self):
         # The XSD conform element name
-        return "SalesTariff"
+        return type(self).__name__
 
 
 class SAScheduleTupleEntry(BaseModel):
@@ -1003,23 +1033,29 @@ class SAScheduleTupleEntry(BaseModel):
 
     # XSD type unsignedByte with value range [1..255]
     sa_schedule_tuple_id: int = Field(..., ge=1, le=255, alias="SAScheduleTupleID")
-    p_max_schedule: List[PMaxScheduleEntry] = Field(
-        ..., max_items=1024, alias="PMaxSchedule"
-    )
+    p_max_schedule: PMaxScheduleEntry = Field(..., alias="PMaxSchedule")
     sales_tariff: SalesTariff = Field(None, alias="SalesTariff")
 
 
-class SAScheduleTuple(BaseModel):
-    """See section 8.5.2.13 in ISO 15118-2"""
-
-    tuple: SAScheduleTupleEntry = Field(..., alias="SAScheduleTuple")
+class SAScheduleList(BaseModel):
+    values: List[SAScheduleTupleEntry] = Field(
+        ..., max_items=3, alias="SAScheduleTuple"
+    )
 
 
 class EMAID(BaseModel):
-    # 'Id' is actually an XML attribute, but JSON (our serialisation method)
-    # doesn't have attributes. The EXI codec has to en-/decode accordingly.
+    """
+    This is the complex datatype defined in the XML schemas as EMAIDType, containing
+    an id attribute; not to be confused with the simple type, that EMAID is
+    derived from, called eMAIDType, which is of string type, with a min length of
+    14 and a max length of 15 characters.
+
+    'Id' is actually an XML attribute, but JSON (our serialisation method)
+    doesn't have attributes. The EXI codec has to en-/decode accordingly.
+    """
+
     id: str = Field(None, alias="Id")
-    value: str = Field(..., min_length=14, max_length=15, alias="value")
+    value: eMAID = Field(..., alias="value")
 
     def __str__(self):
         # The XSD conform element name

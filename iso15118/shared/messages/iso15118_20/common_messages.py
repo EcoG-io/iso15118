@@ -20,7 +20,9 @@ from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import AuthEnum
 from iso15118.shared.messages.iso15118_20.common_types import (
     UINT_32_MAX,
+    Certificate,
     EVSEStatus,
+    Identifier,
     MeterInfo,
     Processing,
     RationalNumber,
@@ -42,16 +44,16 @@ class ECDHCurve(str, Enum):
     x448 = "X448"
 
 
-class EMAID(BaseModel):
+class EMAIDList(BaseModel):
     """See Annex C.1 in ISO 15118-20"""
 
-    emaid: str = Field(..., max_length=255, alias="EMAID")
+    emaids: List[Identifier] = Field(..., max_items=8, alias="EMAID")
 
 
-class Certificate(BaseModel):
-    """A DER encoded X.509 certificate"""
+class SubCertificates(BaseModel):
+    """See Annex C.1 or V2G_CI_CommonTypes.xsd in ISO 15118-20"""
 
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
+    certificates: List[Certificate] = Field(..., max_items=3, alias="Certificate")
 
 
 class CertificateChain(BaseModel):
@@ -59,8 +61,8 @@ class CertificateChain(BaseModel):
 
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
-    sub_certificates: List[Certificate] = Field(None, alias="SubCertificates")
+    certificate: Certificate = Field(..., alias="Certificate")
+    sub_certificates: SubCertificates = Field(None, alias="SubCertificates")
 
 
 class SignedCertificateChain(BaseModel):
@@ -71,8 +73,8 @@ class SignedCertificateChain(BaseModel):
     id: str = Field(..., max_length=255, alias="Id")
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
-    sub_certificates: List[Certificate] = Field(None, alias="SubCertificates")
+    certificate: Certificate = Field(..., alias="Certificate")
+    sub_certificates: SubCertificates = Field(None, alias="SubCertificates")
 
     def __str__(self):
         return type(self).__name__
@@ -83,8 +85,8 @@ class ContractCertificateChain(BaseModel):
 
     # Note that the type here must be bytes and not Certificate, otherwise we
     # end up with a json structure that does not match the XSD schema
-    certificate: bytes = Field(..., max_length=800, alias="Certificate")
-    sub_certificates: List[Certificate] = Field(..., alias="SubCertificates")
+    certificate: Certificate = Field(..., alias="Certificate")
+    sub_certificates: SubCertificates = Field(..., alias="SubCertificates")
 
 
 class SessionSetupReq(V2GRequest):
@@ -957,7 +959,8 @@ class SignedMeteringData(BaseModel):
             # pylint: disable=no-self-argument
             # pylint: disable=no-self-use
             try:
-                test = int(value, 16)
+                # convert value to int, assuming base 16
+                int(value, 16)
                 return value
             except ValueError as exc:
                 raise ValueError(
@@ -1004,16 +1007,14 @@ class CertificateInstallationReq(V2GRequest):
     oem_prov_cert_chain: SignedCertificateChain = Field(
         ..., alias="OEMProvisioningCertificateChain"
     )
-    list_of_root_cert_ids: List[RootCertificateID] = Field(
-        ..., max_items=20, alias="ListOfRootCertificateIDs"
+    list_of_root_cert_ids: RootCertificateID = Field(
+        ..., alias="ListOfRootCertificateIDs"
     )
     # XSD type unsignedShort (16 bit integer) with value range [0..65535]
     max_contract_cert_chains: int = Field(
         ..., ge=0, le=65535, alias="MaximumContractCertificateChains"
     )
-    prioritized_emaids: List[EMAID] = Field(
-        None, max_items=8, alias="PrioritizedEMAIDs"
-    )
+    prioritized_emaids: EMAIDList = Field(None, alias="PrioritizedEMAIDs")
 
 
 class SignedInstallationData(BaseModel):

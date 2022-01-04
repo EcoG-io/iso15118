@@ -36,7 +36,10 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain as CertificateChainV2,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
-from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTuple, Service
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    SAScheduleTupleEntry,
+    ServiceDetails,
+)
 from iso15118.shared.messages.sdp import SDPRequest, Security, create_sdp_response
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.messages.v2gtp import V2GTPMessage
@@ -75,7 +78,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         # ISO 15118-2 and with AuthorizationSetupRes in ISO 15118-20
         self.offered_auth_options: Optional[List[AuthEnum]] = []
         # The value-added services offered with ServiceDiscoveryRes
-        self.offered_services: List[Service] = []
+        self.offered_services: List[ServiceDetails] = []
         # The authorization option (called PaymentOption in ISO 15118-2) the
         # EVCC selected with the PaymentServiceSelectionReq
         self.selected_auth_option: Optional[AuthEnum] = None
@@ -84,7 +87,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         self.evcc_id: Union[bytes, str, None] = None
         # The list of offered charging schedules, sent to the EVCC via the
         # ChargeParameterDiscoveryRes message
-        self.offered_schedules: List[SAScheduleTuple] = []
+        self.offered_schedules: List[SAScheduleTupleEntry] = []
         # Whether or not the SECC received a PowerDeliveryReq with
         # ChargeProgress set to 'Start'
         self.charge_progress_started: bool = False

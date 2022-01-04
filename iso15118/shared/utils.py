@@ -59,7 +59,7 @@ async def wait_till_finished(
 
     # As of Python 3.8 `asyncio.wait()` should be called only with
     # `asyncio.Task`s.
-    # See: https://docs.python.org/3/library/asyncio-task.html#asyncio-example-wait-coroutine
+    # See: https://docs.python.org/3/library/asyncio-task.html#asyncio-example-wait-coroutine # noqa: E501
     for awaitable in awaitables:
         if not isinstance(awaitable, asyncio.Task):
             awaitable = asyncio.create_task(awaitable)

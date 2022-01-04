@@ -150,9 +150,9 @@ class SDPResponse:
         """
         TODO: Docstrings
 
-        #  TODO: We may want to use here the related package or something like pydantic
-        #       which adds some better validations (but also depends if it makes sense given
-        #       the criteria of having a small image)
+          TODO: We may want to use here the related package or something like pydantic
+                which adds some better validations (but also depends if it makes sense
+                given the criteria of having a small image)
 
         Also raise Exceptions
         """
@@ -222,13 +222,12 @@ class SDPResponse:
         return 20
 
     def __repr__(self):
+        ip_address: str = IPv6Address(int.from_bytes(self.ip_address, "big")).compressed
         return (
-            "["
-            + f"IP address: {IPv6Address(int.from_bytes(self.ip_address, 'big')).compressed}"
+            f"[ IP address: {ip_address}"
             f", Port: {str(self.port)} "
             f", Security: {self.security.name} "
-            f", Transport: {self.transport_protocol.name} "
-            "]"
+            f", Transport: {self.transport_protocol.name} ]"
         )
 
 

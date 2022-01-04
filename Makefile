@@ -79,7 +79,7 @@ run-secc:
 
 
 mypy:
-	mypy --config-file ../mypy.ini iso15118 tests
+	mypy --config-file mypy.ini iso15118 tests
 
 reformat:
 	isort iso15118 tests && black --line-length=88 iso15118 tests
@@ -88,7 +88,7 @@ black:
 	black --check --diff --line-length=88 iso15118 tests
 
 flake8:
-	flake8 --config ../.flake8 iso15118 tests
+	flake8 --config .flake8 iso15118 tests
 
 code-quality: reformat mypy black flake8
 

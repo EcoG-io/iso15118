@@ -62,8 +62,7 @@ from iso15118.shared.messages.iso15118_2.body import (
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
-    AuthOptions,
-    Certificate,
+    AuthOptionList,
     CertificateChain,
     ChargeProgress,
     ChargeService,
@@ -71,16 +70,19 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVSEChargeParameter,
     DHPublicKey,
     EncryptedPrivateKey,
+    EnergyTransferModeList,
     EVSENotification,
     EVSEProcessing,
     Parameter,
     ParameterSet,
-    Service,
+    SAScheduleList,
     ServiceCategory,
     ServiceDetails,
     ServiceID,
+    ServiceList,
     ServiceName,
     ServiceParameterList,
+    SubCertificates,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -245,36 +247,38 @@ class ServiceDiscovery(StateSECC):
         Currently no filter based on service scope is applied since its string
         value is not standardized in any way
         """
-        # The datatype in ISO 15118-2 is called "PaymentOption", but it's rather
-        # about the authorization method than about payment, thus 'auth_options'
-        auth_options: List[AuthOptions] = []
+        auth_options: List[AuthEnum] = []
         if self.comm_session.selected_auth_option:
             # In case the EVCC resumes a paused charging session, the SECC
             # must only offer the auth option the EVCC selected previously
             if self.comm_session.selected_auth_option == AuthEnum.EIM_V2:
-                auth_options.append(AuthOptions(value=AuthEnum.EIM_V2))
-                self.comm_session.offered_auth_options.append(AuthEnum.EIM_V2)
+                auth_options.append(AuthEnum.EIM_V2)
             else:
-                auth_options.append(AuthOptions(value=AuthEnum.PNC_V2))
-                self.comm_session.offered_auth_options.append(AuthEnum.PNC_V2)
+                auth_options.append(AuthEnum.PNC_V2)
         else:
             supported_auth_options = self.comm_session.config.supported_auth_options
             if AuthEnum.EIM in supported_auth_options:
-                auth_options.append(AuthOptions(value=AuthEnum.EIM_V2))
-                self.comm_session.offered_auth_options.append(AuthEnum.EIM_V2)
+                auth_options.append(AuthEnum.EIM_V2)
             if AuthEnum.PNC in supported_auth_options and self.comm_session.is_tls:
-                auth_options.append(AuthOptions(value=AuthEnum.PNC_V2))
-                self.comm_session.offered_auth_options.append(AuthEnum.PNC_V2)
+                auth_options.append(AuthEnum.PNC_V2)
+
+        self.comm_session.offered_auth_options = auth_options
+
+        energy_modes = (
+            self.comm_session.evse_controller.get_supported_energy_transfer_modes()
+        )
 
         charge_service = ChargeService(
             service_id=ServiceID.CHARGING,
             service_name=ServiceName.CHARGING,
             service_category=ServiceCategory.CHARGING,
             free_service=self.comm_session.config.free_charging_service,
-            supported_energy_transfer_mode=self.comm_session.evse_controller.get_supported_energy_transfer_modes(),
+            supported_energy_transfer_mode=EnergyTransferModeList(
+                energy_modes=energy_modes
+            ),
         )
 
-        service_list: List[Service] = []
+        service_list: List[ServiceDetails] = []
         # Value-added services (VAS), like installation of contract certificates
         # and the Internet service, are only allowed with TLS-secured comm.
         if self.comm_session.is_tls:
@@ -289,7 +293,7 @@ class ServiceDiscovery(StateSECC):
                     free_service=self.comm_session.config.free_cert_install_service,
                 )
 
-                service_list.append(Service(service_details=cert_install_service))
+                service_list.append(cert_install_service)
 
             # Add more value-added services (VAS) here if need be
 
@@ -298,14 +302,13 @@ class ServiceDiscovery(StateSECC):
         # an EXI decoding error. The XSD definition does not allow an empty list
         # (otherwise it would also say: minOccurs="0"):
         # <xs:element name="Service" type="ServiceType" maxOccurs="8"/>
+        offered_services = None
         if len(service_list) > 0:
-            offered_services = service_list
-        else:
-            offered_services = None
+            offered_services = ServiceList(services=service_list)
 
         service_discovery_res = ServiceDiscoveryRes(
             response_code=ResponseCode.OK,
-            auth_option_list=auth_options,
+            auth_option_list=AuthOptionList(auth_options=auth_options),
             charge_service=charge_service,
             service_list=offered_services,
         )
@@ -472,7 +475,7 @@ class PaymentServiceSelection(StateSECC):
                 charge_service_selected = True
                 continue
             if service.service_id not in [
-                offered_service.service_details.service_id
+                offered_service.service_id
                 for offered_service in self.comm_session.offered_services
             ]:
                 self.stop_state_machine(
@@ -593,7 +596,7 @@ class CertificateInstallation(StateSECC):
         except PrivateKeyReadError as exc:
             self.stop_state_machine(
                 "Can't read private key to encrypt for "
-                f"CertificateInstallationRes: {exc.error}",
+                f"CertificateInstallationRes: {exc}",
                 message,
                 ResponseCode.FAILED,
             )
@@ -603,10 +606,12 @@ class CertificateInstallation(StateSECC):
         contract_cert_chain = CertificateChain(
             id="id1",
             certificate=load_cert(CertPath.CONTRACT_LEAF_DER),
-            sub_certificates=[
-                Certificate(certificate=load_cert(CertPath.MO_SUB_CA2_DER)),
-                Certificate(certificate=load_cert(CertPath.MO_SUB_CA1_DER)),
-            ],
+            sub_certificates=SubCertificates(
+                certificates=[
+                    load_cert(CertPath.MO_SUB_CA2_DER),
+                    load_cert(CertPath.MO_SUB_CA1_DER),
+                ]
+            ),
         )
         encrypted_priv_key = EncryptedPrivateKey(
             id="id2", value=encrypted_priv_key_bytes
@@ -615,16 +620,19 @@ class CertificateInstallation(StateSECC):
         emaid = EMAID(
             id="id4", value=get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER))
         )
+        cps_certificate_chain = CertificateChain(
+            certificate=load_cert(CertPath.CPS_LEAF_DER),
+            sub_certificates=SubCertificates(
+                certificates=[
+                    load_cert(CertPath.CPS_SUB_CA2_DER),
+                    load_cert(CertPath.CPS_SUB_CA1_DER),
+                ]
+            ),
+        )
 
         cert_install_res = CertificateInstallationRes(
             response_code=ResponseCode.OK,
-            cps_cert_chain=CertificateChain(
-                certificate=load_cert(CertPath.CPS_LEAF_DER),
-                sub_certificates=[
-                    Certificate(certificate=load_cert(CertPath.CPS_SUB_CA2_DER)),
-                    Certificate(certificate=load_cert(CertPath.CPS_SUB_CA1_DER)),
-                ],
-            ),
+            cps_cert_chain=cps_certificate_chain,
             contract_cert_chain=contract_cert_chain,
             encrypted_private_key=encrypted_priv_key,
             dh_public_key=dh_public_key,
@@ -632,21 +640,31 @@ class CertificateInstallation(StateSECC):
         )
 
         try:
-            signature = create_signature(
-                [
-                    (
-                        contract_cert_chain.id,
-                        to_exi(contract_cert_chain, Namespace.ISO_V2_MSG_DEF),
-                    ),
-                    (
-                        encrypted_priv_key.id,
-                        to_exi(encrypted_priv_key, Namespace.ISO_V2_MSG_DEF),
-                    ),
-                    (dh_public_key.id, to_exi(dh_public_key, Namespace.ISO_V2_MSG_DEF)),
-                    (emaid.id, to_exi(emaid, Namespace.ISO_V2_MSG_DEF)),
-                ],
-                load_priv_key(KeyPath.CPS_LEAF_PEM, KeyEncoding.PEM),
+            # Elements to sign, containing its id and the exi encoded stream
+            contract_cert_tuple = (
+                contract_cert_chain.id,
+                to_exi(contract_cert_chain, Namespace.ISO_V2_MSG_DEF),
             )
+            encrypted_priv_key_tuple = (
+                encrypted_priv_key.id,
+                to_exi(encrypted_priv_key, Namespace.ISO_V2_MSG_DEF),
+            )
+            dh_public_key_tuple = (
+                dh_public_key.id,
+                to_exi(dh_public_key, Namespace.ISO_V2_MSG_DEF),
+            )
+            emaid_tuple = (emaid.id, to_exi(emaid, Namespace.ISO_V2_MSG_DEF))
+
+            elements_to_sign = [
+                contract_cert_tuple,
+                encrypted_priv_key_tuple,
+                dh_public_key_tuple,
+                emaid_tuple,
+            ]
+            # The private key to be used for the signature
+            signature_key = load_priv_key(KeyPath.CPS_LEAF_PEM, KeyEncoding.PEM)
+
+            signature = create_signature(elements_to_sign, signature_key)
 
             self.create_next_message(
                 PaymentDetails,
@@ -658,7 +676,7 @@ class CertificateInstallation(StateSECC):
         except PrivateKeyReadError as exc:
             self.stop_state_machine(
                 "Can't read private key needed to create signature "
-                f"for CertificateInstallationRes: {exc.error}",
+                f"for CertificateInstallationRes: {exc}",
                 message,
                 ResponseCode.FAILED,
             )
@@ -708,10 +726,7 @@ class PaymentDetails(StateSECC):
 
         try:
             leaf_cert = payment_details_req.cert_chain.certificate
-            sub_ca_certs = [
-                sub_ca_cert.certificate
-                for sub_ca_cert in payment_details_req.cert_chain.sub_certificates
-            ]
+            sub_ca_certs = payment_details_req.cert_chain.sub_certificates.certificates
             # TODO There should be an OCPP setting that determines whether
             #      or not the charging station should verify (is in
             #      possession of MO or V2G Root certificates) or if it
@@ -796,7 +811,7 @@ class Authorization(StateSECC):
           In case of rejected and according to table 112 from ISO 15118-2, the
           errors allowed to be used are: FAILED, FAILED_Challenge_Invalid or
           FAILED_Certificate_Revoked.
-          Please check: https://dev.azure.com/switch-ev/Josev/_backlogs/backlog/Josev%20Team/Stories/?workitem=1049
+          Please check: https://dev.azure.com/switch-ev/Josev/_backlogs/backlog/Josev%20Team/Stories/?workitem=1049  # noqa: E501
 
     """
 
@@ -919,9 +934,7 @@ class ChargeParameterDiscovery(StateSECC):
 
         if (
             charge_params_req.requested_energy_mode
-            not in self.comm_session.evse_controller.get_supported_energy_transfer_modes(
-                True
-            )
+            not in self.comm_session.evse_controller.get_supported_energy_transfer_modes()  # noqa: E501
         ):
             self.stop_state_machine(
                 f"{charge_params_req.requested_energy_mode} not "
@@ -961,7 +974,7 @@ class ChargeParameterDiscovery(StateSECC):
             evse_processing=EVSEProcessing.FINISHED
             if sa_schedule_list
             else EVSEProcessing.ONGOING,
-            sa_schedule_list=sa_schedule_list,
+            sa_schedule_list=SAScheduleList(values=sa_schedule_list),
             ac_charge_parameter=ac_evse_charge_params,
             dc_charge_parameter=dc_evse_charge_params,
         )
@@ -977,24 +990,20 @@ class ChargeParameterDiscovery(StateSECC):
             # operator (MO), but for testing purposes you can set it here
             # TODO We should probably have a test mode setting
             for schedule in sa_schedule_list:
-                if schedule.tuple.sales_tariff:
+                if schedule.sales_tariff:
                     try:
-                        signature = create_signature(
-                            [
-                                (
-                                    schedule.tuple.sales_tariff.id,
-                                    to_exi(
-                                        schedule.tuple.sales_tariff,
-                                        Namespace.ISO_V2_MSG_DEF,
-                                    ),
-                                )
-                            ],
-                            load_priv_key(KeyPath.MO_SUB_CA2_PEM, KeyEncoding.PEM),
+                        element_to_sign = (
+                            schedule.sales_tariff.id,
+                            to_exi(schedule.sales_tariff, Namespace.ISO_V2_MSG_DEF),
                         )
+                        signature_key = load_priv_key(
+                            KeyPath.MO_SUB_CA2_PEM, KeyEncoding.PEM
+                        )
+                        signature = create_signature([element_to_sign], signature_key)
                     except PrivateKeyReadError as exc:
                         logger.warning(
                             "Can't read private key to needed to create "
-                            f"signature for SalesTariff: {exc.error}"
+                            f"signature for SalesTariff: {exc}"
                         )
                         # If a SalesTariff isn't signed, that's not the end of the
                         # world, no reason to stop the charging process here
@@ -1081,7 +1090,7 @@ class PowerDelivery(StateSECC):
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
 
         if power_delivery_req.sa_schedule_tuple_id not in [
-            schedule.tuple.sa_schedule_tuple_id
+            schedule.sa_schedule_tuple_id
             for schedule in self.comm_session.offered_schedules
         ]:
             self.stop_state_machine(

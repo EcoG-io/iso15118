@@ -34,7 +34,6 @@ from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
-from iso15118.shared.messages.sdp import Security
 from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import Pause, State, Terminate
@@ -179,8 +178,7 @@ class SessionStateMachine(ABC):
         try:
             decoded_message = from_exi(v2gtp_msg.payload, self.get_exi_ns())
         except EXIDecodingError as exc:
-            logger.error(f"{exc.error}")
-            self.current_state.next_state = Terminate
+            logger.exception(f"{exc}")
             raise exc
 
         # Shouldn't happen, but just to be sure (otherwise mypy would complain)
@@ -201,7 +199,7 @@ class SessionStateMachine(ABC):
             )
             raise exc
         except FaultyStateImplementationError as exc:
-            logger.exception(f"{exc.__class__.__name__}: {exc.error}")
+            logger.exception(f"{exc.__class__.__name__}: {exc}")
             raise exc
         except ValidationError as exc:
             logger.exception(f"{exc.__class__.__name__}: {exc.raw_errors}")
@@ -313,7 +311,7 @@ class V2GCommunicationSession(SessionStateMachine):
     def save_session_info(self):
         raise NotImplementedError
 
-    async def stop(self):
+    async def stop(self, reason: str):
         """
         Closes the TCP connection after 5 seconds and terminates or pauses the
         data link for this V2GCommunicationSession object after 2 seconds to
@@ -333,18 +331,18 @@ class V2GCommunicationSession(SessionStateMachine):
             self.save_session_info()
             terminate_or_pause = "Pause"
         else:
-            terminate_or_pause = "Terminat"
+            terminate_or_pause = "Terminate"
 
         logger.debug(
-            f"{terminate_or_pause}ing the data link in 2 seconds and "
-            "closing the TCP connection in 5 seconds. "
-            f"Reason: {self.stop_reason.reason}"
+            f"The data link will {terminate_or_pause} in 2 seconds and "
+            "the TCP connection will close in 5 seconds. "
+            f"Reason: {reason}"
         )
 
         await asyncio.sleep(2)
         # TODO Signal data link layer to either terminate or pause the data
         #      link connection
-        logger.debug(f"{terminate_or_pause}ed the data link")
+        logger.debug(f"{terminate_or_pause}d the data link")
         await asyncio.sleep(3)
         self.writer.close()
         await self.writer.wait_closed()
@@ -389,11 +387,12 @@ class V2GCommunicationSession(SessionStateMachine):
                 message = await asyncio.wait_for(self.reader.read(7000), timeout)
 
                 if message == b"" and self.reader.at_eof():
-                    await self.stop()
+                    stop_reason: str = "TCP peer closed connection"
+                    await self.stop(reason=stop_reason)
                     self.session_handler_queue.put_nowait(
                         StopNotification(
                             False,
-                            "TCP peer closed connection",
+                            stop_reason,
                             self.writer.get_extra_info("peername"),
                         )
                     )
@@ -417,7 +416,7 @@ class V2GCommunicationSession(SessionStateMachine):
                     False, error_msg, self.writer.get_extra_info("peername")
                 )
 
-                await self.stop()
+                await self.stop(reason=error_msg)
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
 
@@ -432,7 +431,7 @@ class V2GCommunicationSession(SessionStateMachine):
                     await self.send(self.current_state.next_v2gtp_msg)
 
                 if self.current_state.next_state in (Terminate, Pause):
-                    await self.stop()
+                    await self.stop(reason="")
                     self.comm_session.session_handler_queue.put_nowait(
                         self.comm_session.stop_reason
                     )
@@ -450,28 +449,36 @@ class V2GCommunicationSession(SessionStateMachine):
                 if isinstance(exc, MessageProcessingError):
                     message_name = exc.message_name
                 if isinstance(exc, FaultyStateImplementationError):
-                    additional_info = ": " + exc.error
+                    additional_info = f": {exc}"
                 if isinstance(exc, EXIDecodingError):
-                    additional_info = ": " + exc.__str__()
+                    additional_info = f": {exc}"
+
+                stop_reason: str = (
+                    f"{exc.__class__.__name__} occurred while processing message "
+                    f"{message_name} in state {str(self.current_state)}"
+                    f":{additional_info}"
+                )
 
                 self.stop_reason = StopNotification(
                     False,
-                    f"{exc.__class__.__name__} occurred while processing message "
-                    f"{message_name} in state {str(self.current_state)}{additional_info}",
+                    stop_reason,
                     self.writer.get_extra_info("peername"),
                 )
 
-                await self.stop()
+                await self.stop(stop_reason)
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
             except (AttributeError, ValueError) as exc:
+                stop_reason: str = (
+                    f"{exc.__class__.__name__} occurred while processing message in "
+                    f"state {str(self.current_state)}: {exc}"
+                )
                 self.stop_reason = StopNotification(
                     False,
-                    f"{exc.__class__.__name__} occurred while processing message in "
-                    f"state {str(self.current_state)}: {exc}",
+                    stop_reason,
                     self.writer.get_extra_info("peername"),
                 )
 
-                await self.stop()
+                await self.stop(stop_reason)
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return

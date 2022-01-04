@@ -70,10 +70,6 @@ class FaultyStateImplementationError(Exception):
     information as to what specifically is wrong.
     """
 
-    def __init__(self, error: str):
-        Exception.__init__(self)
-        self.error = error
-
 
 class InvalidPayloadTypeError(Exception):
     """Is thrown when trying to instantiate a V2GTPMessage object with a
@@ -92,17 +88,9 @@ class InvalidProtocolError(Exception):
 class EXIEncodingError(Exception):
     """Is thrown when trying to serialise anobject into an EXI byte stream"""
 
-    def __init__(self, error: str):
-        Exception.__init__(self)
-        self.error = error
-
 
 class EXIDecodingError(Exception):
     """Is thrown when trying to EXI decode an incoming byte stream"""
-
-    def __init__(self, error: str):
-        Exception.__init__(self)
-        self.error = error
 
 
 class InvalidSettingsValueError(Exception):
@@ -214,28 +202,14 @@ class CertChainLengthError(Exception):
 class EncryptionError(Exception):
     """Is thrown when an error occurs while trying to encrypt a private key"""
 
-    def __init__(self):
-        Exception.__init__(self)
-
 
 class DecryptionError(Exception):
     """Is thrown when an error occurs while trying to decrypt a private key"""
-
-    def __init__(self):
-        Exception.__init__(self)
 
 
 class KeyTypeError(Exception):
     """Is thrown when loading a private key whose type is not recognised"""
 
-    def __init__(self, error: str):
-        Exception.__init__(self)
-        self.error = error
-
 
 class PrivateKeyReadError(Exception):
     """Is thrown when an error occurs while trying to load a private key"""
-
-    def __init__(self, error: str):
-        Exception.__init__(self)
-        self.error = error

@@ -12,22 +12,22 @@ from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
+    ChargingProfile,
     EnergyTransferModeEnum,
-    ProfileEntry,
     ProfileEntryDetails,
     PVEAmount,
     PVEVMaxCurrent,
     PVEVMaxVoltage,
     PVEVMinCurrent,
     PVPMax,
-    SAScheduleTuple,
+    SAScheduleTupleEntry,
     UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
     BPTACChargeParameterDiscoveryReqParams,
 )
-from iso15118.shared.messages.iso15118_20.common_messages import EMAID
+from iso15118.shared.messages.iso15118_20.common_messages import EMAIDList
 from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
 from iso15118.shared.network import get_nic_mac_address
 
@@ -114,23 +114,22 @@ class SimEVController(EVControllerInterface):
         return True
 
     def process_sa_schedules(
-        self, sa_schedules: List[SAScheduleTuple]
-    ) -> Tuple[ChargeProgress, int, List[ProfileEntry]]:
+        self, sa_schedules: List[SAScheduleTupleEntry]
+    ) -> Tuple[ChargeProgress, int, ChargingProfile]:
         """Overrides EVControllerInterface.process_sa_schedules()."""
         schedule = sa_schedules.pop()
-        profile_entry_list: List[ProfileEntry] = []
+        profile_entry_list: List[ProfileEntryDetails] = []
 
         # The charging schedule coming from the SECC is called 'schedule', the
         # pendant coming from the EVCC (after having processed the offered
         # schedule(s)) is called 'profile'. Therefore, we use the prefix
         # 'schedule_' for data from the SECC, and 'profile_' for data from the EVCC.
-        for p_max_schedule_entry in schedule.tuple.p_max_schedule:
-            schedule_entry_details = p_max_schedule_entry.entry_details
+        for schedule_entry_details in schedule.p_max_schedule.entry_details:
             profile_entry_details = ProfileEntryDetails(
                 start=schedule_entry_details.time_interval.start,
                 max_power=schedule_entry_details.p_max,
             )
-            profile_entry_list.append(ProfileEntry(entry_details=profile_entry_details))
+            profile_entry_list.append(profile_entry_details)
 
             # The last PMaxSchedule element has an optional 'duration' field. if
             # 'duration' is present, then there'll be no more PMaxSchedule element
@@ -145,17 +144,15 @@ class SimEVController(EVControllerInterface):
                     ),
                     max_power=zero_power,
                 )
-                profile_entry_list.append(
-                    ProfileEntry(entry_details=last_profile_entry_details)
-                )
+                profile_entry_list.append(last_profile_entry_details)
 
         # TODO If a SalesTariff is present and digitally signed (and TLS is used),
         #      verify each sales tariff with the mobility operator sub 2 certificate
 
         return (
             ChargeProgress.START,
-            schedule.tuple.sa_schedule_tuple_id,
-            profile_entry_list,
+            schedule.sa_schedule_tuple_id,
+            ChargingProfile(profile_entries=profile_entry_list),
         )
 
     def continue_charging(self) -> bool:
@@ -175,5 +172,5 @@ class SimEVController(EVControllerInterface):
         # TODO Need to store the contract cert and private key
         pass
 
-    def get_prioritised_emaids(self) -> Optional[List[EMAID]]:
+    def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         return None

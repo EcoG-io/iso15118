@@ -105,6 +105,18 @@ class CustomJSONDecoder(json.JSONDecoder):
                 if len(dct[field]) <= 15:
                     continue
 
+            if field == "Certificate" and isinstance(dct[field], list):
+                # The types CertificateChain and SubCertificates both have fields
+                # with the name `Certificate`. However, in `CertificateChain`
+                # the field is of the type bytes, whilst in `SubCertificates` is
+                # of the type list[bytes].
+                # This difference needs to be taken into account; so here we look
+                # for the list type, decode its elements and substitute the entry
+                # in the dict with the new list.
+                certificate_list = [b64decode(value) for value in dct[field]]
+                dct[field] = certificate_list
+                continue
+
             dct[field] = b64decode(dct[field])
         return dct
 
@@ -130,6 +142,8 @@ def to_exi(msg_element: BaseModel, protocol_ns: str) -> bytes:
             str(msg_element) == "CertificateChain"
             and protocol_ns == Namespace.ISO_V2_MSG_DEF
         ):
+            # TODO: If we add `ContractSignatureCertChain` as the return of __str__
+            #       for the CertificateChain class, do we still need this if clause?
             # In case of CertificateInstallationRes and CertificateUpdateRes,
             # str(message) would not be 'ContractSignatureCertChain' but
             # 'CertificateChain' (the type of ContractSignatureCertChain)
@@ -137,11 +151,16 @@ def to_exi(msg_element: BaseModel, protocol_ns: str) -> bytes:
         elif str(msg_element) == "CertificateChain" and protocol_ns.startswith(
             Namespace.ISO_V20_BASE
         ):
+            # TODO: If we add `CPSCertificateChain` as the return of __str__
+            #       for a unique class for V20 or even call it CPSCertificateChain
+            #       do we still need this if clause?
             # In case of CertificateInstallationRes,
             # str(message) would not be 'CPSCertificateChain' but
             # 'CertificateChain' (the type of CPSCertificateChain)
             message_dict = {"CPSCertificateChain": msg_to_dct}
         elif str(msg_element) == "SignedCertificateChain":
+            # TODO: If we add `OEMProvisioningCertificateChain` as the return of __str__
+            #     for the SignedCertificateChain class, do we still need this if clause?
             # In case of CertificateInstallationReq,
             # str(message) would not be 'OEMProvisioningCertificateChain' but
             # 'SignedCertificateChain' (the type of OEMProvisioningCertificateChain)
@@ -211,11 +230,18 @@ def from_exi(
         )
 
     try:
-        decoded_dict = json.loads(
-            exi_codec.decode(exi_message, namespace), cls=CustomJSONDecoder
-        )
+        exi_decoded = exi_codec.decode(exi_message, namespace)
     except Exception as exc:
-        raise EXIDecodingError(f"EXIDecodingError: {exc}") from exc
+        raise EXIDecodingError(
+            f"EXIDecodingError ({exc.__class__.__name__}): " f"{exc}"
+        ) from exc
+    try:
+        decoded_dict = json.loads(exi_decoded, cls=CustomJSONDecoder)
+    except json.JSONDecodeError as exc:
+        raise EXIDecodingError(
+            f"JSON decoding error ({exc.__class__.__name__}) while "
+            f"processing decoded EXI: {exc}"
+        ) from exc
 
     if MESSAGE_LOG_JSON:
         logger.debug(
@@ -236,7 +262,7 @@ def from_exi(
         if namespace == Namespace.ISO_V2_MSG_DEF:
             return V2GMessageV2.parse_obj(decoded_dict["V2G_Message"])
 
-        if namespace.startswith("urn:iso:std:iso:15118:-20"):
+        if namespace.startswith(Namespace.ISO_V20_BASE):
             # The message name is the first key of the dict
             msg_name = next(iter(decoded_dict))
             # When parsing the dict, we need to remove the first key, which is
@@ -267,10 +293,13 @@ def from_exi(
 
         # TODO Add support for DIN SPEC 70121
 
-        raise EXIDecodingError(
-            "EXI decoding error: can't identify protocol to " "use for decoding"
-        )
+        raise EXIDecodingError("Can't identify protocol to use for decoding")
     except ValidationError as exc:
+        raise EXIDecodingError(
+            f"Error parsing the decoded EXI into a Pydantic class: {exc}. "
+            f"\n\nDecoded dict: {decoded_dict}"
+        ) from exc
+    except EXIDecodingError as exc:
         raise EXIDecodingError(
             f"EXI decoding error: {exc}. \n\nDecoded dict: " f"{decoded_dict}"
         ) from exc

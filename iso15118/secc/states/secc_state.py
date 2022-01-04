@@ -18,17 +18,11 @@ from iso15118.shared.messages.iso15118_2.body import BodyBase
 from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupReq as SessionSetupReqV2,
 )
-from iso15118.shared.messages.iso15118_2.body import (
-    SessionSetupRes as SessionSetupResV2,
-)
 from iso15118.shared.messages.iso15118_2.body import get_msg_type
 from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode as ResponseCodeV2
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionSetupReq as SessionSetupReqV20,
-)
-from iso15118.shared.messages.iso15118_20.common_messages import (
-    SessionSetupRes as SessionSetupResV20,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     ResponseCode as ResponseCodeV20,
@@ -158,7 +152,7 @@ class StateSECC(State, ABC):
                           or a PaymentDetailsReq, or an AuthorizationReq (according to
                           the state machine outlined in ISO 15118-2). But when first
                           entering the state, the EVCC must send a
-                          PaymentServiceSelectionReq - that's what expect_first is about.
+                          PaymentServiceSelectionReq - that's what expect_first is about.  # noqa: E501
 
                           Set to True by default, as some states expect only one request
                           message type.

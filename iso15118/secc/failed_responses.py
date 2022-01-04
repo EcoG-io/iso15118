@@ -62,7 +62,7 @@ from iso15118.shared.messages.iso15118_2.body import (
 from iso15118.shared.messages.iso15118_2.body import (
     WeldingDetectionRes as WeldingDetectionResV2,
 )
-from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEStatus, AuthOptions
+from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEStatus, AuthOptionList
 from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain as CertificateChainV2,
 )
@@ -72,8 +72,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVSEStatusCode,
     DHPublicKey,
     EncryptedPrivateKey,
-    EnergyTransferMode,
     EnergyTransferModeEnum,
+    EnergyTransferModeList,
     EVSENotification,
     EVSEProcessing,
     IsolationLevel,
@@ -99,7 +99,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationSetupReq,
     AuthorizationSetupRes,
-    Certificate,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     CertificateChain as CertificateChainV20,
@@ -162,6 +161,9 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionStopRes as SessionStopResV20,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import SignedInstallationData
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    SubCertificates as SubCertificatesV20,
+)
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader as MessageHeaderV20,
 )
@@ -189,14 +191,14 @@ def init_failed_responses_iso_v2() -> dict:
         ),
         ServiceDiscoveryReqV2: ServiceDiscoveryResV2(
             response_code=ResponseCodeV2.FAILED,
-            auth_option_list=[AuthOptions(value=AuthEnum.EIM_V2)],
+            auth_option_list=AuthOptionList(auth_options=[AuthEnum.EIM_V2]),
             charge_service=ChargeService(
                 service_id=ServiceID.CHARGING,
                 service_category=ServiceCategory.CHARGING,
                 free_service=False,
-                supported_energy_transfer_mode=[
-                    EnergyTransferMode(value=EnergyTransferModeEnum.DC_CORE)
-                ],
+                supported_energy_transfer_mode=EnergyTransferModeList(
+                    energy_modes=[EnergyTransferModeEnum.DC_CORE]
+                ),
             ),
         ),
         ServiceDetailReqV2: ServiceDetailResV2(
@@ -354,7 +356,7 @@ def init_failed_responses_iso_v20() -> dict:
                 signed_installation_data=SignedInstallationData(
                     contract_cert_chain=CertificateChainV20(
                         certificate=bytes(0),
-                        sub_certificates=[Certificate(certificate=bytes(0))],
+                        sub_certificates=SubCertificatesV20(certificates=[bytes(0)]),
                     ),
                     ecdh_curve=ECDHCurve.x448,
                     dh_public_key=bytes(0),

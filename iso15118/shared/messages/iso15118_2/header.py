@@ -39,7 +39,8 @@ class MessageHeader(BaseModel):
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
         try:
-            test = int(value, 16)
+            # convert value to int, assuming base 16
+            int(value, 16)
             return value
         except ValueError as exc:
             raise ValueError(

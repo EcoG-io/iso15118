@@ -50,8 +50,8 @@ class Config:
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
 
-        # Choose the EVController implementation. Must be the class name of the controller
-        # that implements the EVControllerInterface
+        # Choose the EVController implementation. Must be the class name of the
+        # controller that implements the EVControllerInterface
         self.ev_controller = EVControllerInterface
         if env.bool("EVCC_CONTROLLER_SIM", default=False):
             self.ev_controller = SimEVController
@@ -70,13 +70,15 @@ class Config:
             "MAX_CONTRACT_CERTS", default=3, validate=Range(min=1, max=65535)
         )
 
-        # Indicates the security level (either TCP (unencrypted) or TLS (encrypted)) the EVCC
-        # shall send in the SDP request
+        # Indicates the security level (either TCP (unencrypted) or TLS (encrypted))
+        # the EVCC shall send in the SDP request
         self.use_tls = env.bool("EVCC_USE_TLS", default=True)
 
-        # Indicates whether or not the EVCC should always enforce a TLS-secured communication
-        # session. If True, the EVCC will only continue setting up a communication session if
-        # the SECC's SDP response has the Security field set to the enum value Security.TLS.
+        # Indicates whether or not the EVCC should always enforce a TLS-secured
+        # communication session.
+        # If True, the EVCC will only continue setting up a communication session if
+        # the SECC's SDP response has the Security field set
+        # to the enum value Security.TLS.
         # If the USE_TLS setting is set to False and ENFORCE_TLS is set to True, then
         # ENFORCE_TLS overrules USE_TLS.
         self.enforce_tls = env.bool("EVCC_ENFORCE_TLS", default=False)

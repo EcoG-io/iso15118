@@ -47,13 +47,13 @@ from iso15118.shared.messages.iso15118_2.body import (
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
-    AuthOptions,
     ChargeProgress,
+    ChargeService,
     ChargingSession,
-    EnergyTransferMode,
+    EnergyTransferModeEnum,
     EVSENotification,
     EVSEProcessing,
-    RootCertificateID,
+    RootCertificateIDList,
     SelectedService,
     SelectedServiceList,
     ServiceCategory,
@@ -158,17 +158,16 @@ class ServiceDiscovery(StateEVCC):
             self.stop_state_machine("ChargeService not offered")
             return
 
-        self.select_auth_mode(service_discovery_res.auth_option_list)
+        self.select_auth_mode(service_discovery_res.auth_option_list.auth_options)
         self.select_services(service_discovery_res)
         self.select_energy_transfer_mode()
-        offered_energy_modes = (
-            service_discovery_res.charge_service.supported_energy_transfer_mode
-        )
 
-        if (
-            EnergyTransferMode(value=self.comm_session.selected_energy_mode)
-            not in offered_energy_modes
-        ):
+        charge_service: ChargeService = service_discovery_res.charge_service
+        offered_energy_modes: List[
+            EnergyTransferModeEnum
+        ] = charge_service.supported_energy_transfer_mode.energy_modes
+
+        if self.comm_session.selected_energy_mode not in offered_energy_modes:
             self.stop_state_machine(
                 f"Offered energy transfer modes "
                 f"{offered_energy_modes} not compatible with "
@@ -223,7 +222,7 @@ class ServiceDiscovery(StateEVCC):
                 self.comm_session.ev_controller.get_energy_transfer_mode()
             )
 
-    def select_auth_mode(self, auth_option_list: List[AuthOptions]):
+    def select_auth_mode(self, auth_option_list: List[AuthEnum]):
         """
         Check if an authorization mode (aka payment option in ISO 15118-2) was
         saved from a previously paused communication session and reuse for
@@ -240,15 +239,12 @@ class ServiceDiscovery(StateEVCC):
             )
             evcc_settings.RESUME_SELECTED_AUTH_OPTION = None
         else:
-            # Chose Plug & Charge (pnc) or External Identification Means (eim)
+            # Choose Plug & Charge (pnc) or External Identification Means (eim)
             # as the selected authorization option. The car manufacturer might
             # have a mechanism to determine a user-defined or default
             # authorization option. This implementation favors pnc, but
             # feel free to change if need be.
-            if (
-                AuthOptions(value=AuthEnum.PNC_V2) in auth_option_list
-                and self.comm_session.is_tls
-            ):
+            if AuthEnum.PNC_V2 in auth_option_list and self.comm_session.is_tls:
                 self.comm_session.selected_auth_option = AuthEnum.PNC_V2
             else:
                 self.comm_session.selected_auth_option = AuthEnum.EIM_V2
@@ -272,24 +268,22 @@ class ServiceDiscovery(StateEVCC):
 
         offered_services: str = ""
 
-        for service in service_discovery_res.service_list:
+        for service in service_discovery_res.service_list.services:
             offered_services += (
                 "\nService ID: "
-                f"{service.service_details.service_id}, "
+                f"{service.service_id}, "
                 "Service name: "
-                f"{service.service_details.service_name}"
+                f"{service.service_name}"
             )
             if (
-                service.service_details.service_category == ServiceCategory.CERTIFICATE
+                service.service_category == ServiceCategory.CERTIFICATE
                 and self.comm_session.selected_auth_option
                 and self.comm_session.selected_auth_option == AuthEnum.PNC_V2
                 and self.comm_session.ev_controller.is_cert_install_needed()
             ):
                 # Make sure to send a ServiceDetailReq for the
                 # Certificate service
-                self.comm_session.service_details_to_request.append(
-                    service.service_details.service_id
-                )
+                self.comm_session.service_details_to_request.append(service.service_id)
 
                 # TODO We should actually first ask for the ServiceDetails and
                 #      based on the service parameter list make absolutely sure
@@ -394,13 +388,13 @@ class PaymentServiceSelection(StateEVCC):
                 cert_install_req = CertificateInstallationReq(
                     id="id1",
                     oem_provisioning_cert=load_cert(CertPath.OEM_LEAF_DER),
-                    root_cert_ids=[
-                        RootCertificateID(
-                            x509_issuer_serial=X509IssuerSerial(
+                    list_of_root_cert_ids=RootCertificateIDList(
+                        x509_issuer_serials=[
+                            X509IssuerSerial(
                                 x509_issuer_name=issuer, x509_serial_number=serial
                             )
-                        )
-                    ],
+                        ]
+                    ),
                 )
 
                 try:
@@ -424,7 +418,7 @@ class PaymentServiceSelection(StateEVCC):
                 except PrivateKeyReadError as exc:
                     self.stop_state_machine(
                         "Can't read private key necessary to sign "
-                        f"CertificateInstallationReq: {exc.error}"
+                        f"CertificateInstallationReq: {exc}"
                     )
                     return
             else:
@@ -510,10 +504,7 @@ class CertificateInstallation(StateEVCC):
                 ),
             ],
             leaf_cert=cert_install_res.cps_cert_chain.certificate,
-            sub_ca_certs=[
-                cert.certificate
-                for cert in cert_install_res.cps_cert_chain.sub_certificates
-            ],
+            sub_ca_certs=cert_install_res.cps_cert_chain.sub_certificates.certificates,
             root_ca_cert_path=CertPath.V2G_ROOT_DER,
         ):
             self.stop_state_machine(
@@ -540,12 +531,12 @@ class CertificateInstallation(StateEVCC):
             self.stop_state_machine(
                 "Can't read private key needed to decrypt "
                 "encrypted private key contained in "
-                f"CertificateInstallationRes. {exc.error}"
+                f"CertificateInstallationRes. {exc}"
             )
             return
 
         payment_details_req = PaymentDetailsReq(
-            emaid=EMAID(value=get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER))),
+            emaid=get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER)),
             cert_chain=load_cert_chain(
                 protocol=Protocol.ISO_15118_2,
                 leaf_path=CertPath.CONTRACT_LEAF_DER,
@@ -610,7 +601,7 @@ class PaymentDetails(StateEVCC):
             )
         except PrivateKeyReadError as exc:
             self.stop_state_machine(
-                f"Can't read private key to sign AuthorizationReq: " f"{exc.error}"
+                f"Can't read private key to sign AuthorizationReq: " f"{exc}"
             )
             return
 
@@ -720,7 +711,7 @@ class ChargeParameterDiscovery(StateEVCC):
                 schedule_id,
                 charging_profile,
             ) = self.comm_session.ev_controller.process_sa_schedules(
-                charge_params_res.sa_schedule_list
+                charge_params_res.sa_schedule_list.values
             )
 
             power_delivery_req = PowerDeliveryReq(
@@ -899,7 +890,7 @@ class ChargingStatus(StateEVCC):
             except PrivateKeyReadError as exc:
                 self.stop_state_machine(
                     "Can't read private key necessary to sign "
-                    f"MeteringReceiptReq: {exc.error}"
+                    f"MeteringReceiptReq: {exc}"
                 )
                 return
         elif ac_evse_status.evse_notification == EVSENotification.RE_NEGOTIATION:

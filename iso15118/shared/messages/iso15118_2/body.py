@@ -11,7 +11,7 @@ element names by using the 'alias' attribute.
 """
 import logging
 from abc import ABC
-from typing import List, Optional, Tuple, Type
+from typing import Optional, Tuple, Type
 
 from pydantic import Field, root_validator, validator
 
@@ -22,10 +22,11 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ACEVSEChargeParameter,
     ACEVSEStatus,
-    AuthOptions,
+    AuthOptionList,
     CertificateChain,
     ChargeProgress,
     ChargeService,
+    ChargingProfile,
     ChargingSession,
     DCEVChargeParameter,
     DCEVPowerDeliveryParameter,
@@ -37,7 +38,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     EnergyTransferModeEnum,
     EVSEProcessing,
     MeterInfo,
-    ProfileEntry,
     PVEVMaxCurrentLimit,
     PVEVMaxPowerLimit,
     PVEVMaxVoltageLimit,
@@ -52,12 +52,13 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     PVRemainingTimeToBulkSOC,
     PVRemainingTimeToFullSOC,
     ResponseCode,
-    RootCertificateID,
-    SAScheduleTuple,
+    RootCertificateIDList,
+    SAScheduleList,
     SelectedServiceList,
-    Service,
     ServiceCategory,
+    ServiceList,
     ServiceParameterList,
+    eMAID,
 )
 from iso15118.shared.validators import one_field_must_be_set
 
@@ -144,8 +145,8 @@ class CertificateInstallationReq(BodyBase):
     oem_provisioning_cert: bytes = Field(
         ..., max_length=800, alias="OEMProvisioningCert"
     )
-    root_cert_ids: List[RootCertificateID] = Field(
-        ..., max_items=20, alias="ListOfRootCertificateIDs"
+    list_of_root_cert_ids: RootCertificateIDList = Field(
+        ..., alias="ListOfRootCertificateIDs"
     )
 
 
@@ -173,7 +174,7 @@ class CertificateUpdateReq(BodyBase):
         ..., alias="ContractSignatureCertChain"
     )
     emaid: EMAID = Field(..., alias="eMAID")
-    list_of_root_cert_ids: List[RootCertificateID] = Field(
+    list_of_root_cert_ids: RootCertificateIDList = Field(
         ..., alias="ListOfRootCertificateIDs"
     )
 
@@ -274,9 +275,7 @@ class ChargeParameterDiscoveryRes(Response):
     """See section 8.4.3.8.3 in ISO 15118-2"""
 
     evse_processing: EVSEProcessing = Field(..., alias="EVSEProcessing")
-    sa_schedule_list: List[SAScheduleTuple] = Field(
-        None, max_items=3, alias="SAScheduleList"
-    )
+    sa_schedule_list: SAScheduleList = Field(None, alias="SAScheduleList")
     ac_charge_parameter: ACEVSEChargeParameter = Field(
         None, alias="AC_EVSEChargeParameter"
     )
@@ -416,7 +415,8 @@ class MeteringReceiptReq(BodyBase):
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
         try:
-            test = int(value, 16)
+            # convert value to int, assuming base 16
+            int(value, 16)
             return value
         except ValueError as exc:
             raise ValueError(
@@ -456,7 +456,7 @@ class MeteringReceiptRes(Response):
 class PaymentDetailsReq(BodyBase):
     """See section 8.4.3.6.2 in ISO 15118-2"""
 
-    emaid: EMAID = Field(..., alias="eMAID")
+    emaid: eMAID = Field(..., alias="eMAID")
     cert_chain: CertificateChain = Field(..., alias="ContractSignatureCertChain")
 
 
@@ -492,9 +492,7 @@ class PowerDeliveryReq(BodyBase):
     charge_progress: ChargeProgress = Field(..., alias="ChargeProgress")
     # XSD type unsignedByte with value range [1..255]
     sa_schedule_tuple_id: int = Field(..., ge=1, le=255, alias="SAScheduleTupleID")
-    charging_profile: List[ProfileEntry] = Field(
-        None, max_items=24, alias="ChargingProfile"
-    )
+    charging_profile: ChargingProfile = Field(None, alias="ChargingProfile")
     dc_ev_power_delivery_parameter: DCEVPowerDeliveryParameter = Field(
         None, alias="DC_EVPowerDeliveryParameter"
     )
@@ -570,11 +568,9 @@ class ServiceDiscoveryReq(BodyBase):
 class ServiceDiscoveryRes(Response):
     """See section 8.4.3.3.3 in ISO 15118-2"""
 
-    auth_option_list: List[AuthOptions] = Field(
-        ..., min_items=1, max_items=2, alias="PaymentOptionList"
-    )
+    auth_option_list: AuthOptionList = Field(..., alias="PaymentOptionList")
     charge_service: ChargeService = Field(..., alias="ChargeService")
-    service_list: List[Service] = Field(None, max_items=8, alias="ServiceList")
+    service_list: ServiceList = Field(None, alias="ServiceList")
 
 
 class SessionSetupReq(BodyBase):
@@ -595,7 +591,8 @@ class SessionSetupReq(BodyBase):
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
         try:
-            test = int(value, 16)
+            # convert value to int, assuming base 16
+            int(value, 16)
             return value
         except ValueError as exc:
             raise ValueError(

@@ -7,7 +7,6 @@ from typing import List, Optional, Tuple, Union
 
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.backends.openssl.backend import Backend
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import (
     SECP256R1,
@@ -15,6 +14,7 @@ from cryptography.hazmat.primitives.asymmetric.ec import (
     EllipticCurvePublicKey,
 )
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.hashes import SHA256, Hash, HashAlgorithm
 from cryptography.hazmat.primitives.kdf.concatkdf import ConcatKDFHash
 from cryptography.hazmat.primitives.serialization import (
     load_der_private_key,
@@ -42,17 +42,19 @@ from iso15118.shared.exceptions import (
 )
 from iso15118.shared.exi_codec import to_exi
 from iso15118.shared.messages.enums import Namespace, Protocol
-from iso15118.shared.messages.iso15118_2.datatypes import Certificate as CertificateV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain as CertificateChainV2,
 )
-from iso15118.shared.messages.iso15118_20.common_messages import (
-    Certificate as CertificateV20,
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    SubCertificates as SubCertificatesV2,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     CertificateChain as CertificateChainV20,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import SignedCertificateChain
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    SubCertificates as SubCertificatesV20,
+)
 from iso15118.shared.messages.xmldsig import (
     CanonicalizationMethod,
     DigestMethod,
@@ -62,7 +64,7 @@ from iso15118.shared.messages.xmldsig import (
     SignatureValue,
     SignedInfo,
     Transform,
-    TransformDetails,
+    Transforms,
 )
 from iso15118.shared.settings import PKI_PATH
 
@@ -351,19 +353,21 @@ def load_cert_chain(
     sub_ca1_cert = load_cert(sub_ca1_path) if sub_ca1_path else None
 
     if protocol == Protocol.ISO_15118_2:
-        sub_ca_certs_v2: List[CertificateV2] = [CertificateV2(certificate=sub_ca2_cert)]
+        sub_ca_certs_v2: SubCertificatesV2 = SubCertificatesV2(
+            certificates=[sub_ca2_cert]
+        )
         if sub_ca1_cert:
-            sub_ca_certs_v2.append(CertificateV2(certificate=sub_ca1_cert))
+            sub_ca_certs_v2.certificates.append(sub_ca1_cert)
         return CertificateChainV2(
             certificate=leaf_cert, sub_certificates=sub_ca_certs_v2
         )
 
     if protocol.ns.startswith(Namespace.ISO_V20_BASE):
-        sub_ca_certs_v20: List[CertificateV20] = [
-            CertificateV20(certificate=sub_ca2_cert)
-        ]
+        sub_ca_certs_v20: SubCertificatesV20 = SubCertificatesV20(
+            certificates=[sub_ca2_cert]
+        )
         if sub_ca1_cert:
-            sub_ca_certs_v20.append(CertificateV20(certificate=sub_ca1_cert))
+            sub_ca_certs_v20.certificates.append(sub_ca1_cert)
 
         if id:
             # In ISO 15118-20, there's a distinction between a CertificateChain
@@ -483,7 +487,7 @@ def verify_certs(
                 pub_key.verify(
                     leaf_cert.signature,
                     leaf_cert.tbs_certificate_bytes,
-                    ec.ECDSA(hashes.SHA256()),
+                    ec.ECDSA(SHA256()),
                 )
             else:
                 # TODO Add support for ISO 15118-20 public key types
@@ -499,7 +503,7 @@ def verify_certs(
                     leaf_cert.signature,
                     leaf_cert.tbs_certificate_bytes,
                     # TODO Find a way to read id dynamically from the certificate
-                    ec.ECDSA(hashes.SHA256()),
+                    ec.ECDSA(SHA256()),
                 )
             else:
                 # TODO Add support for ISO 15118-20 public key types
@@ -516,7 +520,7 @@ def verify_certs(
                     pub_key.verify(
                         sub_ca2_cert.signature,
                         sub_ca2_cert.tbs_certificate_bytes,
-                        ec.ECDSA(hashes.SHA256()),
+                        ec.ECDSA(SHA256()),
                     )
                 else:
                     # TODO Add support for ISO 15118-20 public key types
@@ -533,7 +537,7 @@ def verify_certs(
                     pub_key.verify(
                         sub_ca1_cert.signature,
                         sub_ca1_cert.tbs_certificate_bytes,
-                        ec.ECDSA(hashes.SHA256()),
+                        ec.ECDSA(SHA256()),
                     )
                 else:
                     # TODO Add support for ISO 15118-20 public key types
@@ -550,7 +554,7 @@ def verify_certs(
                     pub_key.verify(
                         sub_ca2_cert.signature,
                         sub_ca2_cert.tbs_certificate_bytes,
-                        ec.ECDSA(hashes.SHA256()),
+                        ec.ECDSA(SHA256()),
                     )
                 else:
                     # TODO Add support for ISO 15118-20 public key types
@@ -564,13 +568,14 @@ def verify_certs(
             issuer=cert_to_check.issuer.__str__(),
         ) from exc
     except UnsupportedAlgorithm as exc:
+        cert_hash_algorithm: HashAlgorithm = cert_to_check.signature_hash_algorithm
         raise CertSignatureError(
             subject=cert_to_check.subject.__str__(),
             issuer=cert_to_check.issuer.__str__(),
             extra_info=f"UnsupportedAlgorithm for certificate "
             f"{cert_to_check.subject.__str__()}. "
             f"\nSignature hash algorithm: "
-            f"{cert_to_check.signature_hash_algorithm.name if cert_to_check.signature_hash_algorithm else 'None'}"
+            f"{cert_hash_algorithm.name if cert_hash_algorithm else 'None'}"
             f"\nSignature algorithm: "
             f"{cert_to_check.signature_algorithm_oid}"
             # TODO This OpenSSL version may not be the complied one
@@ -666,8 +671,11 @@ def create_signature(
        and then applying ECDSA (Elliptic Curve Digital Signature Algorithm) to
        it, encrypting with the private key provided.
 
+    (Check Annex J, section J.2 in ISO 15118-2, for a reference of how to
+    generate a signature)
+
     Args:
-        elements_to_sign: A list of tuples [int, bytes], where the first entry
+        elements_to_sign: A list of tuples [str, bytes], where the first entry
                           of each tuple is the Id field (XML attribute) and the
                           second entry is the EXI encoded bytes representation
                           of the element for which a Reference element in the
@@ -688,17 +696,12 @@ def create_signature(
     # 1. Step: Reference generation
     reference_list: List[Reference] = []
 
-    for body_element in elements_to_sign:
-        id_attr, exi_encoded = body_element
+    for id_attr, exi_encoded in elements_to_sign:
         reference = Reference(
             uri="#" + id_attr,
-            transforms=[
-                Transform(
-                    details=TransformDetails(
-                        algorithm="http://www.w3.org/TR/canonical-exi/"
-                    )
-                )
-            ],
+            transforms=Transforms(
+                transform=[Transform(algorithm="http://www.w3.org/TR/canonical-exi/")]
+            ),
             digest_method=DigestMethod(
                 algorithm="http://www.w3.org/2001/04/xmlenc#sha256"
             ),
@@ -719,9 +722,7 @@ def create_signature(
 
     # 2. Step: Signature generation
     exi_encoded_signed_info = to_exi(signed_info, Namespace.XML_DSIG)
-    signature_value = signature_key.sign(
-        exi_encoded_signed_info, ec.ECDSA(hashes.SHA256())
-    )
+    signature_value = signature_key.sign(exi_encoded_signed_info, ec.ECDSA(SHA256()))
     signature = Signature(
         signed_info=signed_info, signature_value=SignatureValue(value=signature_value)
     )
@@ -780,8 +781,7 @@ def verify_signature(
         True, if the signature can be successfully verified, False otherwise.
     """
     # 1. Step: Digest value check for each reference element
-    for body_element in elements_to_sign:
-        id_attr, exi_encoded = body_element
+    for id_attr, exi_encoded in elements_to_sign:
         logger.debug(f"Verifying digest for element with ID '{id_attr}'")
         calculated_digest = create_digest(exi_encoded)
         message_digests_equal = False
@@ -817,7 +817,7 @@ def verify_signature(
             pub_key.verify(
                 signature.signature_value.value,
                 exi_encoded_signed_info,
-                ec.ECDSA(hashes.SHA256()),
+                ec.ECDSA(SHA256()),
             )
         else:
             # TODO Add support for ISO 15118-20 public key types
@@ -857,7 +857,7 @@ def verify_signature(
 
 
 def create_digest(exi_encoded_element) -> bytes:
-    digest = hashes.Hash(hashes.SHA256())
+    digest = Hash(SHA256())
     digest.update(exi_encoded_element)
     return digest.finalize()
 
@@ -962,7 +962,7 @@ def encrypt_priv_key(
         )
 
         concat_kdf = ConcatKDFHash(
-            algorithm=hashes.SHA256(),
+            algorithm=SHA256(),
             length=symmetric_key_length_in_bytes,
             otherinfo=other_info,
         )
@@ -1045,7 +1045,7 @@ def decrypt_priv_key(
         )
 
         concat_kdf = ConcatKDFHash(
-            algorithm=hashes.SHA256(),
+            algorithm=SHA256(),
             length=symmetric_key_length_in_bytes,
             otherinfo=other_info,
         )
@@ -1066,6 +1066,8 @@ class CertPath(str, Enum):
     """
     Provides the path to certificates used for Plug & Charge. The encoding
     format is indicated by the latter part of the enum name (_DER or _PEM)
+
+    TODO: Make filepath flexible, so we can choose between -2 and -20 certificates
 
     NOTE: For a productive environment, the access to certificate should be
           managed in a secure way (e.g. through a hardware security module).
