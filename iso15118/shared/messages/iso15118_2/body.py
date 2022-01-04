@@ -11,7 +11,7 @@ element names by using the 'alias' attribute.
 """
 import logging
 from abc import ABC
-from typing import List, Optional, Tuple, Type
+from typing import Optional, Tuple, Type
 
 from pydantic import Field, root_validator, validator
 
@@ -415,7 +415,8 @@ class MeteringReceiptReq(BodyBase):
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
         try:
-            test = int(value, 16)
+            # convert value to int, assuming base 16
+            int(value, 16)
             return value
         except ValueError as exc:
             raise ValueError(
@@ -590,7 +591,8 @@ class SessionSetupReq(BodyBase):
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
         try:
-            test = int(value, 16)
+            # convert value to int, assuming base 16
+            int(value, 16)
             return value
         except ValueError as exc:
             raise ValueError(

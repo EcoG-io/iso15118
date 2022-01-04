@@ -34,7 +34,6 @@ from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
-from iso15118.shared.messages.sdp import Security
 from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import Pause, State, Terminate
@@ -456,7 +455,8 @@ class V2GCommunicationSession(SessionStateMachine):
 
                 stop_reason: str = (
                     f"{exc.__class__.__name__} occurred while processing message "
-                    f"{message_name} in state {str(self.current_state)}{additional_info}"
+                    f"{message_name} in state {str(self.current_state)}"
+                    f":{additional_info}"
                 )
 
                 self.stop_reason = StopNotification(

@@ -27,7 +27,8 @@ def _get_link_local_addr(nic: str) -> Union[IPv6Address, None]:
     Args:
         nic_addr_list   A list of tuples per network interface card (NIC),
                         each containing e.g. address family and IP address.
-                        More info: https://psutil.readthedocs.io/en/latest/#psutil.net_if_addrs
+                        More info:
+                            https://psutil.readthedocs.io/en/latest/#psutil.net_if_addrs
 
     Returns:
         The IPv6 link-local address from the given list of NIC
@@ -64,7 +65,7 @@ async def _get_full_ipv6_address(host: str, port: int) -> Tuple[str, int, int, i
     In this case we will get one entry that will look like
     [ (<AddressFamily.AF_INET6: 30>, <SocketKind.SOCK_STREAM: 1>, 6, '',
     ('fe80::4fd:9dc8:b138:3bcc', 65334, 0, 5)) ]
-    Check https://docs.python.org/3/library/asyncio-eventloop.html?highlight=getaddrinfo#asyncio.loop.getaddrinfo
+    Check https://docs.python.org/3/library/asyncio-eventloop.html?highlight=getaddrinfo#asyncio.loop.getaddrinfo # noqa: E501
     loop.getaddrinfo is the async version of socket.getaddrinfo
     Check https://docs.python.org/3/library/socket.html#socket.getaddrinfo
 

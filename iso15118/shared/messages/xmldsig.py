@@ -66,13 +66,13 @@ class Reference(BaseModel):
     <xmlsig:Signature>
         <xmlsig:SignedInfo>
             <xmlsig:CanonicalizationMethod Algorithm="http://www.w3.org/TR/canonical-exi/"/>
-            <xmlsig:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"/>
+            <xmlsig:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"/> # noqa: E501
             <xmlsig:Reference URI="#ID1">
                 <xmlsig:Transforms>
                     <xmlsig:Transform Algorithm="http://www.w3.org/TR/canonical-exi/"/>
                 </xmlsig:Transforms>
                 <xmlsig:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
-                <xmlsig:DigestValue>0bXgPQBlvuVrMXmERTBR61TKGPwOCRYXT4s8d6mPSqk=</xmlsig:DigestValue>
+                <xmlsig:DigestValue>0bXgPQBlvuVrMXmERTBR61TKGPwOCRYXT4s8d6mPSqk=</xmlsig:DigestValue> # noqa: E501
             </xmlsig:Reference>
         </xmlsig:SignedInfo>
         <xmlsig:SignatureValue></xmlsig:SignatureValue>
@@ -94,8 +94,9 @@ class SignedInfo(BaseModel):
     in annex J, section J.2 of the ISO 15118-2.
 
     According to the schema, the Reference attribute is unbounded, however, according
-    to requirement [V2G2-909]: "The signature shall not reference more than 4 signed elements",
-    therefore, a limit of 4 to the number of items of the `Reference` is enforced.
+    to requirement [V2G2-909]:
+        "The signature shall not reference more than 4 signed elements"
+    Therefore, a limit of 4 to the number of items of the `Reference` is enforced.
     """
 
     canonicalization_method: CanonicalizationMethod = Field(

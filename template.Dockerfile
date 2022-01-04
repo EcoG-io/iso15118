@@ -38,6 +38,7 @@ COPY iso15118/ iso15118/
 COPY tests/ tests/
 RUN poetry run pytest -vv --cov-config .coveragerc --cov-report term-missing  --durations=3 --cov=.
 RUN poetry run black --check --diff --line-length=88 iso15118 tests
+RUN poetry run flake8 --config .flake8 iso15118 tests
 #RUN flake8 --config .flake8 iso15118 tests
 #RUN poetry run mypy --config-file mypy.ini cs run.py tests
 

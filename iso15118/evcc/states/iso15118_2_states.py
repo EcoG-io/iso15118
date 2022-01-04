@@ -48,7 +48,9 @@ from iso15118.shared.messages.iso15118_2.body import (
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
     ChargeProgress,
+    ChargeService,
     ChargingSession,
+    EnergyTransferModeEnum,
     EVSENotification,
     EVSEProcessing,
     RootCertificateIDList,
@@ -159,9 +161,11 @@ class ServiceDiscovery(StateEVCC):
         self.select_auth_mode(service_discovery_res.auth_option_list.auth_options)
         self.select_services(service_discovery_res)
         self.select_energy_transfer_mode()
-        offered_energy_modes = (
-            service_discovery_res.charge_service.supported_energy_transfer_mode.energy_modes
-        )
+
+        charge_service: ChargeService = service_discovery_res.charge_service
+        offered_energy_modes: List[
+            EnergyTransferModeEnum
+        ] = charge_service.supported_energy_transfer_mode.energy_modes
 
         if self.comm_session.selected_energy_mode not in offered_energy_modes:
             self.stop_state_machine(

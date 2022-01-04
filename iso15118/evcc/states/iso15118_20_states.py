@@ -165,8 +165,8 @@ class AuthorizationSetup(StateEVCC):
                             )
                         )
                     ],
-                    max_contract_cert_chains=self.comm_session.config.max_contract_certs,
-                    prioritized_emaids=self.comm_session.ev_controller.get_prioritised_emaids(),
+                    max_contract_cert_chains=self.comm_session.config.max_contract_certs,  # noqa: E501
+                    prioritized_emaids=self.comm_session.ev_controller.get_prioritised_emaids(),  # noqa: E501
                 )
 
                 self.create_next_message(

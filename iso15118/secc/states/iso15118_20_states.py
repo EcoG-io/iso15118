@@ -180,7 +180,7 @@ class AuthorizationSetup(StateSECC):
             auth_options.append(AuthEnum.PNC)
             pnc_as_res = PnCAuthSetupResParams(
                 gen_challenge=get_random_bytes(16),
-                supported_providers=self.comm_session.evse_controller.get_supported_providers(),
+                supported_providers=self.comm_session.evse_controller.get_supported_providers(),  # noqa: E501
             )
         # TODO [V2G20-2096], [V2G20-2570]
 

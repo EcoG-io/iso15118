@@ -6,22 +6,15 @@ from abc import ABC
 from typing import Optional, Type, TypeVar, Union
 
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
-from iso15118.shared.exceptions import FaultyStateImplementationError
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
 from iso15118.shared.messages.iso15118_2.body import BodyBase, Response
 from iso15118.shared.messages.iso15118_2.body import (
-    SessionSetupReq as SessionSetupReqV2,
-)
-from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupRes as SessionSetupResV2,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
-from iso15118.shared.messages.iso15118_20.common_messages import (
-    SessionSetupReq as SessionSetupReqV20,
-)
 from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionSetupRes as SessionSetupResV20,
 )

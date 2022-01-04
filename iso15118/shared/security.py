@@ -7,7 +7,6 @@ from typing import List, Optional, Tuple, Union
 
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.backends.openssl.backend import Backend
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import (
     SECP256R1,
@@ -15,6 +14,7 @@ from cryptography.hazmat.primitives.asymmetric.ec import (
     EllipticCurvePublicKey,
 )
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.hashes import SHA256, Hash, HashAlgorithm
 from cryptography.hazmat.primitives.kdf.concatkdf import ConcatKDFHash
 from cryptography.hazmat.primitives.serialization import (
     load_der_private_key,
@@ -487,7 +487,7 @@ def verify_certs(
                 pub_key.verify(
                     leaf_cert.signature,
                     leaf_cert.tbs_certificate_bytes,
-                    ec.ECDSA(hashes.SHA256()),
+                    ec.ECDSA(SHA256()),
                 )
             else:
                 # TODO Add support for ISO 15118-20 public key types
@@ -503,7 +503,7 @@ def verify_certs(
                     leaf_cert.signature,
                     leaf_cert.tbs_certificate_bytes,
                     # TODO Find a way to read id dynamically from the certificate
-                    ec.ECDSA(hashes.SHA256()),
+                    ec.ECDSA(SHA256()),
                 )
             else:
                 # TODO Add support for ISO 15118-20 public key types
@@ -520,7 +520,7 @@ def verify_certs(
                     pub_key.verify(
                         sub_ca2_cert.signature,
                         sub_ca2_cert.tbs_certificate_bytes,
-                        ec.ECDSA(hashes.SHA256()),
+                        ec.ECDSA(SHA256()),
                     )
                 else:
                     # TODO Add support for ISO 15118-20 public key types
@@ -537,7 +537,7 @@ def verify_certs(
                     pub_key.verify(
                         sub_ca1_cert.signature,
                         sub_ca1_cert.tbs_certificate_bytes,
-                        ec.ECDSA(hashes.SHA256()),
+                        ec.ECDSA(SHA256()),
                     )
                 else:
                     # TODO Add support for ISO 15118-20 public key types
@@ -554,7 +554,7 @@ def verify_certs(
                     pub_key.verify(
                         sub_ca2_cert.signature,
                         sub_ca2_cert.tbs_certificate_bytes,
-                        ec.ECDSA(hashes.SHA256()),
+                        ec.ECDSA(SHA256()),
                     )
                 else:
                     # TODO Add support for ISO 15118-20 public key types
@@ -568,13 +568,14 @@ def verify_certs(
             issuer=cert_to_check.issuer.__str__(),
         ) from exc
     except UnsupportedAlgorithm as exc:
+        cert_hash_algorithm: HashAlgorithm = cert_to_check.signature_hash_algorithm
         raise CertSignatureError(
             subject=cert_to_check.subject.__str__(),
             issuer=cert_to_check.issuer.__str__(),
             extra_info=f"UnsupportedAlgorithm for certificate "
             f"{cert_to_check.subject.__str__()}. "
             f"\nSignature hash algorithm: "
-            f"{cert_to_check.signature_hash_algorithm.name if cert_to_check.signature_hash_algorithm else 'None'}"
+            f"{cert_hash_algorithm.name if cert_hash_algorithm else 'None'}"
             f"\nSignature algorithm: "
             f"{cert_to_check.signature_algorithm_oid}"
             # TODO This OpenSSL version may not be the complied one
@@ -721,9 +722,7 @@ def create_signature(
 
     # 2. Step: Signature generation
     exi_encoded_signed_info = to_exi(signed_info, Namespace.XML_DSIG)
-    signature_value = signature_key.sign(
-        exi_encoded_signed_info, ec.ECDSA(hashes.SHA256())
-    )
+    signature_value = signature_key.sign(exi_encoded_signed_info, ec.ECDSA(SHA256()))
     signature = Signature(
         signed_info=signed_info, signature_value=SignatureValue(value=signature_value)
     )
@@ -818,7 +817,7 @@ def verify_signature(
             pub_key.verify(
                 signature.signature_value.value,
                 exi_encoded_signed_info,
-                ec.ECDSA(hashes.SHA256()),
+                ec.ECDSA(SHA256()),
             )
         else:
             # TODO Add support for ISO 15118-20 public key types
@@ -858,7 +857,7 @@ def verify_signature(
 
 
 def create_digest(exi_encoded_element) -> bytes:
-    digest = hashes.Hash(hashes.SHA256())
+    digest = Hash(SHA256())
     digest.update(exi_encoded_element)
     return digest.finalize()
 
@@ -963,7 +962,7 @@ def encrypt_priv_key(
         )
 
         concat_kdf = ConcatKDFHash(
-            algorithm=hashes.SHA256(),
+            algorithm=SHA256(),
             length=symmetric_key_length_in_bytes,
             otherinfo=other_info,
         )
@@ -1046,7 +1045,7 @@ def decrypt_priv_key(
         )
 
         concat_kdf = ConcatKDFHash(
-            algorithm=hashes.SHA256(),
+            algorithm=SHA256(),
             length=symmetric_key_length_in_bytes,
             otherinfo=other_info,
         )

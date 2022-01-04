@@ -160,7 +160,7 @@ def to_exi(msg_element: BaseModel, protocol_ns: str) -> bytes:
             message_dict = {"CPSCertificateChain": msg_to_dct}
         elif str(msg_element) == "SignedCertificateChain":
             # TODO: If we add `OEMProvisioningCertificateChain` as the return of __str__
-            #       for the SignedCertificateChain class, do we still need this if clause?
+            #     for the SignedCertificateChain class, do we still need this if clause?
             # In case of CertificateInstallationReq,
             # str(message) would not be 'OEMProvisioningCertificateChain' but
             # 'SignedCertificateChain' (the type of OEMProvisioningCertificateChain)
@@ -296,8 +296,8 @@ def from_exi(
         raise EXIDecodingError("Can't identify protocol to use for decoding")
     except ValidationError as exc:
         raise EXIDecodingError(
-            f"Error parsing the decoded EXI into a Pydantic class: {exc}. \n\nDecoded dict: "
-            f"{decoded_dict}"
+            f"Error parsing the decoded EXI into a Pydantic class: {exc}. "
+            f"\n\nDecoded dict: {decoded_dict}"
         ) from exc
     except EXIDecodingError as exc:
         raise EXIDecodingError(

@@ -811,7 +811,7 @@ class Authorization(StateSECC):
           In case of rejected and according to table 112 from ISO 15118-2, the
           errors allowed to be used are: FAILED, FAILED_Challenge_Invalid or
           FAILED_Certificate_Revoked.
-          Please check: https://dev.azure.com/switch-ev/Josev/_backlogs/backlog/Josev%20Team/Stories/?workitem=1049
+          Please check: https://dev.azure.com/switch-ev/Josev/_backlogs/backlog/Josev%20Team/Stories/?workitem=1049  # noqa: E501
 
     """
 
@@ -934,7 +934,7 @@ class ChargeParameterDiscovery(StateSECC):
 
         if (
             charge_params_req.requested_energy_mode
-            not in self.comm_session.evse_controller.get_supported_energy_transfer_modes()
+            not in self.comm_session.evse_controller.get_supported_energy_transfer_modes()  # noqa: E501
         ):
             self.stop_state_machine(
                 f"{charge_params_req.requested_energy_mode} not "
