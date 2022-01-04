@@ -145,7 +145,9 @@ class CertificateInstallationReq(BodyBase):
     oem_provisioning_cert: bytes = Field(
         ..., max_length=800, alias="OEMProvisioningCert"
     )
-    list_of_root_cert_ids: RootCertificateIDList = Field(..., alias="ListOfRootCertificateIDs")
+    list_of_root_cert_ids: RootCertificateIDList = Field(
+        ..., alias="ListOfRootCertificateIDs"
+    )
 
 
 class CertificateInstallationRes(Response):

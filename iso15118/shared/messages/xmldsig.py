@@ -23,6 +23,7 @@ class Transforms(BaseModel):
     is limited to one (1), i.e. just one single Transform algorithm can be
     indicated.
     """
+
     transform: List[Transform] = Field(..., max_items=1, alias="Transform")
 
 
@@ -78,6 +79,7 @@ class Reference(BaseModel):
     </xmlsig:Signature>
 
     """
+
     transforms: Transforms = Field(..., alias="Transforms")
     digest_method: DigestMethod = Field(..., alias="DigestMethod")
     digest_value: bytes = Field(..., alias="DigestValue")
@@ -95,6 +97,7 @@ class SignedInfo(BaseModel):
     to requirement [V2G2-909]: "The signature shall not reference more than 4 signed elements",
     therefore, a limit of 4 to the number of items of the `Reference` is enforced.
     """
+
     canonicalization_method: CanonicalizationMethod = Field(
         ..., alias="CanonicalizationMethod"
     )
