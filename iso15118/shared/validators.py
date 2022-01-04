@@ -8,10 +8,7 @@ from typing import List
 
 
 def validate_bytes_value_range(
-        var_name: str,
-        var_bytes: bytes,
-        min_val: int,
-        max_val: int
+    var_name: str, var_bytes: bytes, min_val: int, max_val: int
 ) -> bool:
     """
     Checks whether the provided integer value represented with the bytes object

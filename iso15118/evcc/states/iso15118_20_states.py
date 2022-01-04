@@ -49,7 +49,8 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader,
-    RootCertificateIDList, Processing,
+    RootCertificateIDList,
+    Processing,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
@@ -194,10 +195,8 @@ class AuthorizationSetup(StateEVCC):
                             )
                         ]
                     ),
-                    max_contract_cert_chains=
-                    self.comm_session.config.max_contract_certs,
-                    prioritized_emaids=
-                    self.comm_session.ev_controller.get_prioritised_emaids(),
+                    max_contract_cert_chains=self.comm_session.config.max_contract_certs,
+                    prioritized_emaids=self.comm_session.ev_controller.get_prioritised_emaids(),
                 )
 
                 self.create_next_message(
