@@ -22,6 +22,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     UINT_32_MAX,
     Certificate,
     EVSEStatus,
+    Identifier,
     MeterInfo,
     Processing,
     RationalNumber,
@@ -43,16 +44,10 @@ class ECDHCurve(str, Enum):
     x448 = "X448"
 
 
-# TODO: I believe this should be
-#       class EMAIDList(BaseModel):
-#           """See Annex C.1 in ISO 15118-20"""
-#           emaids: List[Identifier] = Field(..., max_items=8, alias="EMAID")
-
-
-class EMAID(BaseModel):
+class EMAIDList(BaseModel):
     """See Annex C.1 in ISO 15118-20"""
 
-    emaid: str = Field(..., max_length=255, alias="EMAID")
+    emaids: List[Identifier] = Field(..., max_items=8, alias="EMAID")
 
 
 class SubCertificates(BaseModel):
@@ -1019,11 +1014,7 @@ class CertificateInstallationReq(V2GRequest):
     max_contract_cert_chains: int = Field(
         ..., ge=0, le=65535, alias="MaximumContractCertificateChains"
     )
-    # TODO: I believe this should be
-    #       prioritized_emaids: EMAIDList = Field(None, alias="PrioritizedEMAIDs")
-    prioritized_emaids: List[EMAID] = Field(
-        None, max_items=8, alias="PrioritizedEMAIDs"
-    )
+    prioritized_emaids: EMAIDList = Field(None, alias="PrioritizedEMAIDs")
 
 
 class SignedInstallationData(BaseModel):
