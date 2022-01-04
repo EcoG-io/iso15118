@@ -61,8 +61,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     SalesTariffEntry,
     SAScheduleTuple,
 )
-from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
-from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
 from iso15118.shared.messages.enums import (
     Namespace,
     Protocol,
