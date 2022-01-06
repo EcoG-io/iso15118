@@ -26,8 +26,10 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ScheduledScheduleExchangeReqParams,
     DynamicScheduleExchangeReqParams,
     SelectedEnergyService,
-    SelectedVAS,
+    SelectedVAS, EVPowerProfile, ChannelSelection, ScheduledScheduleExchangeResParams,
+    DynamicScheduleExchangeResParams,
 )
+from iso15118.shared.messages.iso15118_20.common_types import Processing
 from iso15118.shared.messages.iso15118_20.dc import (
     DCChargeParameterDiscoveryReqParams,
     BPTDCChargeParameterDiscoveryReqParams,
@@ -182,6 +184,56 @@ class EVControllerInterface(ABC):
         """
 
     @abstractmethod
+    def process_scheduled_se_params(
+            self,
+            scheduled_params: ScheduledScheduleExchangeResParams,
+            pause: bool
+    ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
+        """
+        Processes the ScheduleExchangeRes parameters for the Scheduled mode.
+
+        Args:
+            scheduled_params: The list of offered schedule tuples for Scheduled mode
+            pause: When set to True, this indicates that the EVSE doesn’t have any power
+                   available and the EV should set ChargeProgress to PAUSE
+
+        Returns:
+            A tuple consisting of
+            1. the resulting charging profile of the EV (or None, if not yet ready)
+            1. the ChargeProgress status
+            needed to create the PowerDeliveryReq message
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def process_dynamic_se_params(
+            self,
+            dynamic_params: DynamicScheduleExchangeResParams,
+            pause: bool
+    ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
+        """
+        Processes the ScheduleExchangeRes parameters for the Dynamic mode.
+
+        Args:
+            dynamic_params: The parameters relevant for the Dynamic mode
+            pause: When set to True, this indicates that the EVSE doesn’t have any power
+                   available and the EV should set ChargeProgress to PAUSE
+
+        Returns:
+            A tuple consisting of
+            1. the resulting charging profile of the EV (or None, if not yet ready)
+            1. the ChargeProgress status
+            needed to create the PowerDeliveryReq message
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def is_cert_install_needed(self) -> bool:
         """
         Returns True if the installation of a contract certificate is needed, False
@@ -201,7 +253,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def process_sa_schedules(
+    def process_sa_schedules_v2(
         self, sa_schedules: List[SAScheduleTuple]
     ) -> Tuple[ChargeProgress, int, ChargingProfile]:
         """

@@ -710,7 +710,7 @@ class ChargeParameterDiscovery(StateEVCC):
                 charge_progress,
                 schedule_id,
                 charging_profile,
-            ) = self.comm_session.ev_controller.process_sa_schedules(
+            ) = self.comm_session.ev_controller.process_sa_schedules_v2(
                 charge_params_res.sa_schedule_list.schedule_tuples
             )
 

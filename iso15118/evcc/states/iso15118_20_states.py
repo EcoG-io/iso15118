@@ -25,7 +25,8 @@ from iso15118.shared.messages.enums import (
     ControlMode,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
-from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReq
+from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReq, \
+    ACChargeParameterDiscoveryRes
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
     AuthorizationSetupReq,
@@ -45,11 +46,13 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SelectedService,
     ServiceSelectionRes,
     ScheduleExchangeReq,
-    OfferedService,
+    OfferedService, PowerDeliveryReq, ScheduleExchangeRes,
+    ScheduledScheduleExchangeResParams, DynamicScheduleExchangeResParams,
+    ChannelSelection,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader,
-    RootCertificateIDList,
+    RootCertificateIDList, Processing,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
@@ -685,7 +688,67 @@ class ScheduleExchange(StateEVCC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("ScheduleExchange not yet implemented")
+        msg = self.check_msg_v20(message, ScheduleExchangeRes)
+        if not msg:
+            return
+
+        schedule_exchange_res: ScheduleExchangeRes = msg
+
+        if schedule_exchange_res.evse_processing == Processing.ONGOING:
+            self.create_next_message(
+                ScheduleExchange,
+                self.comm_session.ongoing_schedule_exchange_req,
+                Timeouts.SCHEDULE_EXCHANGE_REQ,
+                Namespace.ISO_V20_COMMON_MSG,
+                ISOV20PayloadTypes.SCHEDULE_RENEGOTIATION,
+            )
+        else:
+            ev_power_profile, charge_progress = None, None
+            if self.comm_session.control_mode == ControlMode.SCHEDULED:
+                ev_power_profile, charge_progress = \
+                    self.comm_session.ev_controller.process_scheduled_se_params(
+                        schedule_exchange_res.scheduled_params,
+                        schedule_exchange_res.go_to_pause
+                    )
+            else:
+                ev_power_profile, charge_progress = \
+                    self.comm_session.ev_controller.process_dynamic_se_params(
+                        schedule_exchange_res.dynamic_params,
+                        schedule_exchange_res.go_to_pause
+                    )
+
+            ev_processing = Processing.FINISHED
+            if not ev_power_profile:
+                ev_processing = Processing.ONGOING
+
+            # Information from EV to show if charging or discharging is planned
+            bpt_channel_selection = None
+            if self.comm_session.selected_energy_service in \
+                    (ServiceV20.AC_BPT, ServiceV20.DC_BPT):
+                power_value = ev_power_profile.entry_list.entries.pop().power.value
+                if power_value < 0:
+                    bpt_channel_selection = ChannelSelection.DISCHARGE
+                else:
+                    bpt_channel_selection = ChannelSelection.CHARGE
+
+            power_delivery_req = PowerDeliveryReq(
+                header=MessageHeader(
+                    session_id=self.comm_session.session_id,
+                    timestamp=time.time(),
+                ),
+                ev_processing=ev_processing,
+                charge_progress=charge_progress,
+                ev_power_profile=ev_power_profile,
+                bpt_channel_selection=bpt_channel_selection
+            )
+
+            self.create_next_message(
+                PowerDelivery,
+                power_delivery_req,
+                Timeouts.POWER_DELIVERY_REQ,
+                Namespace.ISO_V20_COMMON_MSG,
+                ISOV20PayloadTypes.SCHEDULE_RENEGOTIATION,
+            )
 
 
 class PowerDelivery(StateEVCC):
@@ -753,7 +816,44 @@ class ACChargeParameterDiscovery(StateEVCC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("ACChargeParameterDiscovery not yet implemented")
+        msg = self.check_msg_v20(message, ACChargeParameterDiscoveryRes)
+        if not msg:
+            return
+
+        ac_cpd_res: ACChargeParameterDiscoveryRes = msg  # noqa: F841
+        # TODO Act upon the possible negative response codes in ac_cpd_res
+        #      (and delete the # noqa: F841)
+
+        scheduled_params, dynamic_params = None, None
+        if self.comm_session.control_mode == ControlMode.SCHEDULED:
+            scheduled_params = self.comm_session.ev_controller.get_scheduled_se_params(
+                self.comm_session.selected_energy_service
+            )
+
+        if self.comm_session.control_mode == ControlMode.DYNAMIC:
+            dynamic_params = self.comm_session.ev_controller.get_dynamic_se_params(
+                self.comm_session.selected_energy_service
+            )
+
+        schedule_exchange_req = ScheduleExchangeReq(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id,
+                timestamp=time.time(),
+            ),
+            max_supporting_points=self.comm_session.config.max_supporting_points,
+            scheduled_params=scheduled_params,
+            dynamic_params=dynamic_params,
+        )
+
+        self.comm_session.ongoing_schedule_exchange_req = schedule_exchange_req
+
+        self.create_next_message(
+            ScheduleExchange,
+            schedule_exchange_req,
+            Timeouts.SCHEDULE_EXCHANGE_REQ,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.SCHEDULE_RENEGOTIATION,
+        )
 
 
 class ACChargeLoop(StateEVCC):
@@ -828,6 +928,8 @@ class DCChargeParameterDiscovery(StateEVCC):
             scheduled_params=scheduled_params,
             dynamic_params=dynamic_params,
         )
+
+        self.comm_session.ongoing_schedule_exchange_req = schedule_exchange_req
 
         self.create_next_message(
             ScheduleExchange,
