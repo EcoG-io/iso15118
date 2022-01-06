@@ -26,6 +26,7 @@ from iso15118.shared.messages.enums import (
     ControlMode,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
+from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReq
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
     AuthorizationSetupReq,
@@ -612,33 +613,48 @@ class ServiceSelection(StateEVCC):
         service_selection_res: ServiceSelectionRes = msg  # noqa: F841
         # TODO Act upon the possible negative response codes in service_selection_res
         #      (and delete the # noqa: F841)
-        charge_params = self.comm_session.ev_controller.get_charge_params_v20(
-            self.comm_session.selected_energy_service
-        )
 
-        if self.comm_session.selected_energy_service.service == ServiceV20.DC:
-            next_req = DCChargeParameterDiscoveryReq(
+        if self.comm_session.selected_energy_service.service in (
+                ServiceV20.AC, ServiceV20.AC_BPT
+        ):
+            ac_params, bpt_ac_params = None, None
+            if self.comm_session.selected_energy_service.service == ServiceV20.AC:
+                ac_params = self.comm_session.ev_controller.get_ac_charge_params_v20()
+            else:
+                bpt_ac_params = self.comm_session.ev_controller.get_ac_bpt_charge_params_v20()
+
+            next_req = ACChargeParameterDiscoveryReq(
                 header=MessageHeader(
                     session_id=self.comm_session.session_id,
                     timestamp=time.time(),
                 ),
-                dc_params=charge_params,
+                ac_params=ac_params,
+                bpt_ac_params=bpt_ac_params
             )
 
             self.create_next_message(
-                DCChargeParameterDiscovery,
+                ACChargeParameterDiscovery,
                 next_req,
                 Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ,
-                Namespace.ISO_V20_DC,
-                ISOV20PayloadTypes.DC_MAINSTREAM,
+                Namespace.ISO_V20_AC,
+                ISOV20PayloadTypes.AC_MAINSTREAM,
             )
-        elif self.comm_session.selected_energy_service.service == ServiceV20.DC_BPT:
+        elif self.comm_session.selected_energy_service.service in (
+                ServiceV20.DC, ServiceV20.DC_BPT
+        ):
+            dc_params, bpt_dc_params = None, None
+            if self.comm_session.selected_energy_service.service == ServiceV20.DC:
+                dc_params = self.comm_session.ev_controller.get_dc_charge_params_v20()
+            else:
+                bpt_dc_params = self.comm_session.ev_controller.get_dc_bpt_charge_params_v20()
+
             next_req = DCChargeParameterDiscoveryReq(
                 header=MessageHeader(
                     session_id=self.comm_session.session_id,
                     timestamp=time.time(),
                 ),
-                bpt_dc_params=charge_params,
+                dc_params=dc_params,
+                bpt_dc_params=bpt_dc_params
             )
 
             self.create_next_message(
@@ -653,7 +669,7 @@ class ServiceSelection(StateEVCC):
             logger.error(
                 "Energy transfer mode for service "
                 f"{self.comm_session.selected_energy_service.service} "
-                "not yet supported in ServiceSelection"
+                "not supported in ServiceSelection"
             )
 
 

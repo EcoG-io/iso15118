@@ -159,7 +159,7 @@ class SimEVController(EVControllerInterface):
 
     def get_energy_service(self) -> ServiceV20:
         """Overrides EVControllerInterface.get_energy_transfer_service()."""
-        return ServiceV20.DC
+        return ServiceV20.AC
 
     def select_energy_service_v20(
         self, service: ServiceV20, is_free: bool, parameter_sets: List[ParameterSetV20]
@@ -502,3 +502,78 @@ class SimEVController(EVControllerInterface):
 
     def stop_charging(self) -> None:
         self._charging_is_completed = True
+
+    def get_ac_charge_params_v2(self) -> ChargeParamsV2:
+        """Overrides EVControllerInterface.get_ac_charge_params_v2()."""
+        e_amount = PVEAmount(multiplier=0, value=60, unit=UnitSymbol.WATT_HOURS)
+        ev_max_voltage = PVEVMaxVoltage(
+            multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
+        )
+        ev_max_current = PVEVMaxCurrent(
+            multiplier=-3, value=32000, unit=UnitSymbol.AMPERE
+        )
+        ev_min_current = PVEVMinCurrent(multiplier=0, value=10, unit=UnitSymbol.AMPERE)
+        ac_charge_params = ACEVChargeParameter(
+            departure_time=0,
+            e_amount=e_amount,
+            ev_max_voltage=ev_max_voltage,
+            ev_max_current=ev_max_current,
+            ev_min_current=ev_min_current,
+        )
+        return ChargeParamsV2(self.get_energy_transfer_mode(), ac_charge_params, None)
+
+    def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
+        """Overrides EVControllerInterface.get_ac_charge_params_v20()."""
+        return ACChargeParameterDiscoveryReqParams(
+                ev_max_charge_power=RationalNumber(exponent=3, value=3),
+                ev_max_charge_power_l2=RationalNumber(exponent=3, value=3),
+                ev_max_charge_power_l3=RationalNumber(exponent=3, value=3),
+                ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+                ev_min_charge_power_l3=RationalNumber(exponent=0, value=100)
+            )
+
+    def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryReqParams:
+        """Overrides EVControllerInterface.get_bpt_ac_charge_params_v20()."""
+        return BPTACChargeParameterDiscoveryReqParams(
+            ev_max_charge_power=RationalNumber(exponent=3, value=11),
+            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_max_discharge_power=RationalNumber(exponent=3, value=11),
+            ev_min_discharge_power=RationalNumber(exponent=0, value=100),
+        )
+
+    # ============================================================================
+    # |                          DC-SPECIFIC FUNCTIONS                           |
+    # ============================================================================
+
+    def get_dc_charge_params_v2(self) -> ChargeParamsV2:
+        """Overrides EVControllerInterface.get_dc_charge_params_v2()."""
+        raise NotImplementedError(
+            "DC charge parameters for ISO 15118-2 not yet impmlemented"
+        )
+
+    def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryReqParams:
+        """Overrides EVControllerInterface.get_dc_charge_params_v20()."""
+        return DCChargeParameterDiscoveryReqParams(
+            ev_max_charge_power=RationalNumber(exponent=3, value=300),
+            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_max_charge_current=RationalNumber(exponent=0, value=300),
+            ev_min_charge_current=RationalNumber(exponent=0, value=10),
+            ev_max_voltage=RationalNumber(exponent=0, value=1000),
+            ev_min_voltage=RationalNumber(exponent=0, value=10),
+        )
+
+    def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryReqParams:
+        """Overrides EVControllerInterface.get_bpt_dc_charge_params_v20()."""
+        return BPTDCChargeParameterDiscoveryReqParams(
+            ev_max_charge_power=RationalNumber(exponent=3, value=300),
+            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_max_charge_current=RationalNumber(exponent=0, value=300),
+            ev_min_charge_current=RationalNumber(exponent=0, value=10),
+            ev_max_voltage=RationalNumber(exponent=0, value=1000),
+            ev_min_oltage=RationalNumber(exponent=0, value=10),
+            ev_max_discharge_power=RationalNumber(exponent=3, value=11),
+            ev_min_discharge_power=RationalNumber(exponent=3, value=1),
+            ev_max_discharge_current=RationalNumber(exponent=0, value=11),
+            ev_min_discharge_current=RationalNumber(exponent=0, value=0),
+        )

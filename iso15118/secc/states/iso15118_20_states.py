@@ -26,6 +26,9 @@ from iso15118.shared.messages.enums import (
     Protocol
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
+from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReqParams, \
+    BPTACChargeParameterDiscoveryReqParams, ACChargeParameterDiscoveryRes, \
+    ACChargeParameterDiscoveryReq
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
     AuthorizationRes,
@@ -548,11 +551,11 @@ class ServiceDetail(StateSECC):
 
         service_detail_req: ServiceDetailReq = msg
 
-        service_parameter_list = (
+        service_parameter_list = \
             self.comm_session.evse_controller.get_service_parameter_list(
                 service_detail_req.service_id
             )
-        )
+
         for offered_service in self.comm_session.offered_services_v20:
             if offered_service.service.id == service_detail_req.service_id:
                 offered_service.parameter_sets = service_parameter_list.parameter_sets
@@ -908,7 +911,62 @@ class ACChargeParameterDiscovery(StateSECC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("ACChargeParameterDiscovery not yet implemented")
+        msg = self.check_msg_v20(
+            message, [ACChargeParameterDiscoveryReq, SessionStopReq], False
+        )
+        if not msg:
+            return
+
+        if isinstance(msg, SessionStopReq):
+            SessionStop(self.comm_session).process_message(message)
+            return
+
+        ac_cpd_req: ACChargeParameterDiscoveryReq = msg
+
+        energy_service = self.comm_session.selected_energy_service.service
+        ac_params, bpt_ac_params = None, None
+
+        if energy_service == ServiceV20.AC and self.charge_parameter_valid(
+                ac_cpd_req.ac_params
+        ):
+            ac_params = self.comm_session.evse_controller.get_ac_charge_params_v20()
+        elif energy_service == ServiceV20.AC_BPT and self.charge_parameter_valid(
+                ac_cpd_req.bpt_ac_params
+        ):
+            bpt_ac_params = self.comm_session.evse_controller.get_ac_bpt_charge_params_v20()
+        else:
+            self.stop_state_machine(
+                f"Invalid charge parameter for service {energy_service}",
+                message,
+                ResponseCode.FAILED_WRONG_CHARGE_PARAMETER,
+            )
+            return
+
+        ac_cpd_res = ACChargeParameterDiscoveryRes(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id, timestamp=time.time()
+            ),
+            response_code=ResponseCode.OK,
+            ac_params=ac_params,
+            bpt_ac_params=bpt_ac_params,
+        )
+
+        self.create_next_message(
+            ScheduleExchange,
+            ac_cpd_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_AC,
+            ISOV20PayloadTypes.AC_MAINSTREAM,
+        )
+
+    def charge_parameter_valid(
+        self,
+        ac_charge_params: Union[
+            ACChargeParameterDiscoveryReqParams, BPTACChargeParameterDiscoveryReqParams
+        ],
+    ) -> bool:
+        # TODO Implement [V2G20-1619] (FAILED_WrongChargeParameter)
+        return True
 
 
 class ACChargeLoop(StateSECC):
@@ -967,21 +1025,17 @@ class DCChargeParameterDiscovery(StateSECC):
 
         dc_cpd_req: DCChargeParameterDiscoveryReq = msg
 
-        charge_params = self.comm_session.evse_controller.get_charge_params_v20(
-            self.comm_session.selected_energy_service
-        )
-
         energy_service = self.comm_session.selected_energy_service.service
         dc_params, bpt_dc_params = None, None
 
         if energy_service == ServiceV20.DC and self.charge_parameter_valid(
             dc_cpd_req.dc_params
         ):
-            dc_params = charge_params
+            dc_params = self.comm_session.evse_controller.get_dc_charge_params_v20()
         elif energy_service == ServiceV20.DC_BPT and self.charge_parameter_valid(
             dc_cpd_req.bpt_dc_params
         ):
-            bpt_dc_params = charge_params
+            bpt_dc_params = self.comm_session.evse_controller.get_dc_bpt_charge_params_v20()
         else:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
