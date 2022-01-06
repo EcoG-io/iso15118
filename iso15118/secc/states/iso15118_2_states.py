@@ -954,12 +954,12 @@ class ChargeParameterDiscovery(StateSECC):
         dc_evse_charge_params: Optional[DCEVSEChargeParameter] = None
         if charge_params_req.ac_ev_charge_parameter:
             ac_evse_charge_params = (
-                self.comm_session.evse_controller.get_ac_evse_charge_parameter()
+                self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
             departure_time = charge_params_req.ac_ev_charge_parameter.departure_time
         else:
             dc_evse_charge_params = (
-                self.comm_session.evse_controller.get_dc_evse_charge_parameter()
+                self.comm_session.evse_controller.get_dc_charge_params_v2()
             )
             departure_time = charge_params_req.dc_ev_charge_parameter.departure_time
 

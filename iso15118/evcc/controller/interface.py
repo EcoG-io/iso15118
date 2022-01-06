@@ -140,51 +140,6 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_charge_params_v2(self) -> ChargeParamsV2:
-        """
-        Gets the charge parameter needed for ChargeParameterDiscoveryReq (ISO 15118-2),
-        including the energy transfer mode and the energy mode-specific parameters,
-        which is an instance of either ACEVChargeParameter or DCEVChargeParameter,
-        depending on the EnergyTransferMode.
-
-        Returns:
-            A tuple of ChargeParamsV2, including EnergyTransferMode and
-            ACEVChargeParameter (or DCEVChargeParameter)
-
-        Relevant for:
-        - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_charge_params_v20(
-        self, selected_service: SelectedEnergyService
-    ) -> Union[
-        ACChargeParameterDiscoveryReqParams,
-        BPTACChargeParameterDiscoveryReqParams,
-        DCChargeParameterDiscoveryReqParams,
-        BPTDCChargeParameterDiscoveryReqParams,
-    ]:
-        """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryReq.
-
-        Args:
-            selected_service: The energy transfer service, which the EVCC selected, and
-                              for which we need the EVCC's charge parameters. This is
-                              an instance of the custom class SelectedEnergyService.
-
-        Returns:
-            Charge parameters for either unidirectional or bi-directional power
-            transfer needed for a ChargeParameterDiscoveryReq.
-
-        Relevant for:
-        - ISO 15118-20
-
-        TODO Add support for WPT and ACDP in the return type
-        """
-        raise NotImplementedError
-
-    @abstractmethod
     def get_scheduled_se_params(
         self, selected_energy_service: SelectedEnergyService
     ) -> ScheduledScheduleExchangeReqParams:
@@ -326,6 +281,79 @@ class EVControllerInterface(ABC):
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
 
+    @abstractmethod
+    def get_ac_charge_params_v2(self) -> ChargeParamsV2:
+        """
+        Gets the charge parameter needed for ChargeParameterDiscoveryReq (ISO 15118-2),
+        including the energy transfer mode and the energy mode-specific parameters,
+        which is an instance of either ACEVChargeParameter.
+
+        Returns:
+            A tuple of ChargeParamsV2, including EnergyTransferMode and
+            ACEVChargeParameter
+
+        Relevant for:
+        - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
+        AC charging.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryReqParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
+        bidirectional AC charging.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
     # ============================================================================
     # |                          DC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
+
+    @abstractmethod
+    def get_dc_charge_params_v2(self) -> ChargeParamsV2:
+        """
+        Gets the charge parameter needed for ChargeParameterDiscoveryReq (ISO 15118-2),
+        including the energy transfer mode and the energy mode-specific parameters,
+        which is an instance of either DCEVChargeParameter.
+
+        Returns:
+            A tuple of ChargeParamsV2, including EnergyTransferMode and
+            DCEVChargeParameter
+
+        Relevant for:
+        - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryReqParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
+        DC charging.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryReqParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
+        bidirectional DC charging.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError

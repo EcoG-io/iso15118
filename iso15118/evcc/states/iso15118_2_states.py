@@ -634,7 +634,7 @@ class Authorization(StateEVCC):
             # Reset the Ongoing timer
             self.comm_session.ongoing_timer = -1
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2()
+            charge_params = self.comm_session.ev_controller.get_ac_charge_params_v2()
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,
@@ -746,7 +746,7 @@ class ChargeParameterDiscovery(StateEVCC):
             else:
                 self.comm_session.ongoing_timer = time()
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2()
+            charge_params = self.comm_session.ev_controller.get_ac_charge_params_v2()
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,
@@ -800,7 +800,7 @@ class PowerDelivery(StateEVCC):
         elif self.comm_session.renegotiation_requested:
             self.comm_session.renegotiation_requested = False
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2()
+            charge_params = self.comm_session.ev_controller.get_ac_charge_params_v2()
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,

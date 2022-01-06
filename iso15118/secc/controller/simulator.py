@@ -41,7 +41,8 @@ from iso15118.shared.messages.enums import (
     DCConnector,
     MobilityNeedsMode,
     Pricing,
-    PriceAlgorithm,
+    PriceAlgorithm, ACConnector, GeneratorMode, BPTChannel,
+    GridCodeIslandingDetectionMode,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryResParams,
@@ -107,53 +108,6 @@ class SimEVSEController(EVSEControllerInterface):
         ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
         ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
         return [ac_single_phase, ac_three_phase]
-
-    def get_charge_params_v20(
-        self, selected_service: SelectedEnergyService
-    ) -> Union[
-        ACChargeParameterDiscoveryResParams,
-        BPTACChargeParameterDiscoveryResParams,
-        DCChargeParameterDiscoveryResParams,
-        BPTDCChargeParameterDiscoveryResParams,
-    ]:
-        """Overrides EVSEControllerInterface.get_charge_params_v20()."""
-        if selected_service.service == ServiceV20.AC:
-            return ACChargeParameterDiscoveryResParams(
-                ev_max_charge_power=RationalNumber(exponent=3, value=11),
-                ev_min_charge_power=RationalNumber(exponent=0, value=100),
-            )
-        elif selected_service.service == ServiceV20.AC_BPT:
-            return BPTACChargeParameterDiscoveryResParams(
-                ev_max_charge_power=RationalNumber(exponent=3, value=11),
-                ev_min_charge_power=RationalNumber(exponent=0, value=100),
-                ev_max_discharge_power=RationalNumber(exponent=3, value=11),
-                ev_min_discharge_power=RationalNumber(exponent=0, value=100),
-            )
-        elif selected_service.service == ServiceV20.DC:
-            return DCChargeParameterDiscoveryResParams(
-                evse_max_charge_power=RationalNumber(exponent=3, value=300),
-                evse_min_charge_power=RationalNumber(exponent=0, value=100),
-                evse_max_charge_current=RationalNumber(exponent=0, value=300),
-                evse_min_charge_current=RationalNumber(exponent=0, value=10),
-                evse_max_voltage=RationalNumber(exponent=0, value=1000),
-                evse_min_voltage=RationalNumber(exponent=0, value=10),
-            )
-        elif selected_service.service == ServiceV20.DC_BPT:
-            return BPTDCChargeParameterDiscoveryResParams(
-                evse_max_charge_power=RationalNumber(exponent=3, value=300),
-                evse_min_charge_power=RationalNumber(exponent=0, value=100),
-                evse_max_charge_current=RationalNumber(exponent=0, value=300),
-                evse_min_charge_current=RationalNumber(exponent=0, value=10),
-                evse_max_voltage=RationalNumber(exponent=0, value=1000),
-                evse_min_oltage=RationalNumber(exponent=0, value=10),
-                evse_max_discharge_power=RationalNumber(exponent=3, value=11),
-                evse_min_discharge_power=RationalNumber(exponent=3, value=1),
-                evse_max_discharge_current=RationalNumber(exponent=0, value=11),
-                evse_min_discharge_current=RationalNumber(exponent=0, value=0),
-            )
-        else:
-            # TODO Implement the remaining energy transer services
-            logger.error("Energy transfer service not supported")
 
     def get_scheduled_se_params(
         self,
@@ -313,7 +267,7 @@ class SimEVSEController(EVSEControllerInterface):
     def get_energy_service_list(self) -> ServiceList:
         """Overrides EVSEControllerInterface.get_energy_service_list()."""
         # AC = 1, DC = 2, AC_BPT = 5, DC_BPT = 6
-        service_ids = [2]
+        service_ids = [1, 5]
         service_list: ServiceList = ServiceList(services=[])
         for service_id in service_ids:
             service_list.services.append(
@@ -321,6 +275,113 @@ class SimEVSEController(EVSEControllerInterface):
             )
 
         return service_list
+
+    def get_service_parameter_list(
+            self, service_id: int
+    ) -> Optional[ServiceParameterList]:
+        """Overrides EVSEControllerInterface.get_service_parameter_list()."""
+        if service_id == ServiceV20.AC.service_id:
+            service_parameter_list = ServiceParameterList(
+                parameter_sets=[
+                    ParameterSet(
+                        id=1,
+                        parameters=[
+                            Parameter(
+                                name=ParameterName.CONNECTOR,
+                                int_value=ACConnector.THREE_PHASE,
+                            ),
+                            Parameter(
+                                name=ParameterName.CONTROL_MODE,
+                                int_value=ControlMode.DYNAMIC,
+                            ),
+                            Parameter(
+                                name=ParameterName.EVSE_NOMINAL_VOLTAGE,
+                                int_value=400,
+                            ),
+                            Parameter(
+                                name=ParameterName.MOBILITY_NEEDS_MODE,
+                                int_value=MobilityNeedsMode.EVCC_AND_SECC,
+                            ),
+                            Parameter(
+                                name=ParameterName.PRICING, int_value=Pricing.NONE
+                            ),
+                        ],
+                    )
+                ]
+            )
+        elif service_id == ServiceV20.AC_BPT.service_id:
+            service_parameter_list = ServiceParameterList(
+                parameter_sets=[
+                    ParameterSet(
+                        id=1,
+                        parameters=[
+                            Parameter(
+                                name=ParameterName.CONNECTOR,
+                                int_value=ACConnector.THREE_PHASE,
+                            ),
+                            Parameter(
+                                name=ParameterName.CONTROL_MODE,
+                                int_value=ControlMode.SCHEDULED,
+                            ),
+                            Parameter(
+                                name=ParameterName.EVSE_NOMINAL_VOLTAGE,
+                                int_value=400,
+                            ),
+                            Parameter(
+                                name=ParameterName.MOBILITY_NEEDS_MODE,
+                                int_value=MobilityNeedsMode.EVCC_ONLY,
+                            ),
+                            Parameter(
+                                name=ParameterName.PRICING, int_value=Pricing.NONE
+                            ),
+                            Parameter(
+                                name=ParameterName.BPT_CHANNEL,
+                                int_value=BPTChannel.UNIFIED,
+                            ),
+                            Parameter(
+                                name=ParameterName.GENERATOR_MODE,
+                                int_value=GeneratorMode.GRID_FOLLOWING,
+                            ),
+                            Parameter(
+                                name=ParameterName.GRID_CODE_ISLANDING_DETECTION_MODE,
+                                int_value=GridCodeIslandingDetectionMode.ACTIVE,
+                            ),
+                        ],
+                    )
+                ]
+            )
+        elif service_id == ServiceV20.DC.service_id:
+            service_parameter_list = ServiceParameterList(
+                parameter_sets=[
+                    ParameterSet(
+                        id=1,
+                        parameters=[
+                            Parameter(
+                                name=ParameterName.CONNECTOR,
+                                int_value=DCConnector.EXTENDED,
+                            ),
+                            Parameter(
+                                name=ParameterName.CONTROL_MODE,
+                                int_value=ControlMode.DYNAMIC,
+                            ),
+                            Parameter(
+                                name=ParameterName.MOBILITY_NEEDS_MODE,
+                                int_value=MobilityNeedsMode.EVCC_ONLY,
+                            ),
+                            Parameter(
+                                name=ParameterName.PRICING, int_value=Pricing.NONE
+                            ),
+                        ],
+                    )
+                ]
+            )
+        else:
+            logger.error(
+                f"No ServiceParameterList available for service ID {service_id}"
+            )
+            return None
+
+        return service_parameter_list
 
     def is_authorised(self) -> bool:
         """Overrides EVSEControllerInterface.is_authorised()."""
@@ -412,7 +473,7 @@ class SimEVSEController(EVSEControllerInterface):
             notification_max_delay=0, evse_notification=EVSENotification.NONE, rcd=False
         )
 
-    def get_ac_evse_charge_parameter(self) -> ACEVSEChargeParameter:
+    def get_ac_charge_params_v2(self) -> ACEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_ac_evse_charge_parameter()."""
         evse_nominal_voltage = PVEVSENominalVoltage(
             multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
@@ -425,51 +486,46 @@ class SimEVSEController(EVSEControllerInterface):
             evse_nominal_voltage=evse_nominal_voltage,
             evse_max_current=evse_max_current,
         )
-        evse_nominal_voltage = PVEVSENominalVoltage(
-            multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
-        )
-        evse_max_current = PVEVSEMaxCurrent(
-            multiplier=0, value=32, unit=UnitSymbol.AMPERE
-        )
-        return ACEVSEChargeParameter(
-            ac_evse_status=self.get_ac_evse_status(),
-            evse_nominal_voltage=evse_nominal_voltage,
-            evse_max_current=evse_max_current,
+
+    def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryResParams:
+        """Overrides EVSEControllerInterface.get_ac_charge_params_v20()."""
+        return ACChargeParameterDiscoveryResParams(
+            evse_max_charge_power=RationalNumber(exponent=3, value=11),
+            evse_max_charge_power_l2=RationalNumber(exponent=3, value=11),
+            evse_max_charge_power_l3=RationalNumber(exponent=3, value=11),
+            evse_min_charge_power=RationalNumber(exponent=0, value=100),
+            evse_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+            evse_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+            evse_nominal_frequency=RationalNumber(exponent=0, value=400),
+            max_power_asymmetry=RationalNumber(exponent=0, value=500),
+            evse_power_ramp_limit=RationalNumber(exponent=0, value=10),
+            evse_present_active_power=RationalNumber(exponent=3, value=3),
+            evse_present_active_power_l2=RationalNumber(exponent=3, value=3),
+            evse_present_active_power_l3=RationalNumber(exponent=3, value=3),
         )
 
-    def get_service_parameter_list(self, service_id: int) -> ServiceParameterList:
-        """Overrides EVSEControllerInterface.get_service_parameter_list()."""
-        if service_id == ServiceV20.DC.service_id:
-            service_parameter_list = ServiceParameterList(
-                parameter_sets=[
-                    ParameterSet(
-                        id=1,
-                        parameters=[
-                            Parameter(
-                                name=ParameterName.CONNECTOR,
-                                int_value=DCConnector.EXTENDED,
-                            ),
-                            Parameter(
-                                name=ParameterName.CONTROL_MODE,
-                                int_value=ControlMode.DYNAMIC,
-                            ),
-                            Parameter(
-                                name=ParameterName.MOBILITY_NEEDS_MODE,
-                                int_value=MobilityNeedsMode.EVCC_ONLY,
-                            ),
-                            Parameter(
-                                name=ParameterName.PRICING, int_value=Pricing.NONE
-                            ),
-                        ],
-                    )
-                ]
-            )
-
-            return service_parameter_list
-        else:
-            logger.error(
-                f"Unknown service ID {service_id}, can't provide ServiceParameterList"
-            )
+    def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryResParams:
+        """Overrides EVSEControllerInterface.get_ac_bpt_charge_params_v20()."""
+        return BPTACChargeParameterDiscoveryResParams(
+            evse_max_charge_power=RationalNumber(exponent=3, value=11),
+            evse_max_charge_power_l2=RationalNumber(exponent=3, value=11),
+            evse_max_charge_power_l3=RationalNumber(exponent=3, value=11),
+            evse_min_charge_power=RationalNumber(exponent=0, value=100),
+            evse_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+            evse_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+            evse_nominal_frequency=RationalNumber(exponent=0, value=400),
+            max_power_asymmetry=RationalNumber(exponent=0, value=500),
+            evse_power_ramp_limit=RationalNumber(exponent=0, value=10),
+            evse_present_active_power=RationalNumber(exponent=3, value=3),
+            evse_present_active_power_l2=RationalNumber(exponent=3, value=3),
+            evse_present_active_power_l3=RationalNumber(exponent=3, value=3),
+            evse_max_discharge_power=RationalNumber(exponent=0, value=3000),
+            evse_max_discharge_power_l2=RationalNumber(exponent=0, value=3000),
+            evse_max_discharge_power_l3=RationalNumber(exponent=0, value=3000),
+            evse_min_discharge_power=RationalNumber(exponent=0, value=300),
+            evse_min_discharge_power_l2=RationalNumber(exponent=0, value=300),
+            evse_min_discharge_power_l3=RationalNumber(exponent=0, value=300),
+        )
 
     # ============================================================================
     # |                          DC-SPECIFIC FUNCTIONS                           |
@@ -484,7 +540,7 @@ class SimEVSEController(EVSEControllerInterface):
             evse_status_code=DCEVSEStatusCode.EVSE_READY,
         )
 
-    def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
+    def get_dc_charge_params_v2(self) -> DCEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_dc_evse_charge_parameter()."""
         pass
 
@@ -495,3 +551,30 @@ class SimEVSEController(EVSEControllerInterface):
     def get_evse_present_current(self) -> PVEVSEPresentCurrent:
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
         return PVEVSEPresentCurrent(multiplier=0, value=10, unit="A")
+
+    def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryResParams:
+        """Overrides EVSEControllerInterface.get_dc_charge_params_v20()."""
+        return DCChargeParameterDiscoveryResParams(
+            evse_max_charge_power=RationalNumber(exponent=3, value=300),
+            evse_min_charge_power=RationalNumber(exponent=0, value=100),
+            evse_max_charge_current=RationalNumber(exponent=0, value=300),
+            evse_min_charge_current=RationalNumber(exponent=0, value=10),
+            evse_max_voltage=RationalNumber(exponent=0, value=1000),
+            evse_min_voltage=RationalNumber(exponent=0, value=10),
+            evse_power_ramp_limit=RationalNumber(pyexpat=0, value=10)
+        )
+
+    def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryResParams:
+        """Overrides EVSEControllerInterface.get_dc_bpt_charge_params_v20()."""
+        return BPTDCChargeParameterDiscoveryResParams(
+            evse_max_charge_power=RationalNumber(exponent=3, value=300),
+            evse_min_charge_power=RationalNumber(exponent=0, value=100),
+            evse_max_charge_current=RationalNumber(exponent=0, value=300),
+            evse_min_charge_current=RationalNumber(exponent=0, value=10),
+            evse_max_voltage=RationalNumber(exponent=0, value=1000),
+            evse_min_oltage=RationalNumber(exponent=0, value=10),
+            evse_max_discharge_power=RationalNumber(exponent=3, value=11),
+            evse_min_discharge_power=RationalNumber(exponent=3, value=1),
+            evse_max_discharge_current=RationalNumber(exponent=0, value=11),
+            evse_min_discharge_current=RationalNumber(exponent=0, value=0),
+        )

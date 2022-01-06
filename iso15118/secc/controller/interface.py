@@ -69,31 +69,6 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_charge_params_v20(
-        self, selected_service: SelectedEnergyService
-    ) -> Union[
-        ACChargeParameterDiscoveryResParams,
-        BPTACChargeParameterDiscoveryResParams,
-        DCChargeParameterDiscoveryResParams,
-        BPTDCChargeParameterDiscoveryResParams,
-    ]:
-        """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryReq.
-
-        Args:
-            selected_service: The energy transfer service, which the EVCC selected, and
-                              for which we need the SECC's charge parameters
-
-        Returns:
-            Charge parameters for either unidirectional or bi-directional power
-            transfer needed for a ChargeParameterDiscoveryRes.
-
-        Relevant for:
-        - ISO 15118-20
-        """
-        raise NotImplementedError
-
-    @abstractmethod
     def get_scheduled_se_params(
         self,
         selected_energy_service: SelectedEnergyService,
@@ -246,10 +221,19 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_service_parameter_list(self, service_id: int) -> ServiceParameterList:
+    def get_service_parameter_list(
+            self, service_id: int
+    ) -> Optional[ServiceParameterList]:
         """
         Provides a list of parameters for a specific service ID for which the EVCC
-        requests additional information
+        requests additional information.
+
+        Args:
+            service_id: The service ID, according to Table 204 (ISO 15118-20)
+
+        Returns:
+            A ServiceParameterList instance for the requested service ID, or None if
+            that service is not supported.
 
         Relevant for:
         - ISO 15118-20
@@ -271,12 +255,34 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_ac_evse_charge_parameter(self) -> ACEVSEChargeParameter:
+    def get_ac_charge_params_v2(self) -> ACEVSEChargeParameter:
         """
         Gets the AC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
 
         Relevant for:
         - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryResParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
+        AC charging.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryResParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
+        bidirectional AC charging.
+
+        Relevant for:
+        - ISO 15118-20
         """
         raise NotImplementedError
 
@@ -295,7 +301,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
+    def get_dc_charge_params_v2(self) -> DCEVSEChargeParameter:
         """
         Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
 
@@ -321,5 +327,24 @@ class EVSEControllerInterface(ABC):
 
         Relevant for:
         - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryResParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
+        DC charging.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryResParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
+        bidirectional DC charging.
+
+        Relevant for:
+        - ISO 15118-20
         """
         raise NotImplementedError
