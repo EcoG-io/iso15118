@@ -386,7 +386,7 @@ class EVPowerScheduleEntry(BaseModel):
 class EVPowerScheduleEntryList(BaseModel):
     """See section 8.3.5.3.43 in ISO 15118-20"""
 
-    ev_power_schedule_entries: List[EVPowerScheduleEntry] = Field(
+    entries: List[EVPowerScheduleEntry] = Field(
         ..., max_items=1024, alias="EVPowerScheduleEntry"
     )
 
@@ -472,12 +472,19 @@ class DynamicScheduleExchangeReqParams(BaseModel):
 
     @root_validator(pre=True)
     def both_v2x_fields_must_be_set(cls, values):
-        max_v2g, min_v2x = (
+        max_v2x, min_v2x = (
             values.get("ev_max_v2x_energy_request"),
             values.get("ev_min_v2x_energy_request"),
         )
 
-        if (max_v2g and not min_v2x) or (min_v2x and not max_v2g):
+        if max_v2x is None and min_v2x is None:
+            # When decoding from EXI to JSON dict
+            max_v2x, min_v2x = (
+                values.get("EVMaximumV2XEnergyRequest"),
+                values.get("EVMinimumV2XEnergyRequest"),
+            )
+
+        if (max_v2x and not min_v2x) or (min_v2x and not max_v2x):
             raise ValueError(
                 "EVMaximumV2XEnergyRequest and EVMinimumV2XEnergyRequest of type "
                 "Dynamic_SEReqControlModeType must either be both set or both omitted. "
@@ -537,7 +544,7 @@ class PowerScheduleEntry(BaseModel):
 class PowerScheduleEntryList(BaseModel):
     """See section 8.3.5.3.19 in ISO 15118-20"""
 
-    power_schedule_entries: List[PowerScheduleEntry] = Field(
+    entries: List[PowerScheduleEntry] = Field(
         ..., max_items=1024, alias="PowerScheduleEntry"
     )
 
@@ -548,7 +555,7 @@ class PowerSchedule(BaseModel):
     time_anchor: int = Field(..., alias="TimeAnchor")
     available_energy: RationalNumber = Field(None, alias="AvailableEnergy")
     power_tolerance: RationalNumber = Field(None, alias="PowerTolerance")
-    power_schedule_entries: PowerScheduleEntryList = Field(
+    schedule_entry_list: PowerScheduleEntryList = Field(
         ..., alias="PowerScheduleEntries"
     )
 
@@ -800,11 +807,12 @@ class DynamicScheduleExchangeResParams(BaseModel):
         """
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
-        # TODO Check if you need to also consider the field names MinimumSOC and
-        #      TargetSOC when decoding from EXI (if yes, check other classes as well)
-        #      for the same issue)
         # TODO Also check other classes that contain min_soc and target_soc
         min_soc, target_soc = values.get("min_soc"), values.get("target_soc")
+        if min_soc is None and target_soc is None:
+            # When decoding from EXI to JSON dict
+            min_soc, target_soc = values.get("MinimumSOC"), values.get("TargetSOC")
+
         if (min_soc and target_soc) and min_soc > target_soc:
             raise ValueError(
                 "MinimumSOC must be less than or equal to TargetSOC.\n"
@@ -863,6 +871,9 @@ class ScheduleExchangeRes(V2GResponse):
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
         evse_processing = values.get("evse_processing")
+        if evse_processing is None:
+            # When decoding from EXI to JSON dict
+            evse_processing = values.get("EVSEProcessing")
         if evse_processing == Processing.ONGOING:
             return values
 
@@ -884,7 +895,7 @@ class ScheduleExchangeRes(V2GResponse):
 class EVPowerProfileEntryList(BaseModel):
     """See section 8.3.5.3.10 in ISO 15118-20"""
 
-    ev_power_profile_entry: List[PowerScheduleEntry] = Field(
+    entries: List[PowerScheduleEntry] = Field(
         ..., max_items=2048, alias="EVPowerProfileEntry"
     )
 
@@ -892,8 +903,8 @@ class EVPowerProfileEntryList(BaseModel):
 class PowerToleranceAcceptance(str, Enum):
     """See section 8.3.5.3.12 in ISO 15118-20"""
 
-    power_tolerance_not_confirmed = "PowerToleranceNotConfirmed"
-    power_tolerance_confirmed = "PowerToleranceConfirmed"
+    NOT_CONFIRMED = "PowerToleranceNotConfirmed"
+    CONFIRMED = "PowerToleranceConfirmed"
 
 
 class ScheduledEVPowerProfile(BaseModel):
@@ -913,22 +924,20 @@ class EVPowerProfile(BaseModel):
     """See section 8.3.5.3.9 in ISO 15118-20"""
 
     time_anchor: int = Field(..., alias="TimeAnchor")
-    ev_power_profile_entries: EVPowerProfileEntryList = Field(
-        ..., alias="EVPowerProfileEntries"
-    )
-    scheduled_ev_power_profile: ScheduledEVPowerProfile = Field(
+    entry_list: EVPowerProfileEntryList = Field(..., alias="EVPowerProfileEntries")
+    scheduled_profile: ScheduledEVPowerProfile = Field(
         None, alias="Scheduled_EVPPTControlMode"
     )
-    dynamic_ev_power_profile: DynamicEVPowerProfile = Field(
+    dynamic_profile: DynamicEVPowerProfile = Field(
         None, alias="Dynamic_EVPPTControlMode"
     )
 
     @root_validator(pre=True)
     def either_scheduled_or_dynamic(cls, values):
         """
-        Either scheduled_ev_power_profile or dynamic_ev_power_profile must be
-        set, depending on whether the charging process is governed by charging s
-        chedules or dynamic charging settings from the SECC.
+        Either scheduled_profile or dynamic_profile must be set, depending on whether
+        the charging process is governed by charging schedules or dynamic charging
+        settings from the SECC.
 
         Pydantic validators are "class methods",
         see https://pydantic-docs.helpmanual.io/usage/validators/
@@ -937,9 +946,9 @@ class EVPowerProfile(BaseModel):
         # pylint: disable=no-self-use
         if one_field_must_be_set(
             [
-                "scheduled_ev_power_profile",
+                "scheduled_profile",
                 "Scheduled_EVPPTControlMode",
-                "dynamic_ev_power_profile",
+                "dynamic_profile",
                 "Dynamic_EVPPTControlMode",
             ],
             values,
@@ -951,17 +960,17 @@ class EVPowerProfile(BaseModel):
 class ChannelSelection(str, Enum):
     """See section 8.3.4.3.8.2 in ISO 15118-20"""
 
-    charge = "Charge"
-    discharge = "Discharge"
+    CHARGE = "Charge"
+    DISCHARGE = "Discharge"
 
 
 class ChargeProgress(str, Enum):
     """See section 8.3.4.3.8.2 in ISO 15118-20"""
 
-    start = "Start"
-    stop = "Stop"
-    standby = "Standby"
-    schedule_renegotiation = "ScheduleRenegotiation"
+    START = "Start"
+    STOP = "Stop"
+    STANDBY = "Standby"
+    SCHEDULE_RENEGOTIATION = "ScheduleRenegotiation"
 
 
 class PowerDeliveryReq(V2GRequest):
@@ -971,6 +980,37 @@ class PowerDeliveryReq(V2GRequest):
     charge_progress: ChargeProgress = Field(..., alias="ChargeProgress")
     ev_power_profile: EVPowerProfile = Field(None, alias="EVPowerProfile")
     bpt_channel_selection: ChannelSelection = Field(None, alias="BPT_ChannelSelection")
+
+    @root_validator(pre=True)
+    def set_ev_power_profile_if_processing_finished(cls, values):
+        """
+        The optional ev_power_profile field must be set once the EVCC finishes
+        processing, thereby setting the field ev_processing to FINISHED
+
+        Pydantic validators are "class methods",
+        see https://pydantic-docs.helpmanual.io/usage/validators/
+        """
+        # pylint: disable=no-self-argument
+        # pylint: disable=no-self-use
+
+        ev_processing = values.get("ev_processing")
+        if ev_processing is None:
+            # When decoding from EXI to JSON dict
+            ev_processing = values.get("EVProcessing")
+        if ev_processing == Processing.ONGOING:
+            return values
+
+        ev_power_profile = values.get("ev_power_profile")
+        if ev_power_profile is None:
+            # When decoding from EXI to JSON dict
+            ev_power_profile = values.get("EVPowerProfile")
+
+        if ev_power_profile is None:
+            raise ValueError(
+                "EVPowerProfile is not set although EVProcessing is set to FINISHED"
+            )
+
+        return values
 
 
 class PowerDeliveryRes(V2GResponse):

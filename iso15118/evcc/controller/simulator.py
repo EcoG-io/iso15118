@@ -4,7 +4,8 @@ retrieve data from the EV. The DummyEVController overrides all abstract methods 
 EVControllerInterface.
 """
 import logging
-from typing import List, Optional, Tuple, Union
+import random
+from typing import List, Optional, Tuple
 
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
@@ -83,6 +84,11 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     EVPriceRule,
     SelectedEnergyService,
     SelectedVAS,
+    ScheduledScheduleExchangeResParams,
+    DynamicScheduleExchangeResParams,
+    EVPowerProfile,
+    ChargeProgress, ScheduledEVPowerProfile, PowerToleranceAcceptance,
+    DynamicEVPowerProfile,
 )
 from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
 from iso15118.shared.messages.iso15118_20.dc import (
@@ -342,6 +348,86 @@ class SimEVController(EVControllerInterface):
 
         return dynamic_params
 
+    def process_scheduled_se_params(
+            self,
+            scheduled_params: ScheduledScheduleExchangeResParams,
+            pause: bool
+    ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
+        """Overrides EVControllerInterface.process_scheduled_se_params()."""
+        is_ready = bool(random.getrandbits(1))
+        if not is_ready:
+            logger.debug("Scheduled parameters for ScheduleExchangeReq not yet ready")
+            return None, ChargeProgress.SCHEDULE_RENEGOTIATION
+
+        charge_progress = ChargeProgress.START
+
+        if pause:
+            charge_progress = ChargeProgress.STOP
+
+        # Let's just select the first schedule offered
+        selected_schedule = scheduled_params.schedule_tuples.pop()
+        charging_schedule = selected_schedule.charging_schedule.power_schedule
+        charging_schedule_entries = charging_schedule.schedule_entry_list.entries
+
+        # We just copy the values from the charging schedule into the EV power profile
+        ev_power_schedule_entries: List[EVPowerScheduleEntry] = []
+        for entry in charging_schedule_entries:
+            ev_power_schedule_entry = EVPowerScheduleEntry(
+                duration=entry.duration,
+                power=entry.power
+            )
+            ev_power_schedule_entries.append(ev_power_schedule_entry)
+
+        ev_power_profile_entry_list = EVPowerScheduleEntryList(
+            entries=ev_power_schedule_entries
+        )
+
+        scheduled_profile = ScheduledEVPowerProfile(
+            selected_schedule_tuple_id=selected_schedule.schedule_tuple_id,
+            power_tolerance_acceptance=PowerToleranceAcceptance.CONFIRMED
+        )
+
+        ev_power_profile = EVPowerProfile(
+            time_anchor=0,
+            entry_list=ev_power_profile_entry_list,
+            scheduled_profile=scheduled_profile
+        )
+
+        return ev_power_profile, charge_progress
+
+    def process_dynamic_se_params(
+            self,
+            dynamic_params: DynamicScheduleExchangeResParams,
+            pause: bool
+    ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
+        """Overrides EVControllerInterface.process_dynamic_se_params()."""
+        is_ready = bool(random.getrandbits(1))
+        if not is_ready:
+            logger.debug("Dynamic parameters for ScheduleExchangeReq not yet ready")
+            return None, ChargeProgress.SCHEDULE_RENEGOTIATION
+
+        charge_progress = ChargeProgress.START
+
+        if pause:
+            charge_progress = ChargeProgress.STOP
+
+        ev_power_schedule_entry = EVPowerScheduleEntry(
+            duration=3600,
+            power=RationalNumber(exponent=0, value=11000)
+        )
+
+        ev_power_profile_entry_list = EVPowerScheduleEntryList(
+            entries=[ev_power_schedule_entry]
+        )
+
+        ev_power_profile = EVPowerProfile(
+            time_anchor=0,
+            entry_list=ev_power_profile_entry_list,
+            dynamic_profile=DynamicEVPowerProfile()
+        )
+
+        return ev_power_profile, charge_progress
+
     def is_cert_install_needed(self) -> bool:
         """Overrides EVControllerInterface.is_cert_install_needed()."""
         return False
@@ -381,7 +467,7 @@ class SimEVController(EVControllerInterface):
 
         return schedule.sa_schedule_tuple_id
 
-    def process_sa_schedules(
+    def process_sa_schedules_v2(
         self, sa_schedules: List[SAScheduleTuple]
     ) -> Tuple[ChargeProgress, int, ChargingProfile]:
         """Overrides EVControllerInterface.process_sa_schedules()."""

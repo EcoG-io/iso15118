@@ -347,6 +347,10 @@ class ACChargeParameterDiscoveryReq(ChargeParameterDiscoveryReq):
         ):
             return values
 
+    def __str__(self):
+        # The XSD-conform name
+        return "AC_ChargeParameterDiscoveryReq"
+
 
 class ACChargeParameterDiscoveryRes(ChargeParameterDiscoveryRes):
     """See section 8.3.4.4.2.3 in ISO 15118-20"""
@@ -380,6 +384,10 @@ class ACChargeParameterDiscoveryRes(ChargeParameterDiscoveryRes):
             True,
         ):
             return values
+
+    def __str__(self):
+        # The XSD-conform name
+        return "AC_ChargeParameterDiscoveryRes"
 
 
 class ACChargeLoopReq(ChargeLoopReq):

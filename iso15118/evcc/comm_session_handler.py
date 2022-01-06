@@ -39,6 +39,7 @@ from iso15118.shared.messages.enums import (
     Protocol,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import ChargingSession
+from iso15118.shared.messages.iso15118_20.common_messages import ScheduleExchangeReq
 from iso15118.shared.messages.sdp import SDPRequest, SDPResponse, Security, Transport
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.messages.v2gtp import V2GTPMessage
@@ -99,6 +100,9 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         # Once the timer is up, the EV will terminate the communication session.
         # A value >= 0 means the timer is running, a value < 0 means it stopped.
         self.ongoing_timer: float = -1
+        # Temporarily save the ScheduleExchangeReq, which need to be resent to the SECC
+        # if the response message's EVSEProcessing field is set to "Ongoing"
+        self.ongoing_schedule_exchange_req: Optional[ScheduleExchangeReq] = None
         # Whether to pause or terminate a charging session. Is set when sending
         # a PowerDeliveryReq
         self.charging_session_stop: Optional[ChargingSession] = None
