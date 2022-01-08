@@ -16,7 +16,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVSEStatus,
     DCEVSEStatusCode,
     EnergyTransferModeEnum,
-    EVSENotification,
+    EVSENotification as EVSENotificationV2,
     IsolationLevel,
     MeterInfo as MeterInfoV2,
     PMaxSchedule,
@@ -42,7 +42,7 @@ from iso15118.shared.messages.enums import (
     MobilityNeedsMode,
     Pricing,
     PriceAlgorithm, ACConnector, GeneratorMode, BPTChannel,
-    GridCodeIslandingDetectionMode,
+    GridCodeIslandingDetectionMode, Contactor,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryResParams,
@@ -81,6 +81,8 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 from iso15118.shared.messages.iso15118_20.common_types import (
     MeterInfo as MeterInfoV20,
     RationalNumber,
+    EVSEStatus,
+    EVSENotification as EVSENotificationV20
 )
 from iso15118.shared.messages.iso15118_20.dc import (
     DCChargeParameterDiscoveryResParams,
@@ -463,6 +465,17 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.service_renegotiation_supported()."""
         return False
 
+    def get_contactor_state(self) -> Contactor:
+        """Overrides EVSEControllerInterface.get_contactor_state()."""
+        return Contactor.CLOSED
+
+    def get_evse_status(self) -> EVSEStatus:
+        """Overrides EVSEControllerInterface.get_evse_status()."""
+        return EVSEStatus(
+            notification_max_delay=0,
+            evse_notification=EVSENotificationV20.TERMINATE
+        )
+
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
@@ -470,7 +483,9 @@ class SimEVSEController(EVSEControllerInterface):
     def get_ac_evse_status(self) -> ACEVSEStatus:
         """Overrides EVSEControllerInterface.get_ac_evse_status()."""
         return ACEVSEStatus(
-            notification_max_delay=0, evse_notification=EVSENotification.NONE, rcd=False
+            notification_max_delay=0,
+            evse_notification=EVSENotificationV2.NONE,
+            rcd=False
         )
 
     def get_ac_charge_params_v2(self) -> ACEVSEChargeParameter:
@@ -534,7 +549,7 @@ class SimEVSEController(EVSEControllerInterface):
     def get_dc_evse_status(self) -> DCEVSEStatus:
         """Overrides EVSEControllerInterface.get_dc_evse_status()."""
         return DCEVSEStatus(
-            evse_notification=EVSENotification.NONE,
+            evse_notification=EVSENotificationV2.NONE,
             notification_max_delay=0,
             evse_isolation_status=IsolationLevel.VALID,
             evse_status_code=DCEVSEStatusCode.EVSE_READY,

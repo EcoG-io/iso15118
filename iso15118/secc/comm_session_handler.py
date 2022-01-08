@@ -40,6 +40,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     SAScheduleTuple,
     ServiceDetails,
 )
+from iso15118.shared.messages.iso15118_20.common_messages import \
+    ScheduledScheduleExchangeResParams, ScheduleTuple
 from iso15118.shared.messages.sdp import SDPRequest, Security, create_sdp_response
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.messages.v2gtp import V2GTPMessage
@@ -89,8 +91,11 @@ class SECCCommunicationSession(V2GCommunicationSession):
         # In ISO 15118-20, the EVCCID is like a VIN number, given as str.
         self.evcc_id: Union[bytes, str, None] = None
         # The list of offered charging schedules, sent to the EVCC via the
-        # ChargeParameterDiscoveryRes message
+        # ChargeParameterDiscoveryRes message (ISO 15118-2)
         self.offered_schedules: List[SAScheduleTuple] = []
+        # The schedules offered with the ScheduleExchangeRes in Scheduled control mode
+        # (ISO 15118-20)
+        self.offered_schedules_V20: List[ScheduleTuple] = []
         # Whether or not the SECC received a PowerDeliveryReq with
         # ChargeProgress set to 'Start'
         self.charge_progress_started: bool = False

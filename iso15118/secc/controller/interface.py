@@ -6,7 +6,7 @@ This module contains the abstract class for an SECC to retrieve data from the EV
 from abc import ABC, abstractmethod
 from typing import List, Optional, Union
 
-from iso15118.shared.messages.enums import Protocol
+from iso15118.shared.messages.enums import Protocol, Contactor
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
@@ -31,7 +31,8 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     DynamicScheduleExchangeResParams,
     ScheduleExchangeReq,
 )
-from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
+from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20, \
+    EVSEStatus
 from iso15118.shared.messages.iso15118_20.dc import (
     DCChargeParameterDiscoveryResParams,
     BPTDCChargeParameterDiscoveryResParams,
@@ -234,6 +235,27 @@ class EVSEControllerInterface(ABC):
         Returns:
             A ServiceParameterList instance for the requested service ID, or None if
             that service is not supported.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_contactor_state(self) -> Contactor:
+        """
+        Informs wheter the contactor is opened or closed
+
+        Relevant for:
+        - ISO 15118-2
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_evse_status(self) -> EVSEStatus:
+        """
+        Gets the status of the EVSE
 
         Relevant for:
         - ISO 15118-20
