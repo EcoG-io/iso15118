@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
+from iso15118.shared.messages.enums import Protocol, Contactor
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
@@ -43,7 +44,8 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     DynamicScheduleExchangeResParams,
     ScheduleExchangeReq,
 )
-from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
+from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20, \
+    EVSEStatus
 from iso15118.shared.messages.iso15118_20.dc import (
     DCChargeParameterDiscoveryResParams,
     BPTDCChargeParameterDiscoveryResParams,
@@ -310,6 +312,27 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     def stop_charger(self) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_contactor_state(self) -> Contactor:
+        """
+        Informs wheter the contactor is opened or closed
+
+        Relevant for:
+        - ISO 15118-2
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_evse_status(self) -> EVSEStatus:
+        """
+        Gets the status of the EVSE
+
+        Relevant for:
+        - ISO 15118-20
+        """
         raise NotImplementedError
 
     # ============================================================================
@@ -581,6 +604,7 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-2
         raise NotImplementedError
 
+    @abstractmethod
     def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryResParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
@@ -598,6 +622,7 @@ class EVSEControllerInterface(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryResParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for

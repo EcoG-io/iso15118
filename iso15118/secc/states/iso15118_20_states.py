@@ -23,12 +23,13 @@ from iso15118.shared.messages.enums import (
     ServiceV20,
     ParameterName,
     ControlMode,
-    Protocol
+    Protocol,
+    Contactor,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReqParams, \
     BPTACChargeParameterDiscoveryReqParams, ACChargeParameterDiscoveryRes, \
-    ACChargeParameterDiscoveryReq
+    ACChargeParameterDiscoveryReq, ACChargeLoopReq
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
     AuthorizationRes,
@@ -55,7 +56,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SelectedServiceList,
     ScheduleExchangeReq,
     ScheduleExchangeRes,
-    PowerDeliveryReq,
+    PowerDeliveryReq, PowerDeliveryRes, ChargeProgress, EVPowerProfile,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader,
@@ -70,7 +71,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DCChargeParameterDiscoveryRes,
     DCChargeParameterDiscoveryReqParams,
     BPTDCChargeParameterDiscoveryReqParams,
-    DCCableCheckReq,
+    DCCableCheckReq, DCChargeLoopReq,
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.security import get_random_bytes, verify_signature
@@ -805,6 +806,7 @@ class ScheduleExchange(StateSECC):
             )
             if scheduled_params:
                 evse_processing = Processing.FINISHED
+                self.comm_session.offered_schedules_V20 = scheduled_params.schedule_tuples
 
         if self.comm_session.control_mode == ControlMode.DYNAMIC:
             dynamic_params = self.comm_session.evse_controller.get_dynamic_se_params(
@@ -840,7 +842,7 @@ class ScheduleExchange(StateSECC):
             schedule_exchange_res,
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.ISO_V20_COMMON_MSG,
-            ISOV20PayloadTypes.SCHEDULE_RENEGOTIATION,
+            ISOV20PayloadTypes.MAINSTREAM,
         )
 
 
@@ -863,7 +865,106 @@ class PowerDelivery(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        raise NotImplementedError("PowerDelivery not yet implemented")
+        msg = self.check_msg_v20(
+            message, [PowerDeliveryReq, SessionStopReq], False
+        )
+        if not msg:
+            return
+
+        if isinstance(msg, SessionStopReq):
+            SessionStop(self.comm_session).process_message(message)
+            return
+
+        power_delivery_req: PowerDeliveryReq = msg
+
+        next_state = None
+        header = MessageHeader(
+            session_id=self.comm_session.session_id, timestamp=time.time()
+        )
+        response_code = ResponseCode.OK
+
+        if power_delivery_req.ev_processing == Processing.ONGOING:
+            # Initial values for next_state and response_code apply. The EVCC will send
+            # another PowerDeliveryReq
+            pass
+        else:
+            response_code = self.check_power_profile(power_delivery_req.ev_power_profile)
+            if response_code in (
+                ResponseCode.FAILED_EV_POWER_PROFILE_INVALID,
+                ResponseCode.FAILED_EV_POWER_PROFILE_VIOLATION
+            ):
+                self.stop_state_machine(
+                    f"EVPowerProfile invalid/violation",
+                    message,
+                    response_code,
+                )
+                return
+
+            if power_delivery_req.charge_progress == ChargeProgress.STANDBY \
+                    and not self.comm_session.config.standby_allowed:
+                self.stop_state_machine(
+                    f"Standby not allowed",
+                    message,
+                    ResponseCode.WARN_STANDBY_NOT_ALLOWED,
+                )
+                return
+
+            offered_schedules = self.comm_session.offered_schedules_V20
+            selected_schedule = power_delivery_req.ev_power_profile.scheduled_profile
+            if selected_schedule.selected_schedule_tuple_id \
+                not in [schedule.schedule_tuple_id for schedule in offered_schedules]:
+                self.stop_state_machine(
+                    f"Schedule with ID {selected_schedule.selected_schedule_tuple_id}"
+                    f"was not offered",
+                    message,
+                    ResponseCode.FAILED_SCHEDULE_SELECTION_INVALID,
+                )
+                return
+
+            contactor_state = self.comm_session.evse_controller.get_contactor_state()
+            if contactor_state == Contactor.CLOSED:
+                self.stop_state_machine(
+                    f"Contactor error. Contactor state is: {contactor_state}",
+                    message,
+                    ResponseCode.FAILED_CONTACTOR_ERROR,
+                )
+                return
+
+            if self.comm_session.selected_energy_service in (
+                    ServiceV20.AC, ServiceV20.AC_BPT
+            ):
+                next_state = ACChargeLoop
+            elif self.comm_session.selected_energy_service in (
+                    ServiceV20.DC, ServiceV20.DC_BPT
+            ):
+                next_state = DCChargeLoop
+            else:
+                # TODO Add support for WPT and ACDP
+                logger.error(
+                    f"Selected energy service "
+                    f"{self.comm_session.selected_energy_service} not supported"
+                )
+
+            # TODO: Look into FAILED_PowerToleranceNotConfirmed
+            #       OK_PowerToleranceConfirmed, WARNING_PowerToleranceNotConfirmed, and
+            #       FAILED_PowerDeliveryNotApplied
+
+        power_delivery_res = PowerDeliveryRes(
+            header=header,
+            response_code=response_code
+        )
+
+        self.create_next_message(
+            next_state,
+            power_delivery_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
+        )
+
+    def check_power_profile(self, power_profile: EVPowerProfile) -> ResponseCode:
+        # TODO Check the power profile for any violation
+        return ResponseCode.OK
 
 
 class SessionStop(StateSECC):

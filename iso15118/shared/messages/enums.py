@@ -437,3 +437,8 @@ class PriceAlgorithm(str, Enum):
     POWER = "urn:iso:std:iso:15118:-20:PriceAlgorithm:1-Power"
     PEAK_POWER = "urn:iso:std:iso:15118:-20:PriceAlgorithm:2-PeakPower"
     STACKED_POWER = "urn:iso:std:iso:15118:-20:PriceAlgorithm:3-StackedEnergy"
+
+
+class Contactor(IntEnum):
+    OPENED = 1
+    CLOSED = 2

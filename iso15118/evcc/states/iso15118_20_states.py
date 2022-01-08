@@ -27,7 +27,7 @@ from iso15118.shared.messages.enums import (
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReq, \
-    ACChargeParameterDiscoveryRes
+    ACChargeParameterDiscoveryRes, ACChargeLoopReq
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
     AuthorizationSetupReq,
@@ -49,7 +49,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ScheduleExchangeReq,
     OfferedService, PowerDeliveryReq, ScheduleExchangeRes,
     ScheduledScheduleExchangeResParams, DynamicScheduleExchangeResParams,
-    ChannelSelection,
+    ChannelSelection, PowerDeliveryRes,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader,
@@ -60,7 +60,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.iso15118_20.dc import (
     DCChargeParameterDiscoveryReq,
-    DCChargeParameterDiscoveryRes,
+    DCChargeParameterDiscoveryRes, DCChargeLoopReq,
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
@@ -707,7 +707,7 @@ class ScheduleExchange(StateEVCC):
                 self.comm_session.ongoing_schedule_exchange_req,
                 Timeouts.SCHEDULE_EXCHANGE_REQ,
                 Namespace.ISO_V20_COMMON_MSG,
-                ISOV20PayloadTypes.SCHEDULE_RENEGOTIATION,
+                ISOV20PayloadTypes.MAINSTREAM,
             )
         else:
             ev_power_profile, charge_progress = None, None
@@ -754,7 +754,7 @@ class ScheduleExchange(StateEVCC):
                 power_delivery_req,
                 Timeouts.POWER_DELIVERY_REQ,
                 Namespace.ISO_V20_COMMON_MSG,
-                ISOV20PayloadTypes.SCHEDULE_RENEGOTIATION,
+                ISOV20PayloadTypes.MAINSTREAM,
             )
 
 
@@ -776,7 +776,24 @@ class PowerDelivery(StateEVCC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("PowerDelivery not yet implemented")
+        msg = self.check_msg_v20(message, ScheduleExchangeRes)
+        if not msg:
+            return
+
+        power_delivery_res: PowerDeliveryRes = msg
+
+        if self.comm_session.selected_energy_service in (
+                ServiceV20.AC, ServiceV20.AC_BPT
+        ):
+            ac_charge_loop_req = ACChargeLoopReq(
+
+            )
+        if self.comm_session.selected_energy_service in (
+                ServiceV20.DC, ServiceV20.DC_BPT
+        ):
+            dc_charge_loop_req = DCChargeLoopReq(
+
+            )
 
 
 class SessionStop(StateEVCC):
@@ -860,7 +877,7 @@ class ACChargeParameterDiscovery(StateEVCC):
             schedule_exchange_req,
             Timeouts.SCHEDULE_EXCHANGE_REQ,
             Namespace.ISO_V20_COMMON_MSG,
-            ISOV20PayloadTypes.SCHEDULE_RENEGOTIATION,
+            ISOV20PayloadTypes.MAINSTREAM,
         )
 
 
@@ -946,7 +963,7 @@ class DCChargeParameterDiscovery(StateEVCC):
             schedule_exchange_req,
             Timeouts.SCHEDULE_EXCHANGE_REQ,
             Namespace.ISO_V20_COMMON_MSG,
-            ISOV20PayloadTypes.SCHEDULE_RENEGOTIATION,
+            ISOV20PayloadTypes.DC_MAINSTREAM,
         )
 
 
