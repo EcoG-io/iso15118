@@ -49,7 +49,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ScheduleExchangeReq,
     OfferedService, PowerDeliveryReq, ScheduleExchangeRes,
     ScheduledScheduleExchangeResParams, DynamicScheduleExchangeResParams,
-    ChannelSelection, PowerDeliveryRes, ChargeProgress,
+    ChannelSelection, PowerDeliveryRes, ChargeProgress, SessionStopRes,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader,
@@ -64,6 +64,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
+from iso15118.shared.notifications import StopNotification
 from iso15118.shared.security import (
     CertPath,
     KeyEncoding,
@@ -73,6 +74,7 @@ from iso15118.shared.security import (
     load_cert_chain,
     load_priv_key,
 )
+from iso15118.shared.states import Terminate
 
 logger = logging.getLogger(__name__)
 
@@ -802,7 +804,6 @@ class PowerDelivery(StateEVCC):
                 Namespace.ISO_V20_COMMON_MSG,
             )
 
-            self.comm_session.charging_session_stop_v20 = None
             return
 
         scheduled_params, dynamic_params = None, None
@@ -919,7 +920,24 @@ class SessionStop(StateEVCC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("SessionStop not yet implemented")
+        msg = self.check_msg_v20(message, SessionStopRes)
+        if not msg:
+            return
+
+        if self.comm_session.charging_session_stop_v20 == ChargingSession.TERMINATE:
+            stopped = "terminated"
+        else:
+            stopped = "paused"
+
+        self.comm_session.stop_reason = StopNotification(
+            True,
+            f"Communication session {stopped}",
+            self.comm_session.writer.get_extra_info("peername"),
+        )
+
+        self.next_state = Terminate
+
+        return
 
 
 # ============================================================================
