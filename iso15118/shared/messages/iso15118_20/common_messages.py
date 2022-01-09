@@ -982,10 +982,11 @@ class PowerDeliveryReq(V2GRequest):
     bpt_channel_selection: ChannelSelection = Field(None, alias="BPT_ChannelSelection")
 
     @root_validator(pre=True)
-    def set_ev_power_profile_if_processing_finished(cls, values):
+    def set_ev_power_profile_if_processing_finished_and_start_charging(cls, values):
         """
         The optional ev_power_profile field must be set once the EVCC finishes
-        processing, thereby setting the field ev_processing to FINISHED
+        processing, thereby setting the field ev_processing to FINISHED, and if the
+        charge_progress is set to START.
 
         Pydantic validators are "class methods",
         see https://pydantic-docs.helpmanual.io/usage/validators/
@@ -994,10 +995,14 @@ class PowerDeliveryReq(V2GRequest):
         # pylint: disable=no-self-use
 
         ev_processing = values.get("ev_processing")
+        charge_progress = values.get("charge_progress")
         if ev_processing is None:
             # When decoding from EXI to JSON dict
             ev_processing = values.get("EVProcessing")
-        if ev_processing == Processing.ONGOING:
+        if charge_progress is None:
+            # When decoding from EXI to JSON dict
+            charge_progress = values.get("ChargeProgress")
+        if ev_processing == Processing.ONGOING or charge_progress == ChargeProgress.STOP:
             return values
 
         ev_power_profile = values.get("ev_power_profile")

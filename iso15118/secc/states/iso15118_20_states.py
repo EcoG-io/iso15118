@@ -876,7 +876,7 @@ class PowerDelivery(StateSECC):
         if power_delivery_req.ev_processing == Processing.ONGOING:
             # Initial values for next_state and response_code apply. The EVCC will send
             # another PowerDeliveryReq
-            pass
+            logger.debug("EV is still processing the EVPowerProfile")
         else:
             response_code = self.check_power_profile(power_delivery_req.ev_power_profile)
             if response_code in (
@@ -1095,6 +1095,10 @@ class ACChargeLoop(StateSECC):
             message, [ACChargeLoopReq, PowerDeliveryReq, SessionStopReq], False
         )
         if not msg:
+            return
+
+        if isinstance(msg, PowerDeliveryReq):
+            PowerDelivery(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):

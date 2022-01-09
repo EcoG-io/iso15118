@@ -26,7 +26,7 @@ from iso15118.shared.messages.enums import (
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReq, \
-    ACChargeParameterDiscoveryRes, ACChargeLoopReq
+    ACChargeParameterDiscoveryRes, ACChargeLoopReq, ACChargeLoopRes
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
     AuthorizationSetupReq,
@@ -48,7 +48,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ScheduleExchangeReq,
     OfferedService, PowerDeliveryReq, ScheduleExchangeRes,
     ScheduledScheduleExchangeResParams, DynamicScheduleExchangeResParams,
-    ChannelSelection, PowerDeliveryRes,
+    ChannelSelection, PowerDeliveryRes, ChargeProgress,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader,
@@ -703,7 +703,6 @@ class ScheduleExchange(StateEVCC):
                 ISOV20PayloadTypes.MAINSTREAM,
             )
         else:
-            ev_power_profile, charge_progress = None, None
             if self.comm_session.control_mode == ControlMode.SCHEDULED:
                 ev_power_profile, charge_progress = \
                     self.comm_session.ev_controller.process_scheduled_se_params(
@@ -720,6 +719,8 @@ class ScheduleExchange(StateEVCC):
             ev_processing = Processing.FINISHED
             if not ev_power_profile:
                 ev_processing = Processing.ONGOING
+                self.comm_session.ev_processing = Processing.ONGOING
+                self.comm_session.schedule_exchange_res = schedule_exchange_res
 
             # Information from EV to show if charging or discharging is planned
             bpt_channel_selection = None
@@ -775,6 +776,28 @@ class PowerDelivery(StateEVCC):
 
         power_delivery_res: PowerDeliveryRes = msg
 
+        if self.comm_session.ev_processing == Processing.ONGOING:
+            self.create_new_power_delivery_req(self.comm_session.schedule_exchange_res)
+            return
+
+        if self.comm_session.charging_session_stop_v20:
+            session_stop_req = SessionStopReq(
+                header=MessageHeader(
+                    session_id=self.comm_session.session_id,
+                    timestamp=time.time(),
+                ),
+                charging_session=self.comm_session.charging_session_stop_v20
+            )
+            self.create_next_message(
+                SessionStop,
+                session_stop_req,
+                Timeouts.SESSION_STOP_REQ,
+                Namespace.ISO_V20_COMMON_MSG,
+            )
+
+            self.comm_session.charging_session_stop_v20 = None
+            return
+
         scheduled_params, dynamic_params = None, None
         bpt_scheduled_params, bpt_dynamic_params = None, None
         selected_energy_service = self.comm_session.selected_energy_service
@@ -820,6 +843,55 @@ class PowerDelivery(StateEVCC):
             logger.error(
                 f"Energy service {selected_energy_service.service} not yet supported"
             )
+
+    def create_new_power_delivery_req(self, schedule_exchange_res: ScheduleExchangeRes):
+        if self.comm_session.control_mode == ControlMode.SCHEDULED:
+            ev_power_profile, charge_progress = \
+                self.comm_session.ev_controller.process_scheduled_se_params(
+                    schedule_exchange_res.scheduled_params,
+                    schedule_exchange_res.go_to_pause
+                )
+        else:
+            ev_power_profile, charge_progress = \
+                self.comm_session.ev_controller.process_dynamic_se_params(
+                    schedule_exchange_res.dynamic_params,
+                    schedule_exchange_res.go_to_pause
+                )
+
+        ev_processing = Processing.FINISHED
+        self.comm_session.ev_processing = Processing.FINISHED
+        if not ev_power_profile:
+            ev_processing = Processing.ONGOING
+            self.comm_session.ev_processing = Processing.ONGOING
+
+        # Information from EV to show if charging or discharging is planned
+        bpt_channel_selection = None
+        if self.comm_session.selected_energy_service in \
+                (ServiceV20.AC_BPT, ServiceV20.DC_BPT):
+            power_value = ev_power_profile.entry_list.entries.pop().power.value
+            if power_value < 0:
+                bpt_channel_selection = ChannelSelection.DISCHARGE
+            else:
+                bpt_channel_selection = ChannelSelection.CHARGE
+
+        power_delivery_req = PowerDeliveryReq(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id,
+                timestamp=time.time(),
+            ),
+            ev_processing=ev_processing,
+            charge_progress=charge_progress,
+            ev_power_profile=ev_power_profile,
+            bpt_channel_selection=bpt_channel_selection
+        )
+
+        self.create_next_message(
+            PowerDelivery,
+            power_delivery_req,
+            Timeouts.POWER_DELIVERY_REQ,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
+        )
 
 
 class SessionStop(StateEVCC):
@@ -924,7 +996,80 @@ class ACChargeLoop(StateEVCC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("ACChargeLoop not yet implemented")
+        msg = self.check_msg_v20(message, ACChargeLoopRes)
+        if not msg:
+            return
+
+        ac_charge_loop_res: ACChargeLoopRes = msg
+
+        if self.comm_session.ev_controller.continue_charging():
+            scheduled_params, dynamic_params = None, None
+            bpt_scheduled_params, bpt_dynamic_params = None, None
+            selected_energy_service = self.comm_session.selected_energy_service
+            control_mode = self.comm_session.control_mode
+
+            # TODO You might want to change certain request params based on the values
+            #      in the response
+            if selected_energy_service.service in (ServiceV20.AC, ServiceV20.AC_BPT):
+                if selected_energy_service == ServiceV20.AC \
+                        and control_mode == ControlMode.SCHEDULED:
+                    scheduled_params = \
+                        self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()
+                elif selected_energy_service == ServiceV20.AC \
+                        and control_mode == ControlMode.DYNAMIC:
+                    dynamic_params = \
+                        self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()
+                elif selected_energy_service == ServiceV20.AC_BPT \
+                        and control_mode == ControlMode.SCHEDULED:
+                    bpt_scheduled_params = \
+                        self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()
+                else:
+                    bpt_dynamic_params = \
+                        self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()
+
+                ac_charge_loop_req = ACChargeLoopReq(
+                    header=MessageHeader(
+                        session_id=self.comm_session.session_id,
+                        timestamp=time.time(),
+                    ),
+                    scheduled_params=scheduled_params,
+                    dynamic_params=dynamic_params,
+                    bpt_scheduled_params=bpt_scheduled_params,
+                    bpt_dynamic_params=bpt_dynamic_params,
+                    meter_info_requested=False
+                )
+
+                self.create_next_message(
+                    ACChargeLoop,
+                    ac_charge_loop_req,
+                    Timeouts.AC_CHARGE_LOOP_REQ,
+                    Namespace.ISO_V20_AC,
+                    ISOV20PayloadTypes.AC_MAINSTREAM,
+                )
+        else:
+            self.stop_charging()
+
+    def stop_charging(self):
+        power_delivery_req = PowerDeliveryReq(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id,
+                timestamp=time.time(),
+            ),
+            ev_processing=Processing.FINISHED,
+            charge_progress=ChargeProgress.STOP,
+        )
+
+        self.create_next_message(
+            PowerDelivery,
+            power_delivery_req,
+            Timeouts.POWER_DELIVERY_REQ,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM
+        )
+
+        self.comm_session.charging_session_stop_v20 = ChargingSession.TERMINATE
+        # TODO Implement also a mechanism for pausing
+        logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
 
 
 # ============================================================================

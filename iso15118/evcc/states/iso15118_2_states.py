@@ -787,9 +787,9 @@ class PowerDelivery(StateEVCC):
         if not msg:
             return
 
-        if self.comm_session.charging_session_stop:
+        if self.comm_session.charging_session_stop_v2:
             session_stop_req = SessionStopReq(
-                charging_session=self.comm_session.charging_session_stop
+                charging_session=self.comm_session.charging_session_stop_v2
             )
             self.create_next_message(
                 SessionStop,
@@ -930,7 +930,7 @@ class ChargingStatus(StateEVCC):
             Timeouts.POWER_DELIVERY_REQ,
             Namespace.ISO_V2_MSG_DEF,
         )
-        self.comm_session.charging_session_stop = ChargingSession.TERMINATE
+        self.comm_session.charging_session_stop_v2 = ChargingSession.TERMINATE
         # TODO Implement also a mechanism for pausing
         logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
 
@@ -1052,7 +1052,7 @@ class SessionStop(StateEVCC):
         if not msg:
             return
 
-        if self.comm_session.charging_session_stop == ChargingSession.TERMINATE:
+        if self.comm_session.charging_session_stop_v2 == ChargingSession.TERMINATE:
             stopped = "terminated"
         else:
             stopped = "paused"
