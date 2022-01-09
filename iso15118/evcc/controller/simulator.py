@@ -359,7 +359,10 @@ class SimEVController(EVControllerInterface):
         is_ready = bool(random.getrandbits(1))
         if not is_ready:
             logger.debug("Scheduled parameters for ScheduleExchangeReq not yet ready")
-            return None, ChargeProgress.SCHEDULE_RENEGOTIATION
+            # TODO The standard doesn't clearly define what the ChargeProgress should
+            #      be if EVProcessing is set to ONGOING. Will assume
+            #      ChargeProgress.START but check with standardisation community
+            return None, ChargeProgress.START
 
         charge_progress = ChargeProgress.START
 

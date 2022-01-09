@@ -255,7 +255,7 @@ class DynamicACChargeLoopReqParams(DynamicChargeLoopReqParams):
     )
 
 
-class DynamicACChargeLoopRes(DynamicChargeLoopResParams):
+class DynamicACChargeLoopResParams(DynamicChargeLoopResParams):
     """See section 8.3.5.4.5 in ISO 15118-20"""
 
     evse_target_active_power: RationalNumber = Field(..., alias="EVSETargetActivePower")
@@ -310,7 +310,7 @@ class BPTDynamicACChargeLoopReqParams(DynamicACChargeLoopReqParams):
     )
 
 
-class BPTDynamicACChargeLoopResParams(DynamicACChargeLoopRes):
+class BPTDynamicACChargeLoopResParams(DynamicACChargeLoopResParams):
     """See section 8.3.5.4.7.5 in ISO 15118-20"""
 
 
@@ -443,26 +443,25 @@ class ACChargeLoopRes(ChargeLoopRes):
     """See section 8.3.4.4.3.3 in ISO 15118-20"""
 
     evse_target_frequency: RationalNumber = Field(None, alias="EVSETargetFrequency")
-    scheduled_ac_charge_loop_res: ScheduledACChargeLoopResParams = Field(
+    scheduled_params: ScheduledACChargeLoopResParams = Field(
         None, alias="Scheduled_AC_CLResControlMode"
     )
-    dynamic_ac_charge_loop_res: DynamicACChargeLoopRes = Field(
+    dynamic_params: DynamicACChargeLoopResParams = Field(
         None, alias="Dynamic_AC_CLResControlMode"
     )
-    bpt_scheduled_ac_charge_loop_res: BPTScheduledACChargeLoopResParams = Field(
+    bpt_scheduled_params: BPTScheduledACChargeLoopResParams = Field(
         None, alias="BPT_Scheduled_AC_CLResControlMode"
     )
-    bpt_dynamic_ac_charge_loop_res: BPTDynamicACChargeLoopResParams = Field(
+    bpt_dynamic_params: BPTDynamicACChargeLoopResParams = Field(
         None, alias="BPT_Dynamic_AC_CLResControlMode"
     )
 
     @root_validator(pre=True)
     def either_scheduled_or_dynamic_bpt(cls, values):
         """
-        Either scheduled_ac_charge_loop_res or scheduled_ac_charge_loop_res or
-        bpt_scheduled_ac_charge_loop_res or bpt_dynamic_ac_charge_loop_res
-        must be set, depending on whether unidirectional or bidirectional power
-        transfer and whether scheduled or dynamic mode was chosen.
+        Either scheduled_params or dynamic_params or bpt_scheduled_params or
+        bpt_dynamic_params must be set, depending on whether unidirectional or
+        bidirectional power transfer and whether scheduled or dynamic mode was chosen.
 
         Pydantic validators are "class methods",
         see https://pydantic-docs.helpmanual.io/usage/validators/
@@ -471,13 +470,13 @@ class ACChargeLoopRes(ChargeLoopRes):
         # pylint: disable=no-self-use
         if one_field_must_be_set(
             [
-                "scheduled_ac_charge_loop_res",
+                "scheduled_params",
                 "Scheduled_AC_CLResControlMode",
-                "dynamic_ac_charge_loop_res",
+                "dynamic_params",
                 "Dynamic_AC_CLResControlMode",
-                "bpt_scheduled_ac_charge_loop_res",
+                "bpt_scheduled_params",
                 "BPT_Scheduled_AC_CLResControlMode",
-                "bpt_dynamic_ac_charge_loop_res",
+                "bpt_dynamic_params",
                 "BPT_Dynamic_AC_CLResControlMode",
             ],
             values,

@@ -33,7 +33,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfo
 from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTupleEntry
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryResParams,
-    BPTACChargeParameterDiscoveryResParams,
+    BPTACChargeParameterDiscoveryResParams, ScheduledACChargeLoopResParams,
+    BPTScheduledACChargeLoopResParams, BPTDynamicACChargeLoopResParams,
+    DynamicACChargeLoopResParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     ProviderID,
@@ -238,23 +240,27 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_meter_info(self, protocol: Protocol) -> Union[MeterInfoV2, MeterInfoV20]:
+    def get_meter_info_v2(self) -> MeterInfoV2:
         """
         Provides the MeterInfo from the EVSE's smart meter
-
-        Args:
-            protocol: The communication protocol enum, used to distinguish between
-                      the different MeterInfo types per protocol
 
         Returns:
             A MeterInfo instance, which contains the meter reading
 
-        Raises:
-            InvalidProtocolError
+        Relevant for:
+        - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_meter_info_v20(self) -> MeterInfoV2:
+        """
+        Provides the MeterInfo from the EVSE's smart meter
+
+        Returns:
+            A MeterInfo instance, which contains the meter reading
 
         Relevant for:
-        - DIN SPEC 70121  # TODO Add support for DIN SPEC 70121
-        - ISO 15118-2
         - ISO 15118-20
         """
         raise NotImplementedError
@@ -393,6 +399,50 @@ class EVSEControllerInterface(ABC):
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
         bidirectional AC charging.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopResParams:
+        """
+        Gets the parameters for the ACChargeLoopRes in the Scheduled control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_bpt_scheduled_ac_charge_loop_params(
+            self
+    ) -> BPTScheduledACChargeLoopResParams:
+        """
+        Gets the parameters for the ACChargeLoopRes in the Scheduled control mode for
+        bidirectional power transfer (BPT)
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dynamic_ac_charge_loop_params(self) -> DynamicACChargeLoopResParams:
+        """
+        Gets the parameters for the ACChargeLoopRes in the Dynamic control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_bpt_dynamic_ac_charge_loop_params(self) -> BPTDynamicACChargeLoopResParams:
+        """
+        Gets the parameters for the ACChargeLoopRes in the Dynamic control mode for
+        bidirectional power transfer (BPT)
 
         Relevant for:
         - ISO 15118-20

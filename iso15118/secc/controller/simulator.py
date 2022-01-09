@@ -76,7 +76,9 @@ from iso15118.shared.messages.enums import (
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryResParams,
-    BPTACChargeParameterDiscoveryResParams,
+    BPTACChargeParameterDiscoveryResParams, ScheduledACChargeLoopResParams,
+    BPTScheduledACChargeLoopResParams, DynamicACChargeLoopResParams,
+    BPTDynamicACChargeLoopResParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     ProviderID,
@@ -515,22 +517,19 @@ class SimEVSEController(EVSEControllerInterface):
 
         return sa_schedule_list
 
-    def get_meter_info(self, protocol: Protocol) -> Union[MeterInfoV2, MeterInfoV20]:
-        """Overrides EVSEControllerInterface.get_meter_info()."""
-        if protocol == Protocol.ISO_15118_2:
-            return MeterInfoV2(
-                meter_id="Switch-Meter-123", meter_reading=12345, t_meter=time.time()
-            )
+    def get_meter_info_v2(self) -> MeterInfoV2:
+        """Overrides EVSEControllerInterface.get_meter_info_v2()."""
+        return MeterInfoV2(
+            meter_id="Switch-Meter-123", meter_reading=12345, t_meter=time.time()
+        )
 
-        if protocol.ns.startswith(Namespace.ISO_V20_BASE):
-            return MeterInfoV20(
-                meter_id="Switch-Meter-123",
-                charged_energy_reading_wh=10,
-                meter_timestamp=time.time(),
-            )
-
-        logger.error(f"Unknown protocol {protocol}, can't determine MeterInfo type")
-        raise InvalidProtocolError
+    def get_meter_info_v20(self) -> MeterInfoV20:
+        """Overrides EVSEControllerInterface.get_meter_info_v20()."""
+        return MeterInfoV20(
+            meter_id="Switch-Meter-123",
+            charged_energy_reading_wh=10,
+            meter_timestamp=time.time(),
+        )
 
     def get_supported_providers(self) -> Optional[List[ProviderID]]:
         """Overrides EVSEControllerInterface.get_supported_providers()."""
@@ -630,6 +629,44 @@ class SimEVSEController(EVSEControllerInterface):
             evse_min_discharge_power=RationalNumber(exponent=0, value=300),
             evse_min_discharge_power_l2=RationalNumber(exponent=0, value=300),
             evse_min_discharge_power_l3=RationalNumber(exponent=0, value=300),
+        )
+
+    def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopResParams:
+        """Overrides EVControllerInterface.get_scheduled_ac_charge_loop_params()."""
+        return ScheduledACChargeLoopResParams(
+            evse_present_active_power=RationalNumber(exponent=3, value=3),
+            evse_present_active_power_l2=RationalNumber(exponent=3, value=3),
+            evse_present_active_power_l3=RationalNumber(exponent=3, value=3),
+            # Add more optional fields if wanted
+        )
+
+    def get_bpt_scheduled_ac_charge_loop_params(
+            self
+    ) -> BPTScheduledACChargeLoopResParams:
+        """Overrides EVControllerInterface.get_bpt_scheduled_ac_charge_loop_params()."""
+        return BPTScheduledACChargeLoopResParams(
+            evse_present_active_power=RationalNumber(exponent=3, value=3),
+            evse_present_active_power_l2=RationalNumber(exponent=3, value=3),
+            evse_present_active_power_l3=RationalNumber(exponent=3, value=3),
+            # Add more optional fields if wanted
+        )
+
+    def get_dynamic_ac_charge_loop_params(self) -> DynamicACChargeLoopResParams:
+        """Overrides EVControllerInterface.get_dynamic_ac_charge_loop_params()."""
+        return DynamicACChargeLoopResParams(
+            evse_target_active_power=RationalNumber(exponent=3, value=3),
+            evse_target_active_power_l2=RationalNumber(exponent=3, value=3),
+            evse_target_active_power_l3=RationalNumber(exponent=3, value=3),
+            # Add more optional fields if wanted
+        )
+
+    def get_bpt_dynamic_ac_charge_loop_params(self) -> BPTDynamicACChargeLoopResParams:
+        """Overrides EVControllerInterface.get_bpt_dynamic_ac_charge_loop_params()."""
+        return BPTDynamicACChargeLoopResParams(
+            evse_target_active_power=RationalNumber(exponent=3, value=3),
+            evse_target_active_power_l2=RationalNumber(exponent=3, value=3),
+            evse_target_active_power_l3=RationalNumber(exponent=3, value=3),
+            # Add more optional fields if wanted
         )
 
     # ============================================================================
