@@ -1397,8 +1397,7 @@ class ChargingStatus(StateSECC):
             #      whether or not a receipt is required and when
             #      (probably only makes sense at the beginning and end of
             #      a charging session). If true, set MeterInfo.
-            # meter_info=self.comm_session.evse_controller.get_meter_info(
-            #     self.comm_session.protocol),
+            # meter_info=self.comm_session.evse_controller.get_meter_info_v2(),
             receipt_required=False,
         )
 

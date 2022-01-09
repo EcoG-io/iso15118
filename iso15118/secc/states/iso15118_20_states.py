@@ -26,7 +26,7 @@ from iso15118.shared.messages.enums import (
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReqParams, \
     BPTACChargeParameterDiscoveryReqParams, ACChargeParameterDiscoveryRes, \
-    ACChargeParameterDiscoveryReq, ACChargeLoopReq
+    ACChargeParameterDiscoveryReq, ACChargeLoopReq, ACChargeLoopRes
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
     AuthorizationRes,
@@ -915,34 +915,41 @@ class PowerDelivery(StateSECC):
                     )
                 return
 
-            self.comm_session.evse_controller.close_contactor()
-            contactor_state = self.comm_session.evse_controller.get_contactor_state()
-            if contactor_state == Contactor.OPENED:
-                self.stop_state_machine(
-                    "Contactor is still open when about to send PowerDeliveryRes",
-                    message,
-                    ResponseCode.FAILED_CONTACTOR_ERROR,
-                )
-                return
-
-            if self.comm_session.selected_energy_service.service in (
-                    ServiceV20.AC, ServiceV20.AC_BPT
-            ):
-                next_state = ACChargeLoop
-            elif self.comm_session.selected_energy_service.service in (
-                    ServiceV20.DC, ServiceV20.DC_BPT
-            ):
-                next_state = DCChargeLoop
+            if power_delivery_req.charge_progress == ChargeProgress.STOP:
+                next_state = SessionStop
             else:
-                # TODO Add support for WPT and ACDP
-                logger.error(
-                    "Selected energy service not supported: "
-                    f"{self.comm_session.selected_energy_service.service}"
-                )
+                # The only ChargeProgress options left are START and
+                # SCHEDULE_RENEGOTIATION, although the latter is only allowed after we
+                # entered the charge loop
+                # TODO Check how to handle a misplaced SCHEDULE_RENEGOTIATION
+                self.comm_session.evse_controller.close_contactor()
+                contactor_state = self.comm_session.evse_controller.get_contactor_state()
+                if contactor_state == Contactor.OPENED:
+                    self.stop_state_machine(
+                        "Contactor is still open when about to send PowerDeliveryRes",
+                        message,
+                        ResponseCode.FAILED_CONTACTOR_ERROR,
+                    )
+                    return
 
-            # TODO: Look into FAILED_PowerToleranceNotConfirmed
-            #       OK_PowerToleranceConfirmed, WARNING_PowerToleranceNotConfirmed, and
-            #       FAILED_PowerDeliveryNotApplied
+                if self.comm_session.selected_energy_service.service in (
+                        ServiceV20.AC, ServiceV20.AC_BPT
+                ):
+                    next_state = ACChargeLoop
+                elif self.comm_session.selected_energy_service.service in (
+                        ServiceV20.DC, ServiceV20.DC_BPT
+                ):
+                    next_state = DCChargeLoop
+                else:
+                    # TODO Add support for WPT and ACDP
+                    logger.error(
+                        "Selected energy service not supported: "
+                        f"{self.comm_session.selected_energy_service.service}"
+                    )
+
+                # TODO: Look into FAILED_PowerToleranceNotConfirmed
+                #       OK_PowerToleranceConfirmed, WARNING_PowerToleranceNotConfirmed,
+                #       and FAILED_PowerDeliveryNotApplied
 
         power_delivery_res = PowerDeliveryRes(
             header=header,
@@ -1082,7 +1089,75 @@ class ACChargeLoop(StateSECC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("ACChargeLoop not yet implemented")
+        msg = self.check_msg_v20(
+            # TODO A MeteringConfirmationReq can come in using the multiplexed side
+            #      stream. Need to figure out how to enable multiplexed communication
+            message, [ACChargeLoopReq, PowerDeliveryReq, SessionStopReq], False
+        )
+        if not msg:
+            return
+
+        if isinstance(msg, SessionStopReq):
+            SessionStop(self.comm_session).process_message(message)
+            return
+
+        ac_charge_loop_req: ACChargeLoopReq = msg
+
+        scheduled_params, dynamic_params = None, None
+        bpt_scheduled_params, bpt_dynamic_params = None, None
+        selected_energy_service = self.comm_session.selected_energy_service
+        control_mode = self.comm_session.control_mode
+
+        if selected_energy_service.service in (ServiceV20.AC, ServiceV20.AC_BPT):
+            if selected_energy_service == ServiceV20.AC \
+                    and control_mode == ControlMode.SCHEDULED:
+                scheduled_params = \
+                    self.comm_session.evse_controller.get_scheduled_ac_charge_loop_params()
+            elif selected_energy_service == ServiceV20.AC \
+                    and control_mode == ControlMode.DYNAMIC:
+                dynamic_params = \
+                    self.comm_session.evse_controller.get_dynamic_ac_charge_loop_params()
+            elif selected_energy_service == ServiceV20.AC_BPT \
+                    and control_mode == ControlMode.SCHEDULED:
+                bpt_scheduled_params = \
+                    self.comm_session.evse_controller.get_bpt_scheduled_ac_charge_loop_params()
+            else:
+                bpt_dynamic_params = \
+                    self.comm_session.evse_controller.get_bpt_dynamic_ac_charge_loop_params()
+
+            meter_info = None
+            if ac_charge_loop_req.meter_info_requested:
+                meter_info = self.comm_session.evse_controller.get_meter_info_v20()
+
+            ac_charge_loop_res = ACChargeLoopRes(
+                header=MessageHeader(
+                    session_id=self.comm_session.session_id,
+                    timestamp=time.time(),
+                ),
+                # TODO Check for other failed or warning response codes
+                response_code=ResponseCode.OK,
+                scheduled_params=scheduled_params,
+                dynamic_params=dynamic_params,
+                bpt_scheduled_params=bpt_scheduled_params,
+                bpt_dynamic_params=bpt_dynamic_params,
+                meter_info=meter_info
+            )
+
+            self.create_next_message(
+                None,
+                ac_charge_loop_res,
+                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+                Namespace.ISO_V20_AC,
+                ISOV20PayloadTypes.AC_MAINSTREAM,
+            )
+        else:
+            logger.error(
+                f"Energy service {selected_energy_service.service} not yet supported"
+            )
+
+    def check_power_profile(self) -> ResponseCode:
+        # TODO Check the power profile for any violation
+        return ResponseCode.OK
 
 
 # ============================================================================

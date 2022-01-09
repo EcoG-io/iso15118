@@ -416,7 +416,7 @@ def init_failed_responses_iso_v20() -> dict:
             ACChargeLoopRes(
                 header=header,
                 response_code=ResponseCodeV20.FAILED,
-                scheduled_ac_charge_loop_res=ScheduledACChargeLoopResParams(),
+                scheduled_params=ScheduledACChargeLoopResParams(),
             ),
             Namespace.ISO_V20_AC,
             ISOV20PayloadTypes.AC_MAINSTREAM,
