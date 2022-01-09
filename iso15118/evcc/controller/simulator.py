@@ -67,7 +67,9 @@ from iso15118.shared.messages.enums import (
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
-    BPTACChargeParameterDiscoveryReqParams,
+    BPTACChargeParameterDiscoveryReqParams, ScheduledACChargeLoopReqParams,
+    BPTScheduledACChargeLoopReqParams, DynamicACChargeLoopReqParams,
+    BPTDynamicACChargeLoopReqParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     EMAIDList,
@@ -626,6 +628,50 @@ class SimEVController(EVControllerInterface):
             ev_min_charge_power=RationalNumber(exponent=0, value=100),
             ev_max_discharge_power=RationalNumber(exponent=3, value=11),
             ev_min_discharge_power=RationalNumber(exponent=0, value=100),
+        )
+
+    def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopReqParams:
+        """Overrides EVControllerInterface.get_scheduled_ac_charge_loop_params()."""
+        return ScheduledACChargeLoopReqParams(
+            ev_present_active_power=RationalNumber(exponent=3, value=200),
+            # Add more optional fields if wanted
+        )
+
+    def get_bpt_scheduled_ac_charge_loop_params(
+            self
+    ) -> BPTScheduledACChargeLoopReqParams:
+        """Overrides EVControllerInterface.get_bpt_scheduled_ac_charge_loop_params()."""
+        return BPTScheduledACChargeLoopReqParams(
+            ev_present_active_power=RationalNumber(exponent=3, value=200),
+            # Add more optional fields if wanted
+        )
+
+    def get_dynamic_ac_charge_loop_params(self) -> DynamicACChargeLoopReqParams:
+        """Overrides EVControllerInterface.get_dynamic_ac_charge_loop_params()."""
+        return DynamicACChargeLoopReqParams(
+            ev_target_energy_request=RationalNumber(exponent=3, value=40),
+            ev_max_energy_request=RationalNumber(exponent=3, value=60),
+            ev_min_energy_request=RationalNumber(exponent=3, value=20),
+            ev_max_charge_power=RationalNumber(exponent=3, value=300),
+            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_present_active_power=RationalNumber(exponent=3, value=200),
+            ev_present_reactive_power=RationalNumber(exponent=3, value=20),
+            # Add more optional fields if wanted
+        )
+
+    def get_bpt_dynamic_ac_charge_loop_params(self) -> BPTDynamicACChargeLoopReqParams:
+        """Overrides EVControllerInterface.get_bpt_dynamic_ac_charge_loop_params()."""
+        return BPTDynamicACChargeLoopReqParams(
+            ev_target_energy_request=RationalNumber(exponent=3, value=40),
+            ev_max_energy_request=RationalNumber(exponent=3, value=60),
+            ev_min_energy_request=RationalNumber(exponent=3, value=20),
+            ev_max_charge_power=RationalNumber(exponent=3, value=300),
+            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_present_active_power=RationalNumber(exponent=3, value=200),
+            ev_present_reactive_power=RationalNumber(exponent=3, value=20),
+            ev_max_discharge_power=RationalNumber(exponent=3, value=11),
+            ev_min_discharge_power=RationalNumber(exponent=3, value=1),
+            # Add more optional fields if wanted
         )
 
     # ============================================================================

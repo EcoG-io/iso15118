@@ -38,6 +38,8 @@ from iso15118.shared.messages.enums import (
     IsolationLevel,
     Namespace,
     Protocol,
+    Namespace,
+    Contactor,
 )
 from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
@@ -1159,8 +1161,7 @@ class PowerDelivery(StateSECC):
             )
             return
 
-        # TODO We should also do a more detailed check of the charging
-        #      profile, but don't have time for that now
+        # TODO We should also do a more detailed check of the charging profile
 
         logger.debug(f"ChargeProgress set to {power_delivery_req.charge_progress}")
 
@@ -1198,7 +1199,17 @@ class PowerDelivery(StateSECC):
                     message,
                     ResponseCode.FAILED,
                 )
-                next_state = Terminate
+                return
+
+        self.comm_session.evse_controller.close_contactor()
+        contactor_state = self.comm_session.evse_controller.get_contactor_state()
+        if contactor_state == Contactor.OPENED:
+            self.stop_state_machine(
+                "Contactor is still open when about to send PowerDeliveryRes",
+                message,
+                ResponseCode.FAILED_CONTACTOR_ERROR,
+            )
+            return
 
         ac_evse_status: Optional[ACEVSEStatus] = None
         dc_evse_status: Optional[DCEVSEStatus] = None
@@ -1211,6 +1222,8 @@ class PowerDelivery(StateSECC):
             ac_evse_status=ac_evse_status,
             dc_evse_status=dc_evse_status,
         )
+        # TODO Check if in AC or DC charging mode
+        # TODO Close contactor and check for closed contactor
 
         self.create_next_message(
             next_state,

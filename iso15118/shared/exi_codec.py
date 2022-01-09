@@ -18,7 +18,7 @@ from iso15118.shared.messages.enums import Namespace
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReq,
-    ACChargeParameterDiscoveryRes,
+    ACChargeParameterDiscoveryRes, ACChargeLoopReq, ACChargeLoopRes,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq as AuthorizationReqV20,
@@ -355,6 +355,8 @@ class EXI:
                 "DC_PreChargeRes": DCPreChargeRes,
                 "PowerDeliveryReq": PowerDeliveryReq,
                 "PowerDeliveryRes": PowerDeliveryRes,
+                "AC_ChargeLoopReq": ACChargeLoopReq,
+                "AC_ChargeLoopRes": ACChargeLoopRes,
                 "DC_ChargeLoopReq": DCChargeLoopReq,
                 "DC_ChargeLoopRes": DCChargeLoopRes,
                 "DC_WeldingDetectionReq": DCWeldingDetectionReq,

@@ -287,7 +287,7 @@ class ScheduledChargeLoopResParams(BaseModel, ABC):
     """
 
 
-class DynamicChargeLoopReq(BaseModel, ABC):
+class DynamicChargeLoopReqParams(BaseModel, ABC):
     """
     A base class for DynamicACChargeLoopReqParams and
     DynamicDCChargeLoopReqParams
@@ -300,7 +300,7 @@ class DynamicChargeLoopReq(BaseModel, ABC):
     departure_time: int = Field(None, ge=0, le=UINT_32_MAX, alias="DepartureTime")
 
 
-class DynamicChargeLoopRes(BaseModel):
+class DynamicChargeLoopResParams(BaseModel):
     """
     A base class for DynamicACChargeLoopResParams and
     DynamicDCChargeLoopResParams

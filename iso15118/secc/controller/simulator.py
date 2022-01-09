@@ -127,6 +127,9 @@ class SimEVSEController(EVSEControllerInterface):
     A simulated version of an EVSE controller
     """
 
+    def __init__(self):
+        self.contactor = Contactor.OPENED
+
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
@@ -544,9 +547,17 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.service_renegotiation_supported()."""
         return False
 
+    def close_contactor(self):
+        """Overrides EVSEControllerInterface.close_contactor()."""
+        self.contactor = Contactor.CLOSED
+
+    def open_contactor(self):
+        """Overrides EVSEControllerInterface.open_contactor()."""
+        self.contactor = Contactor.OPENED
+
     def get_contactor_state(self) -> Contactor:
         """Overrides EVSEControllerInterface.get_contactor_state()."""
-        return Contactor.CLOSED
+        return self.contactor
 
     def get_evse_status(self) -> EVSEStatus:
         """Overrides EVSEControllerInterface.get_evse_status()."""

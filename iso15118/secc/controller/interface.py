@@ -314,14 +314,32 @@ class EVSEControllerInterface(ABC):
     def stop_charger(self) -> None:
         raise NotImplementedError
 
+    def open_contactor(self):
+        """
+        Sends a command to the SECC to open the contactor to terminate energy flow
+
+        Relevant for:
+        - all protocols
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def close_contactor(self):
+        """
+        Sends a command to the SECC to open the contactor to initiate energy flow
+
+        Relevant for:
+        - all protocols
+        """
+        raise NotImplementedError
+
     @abstractmethod
     def get_contactor_state(self) -> Contactor:
         """
-        Informs wheter the contactor is opened or closed
+        Informs whether the contactor is opened or closed
 
         Relevant for:
-        - ISO 15118-2
-        - ISO 15118-20
+        - all protocols
         """
         raise NotImplementedError
 
