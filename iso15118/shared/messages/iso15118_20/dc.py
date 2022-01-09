@@ -19,8 +19,8 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     ChargeLoopRes,
     ChargeParameterDiscoveryReq,
     ChargeParameterDiscoveryRes,
-    DynamicChargeLoopReq,
-    DynamicChargeLoopRes,
+    DynamicChargeLoopReqParams,
+    DynamicChargeLoopResParams,
     RationalNumber,
     ScheduledChargeLoopReqParams,
     ScheduledChargeLoopResParams,
@@ -186,7 +186,7 @@ class BPTScheduledDCChargeLoopResParams(ScheduledDCChargeLoopResParams):
     """See section 8.3.5.4.7.6 in ISO 15118-20"""
 
 
-class DynamicDCChargeLoopReq(DynamicChargeLoopReq):
+class DynamicDCChargeLoopReq(DynamicChargeLoopReqParams):
     """See section 8.3.5.4.3 in ISO 15118-20"""
 
     ev_max_charge_power: RationalNumber = Field(..., alias="EVMaximumChargePower")
@@ -221,7 +221,7 @@ class DynamicDCChargeLoopReq(DynamicChargeLoopReq):
     )
 
 
-class DynamicDCChargeLoopRes(DynamicChargeLoopRes):
+class DynamicDCChargeLoopRes(DynamicChargeLoopResParams):
     """See section 8.3.5.4.5 in ISO 15118-20"""
 
     evse_target_active_power: RationalNumber = Field(..., alias="EVSETargetActivePower")
@@ -359,26 +359,25 @@ class DCChargeParameterDiscoveryRes(ChargeParameterDiscoveryRes):
 class DCChargeLoopReq(ChargeLoopReq):
     """See section 8.3.4.4.3.2 in ISO 15118-20"""
 
-    scheduled_dc_charge_loop_req: ScheduledDCChargeLoopReqParams = Field(
+    scheduled_params: ScheduledDCChargeLoopReqParams = Field(
         None, alias="Scheduled_DC_CLReqControlMode"
     )
-    dynamic_dc_charge_loop_req: DynamicDCChargeLoopReq = Field(
+    dynamic_params: DynamicDCChargeLoopReq = Field(
         None, alias="Dynamic_DC_CLReqControlMode"
     )
-    bpt_scheduled_dc_charge_loop_req: BPTScheduledDCChargeLoopReqParams = Field(
+    bpt_scheduled_params: BPTScheduledDCChargeLoopReqParams = Field(
         None, alias="BPT_Scheduled_DC_CLReqControlMode"
     )
-    bpt_dynamic_dc_charge_loop_req: BPTDynamicDCChargeLoopReq = Field(
+    bpt_dynamic_params: BPTDynamicDCChargeLoopReq = Field(
         None, alias="BPT_Dynamic_DC_CLReqControlMode"
     )
 
     @root_validator(pre=True)
     def either_scheduled_or_dynamic_bpt(cls, values):
         """
-        Either scheduled_dc_charge_loop_req or scheduled_dc_charge_loop_req or
-        bpt_scheduled_dc_charge_loop_req or bpt_dynamic_dc_charge_loop_req
-        must be set, depending on whether unidirectional or bidirectional power
-        transfer and whether scheduled or dynamic mode was chosen.
+        Either scheduled_params or dynamic_params or bpt_scheduled_params or
+        bpt_dynamic_params must be set, depending on whether unidirectional or
+        bidirectional power transfer and whether scheduled or dynamic mode was chosen.
 
         Pydantic validators are "class methods",
         see https://pydantic-docs.helpmanual.io/usage/validators/
@@ -387,13 +386,13 @@ class DCChargeLoopReq(ChargeLoopReq):
         # pylint: disable=no-self-use
         if one_field_must_be_set(
             [
-                "scheduled_dc_charge_loop_req",
+                "scheduled_params",
                 "Scheduled_DC_CLReqControlMode",
-                "dynamic_dc_charge_loop_req",
+                "dynamic_params",
                 "Dynamic_DC_CLReqControlMode",
-                "bpt_scheduled_dc_charge_loop_req",
+                "bpt_scheduled_params",
                 "BPT_Scheduled_DC_CLReqControlMode",
-                "bpt_dynamic_dc_charge_loop_req",
+                "bpt_dynamic_params",
                 "BPT_Dynamic_DC_CLReqControlMode",
             ],
             values,

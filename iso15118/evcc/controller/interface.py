@@ -18,7 +18,9 @@ from iso15118.shared.messages.enums import Protocol, ServiceV20
 
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
-    BPTACChargeParameterDiscoveryReqParams,
+    BPTACChargeParameterDiscoveryReqParams, ScheduledACChargeLoopReqParams,
+    BPTScheduledACChargeLoopReqParams, DynamicACChargeLoopReqParams,
+    BPTDynamicACChargeLoopReqParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     EMAIDList,
@@ -365,6 +367,50 @@ class EVControllerInterface(ABC):
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
         bidirectional AC charging.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopReqParams:
+        """
+        Gets the parameters for the ACChargeLoopReq in the Scheduled control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_bpt_scheduled_ac_charge_loop_params(
+            self
+    ) -> BPTScheduledACChargeLoopReqParams:
+        """
+        Gets the parameters for the ACChargeLoopReq in the Scheduled control mode for
+        bi-directional power transfer (BPT)
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dynamic_ac_charge_loop_params(self) -> DynamicACChargeLoopReqParams:
+        """
+        Gets the parameters for the ACChargeLoopReq in the Dynamic control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_bpt_dynamic_ac_charge_loop_params(self) -> BPTDynamicACChargeLoopReqParams:
+        """
+        Gets the parameters for the ACChargeLoopReq in the Dynamic control mode for
+        bi-directional power transfer (BPT)
 
         Relevant for:
         - ISO 15118-20

@@ -899,40 +899,45 @@ class PowerDelivery(StateSECC):
                 )
                 return
 
-            offered_schedules = self.comm_session.offered_schedules_V20
-            selected_schedule = power_delivery_req.ev_power_profile.scheduled_profile
-            if selected_schedule.selected_schedule_tuple_id \
-                not in [schedule.schedule_tuple_id for schedule in offered_schedules]:
-                self.stop_state_machine(
-                    f"Schedule with ID {selected_schedule.selected_schedule_tuple_id}"
-                    f"was not offered",
-                    message,
-                    ResponseCode.FAILED_SCHEDULE_SELECTION_INVALID,
-                )
+            if self.comm_session.control_mode == ControlMode.SCHEDULED:
+                offered_schedules = self.comm_session.offered_schedules_V20
+                selected_schedule = power_delivery_req.ev_power_profile.scheduled_profile
+
+                if selected_schedule.selected_schedule_tuple_id not in [
+                    schedule.schedule_tuple_id for schedule in offered_schedules
+                ]:
+                    self.stop_state_machine(
+                        f"Schedule with ID "
+                        f"{selected_schedule.selected_schedule_tuple_id} was not "
+                        f"offered",
+                        message,
+                        ResponseCode.FAILED_SCHEDULE_SELECTION_INVALID,
+                    )
                 return
 
+            self.comm_session.evse_controller.close_contactor()
             contactor_state = self.comm_session.evse_controller.get_contactor_state()
-            if contactor_state == Contactor.CLOSED:
+            if contactor_state == Contactor.OPENED:
                 self.stop_state_machine(
-                    f"Contactor error. Contactor state is: {contactor_state}",
+                    "Contactor is still open when about to send PowerDeliveryRes",
                     message,
                     ResponseCode.FAILED_CONTACTOR_ERROR,
                 )
                 return
 
-            if self.comm_session.selected_energy_service in (
+            if self.comm_session.selected_energy_service.service in (
                     ServiceV20.AC, ServiceV20.AC_BPT
             ):
                 next_state = ACChargeLoop
-            elif self.comm_session.selected_energy_service in (
+            elif self.comm_session.selected_energy_service.service in (
                     ServiceV20.DC, ServiceV20.DC_BPT
             ):
                 next_state = DCChargeLoop
             else:
                 # TODO Add support for WPT and ACDP
                 logger.error(
-                    f"Selected energy service "
-                    f"{self.comm_session.selected_energy_service} not supported"
+                    "Selected energy service not supported: "
+                    f"{self.comm_session.selected_energy_service.service}"
                 )
 
             # TODO: Look into FAILED_PowerToleranceNotConfirmed
