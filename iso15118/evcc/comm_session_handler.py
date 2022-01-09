@@ -118,7 +118,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         # Whether to pause or terminate a charging session. Is set when sending
         # a PowerDeliveryReq (ISO 15118-20)
         self.charging_session_stop_v20: Optional[ChargingSessionV20] = None
-        # Whether or not a renegotiation was requested by the SECC (with either
+        # Whether a renegotiation was requested by the SECC (with either
         # a MeteringReceiptRes, ChargingStatusRes, or CurrentDemandRes) or EVCC
         self.renegotiation_requested = False
         # The ID of the EVSE that controls the power flow to the EV
