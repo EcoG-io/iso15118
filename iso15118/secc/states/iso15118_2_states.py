@@ -2259,17 +2259,23 @@ class CurrentDemand(StateSECC):
             current_demand_req.dc_ev_status.ev_ress_soc
         )
 
-        self.comm_session.evse_controller.ev_data_context.remaining_time_to_bulk_soc_s = \
-            None if current_demand_req.remaining_time_to_bulk_soc is None else \
-                current_demand_req.remaining_time_to_bulk_soc.get_physical_value()
+        self.comm_session.evse_controller.ev_data_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
+            None
+            if current_demand_req.remaining_time_to_bulk_soc is None
+            else current_demand_req.remaining_time_to_bulk_soc.get_physical_value()
+        )
 
-        self.comm_session.evse_controller.ev_data_context.remaining_time_to_full_soc_s = \
-            None if current_demand_req.remaining_time_to_full_soc is None else \
-                current_demand_req.remaining_time_to_full_soc.get_physical_value()
+        self.comm_session.evse_controller.ev_data_context.remaining_time_to_full_soc_s = (  # noqa: E501
+            None
+            if current_demand_req.remaining_time_to_full_soc is None
+            else current_demand_req.remaining_time_to_full_soc.get_physical_value()
+        )
 
-        self.comm_session.evse_controller.ev_data_context.ev_max_current_limit = \
-            None if current_demand_req.ev_max_current_limit is None else \
-                current_demand_req.ev_max_current_limit.get_physical_value()
+        self.comm_session.evse_controller.ev_data_context.ev_max_current_limit = (
+            None
+            if current_demand_req.ev_max_current_limit is None
+            else current_demand_req.ev_max_current_limit.get_physical_value()
+        )
 
         await self.comm_session.evse_controller.send_charging_command(
             current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
