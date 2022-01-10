@@ -1,5 +1,4 @@
 import json
-from dataclasses import dataclass
 
 import pytest
 
@@ -8,9 +7,8 @@ from iso15118.shared.messages.datatypes import (
     PVRemainingTimeToBulkSOC,
     PVRemainingTimeToFullSOC,
 )
-from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
+from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage
 from tests.shared.messages.exi_message_container import ExiMessageContainer
-
 
 # Test strings recorded 28.7.2022 with Comemso Multi Mobile DC Protocol Tester
 ISO_TEST_MESSAGES = [
@@ -201,8 +199,10 @@ class TestIso15118_V2_MessageCreation:
         ISO_TEST_MESSAGES,
         ids=[f"parse_and_create_{msg.message_name}" for msg in ISO_TEST_MESSAGES],
     )
-    def test_common_v2g_messages_can_be_parsed_and_created(self, message: ExiMessageContainer):
+    def test_common_v2g_messages_can_be_parsed_and_created(
+        self, message: ExiMessageContainer
+    ):
         decoded_dict = json.loads(message.json_str, cls=CustomJSONDecoder)
 
-        message = V2GMessageV2.parse_obj(decoded_dict["V2G_Message"])
-        assert isinstance(message, V2GMessageV2)
+        message = V2GMessage.parse_obj(decoded_dict["V2G_Message"])
+        assert isinstance(message, V2GMessage)
