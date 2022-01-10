@@ -1,5 +1,4 @@
 import json
-from dataclasses import dataclass
 
 import pytest
 
@@ -10,7 +9,6 @@ from iso15118.shared.messages.datatypes import (
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from tests.shared.messages.exi_message_container import ExiMessageContainer
-
 
 # Test strings recorded 28.7.2022 with Comemso Multi Mobile DC Protocol Tester
 DIN_TEST_MESSAGES = [
@@ -248,7 +246,9 @@ class TestDinSpec_MessageCreation:
         DIN_TEST_MESSAGES,
         ids=[f"parse_and_create_{msg.message_name}" for msg in DIN_TEST_MESSAGES],
     )
-    def test_common_v2g_messages_can_be_parsed_and_created(self, message: ExiMessageContainer):
+    def test_common_v2g_messages_can_be_parsed_and_created(
+        self, message: ExiMessageContainer
+    ):
         decoded_dict = json.loads(message.json_str, cls=CustomJSONDecoder)
 
         message = V2GMessageDINSPEC.parse_obj(decoded_dict["V2G_Message"])
