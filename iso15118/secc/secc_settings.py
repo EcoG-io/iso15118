@@ -38,8 +38,6 @@ class Config:
         env.read_env(path=env_path)  # read .env file, if it exists
 
         self.iface = env.str("NETWORK_INTERFACE", default="eth0")
-        # validate the NIC selected
-        validate_nic(self.iface)
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
 
@@ -81,3 +79,7 @@ class Config:
         self.supported_auth_options = [AuthEnum.EIM, AuthEnum.PNC]
 
         env.seal()  # raise all errors at once, if any
+
+    def validate_config(self):
+        # validate the NIC selected
+        validate_nic(self.iface)
