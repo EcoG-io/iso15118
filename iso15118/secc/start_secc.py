@@ -19,6 +19,7 @@ async def main(env_path: Optional[str] = None):
         # get configuration
         config = Config()
         config.load_envs(env_path)
+        config.validate_config()
         session_handler = CommunicationSessionHandler(config)
         await session_handler.start_session_handler()
     except Exception as exc:
