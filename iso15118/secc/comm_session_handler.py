@@ -64,6 +64,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         transport: Tuple[StreamReader, StreamWriter],
         session_handler_queue: asyncio.Queue,
         config: Config,
+        evse_controller: Optional[EVSEControllerInterface] = None
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -73,7 +74,10 @@ class SECCCommunicationSession(V2GCommunicationSession):
 
         self.config = config
         # The EVSE controller that implements the interface EVSEControllerInterface
-        self.evse_controller: EVSEControllerInterface = config.evse_controller()
+        if evse_controller:
+            self.evse_controller = evse_controller
+        else:
+            self.evse_controller: EVSEControllerInterface = config.evse_controller()
         # The authorization option(s) offered with ServiceDiscoveryRes in
         # ISO 15118-2 and with AuthorizationSetupRes in ISO 15118-20
         self.offered_auth_options: Optional[List[AuthEnum]] = []
@@ -137,12 +141,13 @@ class CommunicationSessionHandler:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, evse_controller: Optional[EVSEControllerInterface] = None):
 
         self.list_of_tasks = []
         self.udp_server = None
         self.tcp_server = None
         self.config = config
+        self.evse_controller = evse_controller
 
         # Receiving queue for UDP or TCP packets and session
         # triggers (e.g. pause/terminate)
@@ -208,7 +213,7 @@ class CommunicationSessionHandler:
                         comm_session.resume()
                     except KeyError:
                         comm_session = SECCCommunicationSession(
-                            notification.transport, self._rcv_queue, self.config
+                            notification.transport, self._rcv_queue, self.config, self.evse_controller
                         )
 
                     task = asyncio.create_task(
