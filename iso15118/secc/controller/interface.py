@@ -201,27 +201,26 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set_ev_target_voltage(self) -> PVEVTargetVoltage:
+    def set_ev_target_voltage(self, voltage):
         raise NotImplementedError
 
     @abstractmethod
-    def set_ev_target_current(self) -> PVEVTargetCurrent:
-        raise NotImplementedError
-
-    # todo llr: cable_check and precharge ok like this?
-    @abstractmethod
-    def evse_do_cable_check(self):
+    def set_ev_target_current(self, current):
         raise NotImplementedError
 
     @abstractmethod
-    def evse_do_precharge(self):
+    def session_terminated(self):
         raise NotImplementedError
 
     @abstractmethod
-    def turn_off_charger(self):
+    def set_ev_soc(self, soc):
         raise NotImplementedError
 
     @abstractmethod
-    def set_ev_soc(self):
+    def set_precharge(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_cable_check(self):
         raise NotImplementedError
 
