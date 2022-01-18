@@ -58,6 +58,8 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionStopReq,
     SessionStopRes,
     WeldingDetectionReq,
+    CableCheckReq,
+    CableCheckRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
@@ -82,7 +84,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ServiceList,
     ServiceName,
     ServiceParameterList,
-    SubCertificates,
+    SubCertificates, DCEVStatus, DCEVSEStatus,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -889,7 +891,8 @@ class ChargeParameterDiscovery(StateSECC):
 
     The EVCC may send one of the following requests in this state:
     1. a ChargeParameterDiscoveryReq
-    2. a PowerDeliveryReq
+    2. a PowerDeliveryReq (AC)
+    3. a CableCheckreq (DC)
 
     Upon first initialisation of this state, we expect a
     ChargeParameterDiscoveryReq, but after that, the next possible request could
@@ -918,7 +921,7 @@ class ChargeParameterDiscovery(StateSECC):
     ):
         msg = self.check_msg_v2(
             message,
-            [ChargeParameterDiscoveryReq, PowerDeliveryReq],
+            [ChargeParameterDiscoveryReq, PowerDeliveryReq, CableCheckReq],
             self.expecting_charge_parameter_discovery_req,
         )
         if not msg:
@@ -926,6 +929,10 @@ class ChargeParameterDiscovery(StateSECC):
 
         if msg.body.power_delivery_req:
             PowerDelivery(self.comm_session).process_message(message)
+            return
+
+        if msg.body.cable_check_req:
+            CableCheck(self.comm_session).process_message(message)
             return
 
         charge_params_req: ChargeParameterDiscoveryReq = (
@@ -983,7 +990,10 @@ class ChargeParameterDiscovery(StateSECC):
         next_state = None
         if sa_schedule_list:
             self.comm_session.offered_schedules = sa_schedule_list
-            next_state = PowerDelivery
+            if charge_params_req.ac_ev_charge_parameter:
+                next_state = PowerDelivery
+            else:
+                next_state = CableCheck
 
             # If a SalesTariff is provided, then sign it
             # This signature should actually be provided by the mobility
@@ -1032,8 +1042,9 @@ class PowerDelivery(StateSECC):
     The EVCC may send one of the following requests in this state:
     1. a PowerDeliveryReq
     2. a ChargeParameterDiscoveryReq
-    3. a ChargingStatusReq
+    3. a ChargingStatusReq (AC-Message)
     4. a SessionStopReq
+    5. a CurrentDemandReq (DC-Message)
 
     Upon first initialisation of this state, we expect a
     PowerDeliveryReq, but after that, the next possible request could
@@ -1071,6 +1082,7 @@ class PowerDelivery(StateSECC):
                 ChargeParameterDiscoveryReq,
                 ChargingStatusReq,
                 SessionStopReq,
+                CurrentDemandReq,
             ],
             self.expecting_power_delivery_req,
         )
@@ -1087,6 +1099,10 @@ class PowerDelivery(StateSECC):
 
         if msg.body.session_stop_req:
             SessionStop(self.comm_session).process_message(message)
+            return
+
+        if msg.body.current_demand_req:
+            CurrentDemand(self.comm_session).process_message(message)
             return
 
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
@@ -1290,6 +1306,7 @@ class CableCheck(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        self.expecting_cable_check_req = True
 
     def process_message(
         self,
@@ -1300,7 +1317,57 @@ class CableCheck(StateSECC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("CableCheck not yet implemented")
+        msg = self.check_msg_v2(
+            message,
+            [
+                CableCheckReq,
+                PreChargeReq
+             ],
+            self.expecting_cable_check_req,
+        )
+        if not msg:
+            return
+
+        if msg.body.pre_charge_req:
+            PreCharge(self.comm_session).process_message(message)
+
+        cable_check_req: CableCheckReq = msg.body.cable_check_req
+
+        if cable_check_req.dc_ev_status != DCEVStatus.ev_error_code.NO_ERROR:
+            self.stop_state_machine(
+                f"{cable_check_req.dc_ev_status} "
+                "has Error" f"{cable_check_req.dc_ev_status}",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
+
+        self.comm_session.evse_controller.set_cable_check()
+        self.comm_session.evse_controller.set_ev_soc(cable_check_req.dc_ev_status.ev_ress_soc)
+
+
+        dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
+
+        iso_state_is_ok = True if dc_charger_state.evse_isolation_status is DCEVSEStatus.evse_isolation_status.VALID \
+            else False
+        next_state = PreCharge if iso_state_is_ok else None
+
+        cable_check_res = CableCheckRes(
+            response_code=ResponseCode.OK,
+            dc_evse_status=dc_charger_state,
+            evse_processing=EVSEProcessing.FINISHED
+            if iso_state_is_ok
+            else EVSEProcessing.ONGOING,
+        )
+
+        self.create_next_message(
+            next_state,
+            cable_check_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
+
+        self.expecting_cable_check_req = False
 
 
 class PreCharge(StateSECC):

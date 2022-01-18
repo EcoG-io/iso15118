@@ -17,7 +17,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVSEStatusCode,
     EnergyTransferModeEnum,
     EVSENotification,
-    IsolationLevel,
+    IsolationLevel, PVEVTargetCurrent, PVEVTargetVoltage,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -57,7 +57,8 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_supported_energy_transfer_modes()."""
         ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
         ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
-        return [ac_single_phase, ac_three_phase]
+        dc_extended = EnergyTransferModeEnum.DC_EXTENDED
+        return [dc_extended]
 
     def is_authorised(self) -> bool:
         """Overrides EVSEControllerInterface.is_authorised()."""
@@ -188,3 +189,21 @@ class SimEVSEController(EVSEControllerInterface):
     def get_evse_present_current(self) -> PVEVSEPresentCurrent:
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
         return PVEVSEPresentCurrent(multiplier=0, value=10, unit="A")
+
+    def set_ev_target_voltage(self) -> PVEVTargetVoltage:
+        pass
+
+    def set_ev_target_current(self) -> PVEVTargetCurrent:
+        pass
+
+    def set_cable_check(self):
+        pass
+
+    def set_precharge(self):
+        pass
+
+    def session_terminated(self):
+        pass
+
+    def set_ev_soc(self):
+        pass
