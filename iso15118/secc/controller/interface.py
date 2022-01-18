@@ -12,7 +12,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
     DCEVSEChargeParameter,
     DCEVSEStatus,
-    EnergyTransferModeEnum,
+    EnergyTransferModeEnum, PVEVTargetVoltage, PVEVTargetCurrent,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -210,3 +210,29 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-2
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def set_ev_target_voltage(self) -> PVEVTargetVoltage:
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_ev_target_current(self) -> PVEVTargetCurrent:
+        raise NotImplementedError
+
+    # todo llr: cable_check and precharge ok like this?
+    @abstractmethod
+    def evse_do_cable_check(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def evse_do_precharge(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def turn_off_charger(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_ev_soc(self):
+        raise NotImplementedError
+
