@@ -20,9 +20,9 @@ ENV PYTHONFAULTHANDLER=1 \
 RUN pip install "poetry==$POETRY_VERSION" "mypy==$MYPY_VERSION"
 # pylintrc, coveragerc, poetry.lock and pyproject.toml shall not change very
 # often, so it is a good idea to add them as soon as possible
-RUN poetry config http-basic.pypi-switch $PYPI_USER $PYPI_PASS
 COPY .coveragerc mypy.ini .flake8  ./
 COPY poetry.lock pyproject.toml ./
+RUN poetry config http-basic.pypi-switch $PYPI_USER $PYPI_PASS
 # During make build this sed command is substituted by 's/secc/evcc/g'
 RUN sed -i 's/secc/secc/g' pyproject.toml
 
