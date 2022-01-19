@@ -27,3 +27,6 @@ jobs:
       run: |
         cp template.Dockerfile iso15118/secc/Dockerfile
         docker-compose build --build-arg PYPI_USER=$PYPI_USER --build-arg PYPI_PASS=$PYPI_PASS  secc
+      env:
+        PYPI_USER: ${{ secrets.PYPI_USER }}
+        PYPI_PASS: ${{ secrets.PYPI_PASS }}
