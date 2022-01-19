@@ -13,7 +13,7 @@ pydantic = "^1.7.3"
 psutil = "^5.8.0"
 aioredis = "^2.0.0"
 py4j = "^0.10.9"
-
+mqtt-api = "0.0.12345678"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
@@ -29,6 +29,11 @@ pytest-cov = "^3.0.0"
 [tool.isort]
 profile = "black"
 
+[[tool.poetry.source]]
+name = "pypi-switch"
+url = "https://pypi.switch-ev.com/simple/"
+default = false
+secondary = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

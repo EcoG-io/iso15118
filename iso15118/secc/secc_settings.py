@@ -1,11 +1,12 @@
 import logging
 import os
 from dataclasses import dataclass
-from typing import List, Optional, Type
+from typing import List, Optional
 
 import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
+from iso15118.secc.controller.mqtt_based_evse_controller import MQTTBasedEVSEController
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.network import validate_nic
@@ -19,7 +20,7 @@ class Config:
     redis_host: Optional[str] = None
     redis_port: Optional[int] = None
     log_level: Optional[int] = None
-    evse_controller: Type[EVSEControllerInterface] = None
+    evse_controller: EVSEControllerInterface = None
     enforce_tls: bool = False
     free_charging_service: bool = False
     free_cert_install_service: bool = True
@@ -27,7 +28,7 @@ class Config:
     supported_protocols: Optional[List[Protocol]] = None
     supported_auth_options: Optional[List[AuthEnum]] = None
 
-    def load_envs(self, env_path: Optional[str] = None) -> None:
+    async def load_envs(self, env_path: Optional[str] = None) -> None:
         """
         Tries to load the .env file containing all the project settings.
         If `env_path` is not specified, it will get the .env on the current
@@ -50,9 +51,21 @@ class Config:
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
 
-        self.evse_controller = EVSEControllerInterface
+        # Use the simulated SECC controller configuration if the environment
+        # variable is True, otherwise fetch the values using MQTT.
         if env.bool("SECC_CONTROLLER_SIM", default=False):
-            self.evse_controller = SimEVSEController
+            self.evse_controller = SimEVSEController()
+        else:
+            # MQTT Configuration
+            # the host and port are taken from environment variables
+            # but not saved to the Config object, so that it is easy to
+            # remove as we'll eventually want to have the MQTT API layer
+            # as part of Josev.
+            mqtt_host = env.str("MQTT_HOST", default="localhost")
+            mqtt_port = env.int("MQTT_PORT", default=10_003)
+            self.evse_controller = await MQTTBasedEVSEController.create(
+                mqtt_host, mqtt_port
+            )
 
         # Indicates whether or not the SECC should always enforce a TLS-secured
         # communication session. If True, the SECC will only fire up a TCP server
