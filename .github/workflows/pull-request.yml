@@ -26,4 +26,4 @@ jobs:
       shell: bash
       run: |
         cp template.Dockerfile iso15118/secc/Dockerfile
-        docker-compose build secc
+        docker-compose build --build-arg PYPI_USER=$PYPI_USER --build-arg PYPI_PASS=$PYPI_PASS  secc

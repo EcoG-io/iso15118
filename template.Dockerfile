@@ -1,6 +1,9 @@
 # Build image
 FROM python:3.10.0-buster as build
 
+ARG PYPI_USER
+ARG PYPI_PASS
+
 WORKDIR /usr/src/app
 
 ENV PYTHONFAULTHANDLER=1 \
@@ -17,6 +20,7 @@ ENV PYTHONFAULTHANDLER=1 \
 RUN pip install "poetry==$POETRY_VERSION" "mypy==$MYPY_VERSION"
 # pylintrc, coveragerc, poetry.lock and pyproject.toml shall not change very
 # often, so it is a good idea to add them as soon as possible
+RUN poetry config http-basic.pypi-switch $PYPI_USER $PYPI_PASS
 COPY .coveragerc mypy.ini .flake8  ./
 COPY poetry.lock pyproject.toml ./
 # During make build this sed command is substituted by 's/secc/evcc/g'
@@ -51,6 +55,10 @@ RUN poetry build
 
 # Runtime image (which is smaller than the build one)
 FROM python:3.10.0-buster
+
+ARG PYPI_USER
+ARG PYPI_PASS
+
 WORKDIR /usr/src/app
 # Installs Java
 RUN apt update && apt install -y default-jre
@@ -59,7 +67,7 @@ RUN python -m venv /venv
 # copy dependencies and wheel from the build stage
 COPY --from=build /usr/src/app/dist/ dist/
 # This will install the wheel in the venv
-RUN /venv/bin/pip install dist/*.whl
+RUN /venv/bin/pip install dist/*.whl --extra-index-url "https://$PYPI_USER:$PYPI_PASS@pypi.switch-ev.com/pypi/simple" --no-input
 
 
 # Generating the certs inside the container didn't work (error: Certificate verification failed), but the command is kept
