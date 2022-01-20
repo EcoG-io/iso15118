@@ -365,3 +365,15 @@ class PriceAlgorithm(str, Enum):
 class Contactor(IntEnum):
     OPENED = 1
     CLOSED = 2
+
+
+class SignatureMethod(str, Enum):
+    SHA_256 = "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"
+    SHA_512 = "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512"
+    ED448 = "urn:iso:std:iso:15118:-20:Security:xmldsig#Ed448"
+
+
+class DigestMethod(str, Enum):
+    SHA_256 = "http://www.w3.org/2001/04/xmlenc#sha256"
+    SHA_512 = "http://www.w3.org/2001/04/xmlenc#sha512"
+    SHAKE_256 = "urn:iso:std:iso:15118:-20:Security:xmlenc#SHAKE256"
