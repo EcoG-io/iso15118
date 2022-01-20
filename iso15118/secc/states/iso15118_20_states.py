@@ -216,9 +216,7 @@ class AuthorizationSetup(StateSECC):
         auth_options: List[AuthEnum] = []
         eim_as_res, pnc_as_res = None, None
         supported_auth_options = self.comm_session.config.supported_auth_options
-        if AuthEnum.EIM in supported_auth_options:
-            auth_options.append(AuthEnum.EIM)
-            eim_as_res = EIMAuthSetupResParams()
+
         if AuthEnum.PNC in supported_auth_options:
             auth_options.append(AuthEnum.PNC)
             self.comm_session.gen_challenge = get_random_bytes(16)
@@ -226,6 +224,16 @@ class AuthorizationSetup(StateSECC):
                 gen_challenge=self.comm_session.gen_challenge,
                 supported_providers=self.comm_session.evse_controller.get_supported_providers(),  # noqa: E501
             )
+
+        if AuthEnum.EIM in supported_auth_options:
+            auth_options.append(AuthEnum.EIM)
+            if not pnc_as_res:
+                # Only if Plug & Charge is not offered as an authorization option, then
+                # we offer EIM (according to [V2G20-2567] and [V2G20-2568]). Also, the
+                # XSD makes clear that either the EIM_ASResAuthorizationMode or the
+                # PnC_ASResAuthorizationMode should be used, not both at the same time.
+                eim_as_res = EIMAuthSetupResParams()
+
         # TODO [V2G20-2096], [V2G20-2570]
 
         self.comm_session.offered_auth_options = auth_options
