@@ -39,16 +39,26 @@ VALIDITY_CPO_SUBCA2_CERT=365
 VALIDITY_V2G_ROOT_CERT=3650
 
 ISO_2="iso-2"
-ISO_20="iso-20"
+ISO_20_ED448="iso-20-ed448"
+ISO_20_SECP521R1="iso-20-secp521r1"
 
 usage() {
   echo "
-  Usage: "$0" [-h] [-v <iso-2|iso-20>] [-p password]
+  Usage: "$0" [-h] [-v <iso-2|iso-20-ed448|iso-20-secp521r1>] [-p password]
 
   Options:
    -h --help          Returns this helper
-   -v --version       ISO version to run the script for: 'iso-2' refers to ISO 15118-2,
-                      whereas 'iso-20' refers to ISO 15118-20
+   -v --version       ISO version and elliptic curve to run the script for:
+                      'iso-2' refers to ISO 15118-2 and the elliptic curve secp256r1.
+                      'iso-20-secp521r1' and 'iso-20-ed448' both refer to ISO 15118-20.
+                      The former creates ISO 15118-20 certificates using the elliptic
+                      curve secp521r1 while the latter creates ISO 15118-20 certificates
+                      using the elliptic curve Curve448 in Edwards form.
+                      See requirements [V2G20-2674] (secp521r1) and [V2G20-2319]
+                      (Curve448), respectively, for more information.
+                      Each option creates the certificates you need to do the TLS
+                      handshake (TLS 1.2 for ISO 15118-2, TLS 1.3 for ISO 15118-20) and
+                      to enable Plug & Charge.
    -p --password      The password to encrypt and decrypt the private keys
 
   Description:
@@ -65,17 +75,30 @@ usage() {
     private keys, certificate signing requests (csrs), and certificates (certs) in the
     right folder, overwriting any files with the same name:
 
-    |__ iso15118_2 (or iso15118_20)
+    |__ iso15118_2
       |__ certs
       |__ csrs
       |__ private_keys
+
+    or
+
+    |__ iso15118_20
+      |__ ed448
+         |__ certs
+         |__ csrs
+         |__ private_keys
+      |__ secp521r1
+         |__ certs
+         |__ csrs
+         |__ private_keys
+
   "
   exit 0;
 }
 
 validate_option() {
     # Check if the version provided is valid, if not it returns
-    if [ "$1" != $ISO_2 ] && [ "$1" != $ISO_20 ]; then
+    if [ "$1" != $ISO_2 ] && [ "$1" != $ISO_20_ED448 ] && [ "$1" != $ISO_20_SECP521R1 ]; then
         echo "The version provided is invalid"
         usage
     fi
@@ -116,16 +139,24 @@ then
     SYMMETRIC_CIPHER=-aes-128-cbc
     SYMMETRIC_CIPHER_PKCS12=-aes128
     SHA=-sha256
-    # Note: OpenSSL does not use the named curve 'secp256r1' (as stated in
-    # ISO 15118-2) but the equivalent 'prime256v1'
+    # Note: OpenSSL does not use the named curve 'secp256r1' (as stated in ISO 15118-2)
+    # but the equivalent 'prime256v1'
     EC_CURVE=prime256v1
+elif [ $version == $ISO_20_SECP521R1 ];
+    ISO_FOLDER=iso15118_20/secp521r1
+    SYMMETRIC_CIPHER=-aes-256-gcm
+    SYMMETRIC_CIPHER_PKCS12=-aes256
+    SHA=-sha512
+    EC_CURVE=secp521r1
 else
-    ISO_FOLDER=iso15118_20
-    SYMMETRIC_CIPHER=-aes-128-cbc  # TODO Check correct version for ISO 15118-20
-    SYMMETRIC_CIPHER_PKCS12=-aes128  # TODO Check correct version for ISO 15118-20
-    SHA=-sha256  # TODO Check correct version for ISO 15118-20
-    EC_CURVE=prime256v1  # TODO Check correct version for ISO 15118-20
-    # TODO: Also enable cipher suite TLS_CHACHA20_POLY1305_SHA256
+    # Ed448 curve
+    ISO_FOLDER=iso15118_20/ed448
+    SYMMETRIC_CIPHER=-aes-256-gcm
+    SYMMETRIC_CIPHER_PKCS12=-aes256
+    # There are no hash options with Ed448 as it does not sign a hash of the certificate
+    EC_CURVE=ed448
+# TODO: There's also the cipher suite TLS_CHACHA20_POLY1305_SHA256 but no
+#       mentioning in the requirements as to how to apply it
 fi
 
 # The password used to encrypt (and decrypt) private keys
@@ -166,7 +197,7 @@ openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout 
 #	- take the values needed for the Distinguished Name (DN) from the
 #	  configuration file -> -config
 #	- save the CSR at the location provided -> -out
-openssl req -new -key $KEY_PATH/v2gRootCA.key -passin pass:$password -config configs/v2gRootCACert.cnf -out $CSR_PATH/v2gRootCA.csr
+openssl req -new -key $KEY_PATH/v2gRootCA.key -passin pass:$password -config cert_configs/v2gRootCACert.cnf -out $CSR_PATH/v2gRootCA.csr
 # 1.3) Create an X.509 certificate
 #	- use the X.509 utility command -> x509
 #	- requesting a new X.509 certificate -> -req
@@ -181,7 +212,7 @@ openssl req -new -key $KEY_PATH/v2gRootCA.key -passin pass:$password -config con
 #	- each issued certificate must contain a unique serial number assigned by the CA (must be unique within the issuers number range) -> -set_serial
 #	- save the certificate at the location provided -> -out
 # 	- make the certificate valid for 40 years (give in days) -> -days 
-openssl x509 -req -in $CSR_PATH/v2gRootCA.csr -extfile configs/v2gRootCACert.cnf -extensions ext -signkey $KEY_PATH/v2gRootCA.key -passin pass:$password $SHA -set_serial 12345 -out $CERT_PATH/v2gRootCACert.pem -days $VALIDITY_V2G_ROOT_CERT
+openssl x509 -req -in $CSR_PATH/v2gRootCA.csr -extfile cert_configs/v2gRootCACert.cnf -extensions ext -signkey $KEY_PATH/v2gRootCA.key -passin pass:$password $SHA -set_serial 12345 -out $CERT_PATH/v2gRootCACert.pem -days $VALIDITY_V2G_ROOT_CERT
 
 
 # 2) Create an intermediate CPO sub-CA 1 certificate which is directly signed
@@ -190,14 +221,14 @@ openssl x509 -req -in $CSR_PATH/v2gRootCA.csr -extfile configs/v2gRootCACert.cnf
 # 2.1) Create a private key (same procedure as for V2GRootCA)
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/cpoSubCA1.key
 # 2.2) Create a CSR (same procedure as for V2GRootCA)
-openssl req -new -key $KEY_PATH/cpoSubCA1.key -passin pass:$password -config configs/cpoSubCA1Cert.cnf -out $CSR_PATH/cpoSubCA1.csr
+openssl req -new -key $KEY_PATH/cpoSubCA1.key -passin pass:$password -config cert_configs/cpoSubCA1Cert.cnf -out $CSR_PATH/cpoSubCA1.csr
 # 2.3) Create an X.509 certificate (same procedure as for V2GRootCA, but with
 #      the difference that we need the ‘-CA’ switch to point to the CA
 #      certificate, followed by the ‘-CAkey’ switch that tells OpenSSL where to
 #      find the CA’s private key. We need the private key to create the signature
 #      and the public key certificate to make sure that the CA’s certificate and
 #      private key match.
-openssl x509 -req -in $CSR_PATH/cpoSubCA1.csr -extfile configs/cpoSubCA1Cert.cnf -extensions ext -CA $CERT_PATH/v2gRootCACert.pem -CAkey $KEY_PATH/v2gRootCA.key -passin pass:$password -set_serial 12346 -out $CERT_PATH/cpoSubCA1Cert.pem -days $VALIDITY_CPO_SUBCA1_CERT
+openssl x509 -req -in $CSR_PATH/cpoSubCA1.csr -extfile cert_configs/cpoSubCA1Cert.cnf -extensions ext -CA $CERT_PATH/v2gRootCACert.pem -CAkey $KEY_PATH/v2gRootCA.key -passin pass:$password -set_serial 12346 -out $CERT_PATH/cpoSubCA1Cert.pem -days $VALIDITY_CPO_SUBCA1_CERT
 
 
 # 3) Create a second intermediate CPO sub-CA certificate (sub-CA 2) just the way
@@ -209,8 +240,8 @@ openssl x509 -req -in $CSR_PATH/cpoSubCA1.csr -extfile configs/cpoSubCA1Cert.cnf
 #	  certificate must follow this certificate in a certificate chain)
 #	- validity period differs
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/cpoSubCA2.key
-openssl req -new -key $KEY_PATH/cpoSubCA2.key -passin pass:$password -config configs/cpoSubCA2Cert.cnf -out $CSR_PATH/cpoSubCA2.csr
-openssl x509 -req -in $CSR_PATH/cpoSubCA2.csr -extfile configs/cpoSubCA2Cert.cnf -extensions ext -CA $CERT_PATH/cpoSubCA1Cert.pem -CAkey $KEY_PATH/cpoSubCA1.key -passin pass:$password -set_serial 12347 -days $VALIDITY_CPO_SUBCA2_CERT -out $CERT_PATH/cpoSubCA2Cert.pem
+openssl req -new -key $KEY_PATH/cpoSubCA2.key -passin pass:$password -config cert_configs/cpoSubCA2Cert.cnf -out $CSR_PATH/cpoSubCA2.csr
+openssl x509 -req -in $CSR_PATH/cpoSubCA2.csr -extfile cert_configs/cpoSubCA2Cert.cnf -extensions ext -CA $CERT_PATH/cpoSubCA1Cert.pem -CAkey $KEY_PATH/cpoSubCA1.key -passin pass:$password -set_serial 12347 -days $VALIDITY_CPO_SUBCA2_CERT -out $CERT_PATH/cpoSubCA2Cert.pem
 
 
 # 4) Create an SECC certificate, which is the leaf certificate belonging to
@@ -221,8 +252,8 @@ openssl x509 -req -in $CSR_PATH/cpoSubCA2.csr -extfile configs/cpoSubCA2Cert.cnf
 # - keyusage is set to digitalSignature instead of keyCertSign and crlSign
 # - validity period differs
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/seccLeaf.key
-openssl req -new -key $KEY_PATH/seccLeaf.key -passin pass:$password -config configs/seccLeafCert.cnf -out $CSR_PATH/seccLeafCert.csr
-openssl x509 -req -in $CSR_PATH/seccLeafCert.csr -extfile configs/seccLeafCert.cnf -extensions ext -CA $CERT_PATH/cpoSubCA2Cert.pem -CAkey $KEY_PATH/cpoSubCA2.key -passin pass:$password -set_serial 12348 -days $VALIDITY_SECC_LEAF_CERT -out $CERT_PATH/seccLeafCert.pem
+openssl req -new -key $KEY_PATH/seccLeaf.key -passin pass:$password -config cert_configs/seccLeafCert.cnf -out $CSR_PATH/seccLeafCert.csr
+openssl x509 -req -in $CSR_PATH/seccLeafCert.csr -extfile cert_configs/seccLeafCert.cnf -extensions ext -CA $CERT_PATH/cpoSubCA2Cert.pem -CAkey $KEY_PATH/cpoSubCA2.key -passin pass:$password -set_serial 12348 -days $VALIDITY_SECC_LEAF_CERT -out $CERT_PATH/seccLeafCert.pem
 # 4.1) Concatenate the SECC certificate with the CPO Sub-2 and Sub-1 certificates to
 #      provide a certificate chain that can be used for an SSL context when
 #      implementing the TLS handshake
@@ -231,58 +262,58 @@ cat $CERT_PATH/seccLeafCert.pem $CERT_PATH/cpoSubCA2Cert.pem $CERT_PATH/cpoSubCA
 
 # 5) Create a self-signed OEMRootCA certificate (validity is up to the OEM)
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/oemRootCA.key
-openssl req -new -key $KEY_PATH/oemRootCA.key -passin pass:$password -config configs/oemRootCACert.cnf -out $CSR_PATH/oemRootCA.csr
-openssl x509 -req -in $CSR_PATH/oemRootCA.csr -extfile configs/oemRootCACert.cnf -extensions ext -signkey $KEY_PATH/oemRootCA.key -passin pass:$password $SHA -set_serial 12349 -out $CERT_PATH/oemRootCACert.pem -days $VALIDITY_OEM_ROOT_CERT
+openssl req -new -key $KEY_PATH/oemRootCA.key -passin pass:$password -config cert_configs/oemRootCACert.cnf -out $CSR_PATH/oemRootCA.csr
+openssl x509 -req -in $CSR_PATH/oemRootCA.csr -extfile cert_configs/oemRootCACert.cnf -extensions ext -signkey $KEY_PATH/oemRootCA.key -passin pass:$password $SHA -set_serial 12349 -out $CERT_PATH/oemRootCACert.pem -days $VALIDITY_OEM_ROOT_CERT
 
 
 # 6) Create an intermediate OEM sub-CA certificate, which is directly signed by
 #    the OEMRootCA certificate (validity is up to the OEM)
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/oemSubCA1.key
-openssl req -new -key $KEY_PATH/oemSubCA1.key -passin pass:$password -config configs/oemSubCA1Cert.cnf -out $CSR_PATH/oemSubCA1.csr
-openssl x509 -req -in $CSR_PATH/oemSubCA1.csr -extfile configs/oemSubCA1Cert.cnf -extensions ext -CA $CERT_PATH/oemRootCACert.pem -CAkey $KEY_PATH/oemRootCA.key -passin pass:$password -set_serial 12350 -days $VALIDITY_OEM_SUBCA1_CERT -out $CERT_PATH/oemSubCA1Cert.pem
+openssl req -new -key $KEY_PATH/oemSubCA1.key -passin pass:$password -config cert_configs/oemSubCA1Cert.cnf -out $CSR_PATH/oemSubCA1.csr
+openssl x509 -req -in $CSR_PATH/oemSubCA1.csr -extfile cert_configs/oemSubCA1Cert.cnf -extensions ext -CA $CERT_PATH/oemRootCACert.pem -CAkey $KEY_PATH/oemRootCA.key -passin pass:$password -set_serial 12350 -days $VALIDITY_OEM_SUBCA1_CERT -out $CERT_PATH/oemSubCA1Cert.pem
 
 
 # 7) Create a second intermediate OEM sub-CA certificate, which is directly
 #    signed by the OEMSubCA1 certificate (validity is up to the OEM)
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/oemSubCA2.key
-openssl req -new -key $KEY_PATH/oemSubCA2.key -passin pass:$password -config configs/oemSubCA2Cert.cnf -out $CSR_PATH/oemSubCA2.csr
-openssl x509 -req -in $CSR_PATH/oemSubCA2.csr -extfile configs/oemSubCA2Cert.cnf -extensions ext -CA $CERT_PATH/oemSubCA1Cert.pem -CAkey $KEY_PATH/oemSubCA1.key -passin pass:$password -set_serial 12351 -days $VALIDITY_OEM_SUBCA2_CERT -out $CERT_PATH/oemSubCA2Cert.pem
+openssl req -new -key $KEY_PATH/oemSubCA2.key -passin pass:$password -config cert_configs/oemSubCA2Cert.cnf -out $CSR_PATH/oemSubCA2.csr
+openssl x509 -req -in $CSR_PATH/oemSubCA2.csr -extfile cert_configs/oemSubCA2Cert.cnf -extensions ext -CA $CERT_PATH/oemSubCA1Cert.pem -CAkey $KEY_PATH/oemSubCA1.key -passin pass:$password -set_serial 12351 -days $VALIDITY_OEM_SUBCA2_CERT -out $CERT_PATH/oemSubCA2Cert.pem
 
 
 # 8) Create an OEM provisioning certificate, which is the leaf certificate
 #    belonging to the OEM certificate chain (used for contract certificate
 #    installation)
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/oemLeaf.key
-openssl req -new -key $KEY_PATH/oemLeaf.key -passin pass:$password -config configs/oemLeafCert.cnf -out $CSR_PATH/oemLeafCert.csr
-openssl x509 -req -in $CSR_PATH/oemLeafCert.csr -extfile configs/oemLeafCert.cnf -extensions ext -CA $CERT_PATH/oemSubCA2Cert.pem -CAkey $KEY_PATH/oemSubCA2.key -passin pass:$password -set_serial 12352 -days $VALIDITY_OEM_LEAF_CERT -out $CERT_PATH/oemLeafCert.pem
+openssl req -new -key $KEY_PATH/oemLeaf.key -passin pass:$password -config cert_configs/oemLeafCert.cnf -out $CSR_PATH/oemLeafCert.csr
+openssl x509 -req -in $CSR_PATH/oemLeafCert.csr -extfile cert_configs/oemLeafCert.cnf -extensions ext -CA $CERT_PATH/oemSubCA2Cert.pem -CAkey $KEY_PATH/oemSubCA2.key -passin pass:$password -set_serial 12352 -days $VALIDITY_OEM_LEAF_CERT -out $CERT_PATH/oemLeafCert.pem
 
 
 # 9) Create a self-signed MORootCA (mobility operator) certificate
 #    (validity is up to the MO)
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/moRootCA.key
-openssl req -new -key $KEY_PATH/moRootCA.key -passin pass:$password -config configs/moRootCACert.cnf -out $CSR_PATH/moRootCA.csr
-openssl x509 -req -in $CSR_PATH/moRootCA.csr -extfile configs/moRootCACert.cnf -extensions ext -signkey $KEY_PATH/moRootCA.key -passin pass:$password $SHA -set_serial 12353 -out $CERT_PATH/moRootCACert.pem -days $VALIDITY_MO_ROOT_CERT
+openssl req -new -key $KEY_PATH/moRootCA.key -passin pass:$password -config cert_configs/moRootCACert.cnf -out $CSR_PATH/moRootCA.csr
+openssl x509 -req -in $CSR_PATH/moRootCA.csr -extfile cert_configs/moRootCACert.cnf -extensions ext -signkey $KEY_PATH/moRootCA.key -passin pass:$password $SHA -set_serial 12353 -out $CERT_PATH/moRootCACert.pem -days $VALIDITY_MO_ROOT_CERT
 
 
 # 10) Create an intermediate MO sub-CA certificate, which is directly signed by
 #     the MORootCA (validity is up to the MO)
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/moSubCA1.key
-openssl req -new -key $KEY_PATH/moSubCA1.key -passin pass:$password -config configs/moSubCA1Cert.cnf -extensions ext -out $CSR_PATH/moSubCA1.csr
-openssl x509 -req -in $CSR_PATH/moSubCA1.csr -extfile configs/moSubCA1Cert.cnf -extensions ext -CA $CERT_PATH/moRootCACert.pem -CAkey $KEY_PATH/moRootCA.key -passin pass:$password -set_serial 12354 -days $VALIDITY_MO_SUBCA1_CERT -out $CERT_PATH/moSubCA1Cert.pem
+openssl req -new -key $KEY_PATH/moSubCA1.key -passin pass:$password -config cert_configs/moSubCA1Cert.cnf -extensions ext -out $CSR_PATH/moSubCA1.csr
+openssl x509 -req -in $CSR_PATH/moSubCA1.csr -extfile cert_configs/moSubCA1Cert.cnf -extensions ext -CA $CERT_PATH/moRootCACert.pem -CAkey $KEY_PATH/moRootCA.key -passin pass:$password -set_serial 12354 -days $VALIDITY_MO_SUBCA1_CERT -out $CERT_PATH/moSubCA1Cert.pem
 
 
 # 11) Create a second intermediate MO sub-CA certificate, which is directly
 #     signed by the MOSubCA1 (validity is up to the MO)
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/moSubCA2.key
-openssl req -new -key $KEY_PATH/moSubCA2.key -passin pass:$password -config configs/moSubCA2Cert.cnf -out $CSR_PATH/moSubCA2.csr
-openssl x509 -req -in $CSR_PATH/moSubCA2.csr -extfile configs/moSubCA2Cert.cnf -extensions ext -CA $CERT_PATH/moSubCA1Cert.pem -CAkey $KEY_PATH/moSubCA1.key -passin pass:$password -set_serial 12355 -days $VALIDITY_MO_SUBCA2_CERT -out $CERT_PATH/moSubCA2Cert.pem
+openssl req -new -key $KEY_PATH/moSubCA2.key -passin pass:$password -config cert_configs/moSubCA2Cert.cnf -out $CSR_PATH/moSubCA2.csr
+openssl x509 -req -in $CSR_PATH/moSubCA2.csr -extfile cert_configs/moSubCA2Cert.cnf -extensions ext -CA $CERT_PATH/moSubCA1Cert.pem -CAkey $KEY_PATH/moSubCA1.key -passin pass:$password -set_serial 12355 -days $VALIDITY_MO_SUBCA2_CERT -out $CERT_PATH/moSubCA2Cert.pem
 
 
 # 12) Create a contract certificate, which is the leaf certificate belonging to
 #     the MO certificate chain (used for contract certificate installation)
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/contractLeaf.key
-openssl req -new -key $KEY_PATH/contractLeaf.key -passin pass:$password -config configs/contractLeafCert.cnf -out $CSR_PATH/contractLeafCert.csr
-openssl x509 -req -in $CSR_PATH/contractLeafCert.csr -extfile configs/contractLeafCert.cnf -extensions ext -CA $CERT_PATH/moSubCA2Cert.pem -CAkey $KEY_PATH/moSubCA2.key -passin pass:$password -set_serial 12356 -days $VALIDITY_CONTRACT_LEAF_CERT -out $CERT_PATH/contractLeafCert.pem
+openssl req -new -key $KEY_PATH/contractLeaf.key -passin pass:$password -config cert_configs/contractLeafCert.cnf -out $CSR_PATH/contractLeafCert.csr
+openssl x509 -req -in $CSR_PATH/contractLeafCert.csr -extfile cert_configs/contractLeafCert.cnf -extensions ext -CA $CERT_PATH/moSubCA2Cert.pem -CAkey $KEY_PATH/moSubCA2.key -passin pass:$password -set_serial 12356 -days $VALIDITY_CONTRACT_LEAF_CERT -out $CERT_PATH/contractLeafCert.pem
 # This is how you would put the contract certificate chain and private key in
 # a PKCS12 container, if need be:
 cat $CERT_PATH/moSubCA2Cert.pem $CERT_PATH/moSubCA1Cert.pem > $CERT_PATH/intermediateMOCACerts.pem
@@ -292,23 +323,23 @@ openssl pkcs12 -export -inkey $KEY_PATH/contractLeaf.key -in $CERT_PATH/contract
 # 13) Create an intermediate provisioning service sub-CA certificate, which is
 #     directly signed by the V2GRootCA
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/cpsSubCA1.key
-openssl req -new -key $KEY_PATH/cpsSubCA1.key -passin pass:$password -config configs/cpsSubCA1Cert.cnf -out $CSR_PATH/cpsSubCA1.csr
-openssl x509 -req -in $CSR_PATH/cpsSubCA1.csr -extfile configs/cpsSubCA1Cert.cnf -extensions ext -CA $CERT_PATH/v2gRootCACert.pem -CAkey $KEY_PATH/v2gRootCA.key -passin pass:$password -set_serial 12357 -days $VALIDITY_CPS_SUBCA1_CERT -out $CERT_PATH/cpsSubCA1Cert.pem
+openssl req -new -key $KEY_PATH/cpsSubCA1.key -passin pass:$password -config cert_configs/cpsSubCA1Cert.cnf -out $CSR_PATH/cpsSubCA1.csr
+openssl x509 -req -in $CSR_PATH/cpsSubCA1.csr -extfile cert_configs/cpsSubCA1Cert.cnf -extensions ext -CA $CERT_PATH/v2gRootCACert.pem -CAkey $KEY_PATH/v2gRootCA.key -passin pass:$password -set_serial 12357 -days $VALIDITY_CPS_SUBCA1_CERT -out $CERT_PATH/cpsSubCA1Cert.pem
 
 
 # 14) Create a second intermediate provisioning sub-CA certificate, which is
 #     directly signed by the CPSSubCA1
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/cpsSubCA2.key
-openssl req -new -key $KEY_PATH/cpsSubCA2.key -passin pass:$password -config configs/cpsSubCA2Cert.cnf -out $CSR_PATH/cpsSubCA2.csr
-openssl x509 -req -in $CSR_PATH/cpsSubCA2.csr -extfile configs/cpsSubCA2Cert.cnf -extensions ext -CA $CERT_PATH/cpsSubCA1Cert.pem -CAkey $KEY_PATH/cpsSubCA1.key -passin pass:$password -set_serial 12358 -days $VALIDITY_CPS_SUBCA2_CERT -out $CERT_PATH/cpsSubCA2Cert.pem
+openssl req -new -key $KEY_PATH/cpsSubCA2.key -passin pass:$password -config cert_configs/cpsSubCA2Cert.cnf -out $CSR_PATH/cpsSubCA2.csr
+openssl x509 -req -in $CSR_PATH/cpsSubCA2.csr -extfile cert_configs/cpsSubCA2Cert.cnf -extensions ext -CA $CERT_PATH/cpsSubCA1Cert.pem -CAkey $KEY_PATH/cpsSubCA1.key -passin pass:$password -set_serial 12358 -days $VALIDITY_CPS_SUBCA2_CERT -out $CERT_PATH/cpsSubCA2Cert.pem
 
 
 # 15) Create a provisioning service certificate, which is the leaf certificate
 #     belonging to the certificate provisioning service chain (used for contract
 #     certificate installation)
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/cpsLeaf.key
-openssl req -new -key $KEY_PATH/cpsLeaf.key -passin pass:$password -config configs/cpsLeafCert.cnf -out $CSR_PATH/cpsLeafCert.csr
-openssl x509 -req -in $CSR_PATH/cpsLeafCert.csr -extfile configs/cpsLeafCert.cnf -extensions ext -CA $CERT_PATH/cpsSubCA2Cert.pem -CAkey $KEY_PATH/cpsSubCA2.key -passin pass:$password -set_serial 12359 -days $VALIDITY_CPS_LEAF_CERT -out $CERT_PATH/cpsLeafCert.pem
+openssl req -new -key $KEY_PATH/cpsLeaf.key -passin pass:$password -config cert_configs/cpsLeafCert.cnf -out $CSR_PATH/cpsLeafCert.csr
+openssl x509 -req -in $CSR_PATH/cpsLeafCert.csr -extfile cert_configs/cpsLeafCert.cnf -extensions ext -CA $CERT_PATH/cpsSubCA2Cert.pem -CAkey $KEY_PATH/cpsSubCA2.key -passin pass:$password -set_serial 12359 -days $VALIDITY_CPS_LEAF_CERT -out $CERT_PATH/cpsLeafCert.pem
 cat $CERT_PATH/cpsSubCA2Cert.pem $CERT_PATH/cpsSubCA1Cert.pem > $CERT_PATH/intermediateCPSCACerts.pem
 openssl pkcs12 -export -inkey $KEY_PATH/cpsLeaf.key -in $CERT_PATH/cpsLeafCert.pem -certfile $CERT_PATH/intermediateCPSCACerts.pem $SYMMETRIC_CIPHER_PKCS12 -passin pass:$password -passout pass:$password -name cps_leaf_cert -out $CERT_PATH/cpsCertChain.p12
 
