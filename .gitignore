@@ -117,5 +117,8 @@ venv.bak/
 *.der
 *.key
 *.p12
-iso15118/shared/pki/iso15118_2
-iso15118/shared/pki/iso15118_20
+iso15118/shared/pki/iso15118_2/csrs
+iso15118/shared/pki/iso15118_2/certs
+iso15118/shared/pki/iso15118_2/private_keys
+iso15118/shared/pki/iso15118_20/ed448
+iso15118/shared/pki/iso15118_20/secp521r1
