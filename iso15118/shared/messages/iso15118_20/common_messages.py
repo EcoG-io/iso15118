@@ -147,11 +147,11 @@ class AuthorizationSetupRes(V2GResponse):
     eim_as_res: EIMAuthSetupResParams = Field(None, alias="EIM_ASResAuthorizationMode")
 
     @root_validator(pre=True)
-    def at_least_one_authorization_mode(cls, values):
+    def exactly_one_authorization_mode(cls, values):
         """
-        At least one of pnc_as_res and eim_as_res must be set, depending on
-        whether both Plug & Charge and EIM or just one of these authorization
-        modes is offered.
+        Either pnc_as_res orand eim_as_res must be set, depending on
+        whether both Plug & Charge is offered or not. In the latter case, only
+        eim_as_res modes is offered.
 
         Pydantic validators are "class methods",
         see https://pydantic-docs.helpmanual.io/usage/validators/
@@ -166,7 +166,7 @@ class AuthorizationSetupRes(V2GResponse):
                 "EIM_ASResAuthorizationMode",
             ],
             values,
-            False,
+            True,
         ):
             return values
 
