@@ -15,7 +15,10 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
     DCEVSEChargeParameter,
     DCEVSEStatus,
+    DCEVSEStatusCode,
     EnergyTransferModeEnum,
+    EVSENotification,
+    IsolationLevel,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -151,7 +154,12 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
     # ============================================================================
 
     def get_ac_evse_status(self) -> ACEVSEStatus:
-        return self.simulated_controller.get_ac_evse_status()
+        rcd_error = self.cs_status_and_limits.evses[0].ac.rcd_error
+        return ACEVSEStatus(
+            rcd=rcd_error,
+            notification_max_delay=0,
+            evse_notification=EVSENotification.NONE,
+        )
 
     def get_ac_evse_charge_parameter(self) -> ACEVSEChargeParameter:
         nominal_voltage_value = self.cs_status_and_limits.evses[0].ac.nominal_voltage
@@ -177,7 +185,28 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
     # ============================================================================
 
     def get_dc_evse_status(self) -> DCEVSEStatus:
-        return self.simulated_controller.get_dc_evse_status()
+        isolation_status = self.cs_status_and_limits.evses[0].dc.isolation_status
+
+        # map the MQTT API enums to the ISO 15118 ones
+        if isolation_status and isolation_status.name in IsolationLevel.__members__:
+            isolation_level = IsolationLevel[isolation_status.name]
+        else:
+            isolation_level = None
+
+        # TODO: the evse status code should be added
+        #  as an enum to the MQTT API and Gitbook.
+        evse_status = self.cs_status_and_limits.evses[0].dc.status_code
+        if evse_status == "ready":
+            status_code = DCEVSEStatusCode.EVSE_READY
+        else:
+            status_code = DCEVSEStatusCode.EVSE_NOT_READY
+
+        return DCEVSEStatus(
+            notification_max_delay=0,
+            evse_notification=EVSENotification.NONE,
+            evse_isolation_status=isolation_level,
+            evse_status_code=status_code,
+        )
 
     def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         dc_limits = self.cs_status_and_limits.evses[0].dc
