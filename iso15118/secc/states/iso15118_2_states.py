@@ -1140,8 +1140,7 @@ class PowerDelivery(StateSECC):
             # TODO Need to check if we really need to terminate the
             #      session here or not
             self.stop_state_machine(
-                "EVCC wants to renegotiate, but charge "
-                "progress has not yet started",
+                "EVCC wants to renegotiate, but charge " "progress has not yet started",
                 message,
                 ResponseCode.FAILED,
             )

@@ -42,7 +42,6 @@ from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as Meter
 
 
 class MQTTBasedEVSEController(EVSEControllerInterface):
-
     @staticmethod
     def _build_mqtt(hostname: str, port: int) -> Mqtt:
         def create_client() -> Client:
@@ -88,7 +87,9 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
                 f"should have the same evse_id."
             )
 
-        return MQTTBasedEVSEController(cs_parameters, cs_status_and_limits, mqtt_service_task, mqtt_service)
+        return MQTTBasedEVSEController(
+            cs_parameters, cs_status_and_limits, mqtt_service_task, mqtt_service
+        )
 
     def __init__(
         self,
@@ -154,9 +155,7 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
         )
 
         # because we don't need a response this can be fire and forget.
-        asyncio.create_task(
-            self.mqtt_service.update(Topics.ISO15118_CS, payload)
-        )
+        asyncio.create_task(self.mqtt_service.update(Topics.ISO15118_CS, payload))
 
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
@@ -175,16 +174,14 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
         nominal_voltage = PVEVSENominalVoltage(
             multiplier=-1,
             value=int(nominal_voltage_value * 10),
-            unit=UnitSymbol.VOLTAGE
+            unit=UnitSymbol.VOLTAGE,
         )
 
         smallest_max_current = min(
             asdict(self.evse_status_and_limits.ac.max_current).values()
         )
         max_current = PVEVSEMaxCurrent(
-            multiplier=-1,
-            value=int(smallest_max_current * 10),
-            unit=UnitSymbol.AMPERE
+            multiplier=-1, value=int(smallest_max_current * 10), unit=UnitSymbol.AMPERE
         )
 
         return ACEVSEChargeParameter(
