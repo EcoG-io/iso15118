@@ -13,7 +13,7 @@ pydantic = "^1.7.3"
 psutil = "^5.8.0"
 aioredis = "^2.0.0"
 py4j = "^0.10.9"
-mqtt-api = "0.15.0"
+mqtt-api = "0.17.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"

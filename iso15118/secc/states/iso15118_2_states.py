@@ -1123,28 +1123,29 @@ class PowerDelivery(StateSECC):
 
         next_state: Type[State]
         if power_delivery_req.charge_progress == ChargeProgress.START:
+            self.comm_session.evse_controller.set_hlc_charging(True)
             next_state = ChargingStatus
             self.comm_session.selected_schedule = (
                 power_delivery_req.sa_schedule_tuple_id
             )
             self.comm_session.charge_progress_started = True
         elif power_delivery_req.charge_progress == ChargeProgress.STOP:
+            self.comm_session.evse_controller.set_hlc_charging(False)
             next_state = SessionStop
+        # ChargeProgress only has three enum values: Start, Stop, and
+        # Renegotiate. So this is the renegotiation case.
+        elif self.comm_session.charge_progress_started:
+            next_state = ChargeParameterDiscovery
         else:
-            # ChargeProgress only has three enum values: Start, Stop, and
-            # Renegotiate. So this is the renegotiation case.
-            if self.comm_session.charge_progress_started:
-                next_state = ChargeParameterDiscovery
-            else:
-                # TODO Need to check if we really need to terminate the
-                #      session here or not
-                self.stop_state_machine(
-                    "EVCC wants to renegotiate, but charge "
-                    "progress has not yet started",
-                    message,
-                    ResponseCode.FAILED,
-                )
-                next_state = Terminate
+            # TODO Need to check if we really need to terminate the
+            #      session here or not
+            self.stop_state_machine(
+                "EVCC wants to renegotiate, but charge "
+                "progress has not yet started",
+                message,
+                ResponseCode.FAILED,
+            )
+            next_state = Terminate
 
         power_delivery_res = PowerDeliveryRes(
             response_code=ResponseCode.OK,
