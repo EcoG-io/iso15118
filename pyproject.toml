@@ -29,11 +29,6 @@ pytest-cov = "^3.0.0"
 [tool.isort]
 profile = "black"
 
-[[tool.poetry.source]]
-name = "pypi-switch"
-url = "https://pypi.switch-ev.com/simple/"
-default = false
-secondary = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -42,3 +37,10 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 iso15118 = 'iso15118.secc.start_secc:run'
+
+
+[[tool.poetry.source]]
+name = "pypi-switch"
+url = "https://pypi.switch-ev.com/simple/"
+default = false
+secondary = true

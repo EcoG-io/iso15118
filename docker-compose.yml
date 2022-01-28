@@ -7,6 +7,7 @@ services:
       dockerfile: iso15118/secc/Dockerfile
     depends_on:
       - redis
+      - mqtt
     networks:
       - ipv6_net
 
@@ -18,6 +19,7 @@ services:
     depends_on:
       - redis
       - secc
+      - mqtt
     networks:
       - ipv6_net
 
@@ -25,6 +27,16 @@ services:
     image: redis:6.2.6-alpine
     ports:
      - "6379:6379"
+
+  mqtt:
+    hostname: mqtt
+    build:
+      context: .
+      dockerfile: mqtt/Dockerfile
+    ports:
+      - "10004:9001"
+    networks:
+      - ipv6_net
 
 
 networks:

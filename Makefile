@@ -56,7 +56,7 @@ build: .generate_v2_certs
 	@# This conversion is required, otherwise we wouldn't be able to spawn the evcc start script.
 	@# @ is used as a separator and allows us to escape '/', so we can substitute the '/' itself
 	@sed -i.bkp 's@/secc/g@/evcc/g@g' iso15118/evcc/Dockerfile
-	docker-compose build
+	docker-compose build  --build-arg PYPI_USER=${PYPI_USER} --build-arg PYPI_PASS=${PYPI_PASS}
 
 dev:
 	# the dev file apply changes to the original compose file

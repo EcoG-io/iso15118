@@ -31,6 +31,10 @@ class ConfigurationStartupHandler(Mqtt):
     ):
         super().__init__(mqtt_client, topics, None)
 
+    @on(MessageName.HLC_CHARGING)
+    async def on_hlc_charging(self, *args, **kwargs):
+        pass
+
     @on(MessageName.CS_STATUS_AND_LIMITS)
     async def on_cs_status_and_limits(self):
         return response.CsStatusAndLimitsPayload(

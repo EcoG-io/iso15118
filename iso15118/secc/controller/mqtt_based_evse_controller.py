@@ -109,9 +109,6 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
         # wired in yet.
         self.simulated_controller = SimEVSEController()
 
-        # Just for testing, should be removed in PR
-        self.set_hlc_charging(True)
-
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
@@ -125,10 +122,10 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
         connectors = self.evse_parameters.connectors
         for connector in connectors:
             if ac := connector.services.ac:
-                transfer_modes.add(EnergyTransferModeEnum[ac.connector_type.name])
+                transfer_modes.add(EnergyTransferModeEnum(ac.connector_type))
 
             if dc := connector.services.dc:
-                transfer_modes.add(EnergyTransferModeEnum[dc.connector_type.name])
+                transfer_modes.add(EnergyTransferModeEnum(dc.connector_type))
 
         return list(transfer_modes)
 
@@ -156,6 +153,7 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
 
         # because we don't need a response this can be fire and forget.
         asyncio.create_task(self.mqtt_service.update(Topics.ISO15118_CS, payload))
+        asyncio.create_task(self.mqtt_service.update(Topics.ISO15118_OCPP, payload))
 
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
