@@ -18,7 +18,8 @@ help:
 	@echo "  build                            builds the project using Docker"
 	@echo "  dev                              runs secc and redis in dev version, using Docker"
 	@echo "  run                              runs secc and redis in prod version, using Docker"
-	@echo "  install-local                    uses poetry to update and install iso15118 locally, including dependencies"
+	@echo "  poetry-update                    Updates the dependencies versions, using poetry"
+	@echo "  install-local                    installs iso15118 locally, including dependencies"
 	@echo "  run-secc                         runs the secc project locally"
 	@echo "  run-evcc                         runs the evcc project locally"
 	@echo "  reformat                         reformats the code with isort and black"
@@ -30,6 +31,10 @@ help:
 	@echo ""
 	@echo "Check the Makefile to know exactly what each target is doing."
 
+
+.check-env-vars:
+	@test $${PYPI_USER?Please set environment variable PYPI_USER}
+	@test $${PYPI_PASS?Please set environment variable PYPI_PASS}
 
 .install-poetry:
 	@if [ -z ${IS_POETRY} ]; then pip install poetry; fi
@@ -65,18 +70,24 @@ dev:
 run:
 	docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
 
-poetry-update:
+poetry-config: .check-env-vars
+	@# For external packages, poetry saves metadata
+	@# in it's cache which can raise versioning problems, if the package
+	@# suffered version support changes. Thus, we clean poetry cache
+	yes | poetry cache clear --all .
+	poetry config http-basic.pypi-switch ${PYPI_USER} ${PYPI_PASS}
+
+poetry-update: poetry-config
 	poetry update
 
-install-local:
-	pip install .
+install-local: .check-env-vars
+	pip install . --extra-index-url https://${PYPI_USER}:${PYPI_PASS}@pypi.switch-ev.com/simple
 
 run-evcc:
 	$(shell which python) iso15118/evcc/start_evcc.py
 
 run-secc:
 	$(shell which python) iso15118/secc/start_secc.py
-
 
 mypy:
 	mypy --config-file mypy.ini iso15118 tests
