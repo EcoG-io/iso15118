@@ -40,6 +40,10 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
 
+# TODO: these topic names should be added to the mqtt api
+CS_JOSEV = "cs/josev"
+JOSEV_CS = "josev/cs"
+
 
 class MQTTBasedEVSEController(EVSEControllerInterface):
     @staticmethod
@@ -50,7 +54,7 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
 
         return Mqtt(
             mqtt_client=lambda: create_client(),
-            topics=Topics.CS_ISO15118,
+            topics=CS_JOSEV,
             response_timeout=60,
         )
 
@@ -60,7 +64,7 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
         mqtt_service = cls._build_mqtt(mqtt_host, mqtt_port)
         mqtt_service_task = asyncio.create_task(mqtt_service.start())
         cs_parameters: response.CsParametersPayload = await mqtt_service.request(
-            topic=Topics.ISO15118_CS, payload=request.CsParametersPayload()
+            topic=JOSEV_CS, payload=request.CsParametersPayload()
         )
         if cs_parameters.number_of_evses != 1 or len(cs_parameters.parameters) != 1:
             raise AttributeError(
@@ -69,7 +73,7 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
 
         cs_status_and_limits: response.CsStatusAndLimitsPayload = (
             await mqtt_service.request(
-                topic=Topics.ISO15118_CS, payload=request.CsStatusAndLimitsPayload()
+                topic=JOSEV_CS, payload=request.CsStatusAndLimitsPayload()
             )
         )
 
@@ -152,7 +156,7 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
         )
 
         # because we don't need a response this can be fire and forget.
-        asyncio.create_task(self.mqtt_service.update(Topics.ISO15118_CS, payload))
+        asyncio.create_task(self.mqtt_service.update(JOSEV_CS, payload))
         asyncio.create_task(self.mqtt_service.update(Topics.ISO15118_OCPP, payload))
 
     # ============================================================================

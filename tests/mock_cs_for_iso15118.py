@@ -12,7 +12,6 @@ from mqtt_api.v1.enums import (
     EVSEIsolationStatus,
     EVSEStatusCode,
     MessageName,
-    Topics,
 )
 from mqtt_api.v1.response import (
     CsACBptConnectorService,
@@ -23,6 +22,10 @@ from mqtt_api.v1.response import (
     CsDCConnectorService,
     CsEvseParameters,
 )
+
+# TODO: these topic names should be added to the mqtt api
+CS_JOSEV = "cs/josev"
+JOSEV_CS = "josev/cs"
 
 
 class ConfigurationStartupHandler(Mqtt):
@@ -145,7 +148,7 @@ def create_client() -> Client:
 
 configuration_handler = ConfigurationStartupHandler(
     mqtt_client=lambda: create_client(),
-    topics=[(Topics.ISO15118_CS, 1)],
+    topics=[(JOSEV_CS, 1)],
 )
 
 
