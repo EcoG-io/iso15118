@@ -17,7 +17,17 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVSEStatusCode,
     EnergyTransferModeEnum,
     EVSENotification,
-    IsolationLevel, PVEVTargetCurrent, PVEVTargetVoltage,
+    IsolationLevel,
+    PVEVTargetCurrent,
+    PVEVTargetVoltage,
+    PVEVSEMaxCurrentLimit,
+    PVEVSEMaxPowerLimit,
+    PVEVSEMaxVoltageLimit,
+    PVEVSEMinCurrentLimit,
+    PVEVSEMinVoltageLimit,
+    PVEVSEPeakCurrentRipple,
+    PVEVSECurrentRegulationTolerance,
+    PVEVSEEnergyToBeDelivered,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -180,7 +190,42 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_dc_evse_charge_parameter()."""
-        pass
+        evse_maximum_current_limit = PVEVSEMaxCurrentLimit(
+            multiplier=0, value=60, unit=UnitSymbol.AMPERE
+        )
+        evse_maximum_power_limit = PVEVSEMaxPowerLimit(
+            multiplier=0, value=30000, unit=UnitSymbol.WATT
+        )
+        evse_maximum_voltage_limit = PVEVSEMaxVoltageLimit(
+            multiplier=0, value=450, unit=UnitSymbol.VOLTAGE
+        )
+        evse_minimum_curren_limit = PVEVSEMinCurrentLimit(
+            multiplier=0, value=5, unit=UnitSymbol.AMPERE
+        )
+        evse_minimum_voltage_limit = PVEVSEMinVoltageLimit(
+            multiplier=0, value=250, unit=UnitSymbol.VOLTAGE
+        )
+        evse_peak_current_ripple = PVEVSEPeakCurrentRipple(
+            multiplier=0, value=5, unit=UnitSymbol.AMPERE
+        )
+        evse_current_regulation_tolerance = PVEVSECurrentRegulationTolerance(
+            multiplier=0, value=50, unit=UnitSymbol.AMPERE
+        )
+        evse_energy_to_be_delivered = PVEVSEEnergyToBeDelivered(
+            multiplier=0, value=10000, unit=UnitSymbol.WATT_HOURS
+        )
+
+        return DCEVSEChargeParameter(
+            dc_evse_status=self.get_dc_evse_status(),
+            evse_maximum_current_limit=evse_maximum_current_limit,
+            evse_maximum_power_limit=evse_maximum_power_limit,
+            evse_maximum_voltage_limit=evse_maximum_voltage_limit,
+            evse_minimum_current_limit=evse_minimum_curren_limit,
+            evse_minimum_voltage_limit=evse_minimum_voltage_limit,
+            evse_current_regulation_tolerance=evse_current_regulation_tolerance,  # optional
+            evse_peak_current_ripple=evse_peak_current_ripple,
+            evse_energy_to_be_delivered=evse_energy_to_be_delivered,  # optional
+        )
 
     def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
         """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
