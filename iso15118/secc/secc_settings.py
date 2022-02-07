@@ -10,6 +10,9 @@ from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.network import validate_nic
 
+from iso15118_service.evse_controller import EVSEController
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,7 +22,7 @@ class Config:
     redis_host: Optional[str] = None
     redis_port: Optional[int] = None
     log_level: Optional[int] = None
-    evse_controller: Type[EVSEControllerInterface] = None
+    evse_controller: EVSEController = None
     enforce_tls: bool = False
     free_charging_service: bool = False
     free_cert_install_service: bool = True
@@ -27,7 +30,7 @@ class Config:
     supported_protocols: Optional[List[Protocol]] = None
     supported_auth_options: Optional[List[AuthEnum]] = None
 
-    def load_envs(self, env_path: Optional[str] = None) -> None:
+    async def load_envs(self, env_path: Optional[str] = None) -> None:
         """
         Tries to load the .env file containing all the project settings.
         If `env_path` is not specified, it will get the .env on the current
@@ -50,9 +53,13 @@ class Config:
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
 
-        self.evse_controller = EVSEControllerInterface
+        #self.evse_controller = EVSEControllerInterface
         if env.bool("SECC_CONTROLLER_SIM", default=False):
             self.evse_controller = SimEVSEController
+        else:
+            mqtt_host = env.str("MQTT_HOST", default="localhost")
+            mqtt_port = env.int("MQTT_PORT", default=10_003)
+            self.evse_controller = await EVSEController.create(mqtt_host, mqtt_port)
 
         # Indicates whether or not the SECC should always enforce a TLS-secured
         # communication session. If True, the SECC will only fire up a TCP server
