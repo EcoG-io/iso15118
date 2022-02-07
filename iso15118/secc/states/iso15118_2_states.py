@@ -32,6 +32,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     AuthorizationRes,
     BodyBase,
     CableCheckReq,
+    CableCheckRes,
     CertificateInstallationReq,
     CertificateInstallationRes,
     ChargeParameterDiscoveryReq,
@@ -48,6 +49,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     PowerDeliveryReq,
     PowerDeliveryRes,
     PreChargeReq,
+    PreChargeRes,
     ResponseCode,
     ServiceDetailReq,
     ServiceDetailRes,
@@ -58,8 +60,6 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionStopReq,
     SessionStopRes,
     WeldingDetectionReq,
-    CableCheckReq,
-    CableCheckRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
@@ -1376,6 +1376,7 @@ class PreCharge(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        self.expecting_precharge_req = False
 
     def process_message(
         self,
@@ -1386,7 +1387,52 @@ class PreCharge(StateSECC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("PreCharge not yet implemented")
+        msg = self.check_msg_v2(
+            message,
+            [
+                PreChargeReq,
+                PowerDeliveryReq
+            ],
+            self.expecting_precharge_req,
+        )
+        if not msg:
+            return
+
+        if msg.body.power_delivery_req:
+            PowerDelivery(self.comm_session).process_message(message)
+
+        precharge_req: PreChargeReq = msg.body.pre_charge_req
+
+        if precharge_req.dc_ev_status != DCEVStatus.ev_error_code.NO_ERROR:
+            self.stop_state_machine(
+                f"{precharge_req.dc_ev_status} "
+                "has Error" f"{precharge_req.dc_ev_status}",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
+
+        self.comm_session.evse_controller.set_ev_soc(precharge_req.dc_ev_status.ev_ress_soc)
+        self.comm_session.evse_controller.set_ev_target_current(precharge_req.ev_target_current)
+        self.comm_session.evse_controller.set_ev_target_voltage(precharge_req.ev_target_voltage)
+        self.comm_session.evse_controller.set_precharge()
+
+        evse_present_voltage = self.comm_session.evse_controller.get_evse_present_voltage()
+        dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
+
+        precharge_res = PreChargeRes(
+            response_code=ResponseCode.OK,
+            dc_evse_status=dc_charger_state,
+            evse_present_voltage=evse_present_voltage,
+        )
+
+        next_state = None
+        self.create_next_message(
+            next_state,
+            precharge_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
 
 
 class ChargingStatus(StateSECC):
