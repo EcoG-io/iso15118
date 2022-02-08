@@ -14,6 +14,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVChargeParameter,
     EnergyTransferModeEnum,
     SAScheduleTupleEntry,
+    DCEVStatus,
+    PVEVTargetVoltage,
+    PVEVTargetCurrent,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -199,4 +202,16 @@ class EVControllerInterface(ABC):
         Relevant for:
         - ISO 15118-20
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_ev_status(self) -> DCEVStatus:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_target_voltage(self) -> PVEVTargetVoltage:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_target_current(self) -> PVEVTargetCurrent:
         raise NotImplementedError

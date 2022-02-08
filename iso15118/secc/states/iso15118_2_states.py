@@ -84,7 +84,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ServiceList,
     ServiceName,
     ServiceParameterList,
-    SubCertificates, DCEVStatus, DCEVSEStatus,
+    SubCertificates,
+    IsolationLevel,
+    DCEVErrorCode,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -1330,8 +1332,7 @@ class CableCheck(StateSECC):
             PreCharge(self.comm_session).process_message(message)
 
         cable_check_req: CableCheckReq = msg.body.cable_check_req
-
-        if cable_check_req.dc_ev_status != DCEVStatus.ev_error_code.NO_ERROR:
+        if cable_check_req.dc_ev_status.ev_error_code != DCEVErrorCode.NO_ERROR:
             self.stop_state_machine(
                 f"{cable_check_req.dc_ev_status} "
                 "has Error" f"{cable_check_req.dc_ev_status}",
@@ -1346,7 +1347,7 @@ class CableCheck(StateSECC):
 
         dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
 
-        iso_state_is_ok = True if dc_charger_state.evse_isolation_status is DCEVSEStatus.evse_isolation_status.VALID \
+        iso_state_is_ok = True if dc_charger_state.evse_isolation_status is IsolationLevel.VALID \
             else False
         next_state = PreCharge if iso_state_is_ok else None
 
@@ -1403,7 +1404,7 @@ class PreCharge(StateSECC):
 
         precharge_req: PreChargeReq = msg.body.pre_charge_req
 
-        if precharge_req.dc_ev_status != DCEVStatus.ev_error_code.NO_ERROR:
+        if precharge_req.dc_ev_status.ev_error_code != DCEVErrorCode.NO_ERROR:
             self.stop_state_machine(
                 f"{precharge_req.dc_ev_status} "
                 "has Error" f"{precharge_req.dc_ev_status}",

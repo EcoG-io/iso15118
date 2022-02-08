@@ -44,6 +44,9 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupRes,
     SessionStopReq,
     SessionStopRes,
+    CableCheckReq,
+    CableCheckRes,
+    PreChargeReq,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
@@ -714,18 +717,31 @@ class ChargeParameterDiscovery(StateEVCC):
                 charge_params_res.sa_schedule_list.values
             )
 
-            power_delivery_req = PowerDeliveryReq(
-                charge_progress=charge_progress,
-                sa_schedule_tuple_id=schedule_id,
-                charging_profile=charging_profile,
-            )
+            if self.comm_session.selected_energy_mode.value.startswith("AC"):
 
-            self.create_next_message(
-                PowerDelivery,
-                power_delivery_req,
-                Timeouts.POWER_DELIVERY_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
+                power_delivery_req = PowerDeliveryReq(
+                    charge_progress=charge_progress,
+                    sa_schedule_tuple_id=schedule_id,
+                    charging_profile=charging_profile,
+                )
+
+                self.create_next_message(
+                    PowerDelivery,
+                    power_delivery_req,
+                    Timeouts.POWER_DELIVERY_REQ,
+                    Namespace.ISO_V2_MSG_DEF,
+                )
+            else:
+                cable_check_req = CableCheckReq(
+                    dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+                )
+
+                self.create_next_message(
+                    CableCheck,
+                    cable_check_req,
+                    Timeouts.CABLE_CHECK_REQ,
+                    Namespace.ISO_V2_MSG_DEF,
+                )
 
             self.comm_session.selected_schedule = schedule_id
 
@@ -825,10 +841,22 @@ class PowerDelivery(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
         else:
+            # TODO: Create proper CurrentDemandReq
+            current_demand_req = CurrentDemandReq(
+                dc_ev_status=None,
+                ev_target_current=None,
+                ev_max_voltage_limit=None,
+                ev_max_current_limit=None,
+                ev_max_power_limit=None,
+                bulk_charging_complete=None,
+                charging_complete=None,
+                remeining_time_to_full_soc=None,
+                remeining_time_to_bulk_soc=None,
+                ev_target_voltage=None,
+            )
             self.create_next_message(
                 CurrentDemand,
-                # TODO: Create proper CurrentDemandReq
-                CurrentDemandReq(),
+                current_demand_req,
                 Timeouts.CHARGING_STATUS_REQ,
                 Namespace.ISO_V2_MSG_DEF,
             )
@@ -935,6 +963,76 @@ class ChargingStatus(StateEVCC):
         logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
 
 
+class CableCheck(StateEVCC):
+    """
+    The ISO 15118-2 state in which the EVCC processes a
+    CableCheckRes from the SECC.
+    """
+
+    def __init__(self, comm_session: EVCCCommunicationSession):
+        super().__init__(comm_session, Timeouts.CABLE_CHECK_REQ)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(message, CableCheckRes)
+        if not msg:
+            return
+
+        cable_check_res: CableCheckRes = msg.body.cable_check_res
+        if cable_check_res.evse_processing == EVSEProcessing.FINISHED:
+            precharge_req = PreChargeReq(
+                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+                ev_target_voltage=self.comm_session.ev_controller.get_target_voltage(),
+                ev_target_current=self.comm_session.ev_controller.get_target_current(),
+            )
+            self.create_next_message(
+                PreCharge,
+                precharge_req,
+                Timeouts.PRE_CHARGE_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+        else:
+            logger.debug("SECC is still precessing the CableCheck")
+            cable_check_req = CableCheckReq(
+                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            )
+            self.create_next_message(
+                CableCheck,
+                cable_check_req,
+                Timeouts.CABLE_CHECK_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+
+
+class PreCharge(StateEVCC):
+    """
+    The ISO 15118-2 state in which the EVCC processes a
+    PreChargeRes from the SECC.
+    """
+
+    def __init__(self, comm_session: EVCCCommunicationSession):
+        super().__init__(comm_session, Timeouts.CURRENT_DEMAND_REQ)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+
+        raise NotImplementedError("Precharge not yet implemented")
+
+
 class CurrentDemand(StateEVCC):
     """
     The ISO 15118-2 state in which the EVCC processes a
@@ -942,7 +1040,7 @@ class CurrentDemand(StateEVCC):
     """
 
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.CHARGING_STATUS_REQ)
+        super().__init__(comm_session, Timeouts.CURRENT_DEMAND_REQ)
 
     def process_message(
         self,
