@@ -22,6 +22,16 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     PVPMax,
     SAScheduleTupleEntry,
     UnitSymbol,
+    DCEVChargeParameter,
+    PVEVEnergyRequest,
+    DCEVStatus,
+    PVEVMaxCurrentLimit,
+    PVEVMaxPowerLimit,
+    PVEVMaxVoltageLimit,
+    PVEVEnergyCapacity,
+    DCEVErrorCode,
+    PVEVTargetCurrent,
+    PVEVTargetVoltage,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -65,7 +75,7 @@ class SimEVController(EVControllerInterface):
 
     def get_energy_transfer_mode(self) -> EnergyTransferModeEnum:
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
-        return EnergyTransferModeEnum.AC_THREE_PHASE_CORE
+        return EnergyTransferModeEnum.DC_EXTENDED
 
     def get_charge_params_v2(self) -> ChargeParamsV2:
         """Overrides EVControllerInterface.get_charge_params_v2()."""
@@ -85,7 +95,34 @@ class SimEVController(EVControllerInterface):
             ev_max_current=ev_max_current,
             ev_min_current=ev_min_current,
         )
-        return ChargeParamsV2(self.get_energy_transfer_mode(), ac_charge_params, None)
+        ev_maximum_current_limit = PVEVMaxCurrentLimit(
+            multiplier=0, value=200, unit=UnitSymbol.AMPERE
+        )
+        ev_maximum_power_limit = PVEVMaxPowerLimit(
+            multiplier=1, value=8000, unit=UnitSymbol.WATT
+        )
+        ev_maximum_voltage_limit = PVEVMaxVoltageLimit(
+            multiplier=0, value=500, unit=UnitSymbol.VOLTAGE
+        )
+        ev_energy_capacity = PVEVEnergyCapacity(
+            multiplier=1, value=7000, unit=UnitSymbol.WATT_HOURS
+        )
+        ev_energy_request = PVEVEnergyRequest(
+            multiplier=1, value=6000, unit=UnitSymbol.WATT_HOURS
+        )
+
+        dc_charge_params = DCEVChargeParameter(
+            departure_time=0,
+            dc_ev_status=self.get_dc_ev_status(),
+            ev_maximum_current_limit=ev_maximum_current_limit,
+            ev_maximum_power_limit=ev_maximum_power_limit,
+            ev_maximum_voltage_limit=ev_maximum_voltage_limit,
+            ev_energy_capacity=ev_energy_capacity,
+            ev_energy_request=ev_energy_request,
+            full_soc=90,
+            bulk_soc=80,
+        )
+        return ChargeParamsV2(self.get_energy_transfer_mode(), None, dc_charge_params)
 
     def get_charge_params_v20(
         self,
@@ -174,3 +211,17 @@ class SimEVController(EVControllerInterface):
 
     def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         return None
+
+    def get_dc_ev_status(self) -> DCEVStatus:
+        """Overrides EVCCControllerInterface.get_dc_ev_status()."""
+        return DCEVStatus(
+            ev_ready=True,
+            ev_error_code=DCEVErrorCode.NO_ERROR,
+            ev_ress_soc=10
+        )
+
+    def get_target_voltage(self) -> PVEVTargetVoltage:
+        return PVEVTargetVoltage(multiplier=0, value=450, unit="V")
+
+    def get_target_current(self) -> PVEVTargetCurrent:
+        return PVEVTargetCurrent(multiplier=0, value=10, unit="A")
