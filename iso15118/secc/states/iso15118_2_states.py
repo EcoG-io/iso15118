@@ -59,7 +59,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupRes,
     SessionStopReq,
     SessionStopRes,
-    WeldingDetectionReq,
+    WeldingDetectionReq, CurrentDemandRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
@@ -1120,9 +1120,12 @@ class PowerDelivery(StateSECC):
             return
 
         if (
-            power_delivery_req.charge_progress == ChargeProgress.START
-            and not power_delivery_req.charging_profile
+            False
         ):
+            # Note Lukas Lombriser: I am not sure if I am correct:
+            # But there is hardly no EV that sends a profile (DC-Charging)
+            # According Table 40 and Table 104, ChargingProfile is optional
+
             # Although the requirements don't make this 100% clear, it is
             # the intention of ISO 15118-2 for the EVCC to always send a
             # charging profile if ChargeProgress is set to 'Start'
@@ -1140,10 +1143,12 @@ class PowerDelivery(StateSECC):
         logger.debug(f"ChargeProgress set to {power_delivery_req.charge_progress}")
 
         next_state: Type[State]
+        is_charging_ac = True if self.comm_session.selected_energy_mode.value.startswith("AC") else False
         if power_delivery_req.charge_progress == ChargeProgress.START:
-            # todo llr: What if we charge DC? Next state would be CurrentDemand.
-            #  HOw to implement it?
-            next_state = ChargingStatus
+            if is_charging_ac:
+                next_state = ChargingStatus
+            else:
+                next_state = CurrentDemand
             self.comm_session.selected_schedule = (
                 power_delivery_req.sa_schedule_tuple_id
             )
@@ -1166,11 +1171,16 @@ class PowerDelivery(StateSECC):
                 )
                 next_state = Terminate
 
-        power_delivery_res = PowerDeliveryRes(
-            response_code=ResponseCode.OK,
-            ac_evse_status=self.comm_session.evse_controller.get_ac_evse_status(),
-        )
-        # TODO Check if in AC or DC charging mode
+        if is_charging_ac:
+            power_delivery_res = PowerDeliveryRes(
+                response_code=ResponseCode.OK,
+                ac_evse_status=self.comm_session.evse_controller.get_ac_evse_status(),
+            )
+        else:
+            power_delivery_res = PowerDeliveryRes(
+                response_code=ResponseCode.OK,
+                dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
+            )
 
         self.create_next_message(
             next_state,
@@ -1330,6 +1340,7 @@ class CableCheck(StateSECC):
 
         if msg.body.pre_charge_req:
             PreCharge(self.comm_session).process_message(message)
+            return
 
         cable_check_req: CableCheckReq = msg.body.cable_check_req
         if cable_check_req.dc_ev_status.ev_error_code != DCEVErrorCode.NO_ERROR:
@@ -1358,6 +1369,8 @@ class CableCheck(StateSECC):
             if iso_state_is_ok
             else EVSEProcessing.ONGOING,
         )
+
+        # todo llr: Check timeout cablecheck
 
         self.create_next_message(
             next_state,
@@ -1401,6 +1414,7 @@ class PreCharge(StateSECC):
 
         if msg.body.power_delivery_req:
             PowerDelivery(self.comm_session).process_message(message)
+            return
 
         precharge_req: PreChargeReq = msg.body.pre_charge_req
 
@@ -1545,6 +1559,7 @@ class CurrentDemand(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        self.expecting_current_demand_req = True
 
     def process_message(
         self,
@@ -1555,7 +1570,48 @@ class CurrentDemand(StateSECC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("CurrentDemand not yet implemented")
+        msg = self.check_msg_v2(
+            message,
+            [CurrentDemandReq, PowerDeliveryReq, MeteringReceiptReq],
+            self.expecting_current_demand_req,
+        )
+        if not msg:
+            return
+
+        if msg.body.power_delivery_req:
+            PowerDelivery(self.comm_session).process_message(message)
+            return
+
+        if msg.body.metering_receipt_req:
+            MeteringReceipt(self.comm_session).process_message(message)
+            return
+
+        evse_controller = self.comm_session.evse_controller
+        current_demand_res = CurrentDemandRes(
+            dc_evse_status=evse_controller.get_dc_evse_status(),
+            evse_present_voltage=evse_controller.get_evse_present_voltage(),
+            evse_present_current=evse_controller.get_evse_present_current(),
+            evse_current_limit_achieved=None, # todo
+            evse_voltage_limit_achieved=None, # todo
+            evse_power_limit_achieved=None,
+            evse_max_voltage_limit=evse_controller.get_evse_max,
+            evse_max_current_limit=None,
+            evse_max_power_limit=None,
+            evse_id=evse_controller.get_evse_id(),
+            sa_schedule_tuple_id=None,
+            meter_info=None,
+            receipt_required=None,
+        )
+
+
+        self.create_next_message(
+            next_state,
+            current_demand_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
+
+        self.expecting_charging_status_req = False
 
 
 class WeldingDetection(StateSECC):

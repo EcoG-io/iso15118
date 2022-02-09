@@ -31,7 +31,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     PVEVEnergyCapacity,
     DCEVErrorCode,
     PVEVTargetCurrent,
-    PVEVTargetVoltage,
+    PVEVTargetVoltage, PVEVSEPresentVoltage, DCEVPowerDeliveryParameter, PVRemainingTimeToBulkSOC,
+    PVRemainingTimeToFullSOC,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -220,8 +221,46 @@ class SimEVController(EVControllerInterface):
             ev_ress_soc=10
         )
 
-    def get_target_voltage(self) -> PVEVTargetVoltage:
+    def get_ev_target_voltage(self) -> PVEVTargetVoltage:
         return PVEVTargetVoltage(multiplier=0, value=450, unit="V")
 
-    def get_target_current(self) -> PVEVTargetCurrent:
+    def get_ev_target_current(self) -> PVEVTargetCurrent:
         return PVEVTargetCurrent(multiplier=0, value=10, unit="A")
+
+    def set_present_voltage_evse(self, present_voltage_evse: PVEVSEPresentVoltage):
+        pass
+
+    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
+        return DCEVPowerDeliveryParameter(
+            dc_ev_status=self.get_dc_ev_status(),
+            bulk_charging_complete=False,
+            charging_complete=False,
+        )
+
+    def is_precharged(self):
+        return True
+
+    def get_ev_max_voltage_limit(self) -> PVEVMaxVoltageLimit:
+        return PVEVMaxVoltageLimit(multiplier=0, value=500, unit="V")
+
+    def get_ev_max_current_limit(self) -> PVEVMaxCurrentLimit:
+        return PVEVMaxCurrentLimit(multiplier=0, value=300, unit="A")
+
+    def get_ev_max_power_limit(self) -> PVEVMaxPowerLimit:
+        return PVEVMaxPowerLimit(multiplier=1, value=10000, unit="W")
+
+    def get_bulk_charging_complete(self) -> bool:
+        return False
+
+    def get_charging_complete(self) -> bool:
+        return False
+
+    def get_remaining_time_to_full_soc(self) -> PVRemainingTimeToFullSOC:
+        return PVRemainingTimeToFullSOC(
+            multiplier=0, value=100, unit="s"
+        )
+
+    def get_remaining_time_to_bulk_soc(self) -> PVRemainingTimeToBulkSOC:
+        return PVRemainingTimeToBulkSOC(
+            multiplier=0, value=80, unit="s"
+        )

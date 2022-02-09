@@ -46,7 +46,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionStopRes,
     CableCheckReq,
     CableCheckRes,
-    PreChargeReq,
+    PreChargeReq, PreChargeRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
@@ -841,18 +841,17 @@ class PowerDelivery(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
         else:
-            # TODO: Create proper CurrentDemandReq
             current_demand_req = CurrentDemandReq(
-                dc_ev_status=None,
-                ev_target_current=None,
-                ev_max_voltage_limit=None,
-                ev_max_current_limit=None,
-                ev_max_power_limit=None,
-                bulk_charging_complete=None,
-                charging_complete=None,
-                remeining_time_to_full_soc=None,
-                remeining_time_to_bulk_soc=None,
-                ev_target_voltage=None,
+                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+                ev_target_current=self.comm_session.ev_controller.get_ev_target_current(),
+                ev_max_voltage_limit=self.comm_session.ev_controller.get_ev_max_voltage_limit(),
+                ev_max_current_limit=self.comm_session.ev_controller.get_ev_max_current_limit(),
+                ev_max_power_limit=self.comm_session.ev_controller.get_ev_max_power_limit(),
+                bulk_charging_complete=self.comm_session.ev_controller.get_bulk_charging_complete(),
+                charging_complete=self.comm_session.ev_controller.get_charging_complete(),
+                remaining_time_to_full_soc=self.comm_session.ev_controller.get_remaining_time_to_full_soc(),
+                remaining_time_to_bulk_soc=self.comm_session.ev_controller.get_remaining_time_to_bulk_soc(),
+                ev_target_voltage=self.comm_session.ev_controller.get_ev_target_voltage(),
             )
             self.create_next_message(
                 CurrentDemand,
@@ -984,13 +983,13 @@ class CableCheck(StateEVCC):
         msg = self.check_msg_v2(message, CableCheckRes)
         if not msg:
             return
-
+# todo llr: Timeout cablecheck 40s
         cable_check_res: CableCheckRes = msg.body.cable_check_res
         if cable_check_res.evse_processing == EVSEProcessing.FINISHED:
             precharge_req = PreChargeReq(
                 dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
-                ev_target_voltage=self.comm_session.ev_controller.get_target_voltage(),
-                ev_target_current=self.comm_session.ev_controller.get_target_current(),
+                ev_target_voltage=self.comm_session.ev_controller.get_ev_target_voltage(),
+                ev_target_current=self.comm_session.ev_controller.get_ev_target_current(),
             )
             self.create_next_message(
                 PreCharge,
@@ -1029,8 +1028,41 @@ class PreCharge(StateEVCC):
             V2GMessageV20,
         ],
     ):
+        msg = self.check_msg_v2(message, PreChargeRes)
+        if not msg:
+            return
 
-        raise NotImplementedError("Precharge not yet implemented")
+        precharge_res: PreChargeRes = msg.body.pre_charge_res
+
+        self.comm_session.ev_controller.set_present_voltage_evse(precharge_res.evse_present_voltage)
+
+        # todo llr: implement timer 7s
+
+        if self.comm_session.ev_controller.is_precharged():
+            power_delivery_req = PowerDeliveryReq(
+                charge_progress=ChargeProgress.START,
+                sa_schedule_tuple_id=self.comm_session.selected_schedule,
+                # charging_profile=None,  # TODO llr
+                dc_ev_power_delivery_parameter=self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter(),
+            )
+            self.create_next_message(
+                PowerDelivery,
+                power_delivery_req,
+                Timeouts.POWER_DELIVERY_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+        else:
+            precharge_req = PreChargeReq(
+                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+                ev_target_voltage=self.comm_session.ev_controller.get_ev_target_voltage(),
+                ev_target_current=0,
+            )
+            self.create_next_message(
+                PreCharge,
+                precharge_req,
+                Timeouts.PRE_CHARGE_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
 
 
 class CurrentDemand(StateEVCC):
