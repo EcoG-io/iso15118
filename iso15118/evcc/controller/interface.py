@@ -16,7 +16,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     SAScheduleTupleEntry,
     DCEVStatus,
     PVEVTargetVoltage,
-    PVEVTargetCurrent,
+    PVEVTargetCurrent, PVEVSEPresentVoltage, DCEVPowerDeliveryParameter, PVEVMaxVoltageLimit, PVEVMaxCurrentLimit,
+    PVEVMaxPowerLimit, PVRemainingTimeToFullSOC, PVRemainingTimeToBulkSOC,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -209,9 +210,49 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_target_voltage(self) -> PVEVTargetVoltage:
+    def get_ev_target_voltage(self) -> PVEVTargetVoltage:
         raise NotImplementedError
 
     @abstractmethod
-    def get_target_current(self) -> PVEVTargetCurrent:
+    def get_ev_target_current(self) -> PVEVTargetCurrent:
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_present_voltage_evse(self, present_voltage_evse: PVEVSEPresentVoltage):
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_precharged(self):  # TODO: maybe find a better name
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ev_max_voltage_limit(self) -> PVEVMaxVoltageLimit:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ev_max_current_limit(self) -> PVEVMaxCurrentLimit:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ev_max_power_limit(self) -> PVEVMaxPowerLimit:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_bulk_charging_complete(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_charging_complete(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_remaining_time_to_full_soc(self) -> PVRemainingTimeToFullSOC:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_remaining_time_to_bulk_soc(self) -> PVRemainingTimeToBulkSOC:
         raise NotImplementedError
