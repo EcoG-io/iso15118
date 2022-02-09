@@ -1120,7 +1120,9 @@ class PowerDelivery(StateSECC):
             return
 
         if (
-            False
+            # power_delivery_req.charge_progress == ChargeProgress.START
+            # and not power_delivery_req.charging_profile
+            False  # Todo: set on False just for test-reason
         ):
             # Note Lukas Lombriser: I am not sure if I am correct:
             # But there is hardly no EV that sends a profile (DC-Charging)
