@@ -12,7 +12,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
     DCEVSEChargeParameter,
     DCEVSEStatus,
-    EnergyTransferModeEnum, PVEVTargetVoltage, PVEVTargetCurrent,
+    EnergyTransferModeEnum, PVEVTargetVoltage, PVEVTargetCurrent, PVEVSEMaxVoltageLimit, PVEVSEMaxCurrentLimit,
+    PVEVSEMaxPowerLimit,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -235,3 +236,26 @@ class EVSEControllerInterface(ABC):
     def set_cable_check(self):
         raise NotImplementedError
 
+    @abstractmethod
+    def get_evse_current_limit_achieved(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_evse_voltage_limit_achieved(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_evse_power_limit_achieved(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
+        raise NotImplementedError

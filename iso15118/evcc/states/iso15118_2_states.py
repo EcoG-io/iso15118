@@ -46,7 +46,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionStopRes,
     CableCheckReq,
     CableCheckRes,
-    PreChargeReq, PreChargeRes,
+    PreChargeReq, PreChargeRes, CurrentDemandRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
@@ -1089,8 +1089,31 @@ class CurrentDemand(StateEVCC):
             V2GMessageV20,
         ],
     ):
+        msg = self.check_msg_v2(message, CurrentDemandRes)
+        if not msg:
+            return
 
-        raise NotImplementedError("CurrentDemand not yet implemented")
+        current_demand_res: CurrentDemandRes = msg.body.current_demand_res
+
+        ev_controller = self.comm_session.ev_controller
+        current_demand_req = CurrentDemandReq(
+            dc_ev_status=ev_controller.get_dc_ev_status(),
+            ev_target_current=ev_controller.get_ev_target_current(),
+            ev_max_current_limit=ev_controller.get_ev_max_current_limit(),
+            ev_max_power_limit=ev_controller.get_ev_max_power_limit(),
+            bulk_charging_complete=ev_controller.get_bulk_charging_complete(),
+            charging_complete=ev_controller.get_charging_complete(),
+            remaining_time_to_full_soc=ev_controller.get_remaining_time_to_full_soc(),
+            remaining_time_to_bulk_soc=ev_controller.get_remaining_time_to_bulk_soc(),
+            ev_target_voltage=ev_controller.get_ev_target_voltage(),
+        )
+
+        self.create_next_message(
+            CurrentDemand,
+            current_demand_req,
+            Timeouts.POWER_DELIVERY_REQ,
+            Namespace.ISO_V2_MSG_DEF,
+        )
 
 
 class MeteringReceipt(StateEVCC):
