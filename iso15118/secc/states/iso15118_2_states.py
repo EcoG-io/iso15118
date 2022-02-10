@@ -1588,23 +1588,47 @@ class CurrentDemand(StateSECC):
             MeteringReceipt(self.comm_session).process_message(message)
             return
 
-        evse_controller = self.comm_session.evse_controller
+        # We don't care about signed meter values from the EVCC, but if you
+        # do, then set receipt_required to True and set the field meter_info
         current_demand_res = CurrentDemandRes(
-            dc_evse_status=evse_controller.get_dc_evse_status(),
-            evse_present_voltage=evse_controller.get_evse_present_voltage(),
-            evse_present_current=evse_controller.get_evse_present_current(),
-            evse_current_limit_achieved=None, # todo
-            evse_voltage_limit_achieved=None, # todo
-            evse_power_limit_achieved=None,
-            evse_max_voltage_limit=evse_controller.get_evse_max,
-            evse_max_current_limit=None,
-            evse_max_power_limit=None,
-            evse_id=evse_controller.get_evse_id(),
-            sa_schedule_tuple_id=None,
-            meter_info=None,
-            receipt_required=None,
+            response_code=ResponseCode.OK,
+            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
+            evse_present_voltage=self.comm_session.evse_controller.get_evse_present_voltage(),
+            evse_present_current=self.comm_session.evse_controller.get_evse_present_current(),
+            evse_current_limit_achieved=self.comm_session.evse_controller.get_evse_current_limit_achieved(),
+            evse_voltage_limit_achieved=self.comm_session.evse_controller.get_evse_voltage_limit_achieved(),
+            evse_power_limit_achieved=self.comm_session.evse_controller.get_evse_power_limit_achieved(),
+            evse_max_voltage_limit=self.comm_session.evse_controller.get_evse_max_voltage_limit(),
+            evse_max_current_limit=self.comm_session.evse_controller.get_evse_max_current_limit(),
+            evse_max_power_limit=self.comm_session.evse_controller.get_evse_max_power_limit(),
+            evse_id=self.comm_session.evse_controller.get_evse_id(),
+            sa_schedule_tuple_id=self.comm_session.selected_schedule,
+            # TODO Could maybe request an OCPP setting that determines
+            #      whether or not a receipt is required and when
+            #      (probably only makes sense at the beginning and end of
+            #      a charging session). If true, set MeterInfo.
+            # meter_info=self.comm_session.evse_controller.get_meter_info(
+            #     self.comm_session.protocol),
+            receipt_required=False,
         )
 
+        if current_demand_res.meter_info:
+            self.comm_session.sent_meter_info = current_demand_res.meter_info
+
+        # TODO Check in which case we would set EVSEMaxCurrent and how to
+        #      request it via MQTT. Is optional, so let's leave it out for
+        #      now.
+
+        # TODO Check if a renegotiation is wanted (would be set in the field
+        #      dc_evse_status). Let's leave that out for now.
+
+        # TODO Next request could be another CurrentDemandReq or a
+        # PowerDeliveryReq, so we remain in this state for now
+        next_state: Optional[Type[State]] = None
+        if current_demand_res.receipt_required:
+            # But if we set receipt_required to True, we expect a
+            # MeteringReceiptReq
+            next_state = MeteringReceipt
 
         self.create_next_message(
             next_state,
@@ -1613,7 +1637,7 @@ class CurrentDemand(StateSECC):
             Namespace.ISO_V2_MSG_DEF,
         )
 
-        self.expecting_charging_status_req = False
+        self.expecting_current_demand_req = False
 
 
 class WeldingDetection(StateSECC):

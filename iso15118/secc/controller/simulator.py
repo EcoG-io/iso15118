@@ -186,15 +186,7 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_dc_evse_charge_parameter()."""
-        evse_maximum_current_limit = PVEVSEMaxCurrentLimit(
-            multiplier=0, value=60, unit=UnitSymbol.AMPERE
-        )
-        evse_maximum_power_limit = PVEVSEMaxPowerLimit(
-            multiplier=0, value=30000, unit=UnitSymbol.WATT
-        )
-        evse_maximum_voltage_limit = PVEVSEMaxVoltageLimit(
-            multiplier=0, value=450, unit=UnitSymbol.VOLTAGE
-        )
+
         evse_minimum_curren_limit = PVEVSEMinCurrentLimit(
             multiplier=0, value=5, unit=UnitSymbol.AMPERE
         )
@@ -213,9 +205,9 @@ class SimEVSEController(EVSEControllerInterface):
 
         return DCEVSEChargeParameter(
             dc_evse_status=self.get_dc_evse_status(),
-            evse_maximum_current_limit=evse_maximum_current_limit,
-            evse_maximum_power_limit=evse_maximum_power_limit,
-            evse_maximum_voltage_limit=evse_maximum_voltage_limit,
+            evse_maximum_current_limit=self.get_evse_max_current_limit(),
+            evse_maximum_power_limit=self.get_evse_max_power_limit(),
+            evse_maximum_voltage_limit=self.get_evse_max_voltage_limit(),
             evse_minimum_current_limit=evse_minimum_curren_limit,
             evse_minimum_voltage_limit=evse_minimum_voltage_limit,
             evse_current_regulation_tolerance=evse_current_regulation_tolerance,  # optional
@@ -248,3 +240,21 @@ class SimEVSEController(EVSEControllerInterface):
 
     def set_ev_soc(self, soc):
         pass
+
+    def get_evse_current_limit_achieved(self) -> bool:
+        return False
+
+    def get_evse_voltage_limit_achieved(self) -> bool:
+        return False
+
+    def get_evse_power_limit_achieved(self) -> bool:
+        return False
+
+    def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
+        return PVEVSEMaxVoltageLimit(multiplier=0, value=600, unit="V")
+
+    def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
+        return PVEVSEMaxCurrentLimit(multiplier=0, value=300, unit="A")
+
+    def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
+        return PVEVSEMaxPowerLimit(multiplier=1, value=1000, unit="W")
