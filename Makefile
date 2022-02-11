@@ -72,10 +72,10 @@ install-local:
 	pip install .
 
 run-evcc:
-	$(shell which python) iso15118/evcc/start_evcc.py
+	$(shell which python) iso15118/evcc/main.py
 
 run-secc:
-	$(shell which python) iso15118/secc/start_secc.py
+	$(shell which python) iso15118/secc/main.py
 
 
 mypy:

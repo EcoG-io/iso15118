@@ -7,7 +7,9 @@ from typing import Union
 from pydantic import ValidationError
 
 from iso15118.shared.exceptions import EXIDecodingError, EXIEncodingError
-from iso15118.shared.exificient_wrapper import ExiCodec
+from iso15118.shared.exificient_exi_codec import ExificientEXICodec
+from iso15118.shared.iexi_codec import IEXICodec
+
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
@@ -32,11 +34,9 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
-from iso15118.shared.messages.xmldsig import SignedInfo
 from iso15118.shared.settings import MESSAGE_LOG_EXI, MESSAGE_LOG_JSON
 
 logger = logging.getLogger(__name__)
-exi_codec = ExiCodec()
 
 
 class CustomJSONEncoder(json.JSONEncoder):
@@ -121,6 +121,33 @@ class CustomJSONDecoder(json.JSONDecoder):
         return dct
 
 
+class EXI(object):
+    """
+    This Singleton class holds onto the EXI codec this session is initialized with.
+    If a codec is not specified an instance of the fallback codec is returned.
+    The codec to be used will be requested during encode and decode operations.
+    """
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(EXI, cls).__new__(cls)
+            cls._instance.exi_codec = None
+        return cls._instance
+
+    def set_exi_codec(self, codec: IEXICodec):
+        self.exi_codec = codec
+
+    def get_exi_codec(self) -> IEXICodec:
+        """
+        If exi_codec is not specified return an instance of the default codec Exificient
+        """
+        if self.exi_codec is None:
+            self.exi_codec = ExificientEXICodec()
+        return self.exi_codec
+
+
 def to_exi(msg_element: BaseModel, protocol_ns: str) -> bytes:
     """
     Encodes the message into a bytes stream using the EXI codec
@@ -184,10 +211,7 @@ def to_exi(msg_element: BaseModel, protocol_ns: str) -> bytes:
         )
 
     try:
-        if isinstance(msg_element, SignedInfo):
-            exi_stream = exi_codec.encode_signed_info(msg_content)
-        else:
-            exi_stream = exi_codec.encode(msg_content, protocol_ns)
+        exi_stream = EXI().get_exi_codec().encode(msg_content, protocol_ns)
     except Exception as exc:
         logger.error(f"EXIEncodingError for {str(msg_element)}: {exc}")
         raise EXIEncodingError(
@@ -230,7 +254,7 @@ def from_exi(
         )
 
     try:
-        exi_decoded = exi_codec.decode(exi_message, namespace)
+        exi_decoded = EXI().get_exi_codec().decode(exi_message, namespace)
     except Exception as exc:
         raise EXIDecodingError(
             f"EXIDecodingError ({exc.__class__.__name__}): " f"{exc}"

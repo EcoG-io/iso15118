@@ -12,7 +12,6 @@ cryptography = "^3.4.8"
 pydantic = "^1.7.3"
 psutil = "^5.8.0"
 aioredis = "^2.0.0"
-py4j = "^0.10.9"
 
 
 [tool.poetry.dev-dependencies]
