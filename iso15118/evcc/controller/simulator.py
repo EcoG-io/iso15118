@@ -31,7 +31,10 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     PVEVEnergyCapacity,
     DCEVErrorCode,
     PVEVTargetCurrent,
-    PVEVTargetVoltage, PVEVSEPresentVoltage, DCEVPowerDeliveryParameter, PVRemainingTimeToBulkSOC,
+    PVEVTargetVoltage,
+    PVEVSEPresentVoltage,
+    DCEVPowerDeliveryParameter,
+    PVRemainingTimeToBulkSOC,
     PVRemainingTimeToFullSOC,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
