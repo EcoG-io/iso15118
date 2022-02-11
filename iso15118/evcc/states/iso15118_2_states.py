@@ -46,7 +46,9 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionStopRes,
     CableCheckReq,
     CableCheckRes,
-    PreChargeReq, PreChargeRes, CurrentDemandRes,
+    PreChargeReq,
+    PreChargeRes,
+    CurrentDemandRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
@@ -865,257 +867,6 @@ class PowerDelivery(StateEVCC):
             )
 
 
-class ChargingStatus(StateEVCC):
-    """
-    The ISO 15118-2 state in which the EVCC processes a
-    ChargingStatusRes from the SECC.
-    """
-
-    def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.CHARGING_STATUS_REQ)
-
-    def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-        ],
-    ):
-        msg = self.check_msg_v2(message, ChargingStatusRes)
-        if not msg:
-            return
-
-        charging_status_res: ChargingStatusRes = msg.body.charging_status_res
-        ac_evse_status: ACEVSEStatus = charging_status_res.ac_evse_status
-
-        if charging_status_res.receipt_required and self.comm_session.is_tls:
-            logger.debug("SECC requested MeteringReceipt")
-
-            metering_receipt_req = MeteringReceiptReq(
-                id="id1",
-                session_id=self.comm_session.session_id,
-                sa_schedule_tuple_id=charging_status_res.sa_schedule_tuple_id,
-                meter_info=charging_status_res.meter_info,
-            )
-
-            try:
-                signature = create_signature(
-                    [
-                        (
-                            metering_receipt_req.id,
-                            EXI().to_exi(
-                                metering_receipt_req, Namespace.ISO_V2_MSG_DEF
-                            ),
-                        )
-                    ],
-                    load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
-                )
-
-                self.create_next_message(
-                    MeteringReceipt,
-                    metering_receipt_req,
-                    Timeouts.METERING_RECEIPT_REQ,
-                    Namespace.ISO_V2_MSG_DEF,
-                    signature=signature,
-                )
-            except PrivateKeyReadError as exc:
-                self.stop_state_machine(
-                    "Can't read private key necessary to sign "
-                    f"MeteringReceiptReq: {exc}"
-                )
-                return
-        elif ac_evse_status.evse_notification == EVSENotification.RE_NEGOTIATION:
-            self.comm_session.renegotiation_requested = True
-            power_delivery_req = PowerDeliveryReq(
-                charge_progress=ChargeProgress.RENEGOTIATE,
-                sa_schedule_tuple_id=self.comm_session.selected_schedule,
-            )
-            self.create_next_message(
-                PowerDelivery,
-                power_delivery_req,
-                Timeouts.POWER_DELIVERY_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
-            logger.debug(f"ChargeProgress is set to {ChargeProgress.RENEGOTIATE}")
-        elif ac_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
-            self.stop_charging()
-
-        elif self.comm_session.ev_controller.continue_charging():
-            self.create_next_message(
-                ChargingStatus,
-                ChargingStatusReq(),
-                Timeouts.CHARGING_STATUS_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
-        else:
-            self.stop_charging()
-
-    def stop_charging(self):
-        power_delivery_req = PowerDeliveryReq(
-            charge_progress=ChargeProgress.STOP,
-            sa_schedule_tuple_id=self.comm_session.selected_schedule,
-        )
-        self.create_next_message(
-            PowerDelivery,
-            power_delivery_req,
-            Timeouts.POWER_DELIVERY_REQ,
-            Namespace.ISO_V2_MSG_DEF,
-        )
-        self.comm_session.charging_session_stop = ChargingSession.TERMINATE
-        # TODO Implement also a mechanism for pausing
-        logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
-
-
-class CableCheck(StateEVCC):
-    """
-    The ISO 15118-2 state in which the EVCC processes a
-    CableCheckRes from the SECC.
-    """
-
-    def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.CABLE_CHECK_REQ)
-
-    def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-        ],
-    ):
-        msg = self.check_msg_v2(message, CableCheckRes)
-        if not msg:
-            return
-# todo llr: Timeout cablecheck 40s
-        cable_check_res: CableCheckRes = msg.body.cable_check_res
-        if cable_check_res.evse_processing == EVSEProcessing.FINISHED:
-            precharge_req = PreChargeReq(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
-                ev_target_voltage=self.comm_session.ev_controller.get_ev_target_voltage(),
-                ev_target_current=self.comm_session.ev_controller.get_ev_target_current(),
-            )
-            self.create_next_message(
-                PreCharge,
-                precharge_req,
-                Timeouts.PRE_CHARGE_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
-        else:
-            logger.debug("SECC is still precessing the CableCheck")
-            cable_check_req = CableCheckReq(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
-            )
-            self.create_next_message(
-                CableCheck,
-                cable_check_req,
-                Timeouts.CABLE_CHECK_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
-
-
-class PreCharge(StateEVCC):
-    """
-    The ISO 15118-2 state in which the EVCC processes a
-    PreChargeRes from the SECC.
-    """
-
-    def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.CURRENT_DEMAND_REQ)
-
-    def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-        ],
-    ):
-        msg = self.check_msg_v2(message, PreChargeRes)
-        if not msg:
-            return
-
-        precharge_res: PreChargeRes = msg.body.pre_charge_res
-
-        self.comm_session.ev_controller.set_present_voltage_evse(precharge_res.evse_present_voltage)
-
-        # todo llr: implement timer 7s
-
-        if self.comm_session.ev_controller.is_precharged():
-            power_delivery_req = PowerDeliveryReq(
-                charge_progress=ChargeProgress.START,
-                sa_schedule_tuple_id=self.comm_session.selected_schedule,
-                # charging_profile=None,  # TODO llr
-                dc_ev_power_delivery_parameter=self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter(),
-            )
-            self.create_next_message(
-                PowerDelivery,
-                power_delivery_req,
-                Timeouts.POWER_DELIVERY_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
-        else:
-            precharge_req = PreChargeReq(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
-                ev_target_voltage=self.comm_session.ev_controller.get_ev_target_voltage(),
-                ev_target_current=0,
-            )
-            self.create_next_message(
-                PreCharge,
-                precharge_req,
-                Timeouts.PRE_CHARGE_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
-
-
-class CurrentDemand(StateEVCC):
-    """
-    The ISO 15118-2 state in which the EVCC processes a
-    CurrentDemandRes from the SECC.
-    """
-
-    def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.CURRENT_DEMAND_REQ)
-
-    def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-        ],
-    ):
-        msg = self.check_msg_v2(message, CurrentDemandRes)
-        if not msg:
-            return
-
-        current_demand_res: CurrentDemandRes = msg.body.current_demand_res
-
-        ev_controller = self.comm_session.ev_controller
-        current_demand_req = CurrentDemandReq(
-            dc_ev_status=ev_controller.get_dc_ev_status(),
-            ev_target_current=ev_controller.get_ev_target_current(),
-            ev_max_current_limit=ev_controller.get_ev_max_current_limit(),
-            ev_max_power_limit=ev_controller.get_ev_max_power_limit(),
-            bulk_charging_complete=ev_controller.get_bulk_charging_complete(),
-            charging_complete=ev_controller.get_charging_complete(),
-            remaining_time_to_full_soc=ev_controller.get_remaining_time_to_full_soc(),
-            remaining_time_to_bulk_soc=ev_controller.get_remaining_time_to_bulk_soc(),
-            ev_target_voltage=ev_controller.get_ev_target_voltage(),
-        )
-
-        self.create_next_message(
-            CurrentDemand,
-            current_demand_req,
-            Timeouts.POWER_DELIVERY_REQ,
-            Namespace.ISO_V2_MSG_DEF,
-        )
-
-
 class MeteringReceipt(StateEVCC):
     """
     The ISO 15118-2 state in which the EVCC processes a
@@ -1225,3 +976,264 @@ class SessionStop(StateEVCC):
         self.next_state = Terminate
 
         return
+
+
+# ============================================================================
+# |                     AC EVCC STATES - ISO 15118-2                         |
+# ============================================================================
+
+
+class ChargingStatus(StateEVCC):
+    """
+    The ISO 15118-2 state in which the EVCC processes a
+    ChargingStatusRes from the SECC.
+    """
+
+    def __init__(self, comm_session: EVCCCommunicationSession):
+        super().__init__(comm_session, Timeouts.CHARGING_STATUS_REQ)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(message, ChargingStatusRes)
+        if not msg:
+            return
+
+        charging_status_res: ChargingStatusRes = msg.body.charging_status_res
+        ac_evse_status: ACEVSEStatus = charging_status_res.ac_evse_status
+
+        if charging_status_res.receipt_required and self.comm_session.is_tls:
+            logger.debug("SECC requested MeteringReceipt")
+
+            metering_receipt_req = MeteringReceiptReq(
+                id="id1",
+                session_id=self.comm_session.session_id,
+                sa_schedule_tuple_id=charging_status_res.sa_schedule_tuple_id,
+                meter_info=charging_status_res.meter_info,
+            )
+
+            try:
+                signature = create_signature(
+                    [
+                        (
+                            metering_receipt_req.id,
+                            EXI().to_exi(
+                                metering_receipt_req, Namespace.ISO_V2_MSG_DEF
+                            ),
+                        )
+                    ],
+                    load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
+                )
+
+                self.create_next_message(
+                    MeteringReceipt,
+                    metering_receipt_req,
+                    Timeouts.METERING_RECEIPT_REQ,
+                    Namespace.ISO_V2_MSG_DEF,
+                    signature=signature,
+                )
+            except PrivateKeyReadError as exc:
+                self.stop_state_machine(
+                    "Can't read private key necessary to sign "
+                    f"MeteringReceiptReq: {exc}"
+                )
+                return
+        elif ac_evse_status.evse_notification == EVSENotification.RE_NEGOTIATION:
+            self.comm_session.renegotiation_requested = True
+            power_delivery_req = PowerDeliveryReq(
+                charge_progress=ChargeProgress.RENEGOTIATE,
+                sa_schedule_tuple_id=self.comm_session.selected_schedule,
+            )
+            self.create_next_message(
+                PowerDelivery,
+                power_delivery_req,
+                Timeouts.POWER_DELIVERY_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+            logger.debug(f"ChargeProgress is set to {ChargeProgress.RENEGOTIATE}")
+        elif ac_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
+            self.stop_charging()
+
+        elif self.comm_session.ev_controller.continue_charging():
+            self.create_next_message(
+                ChargingStatus,
+                ChargingStatusReq(),
+                Timeouts.CHARGING_STATUS_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+        else:
+            self.stop_charging()
+
+    def stop_charging(self):
+        power_delivery_req = PowerDeliveryReq(
+            charge_progress=ChargeProgress.STOP,
+            sa_schedule_tuple_id=self.comm_session.selected_schedule,
+        )
+        self.create_next_message(
+            PowerDelivery,
+            power_delivery_req,
+            Timeouts.POWER_DELIVERY_REQ,
+            Namespace.ISO_V2_MSG_DEF,
+        )
+        self.comm_session.charging_session_stop = ChargingSession.TERMINATE
+        # TODO Implement also a mechanism for pausing
+        logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
+
+
+# ============================================================================
+# |                     DC EVCC STATES - ISO 15118-2                         |
+# ============================================================================
+
+
+class CableCheck(StateEVCC):
+    """
+    The ISO 15118-2 state in which the EVCC processes a
+    CableCheckRes from the SECC.
+    """
+
+    def __init__(self, comm_session: EVCCCommunicationSession):
+        super().__init__(comm_session, Timeouts.CABLE_CHECK_REQ)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(message, CableCheckRes)
+        if not msg:
+            return
+        # todo llr: Timeout cablecheck 40s
+        cable_check_res: CableCheckRes = msg.body.cable_check_res
+        if cable_check_res.evse_processing == EVSEProcessing.FINISHED:
+            precharge_req = PreChargeReq(
+                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+                ev_target_voltage=self.comm_session.ev_controller.get_ev_target_voltage(),
+                ev_target_current=self.comm_session.ev_controller.get_ev_target_current(),
+            )
+            self.create_next_message(
+                PreCharge,
+                precharge_req,
+                Timeouts.PRE_CHARGE_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+        else:
+            logger.debug("SECC is still precessing the CableCheck")
+            cable_check_req = CableCheckReq(
+                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            )
+            self.create_next_message(
+                CableCheck,
+                cable_check_req,
+                Timeouts.CABLE_CHECK_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+
+
+class PreCharge(StateEVCC):
+    """
+    The ISO 15118-2 state in which the EVCC processes a
+    PreChargeRes from the SECC.
+    """
+
+    def __init__(self, comm_session: EVCCCommunicationSession):
+        super().__init__(comm_session, Timeouts.CURRENT_DEMAND_REQ)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(message, PreChargeRes)
+        if not msg:
+            return
+
+        precharge_res: PreChargeRes = msg.body.pre_charge_res
+
+        self.comm_session.ev_controller.set_present_voltage_evse(precharge_res.evse_present_voltage)
+
+        # todo llr: implement timer 7s
+
+        if self.comm_session.ev_controller.is_precharged():
+            power_delivery_req = PowerDeliveryReq(
+                charge_progress=ChargeProgress.START,
+                sa_schedule_tuple_id=self.comm_session.selected_schedule,
+                # charging_profile=None,  # TODO
+                dc_ev_power_delivery_parameter=self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter(),
+            )
+            self.create_next_message(
+                PowerDelivery,
+                power_delivery_req,
+                Timeouts.POWER_DELIVERY_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+        else:
+            precharge_req = PreChargeReq(
+                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+                ev_target_voltage=self.comm_session.ev_controller.get_ev_target_voltage(),
+                ev_target_current=0,
+            )
+            self.create_next_message(
+                PreCharge,
+                precharge_req,
+                Timeouts.PRE_CHARGE_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+
+
+class CurrentDemand(StateEVCC):
+    """
+    The ISO 15118-2 state in which the EVCC processes a
+    CurrentDemandRes from the SECC.
+    """
+
+    def __init__(self, comm_session: EVCCCommunicationSession):
+        super().__init__(comm_session, Timeouts.CURRENT_DEMAND_REQ)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        msg = self.check_msg_v2(message, CurrentDemandRes)
+        if not msg:
+            return
+
+        current_demand_res: CurrentDemandRes = msg.body.current_demand_res
+
+        ev_controller = self.comm_session.ev_controller
+        current_demand_req = CurrentDemandReq(
+            dc_ev_status=ev_controller.get_dc_ev_status(),
+            ev_target_current=ev_controller.get_ev_target_current(),
+            ev_max_current_limit=ev_controller.get_ev_max_current_limit(),
+            ev_max_power_limit=ev_controller.get_ev_max_power_limit(),
+            bulk_charging_complete=ev_controller.get_bulk_charging_complete(),
+            charging_complete=ev_controller.get_charging_complete(),
+            remaining_time_to_full_soc=ev_controller.get_remaining_time_to_full_soc(),
+            remaining_time_to_bulk_soc=ev_controller.get_remaining_time_to_bulk_soc(),
+            ev_target_voltage=ev_controller.get_ev_target_voltage(),
+        )
+
+        self.create_next_message(
+            CurrentDemand,
+            current_demand_req,
+            Timeouts.POWER_DELIVERY_REQ,
+            Namespace.ISO_V2_MSG_DEF,
+        )
