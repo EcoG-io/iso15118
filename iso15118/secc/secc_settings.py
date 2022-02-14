@@ -1,7 +1,7 @@
 import logging
 import os
 from dataclasses import dataclass
-from typing import List, Optional, Type
+from typing import List, Optional
 
 import environs
 from iso15118_service.evse_controller import EVSEController
