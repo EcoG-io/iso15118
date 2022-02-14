@@ -131,7 +131,7 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-20
         """
         raise NotImplementedError
-        
+
     @abstractmethod
     def set_hlc_charging(self, is_ongoing: bool) -> None:
         """

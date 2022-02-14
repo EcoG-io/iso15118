@@ -16,6 +16,8 @@ import socket
 from asyncio.streams import StreamReader, StreamWriter
 from typing import Dict, List, Optional, Tuple, Union
 
+from iso15118_service.evse_controller import EVSEController
+
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.secc.failed_responses import (
     init_failed_responses_iso_v2,
@@ -49,8 +51,6 @@ from iso15118.shared.notifications import (
     UDPPacketNotification,
 )
 from iso15118.shared.utils import cancel_task, wait_till_finished
-
-from iso15118_service.evse_controller import EVSEController
 
 logger = logging.getLogger(__name__)
 

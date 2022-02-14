@@ -4,14 +4,12 @@ from dataclasses import dataclass
 from typing import List, Optional, Type
 
 import environs
+from iso15118_service.evse_controller import EVSEController
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.network import validate_nic
-
-from iso15118_service.evse_controller import EVSEController
-
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +51,7 @@ class Config:
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
 
-        #self.evse_controller = EVSEControllerInterface
+        # self.evse_controller = EVSEControllerInterface
         if env.bool("SECC_CONTROLLER_SIM", default=False):
             self.evse_controller = SimEVSEController
         else:
