@@ -20,7 +20,7 @@ from iso15118.shared.exceptions import (
     InvalidV2GTPMessageError,
     MessageProcessingError,
 )
-from iso15118.shared.exi_codec import from_exi
+from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
@@ -176,7 +176,7 @@ class SessionStateMachine(ABC):
             None,
         ] = None
         try:
-            decoded_message = from_exi(v2gtp_msg.payload, self.get_exi_ns())
+            decoded_message = EXI().from_exi(v2gtp_msg.payload, self.get_exi_ns())
         except EXIDecodingError as exc:
             logger.exception(f"{exc}")
             raise exc

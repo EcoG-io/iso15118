@@ -27,7 +27,7 @@ from iso15118.shared.exceptions import (
     MessageProcessingError,
     SDPFailedError,
 )
-from iso15118.shared.exi_codec import EXI, to_exi
+from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import AppProtocol, SupportedAppProtocolReq
 from iso15118.shared.messages.enums import (
     AuthEnum,
@@ -168,7 +168,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         v2gtp_msg = V2GTPMessage(
             Protocol.UNKNOWN,
             ISOV2PayloadTypes.EXI_ENCODED,
-            to_exi(sap_req, Namespace.SAP),
+            EXI().to_exi(sap_req, Namespace.SAP),
         )
         self.current_state.next_msg = sap_req
         await self.send(v2gtp_msg)

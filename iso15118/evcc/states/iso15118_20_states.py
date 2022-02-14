@@ -11,7 +11,7 @@ from typing import Union
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.states.evcc_state import StateEVCC
 from iso15118.shared.exceptions import PrivateKeyReadError
-from iso15118.shared.exi_codec import to_exi
+from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
@@ -145,7 +145,9 @@ class AuthorizationSetup(StateEVCC):
                     [
                         (
                             oem_prov_cert_chain.id,
-                            to_exi(oem_prov_cert_chain, Namespace.ISO_V20_COMMON_MSG),
+                            EXI().to_exi(
+                                oem_prov_cert_chain, Namespace.ISO_V20_COMMON_MSG
+                            ),
                         )
                     ],
                     load_priv_key(KeyPath.OEM_LEAF_PEM, KeyEncoding.PEM),
@@ -205,7 +207,7 @@ class AuthorizationSetup(StateEVCC):
                         [
                             (
                                 pnc_params.id,
-                                to_exi(pnc_params, Namespace.ISO_V20_COMMON_MSG),
+                                EXI().to_exi(pnc_params, Namespace.ISO_V20_COMMON_MSG),
                             )
                         ],
                         load_priv_key(KeyPath.OEM_LEAF_PEM, KeyEncoding.PEM),

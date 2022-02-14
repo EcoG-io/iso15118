@@ -104,3 +104,16 @@ class MultiError(Exception):
     def __init__(self, errors: List[Exception]):
         Exception.__init__(self)
         self.errors = errors
+
+
+def install_dependency(package: str):
+    try:
+        import importlib
+
+        if importlib.util.find_spec(package) is None:
+            import subprocess
+            import sys
+
+            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    except subprocess.SubprocessError as e:
+        logger.debug(f"Error installing {package} : {e}")

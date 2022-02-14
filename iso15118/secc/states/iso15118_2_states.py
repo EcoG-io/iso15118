@@ -20,7 +20,7 @@ from iso15118.shared.exceptions import (
     EncryptionError,
     PrivateKeyReadError,
 )
-from iso15118.shared.exi_codec import to_exi
+from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
@@ -563,7 +563,7 @@ class CertificateInstallation(StateSECC):
             elements_to_sign=[
                 (
                     cert_install_req.id,
-                    to_exi(cert_install_req, Namespace.ISO_V2_MSG_DEF),
+                    EXI().to_exi(cert_install_req, Namespace.ISO_V2_MSG_DEF),
                 )
             ],
             leaf_cert=cert_install_req.oem_provisioning_cert,
@@ -643,17 +643,17 @@ class CertificateInstallation(StateSECC):
             # Elements to sign, containing its id and the exi encoded stream
             contract_cert_tuple = (
                 contract_cert_chain.id,
-                to_exi(contract_cert_chain, Namespace.ISO_V2_MSG_DEF),
+                EXI().to_exi(contract_cert_chain, Namespace.ISO_V2_MSG_DEF),
             )
             encrypted_priv_key_tuple = (
                 encrypted_priv_key.id,
-                to_exi(encrypted_priv_key, Namespace.ISO_V2_MSG_DEF),
+                EXI().to_exi(encrypted_priv_key, Namespace.ISO_V2_MSG_DEF),
             )
             dh_public_key_tuple = (
                 dh_public_key.id,
-                to_exi(dh_public_key, Namespace.ISO_V2_MSG_DEF),
+                EXI().to_exi(dh_public_key, Namespace.ISO_V2_MSG_DEF),
             )
-            emaid_tuple = (emaid.id, to_exi(emaid, Namespace.ISO_V2_MSG_DEF))
+            emaid_tuple = (emaid.id, EXI().to_exi(emaid, Namespace.ISO_V2_MSG_DEF))
 
             elements_to_sign = [
                 contract_cert_tuple,
@@ -849,7 +849,7 @@ class Authorization(StateSECC):
                 [
                     (
                         authorization_req.id,
-                        to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
+                        EXI().to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
                     )
                 ],
                 self.comm_session.contract_cert_chain.certificate,
@@ -994,7 +994,9 @@ class ChargeParameterDiscovery(StateSECC):
                     try:
                         element_to_sign = (
                             schedule.sales_tariff.id,
-                            to_exi(schedule.sales_tariff, Namespace.ISO_V2_MSG_DEF),
+                            EXI().to_exi(
+                                schedule.sales_tariff, Namespace.ISO_V2_MSG_DEF
+                            ),
                         )
                         signature_key = load_priv_key(
                             KeyPath.MO_SUB_CA2_PEM, KeyEncoding.PEM
@@ -1229,7 +1231,7 @@ class MeteringReceipt(StateSECC):
             [
                 (
                     metering_receipt_req.id,
-                    to_exi(metering_receipt_req, Namespace.ISO_V2_MSG_DEF),
+                    EXI().to_exi(metering_receipt_req, Namespace.ISO_V2_MSG_DEF),
                 )
             ],
             self.comm_session.contract_cert_chain.certificate,

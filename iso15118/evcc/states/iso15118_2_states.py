@@ -12,7 +12,7 @@ from iso15118.evcc import evcc_settings
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.states.evcc_state import StateEVCC
 from iso15118.shared.exceptions import DecryptionError, PrivateKeyReadError
-from iso15118.shared.exi_codec import to_exi
+from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
@@ -402,7 +402,9 @@ class PaymentServiceSelection(StateEVCC):
                         [
                             (
                                 cert_install_req.id,
-                                to_exi(cert_install_req, Namespace.ISO_V2_MSG_DEF),
+                                EXI().to_exi(
+                                    cert_install_req, Namespace.ISO_V2_MSG_DEF
+                                ),
                             )
                         ],
                         load_priv_key(KeyPath.OEM_LEAF_PEM, KeyEncoding.PEM),
@@ -484,23 +486,25 @@ class CertificateInstallation(StateEVCC):
             elements_to_sign=[
                 (
                     cert_install_res.contract_cert_chain.id,
-                    to_exi(
+                    EXI().to_exi(
                         cert_install_res.contract_cert_chain, Namespace.ISO_V2_MSG_DEF
                     ),
                 ),
                 (
                     cert_install_res.encrypted_private_key.id,
-                    to_exi(
+                    EXI().to_exi(
                         cert_install_res.encrypted_private_key, Namespace.ISO_V2_MSG_DEF
                     ),
                 ),
                 (
                     cert_install_res.dh_public_key.id,
-                    to_exi(cert_install_res.dh_public_key, Namespace.ISO_V2_MSG_DEF),
+                    EXI().to_exi(
+                        cert_install_res.dh_public_key, Namespace.ISO_V2_MSG_DEF
+                    ),
                 ),
                 (
                     cert_install_res.emaid.id,
-                    to_exi(cert_install_res.emaid, Namespace.ISO_V2_MSG_DEF),
+                    EXI().to_exi(cert_install_res.emaid, Namespace.ISO_V2_MSG_DEF),
                 ),
             ],
             leaf_cert=cert_install_res.cps_cert_chain.certificate,
@@ -586,7 +590,7 @@ class PaymentDetails(StateEVCC):
                 [
                     (
                         authorization_req.id,
-                        to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
+                        EXI().to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
                     )
                 ],
                 load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
@@ -874,7 +878,9 @@ class ChargingStatus(StateEVCC):
                     [
                         (
                             metering_receipt_req.id,
-                            to_exi(metering_receipt_req, Namespace.ISO_V2_MSG_DEF),
+                            EXI().to_exi(
+                                metering_receipt_req, Namespace.ISO_V2_MSG_DEF
+                            ),
                         )
                     ],
                     load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
