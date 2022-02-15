@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 
 from iso15118.secc.comm_session_handler import CommunicationSessionHandler
+from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.secc.secc_settings import Config
 from iso15118.shared.logging import _init_logger
 
@@ -10,7 +11,10 @@ _init_logger()
 logger = logging.getLogger(__name__)
 
 
-async def main(env_path: Optional[str] = None):
+async def main(
+    env_path: Optional[str] = None,
+    evse_controller: Optional[EVSEControllerInterface] = None,
+):
     """
     Entrypoint function that starts the ISO 15118 code running on
     the SECC (Supply Equipment Communication Controller)
@@ -19,7 +23,7 @@ async def main(env_path: Optional[str] = None):
         # get configuration
         config = Config()
         await config.load_envs(env_path)
-        session_handler = CommunicationSessionHandler(config)
+        session_handler = CommunicationSessionHandler(config, evse_controller)
         await session_handler.start_session_handler()
     except Exception as exc:
         logger.error(f"SECC terminated: {exc}")

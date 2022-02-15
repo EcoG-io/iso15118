@@ -137,12 +137,7 @@ class SimEVSEController(EVSEControllerInterface):
         return None
 
     def set_hlc_charging(self, is_ongoing: bool) -> None:
-        payload = update.HlcChargingPayload(
-            evse_id=self.get_evse_id(),
-            status=is_ongoing,
-        )
-        return payload
-        
+        pass
 
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |

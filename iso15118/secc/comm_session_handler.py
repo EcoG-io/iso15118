@@ -16,8 +16,6 @@ import socket
 from asyncio.streams import StreamReader, StreamWriter
 from typing import Dict, List, Optional, Tuple, Union
 
-from iso15118_service.evse_controller import EVSEController
-
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.secc.failed_responses import (
     init_failed_responses_iso_v2,
@@ -52,6 +50,9 @@ from iso15118.shared.notifications import (
 )
 from iso15118.shared.utils import cancel_task, wait_till_finished
 
+# from iso15118_service.evse_controller import EVSEController
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -66,6 +67,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         transport: Tuple[StreamReader, StreamWriter],
         session_handler_queue: asyncio.Queue,
         config: Config,
+        evse_controller,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -75,7 +77,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
 
         self.config = config
         # The EVSE controller that implements the interface EVSEControllerInterface
-        self.evse_controller: EVSEController = config.evse_controller()
+        self.evse_controller: EVSEControllerInterface = evse_controller
         # The authorization option(s) offered with ServiceDiscoveryRes in
         # ISO 15118-2 and with AuthorizationSetupRes in ISO 15118-20
         self.offered_auth_options: Optional[List[AuthEnum]] = []
@@ -139,7 +141,7 @@ class CommunicationSessionHandler:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, evse_controller: EVSEControllerInterface):
 
         self.list_of_tasks = []
         self.udp_server = None
@@ -154,6 +156,7 @@ class CommunicationSessionHandler:
         # values are a tuple containing the SECCCommunicationSession and the
         # associated ayncio.Task object (so we can cancel the task when needed)
         self.comm_sessions: Dict[str, (SECCCommunicationSession, asyncio.Task)] = {}
+        self.evse_controller = evse_controller
 
     async def start_session_handler(self):
         """
@@ -210,7 +213,10 @@ class CommunicationSessionHandler:
                         comm_session.resume()
                     except KeyError:
                         comm_session = SECCCommunicationSession(
-                            notification.transport, self._rcv_queue, self.config
+                            notification.transport,
+                            self._rcv_queue,
+                            self.config,
+                            self.evse_controller,
                         )
 
                     task = asyncio.create_task(

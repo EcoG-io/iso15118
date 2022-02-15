@@ -6,7 +6,7 @@ from typing import List, Optional
 import environs
 from iso15118_service.evse_controller import EVSEController
 
-from iso15118.secc.controller.interface import EVSEControllerInterface # noqa: F401
+from iso15118.secc.controller.interface import EVSEControllerInterface  # noqa: F401
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.network import validate_nic
@@ -20,7 +20,7 @@ class Config:
     redis_host: Optional[str] = None
     redis_port: Optional[int] = None
     log_level: Optional[int] = None
-    evse_controller: EVSEController = None
+    # evse_controller: EVSEController = None
     enforce_tls: bool = False
     free_charging_service: bool = False
     free_cert_install_service: bool = True
@@ -57,7 +57,7 @@ class Config:
         else:
             mqtt_host = env.str("MQTT_HOST", default="localhost")
             mqtt_port = env.int("MQTT_PORT", default=10_003)
-            self.evse_controller = await EVSEController.create(mqtt_host, mqtt_port)
+            # self.evse_controller = await EVSEController.create(mqtt_host, mqtt_port)
 
         # Indicates whether or not the SECC should always enforce a TLS-secured
         # communication session. If True, the SECC will only fire up a TCP server
