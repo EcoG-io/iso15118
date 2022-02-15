@@ -121,7 +121,7 @@ class CustomJSONDecoder(json.JSONDecoder):
         return dct
 
 
-class EXI(object):
+class EXI:
     """
     This Singleton class holds onto the EXI codec this session is initialized with.
     If a codec is not specified an instance of the fallback codec is returned.

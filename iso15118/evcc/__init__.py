@@ -13,7 +13,7 @@ class EVCCHandler(CommunicationSessionHandler):
     def __init__(self, exi_codec: IEXICodec, env_path: Optional[str] = None):
         config = Config()
         config.load_envs(env_path)
-        super().__init__(config, exi_codec)
+        CommunicationSessionHandler.__init__(self, config, exi_codec)
 
     async def start(self):
         try:
