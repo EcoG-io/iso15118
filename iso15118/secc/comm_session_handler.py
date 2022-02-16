@@ -156,7 +156,7 @@ class CommunicationSessionHandler:
         # values are a tuple containing the SECCCommunicationSession and the
         # associated ayncio.Task object (so we can cancel the task when needed)
         self.comm_sessions: Dict[str, (SECCCommunicationSession, asyncio.Task)] = {}
-        self.evse_controller = evse_controller_instance
+        self.evse_controller_instance = evse_controller_instance
 
     async def start_session_handler(self):
         """
@@ -216,7 +216,7 @@ class CommunicationSessionHandler:
                             notification.transport,
                             self._rcv_queue,
                             self.config,
-                            self.evse_controller,
+                            self.evse_controller_instance,
                         )
 
                     task = asyncio.create_task(
