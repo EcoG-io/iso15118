@@ -67,7 +67,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         transport: Tuple[StreamReader, StreamWriter],
         session_handler_queue: asyncio.Queue,
         config: Config,
-        evse_controller,
+        evse_controller_instance,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -77,7 +77,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
 
         self.config = config
         # The EVSE controller that implements the interface EVSEControllerInterface
-        self.evse_controller: EVSEControllerInterface = evse_controller
+        self.evse_controller: EVSEControllerInterface = evse_controller_instance
         # The authorization option(s) offered with ServiceDiscoveryRes in
         # ISO 15118-2 and with AuthorizationSetupRes in ISO 15118-20
         self.offered_auth_options: Optional[List[AuthEnum]] = []
@@ -141,7 +141,7 @@ class CommunicationSessionHandler:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, config: Config, evse_controller: EVSEControllerInterface):
+    def __init__(self, config: Config, evse_controller_instance: EVSEControllerInterface):
 
         self.list_of_tasks = []
         self.udp_server = None
@@ -156,7 +156,7 @@ class CommunicationSessionHandler:
         # values are a tuple containing the SECCCommunicationSession and the
         # associated ayncio.Task object (so we can cancel the task when needed)
         self.comm_sessions: Dict[str, (SECCCommunicationSession, asyncio.Task)] = {}
-        self.evse_controller = evse_controller
+        self.evse_controller = evse_controller_instance
 
     async def start_session_handler(self):
         """

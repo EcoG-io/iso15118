@@ -19,6 +19,8 @@ class Config:
     iface: Optional[str] = None
     redis_host: Optional[str] = None
     redis_port: Optional[int] = None
+    mqtt_host: Optional[str] = None
+    mqtt_port: Optional[int] = None
     log_level: Optional[int] = None
     # evse_controller: EVSEController = None
     enforce_tls: bool = False
@@ -55,8 +57,8 @@ class Config:
         if env.bool("SECC_CONTROLLER_SIM", default=False):
             self.evse_controller = SimEVSEController
         else:
-            mqtt_host = env.str("MQTT_HOST", default="localhost")
-            mqtt_port = env.int("MQTT_PORT", default=10_003)
+            self.mqtt_host = env.str("MQTT_HOST", default="localhost")
+            self.mqtt_port = env.int("MQTT_PORT", default=10_003)
             # self.evse_controller = await EVSEController.create(mqtt_host, mqtt_port)
 
         # Indicates whether or not the SECC should always enforce a TLS-secured

@@ -23,7 +23,8 @@ async def main(
         # get configuration
         config = Config()
         await config.load_envs(env_path)
-        session_handler = CommunicationSessionHandler(config, evse_controller)
+        evse_controller_instance = await evse_controller.create(config.mqtt_host, config.mqtt_port)
+        session_handler = CommunicationSessionHandler(config, evse_controller_instance)
         await session_handler.start_session_handler()
     except Exception as exc:
         logger.error(f"SECC terminated: {exc}")
