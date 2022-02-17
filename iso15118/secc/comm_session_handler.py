@@ -141,7 +141,9 @@ class CommunicationSessionHandler:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, config: Config, evse_controller_instance: EVSEControllerInterface):
+    def __init__(
+        self, config: Config, evse_controller_instance: EVSEControllerInterface
+    ):
 
         self.list_of_tasks = []
         self.udp_server = None

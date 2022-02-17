@@ -44,9 +44,11 @@ class SimEVSEController(EVSEControllerInterface):
     """
     A simulated version of an EVSE controller
     """
+
     @classmethod
     async def create(cls, mqtt_host: str, mqtt_port: int):
         return SimEVSEController()
+
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
