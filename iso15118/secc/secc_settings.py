@@ -21,8 +21,9 @@ class Config:
     redis_port: Optional[int] = None
     mqtt_host: Optional[str] = None
     mqtt_port: Optional[int] = None
+    simulated_secc = False
     log_level: Optional[int] = None
-    # evse_controller: EVSEController = None
+    evse_controller = None
     enforce_tls: bool = False
     free_charging_service: bool = False
     free_cert_install_service: bool = True
@@ -56,9 +57,10 @@ class Config:
         # self.evse_controller = EVSEControllerInterface
         if env.bool("SECC_CONTROLLER_SIM", default=False):
             self.evse_controller = SimEVSEController
-        else:
-            self.mqtt_host = env.str("MQTT_HOST", default="localhost")
-            self.mqtt_port = env.int("MQTT_PORT", default=10_003)
+            self.simulated_secc = True
+        #else:
+        self.mqtt_host = env.str("MQTT_HOST", default="localhost")
+        self.mqtt_port = env.int("MQTT_PORT", default=10_003)
             # self.evse_controller = await EVSEController.create(mqtt_host, mqtt_port)
 
         # Indicates whether or not the SECC should always enforce a TLS-secured

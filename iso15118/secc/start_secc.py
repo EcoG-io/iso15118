@@ -23,7 +23,10 @@ async def main(
         # get configuration
         config = Config()
         await config.load_envs(env_path)
-        evse_controller_instance = await evse_controller.create(config.mqtt_host, config.mqtt_port)
+        if config.simulated_secc == True:
+            evse_controller_instance = await config.evse_controller.create(config.mqtt_host, config.mqtt_port)
+        else:
+            evse_controller_instance = await evse_controller.create(config.mqtt_host, config.mqtt_port)
         session_handler = CommunicationSessionHandler(config, evse_controller_instance)
         await session_handler.start_session_handler()
     except Exception as exc:
