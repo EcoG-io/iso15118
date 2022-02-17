@@ -18,6 +18,9 @@ class Config:
     iface: Optional[str] = None
     redis_host: Optional[str] = None
     redis_port: Optional[int] = None
+    mqtt_host: Optional[str] = None
+    mqtt_port: Optional[int] = None
+    simulated_secc = False
     log_level: Optional[int] = None
     evse_controller: Type[EVSEControllerInterface] = None
     enforce_tls: bool = False
@@ -50,10 +53,11 @@ class Config:
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
 
-        self.evse_controller = EVSEControllerInterface
         if env.bool("SECC_CONTROLLER_SIM", default=False):
-            self.evse_controller = SimEVSEController
+            self.simulated_secc = True
 
+        self.mqtt_host = env.str("MQTT_HOST", default="localhost")
+        self.mqtt_port = env.int("MQTT_PORT", default=10_003)
         # Indicates whether or not the SECC should always enforce a TLS-secured
         # communication session. If True, the SECC will only fire up a TCP server
         # with an SSL session context and ignore the Security byte value from the

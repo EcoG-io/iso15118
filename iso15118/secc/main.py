@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from iso15118.secc import SECCHandler
+from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.shared.exificient_exi_codec import ExificientEXICodec
 
 logger = logging.getLogger(__name__)
