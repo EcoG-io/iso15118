@@ -25,6 +25,8 @@ from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as Meter
 
 
 class EVSEControllerInterface(ABC):
+    async def create(cls, mqtt_host: str, mqtt_port: int):
+        pass
 
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
@@ -131,7 +133,17 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-20
         """
         raise NotImplementedError
-
+        
+    @abstractmethod
+    def set_hlc_charging(self, is_ongoing: bool) -> None:
+        """
+        Notify that high level communication is ongoing or not.
+        Args:
+            is_ongoing (bool): whether hlc charging is ongoing or not.
+        Relevant for:
+        - ISO 15118-2
+        """
+        raise NotImplementedError
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================

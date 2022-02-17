@@ -45,6 +45,10 @@ class SimEVSEController(EVSEControllerInterface):
     A simulated version of an EVSE controller
     """
 
+    @classmethod
+    async def create(cls, mqtt_host: str, mqtt_port: int):
+        return SimEVSEController()
+
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
@@ -135,6 +139,10 @@ class SimEVSEController(EVSEControllerInterface):
     def get_supported_providers(self) -> Optional[List[ProviderID]]:
         """Overrides EVSEControllerInterface.get_supported_providers()."""
         return None
+
+    def set_hlc_charging(self, is_ongoing: bool) -> None:
+        """Overrides EVSEControllerInterface.set_hlc_charging()."""
+        pass
 
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
