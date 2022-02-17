@@ -35,4 +35,4 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.poetry.scripts]
-iso15118 = 'iso15118.secc.start_secc:run'
+iso15118 = 'iso15118.secc.main:run'
