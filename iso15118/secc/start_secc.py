@@ -23,7 +23,7 @@ async def main(
         # get configuration
         config = Config()
         await config.load_envs(env_path)
-        if config.simulated_secc == True:
+        if config.simulated_secc is True:
             evse_controller_instance = await config.evse_controller.create(
                 config.mqtt_host, config.mqtt_port
             )
