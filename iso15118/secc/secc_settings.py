@@ -4,12 +4,14 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 import environs
-#from iso15118_service.evse_controller import EVSEController
 
 from iso15118.secc.controller.interface import EVSEControllerInterface  # noqa: F401
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.network import validate_nic
+
+# from iso15118_service.evse_controller import EVSEController
+
 
 logger = logging.getLogger(__name__)
 
