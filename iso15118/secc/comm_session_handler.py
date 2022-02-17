@@ -49,6 +49,8 @@ from iso15118.shared.notifications import (
     UDPPacketNotification,
 )
 from iso15118.shared.utils import cancel_task, wait_till_finished
+from iso15118.shared.iexi_codec import IEXICodec
+from iso15118.shared.exi_codec import EXI
 
 logger = logging.getLogger(__name__)
 
@@ -137,12 +139,15 @@ class CommunicationSessionHandler:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, codec: IEXICodec):
 
         self.list_of_tasks = []
         self.udp_server = None
         self.tcp_server = None
         self.config = config
+
+        # Set the selected EXI codec implementation
+        EXI().set_exi_codec(codec)
 
         # Receiving queue for UDP or TCP packets and session
         # triggers (e.g. pause/terminate)

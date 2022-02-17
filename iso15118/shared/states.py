@@ -9,7 +9,7 @@ from iso15118.shared.exceptions import (
     InvalidPayloadTypeError,
     InvalidProtocolError,
 )
-from iso15118.shared.exi_codec import to_exi
+from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
@@ -258,7 +258,7 @@ class State(ABC):
             # Step 3
             exi_payload: bytes = bytes(0)
             try:
-                exi_payload = to_exi(to_be_exi_encoded, namespace)
+                exi_payload = EXI().to_exi(to_be_exi_encoded, namespace)
             except EXIEncodingError as exc:
                 logger.error(f"{exc}")
                 self.next_state = Terminate

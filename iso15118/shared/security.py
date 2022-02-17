@@ -40,7 +40,7 @@ from iso15118.shared.exceptions import (
     KeyTypeError,
     PrivateKeyReadError,
 )
-from iso15118.shared.exi_codec import to_exi
+from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain as CertificateChainV2,
@@ -721,7 +721,7 @@ def create_signature(
     )
 
     # 2. Step: Signature generation
-    exi_encoded_signed_info = to_exi(signed_info, Namespace.XML_DSIG)
+    exi_encoded_signed_info = EXI().to_exi(signed_info, Namespace.XML_DSIG)
     signature_value = signature_key.sign(exi_encoded_signed_info, ec.ECDSA(SHA256()))
     signature = Signature(
         signed_info=signed_info, signature_value=SignatureValue(value=signature_value)
@@ -810,7 +810,7 @@ def verify_signature(
     # 2. Step: Checking signature value
     logger.debug("Verifying signature value for SignedInfo element")
     pub_key = load_der_x509_certificate(leaf_cert).public_key()
-    exi_encoded_signed_info = to_exi(signature.signed_info, Namespace.XML_DSIG)
+    exi_encoded_signed_info = EXI().to_exi(signature.signed_info, Namespace.XML_DSIG)
 
     try:
         if isinstance(pub_key, EllipticCurvePublicKey):

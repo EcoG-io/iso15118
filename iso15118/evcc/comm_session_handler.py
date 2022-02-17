@@ -27,7 +27,7 @@ from iso15118.shared.exceptions import (
     MessageProcessingError,
     SDPFailedError,
 )
-from iso15118.shared.exi_codec import to_exi
+from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import AppProtocol, SupportedAppProtocolReq
 from iso15118.shared.messages.enums import (
     AuthEnum,
@@ -46,6 +46,7 @@ from iso15118.shared.notifications import (
     UDPPacketNotification,
 )
 from iso15118.shared.utils import cancel_task, wait_till_finished
+from iso15118.shared.iexi_codec import IEXICodec
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +168,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         v2gtp_msg = V2GTPMessage(
             Protocol.UNKNOWN,
             ISOV2PayloadTypes.EXI_ENCODED,
-            to_exi(sap_req, Namespace.SAP),
+            EXI().to_exi(sap_req, Namespace.SAP),
         )
         self.current_state.next_msg = sap_req
         await self.send(v2gtp_msg)
@@ -207,7 +208,7 @@ class CommunicationSessionHandler:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, codec: IEXICodec):
         self.list_of_tasks = []
         self.udp_client = None
         self.tcp_client = None
@@ -215,6 +216,9 @@ class CommunicationSessionHandler:
         self.config = config
         self.sdp_retries_number = SDP_MAX_REQUEST_COUNTER
         self._sdp_retry_cycles = self.config.sdp_retry_cycles
+
+        # Set the selected EXI codec implementation
+        EXI().set_exi_codec(codec)
 
         # Receiving queue for UDP client to notify about incoming datagrams
         self._rcv_queue = asyncio.Queue(0)
