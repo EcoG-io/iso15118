@@ -4,7 +4,6 @@ from builtins import Exception
 
 from iso15118.shared.settings import JAR_FILE_PATH
 from iso15118.shared.iexi_codec import IEXICodec
-from iso15118.shared.utils import install_dependency
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +16,6 @@ def compare_messages(json_to_encode, decoded_json):
 
 class ExificientEXICodec(IEXICodec):
     def __init__(self):
-        install_dependency("py4j")
         from py4j.java_gateway import JavaGateway
 
         logging.getLogger("py4j").setLevel(logging.CRITICAL)
