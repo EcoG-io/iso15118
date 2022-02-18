@@ -6,7 +6,6 @@ from typing import List, Optional, Type
 import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
-from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.network import validate_nic
 
