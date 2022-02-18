@@ -13,17 +13,18 @@ logger = logging.getLogger(__name__)
 
 class SECCHandler(CommunicationSessionHandler):
     def __init__(
-        self, exi_codec: IEXICodec,
+        self,
+        exi_codec: IEXICodec,
         env_path: Optional[str] = None,
-        evse_controller:Optional[SimEVSEController] = SimEVSEController
+        evse_controller: Optional[SimEVSEController] = SimEVSEController,
     ):
         config = Config()
         config.load_envs(env_path)
         CommunicationSessionHandler.__init__(
             self,
             config,
-            exi_codec, 
-            evse_controller.create(config.mqtt_host, config.mqtt_port)
+            exi_codec,
+            evse_controller.create(config.mqtt_host, config.mqtt_port),
         )
 
     async def start(self):

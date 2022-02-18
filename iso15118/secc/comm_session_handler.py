@@ -66,7 +66,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         transport: Tuple[StreamReader, StreamWriter],
         session_handler_queue: asyncio.Queue,
         config: Config,
-        evse_controller_instance
+        evse_controller_instance,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -218,7 +218,7 @@ class CommunicationSessionHandler:
                             notification.transport,
                             self._rcv_queue,
                             self.config,
-                            self.evse_controller_instance
+                            self.evse_controller_instance,
                         )
 
                     task = asyncio.create_task(
