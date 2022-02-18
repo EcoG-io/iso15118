@@ -1,7 +1,7 @@
 """This file is to simulate the charging station responding to ISO15118 messages."""
 
 import asyncio
-from typing import Callable, List, Tuple
+from typing import Callable, List
 
 from asyncio_mqtt import Client
 from mqtt_api.mqtt import Mqtt
@@ -11,7 +11,7 @@ from mqtt_api.v1.enums import (
     EnergyTransferModeEnum,
     EVSEIsolationStatus,
     EVSEStatusCode,
-    MessageName,
+    MessageName, Topics,
 )
 from mqtt_api.v1.response import (
     CsACBptConnectorService,
@@ -23,16 +23,15 @@ from mqtt_api.v1.response import (
     CsEvseParameters,
 )
 
-# TODO: these topic names should be added to the mqtt api
-CS_JOSEV = "cs/josev"
-JOSEV_CS = "josev/cs"
+CS_JOSEV = Topics.CS_JOSEV
+JOSEV_CS = Topics.JOSEV_CS
 
 
 class ConfigurationStartupHandler(Mqtt):
     def __init__(
-        self, mqtt_client: Callable[[], Client], topics: List[Tuple[str, int]]
+        self, mqtt_client: Callable[[], Client], topics: List[str]
     ):
-        super().__init__(mqtt_client, topics, None)
+        super().__init__(mqtt_client, topics)
 
     @on(MessageName.HLC_CHARGING)
     async def on_hlc_charging(self, *args, **kwargs):
@@ -139,7 +138,7 @@ class ConfigurationStartupHandler(Mqtt):
 
 
 hostname = "localhost"
-port = 10_003
+port = 10_001
 
 
 def create_client() -> Client:
@@ -148,7 +147,7 @@ def create_client() -> Client:
 
 configuration_handler = ConfigurationStartupHandler(
     mqtt_client=lambda: create_client(),
-    topics=[(JOSEV_CS, 1)],
+    topics=[JOSEV_CS],
 )
 
 

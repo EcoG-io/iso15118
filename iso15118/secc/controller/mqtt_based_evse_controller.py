@@ -40,9 +40,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
 
-# TODO: these topic names should be added to the mqtt api
-CS_JOSEV = "cs/josev"
-JOSEV_CS = "josev/cs"
+CS_JOSEV = Topics.CS_JOSEV
+JOSEV_CS = Topics.JOSEV_CS
 
 
 class MQTTBasedEVSEController(EVSEControllerInterface):
@@ -54,7 +53,7 @@ class MQTTBasedEVSEController(EVSEControllerInterface):
 
         return Mqtt(
             mqtt_client=lambda: create_client(),
-            topics=CS_JOSEV,
+            topics=[CS_JOSEV],
             response_timeout=60,
         )
 

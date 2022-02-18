@@ -62,7 +62,7 @@ class Config:
             # remove as we'll eventually want to have the MQTT API layer
             # as part of Josev.
             mqtt_host = env.str("MQTT_HOST", default="localhost")
-            mqtt_port = env.int("MQTT_PORT", default=10_003)
+            mqtt_port = env.int("MQTT_PORT", default=10_001)
             self.evse_controller = await MQTTBasedEVSEController.create(
                 mqtt_host, mqtt_port
             )
