@@ -20,7 +20,6 @@ class Config:
     redis_port: Optional[int] = None
     mqtt_host: Optional[str] = None
     mqtt_port: Optional[int] = None
-    simulated_secc = False
     log_level: Optional[int] = None
     evse_controller: Type[EVSEControllerInterface] = None
     enforce_tls: bool = False
@@ -52,9 +51,6 @@ class Config:
         self.redis_port = env.int("REDIS_PORT", default=6379)
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
-
-        if env.bool("SECC_CONTROLLER_SIM", default=False):
-            self.simulated_secc = True
 
         self.mqtt_host = env.str("MQTT_HOST", default="localhost")
         self.mqtt_port = env.int("MQTT_PORT", default=10_003)
