@@ -16,7 +16,6 @@ import socket
 from asyncio.streams import StreamReader, StreamWriter
 from typing import Dict, List, Optional, Tuple, Union
 
-from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.secc.failed_responses import (
     init_failed_responses_iso_v2,
     init_failed_responses_iso_v20,
