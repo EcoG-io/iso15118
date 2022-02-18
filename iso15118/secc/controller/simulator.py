@@ -45,9 +45,6 @@ class SimEVSEController(EVSEControllerInterface):
     A simulated version of an EVSE controller
     """
 
-    async def create(self):
-        pass
-
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================

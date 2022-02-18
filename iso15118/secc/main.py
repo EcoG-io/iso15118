@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from typing import Optional
 from iso15118.secc import SECCHandler
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.secc.secc_settings import Config
@@ -19,9 +20,8 @@ async def main(env_path: Optional[str] = None):
 
     config = Config()
     config.load_envs(env_path)
-    evse_controller = await SimEVSEController().create()
     await SECCHandler(
-        config=config, exi_codec=ExificientEXICodec(), evse_controller=evse_controller
+        config=config, exi_codec=ExificientEXICodec(), evse_controller=SimEVSEController()
     ).start()
 
 

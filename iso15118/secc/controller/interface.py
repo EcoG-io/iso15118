@@ -25,8 +25,6 @@ from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as Meter
 
 
 class EVSEControllerInterface(ABC):
-    async def create(cls, mqtt_host: str, mqtt_port: int):
-        pass
 
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
