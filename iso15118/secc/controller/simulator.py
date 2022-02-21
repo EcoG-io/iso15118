@@ -136,6 +136,10 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_supported_providers()."""
         return None
 
+    def set_hlc_charging(self, is_ongoing: bool) -> None:
+        """Overrides EVSEControllerInterface.set_hlc_charging()."""
+        pass
+
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================

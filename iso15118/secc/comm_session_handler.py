@@ -16,7 +16,6 @@ import socket
 from asyncio.streams import StreamReader, StreamWriter
 from typing import Dict, List, Optional, Tuple, Union
 
-from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.secc.failed_responses import (
     init_failed_responses_iso_v2,
     init_failed_responses_iso_v20,
@@ -26,6 +25,8 @@ from iso15118.secc.transport.tcp_server import TCPServer
 from iso15118.secc.transport.udp_server import UDPServer
 from iso15118.shared.comm_session import V2GCommunicationSession
 from iso15118.shared.exceptions import InvalidSDPRequestError, InvalidV2GTPMessageError
+from iso15118.shared.exi_codec import EXI
+from iso15118.shared.iexi_codec import IEXICodec
 from iso15118.shared.messages.enums import (
     AuthEnum,
     ISOV2PayloadTypes,
@@ -49,8 +50,6 @@ from iso15118.shared.notifications import (
     UDPPacketNotification,
 )
 from iso15118.shared.utils import cancel_task, wait_till_finished
-from iso15118.shared.iexi_codec import IEXICodec
-from iso15118.shared.exi_codec import EXI
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +65,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         transport: Tuple[StreamReader, StreamWriter],
         session_handler_queue: asyncio.Queue,
         config: Config,
+        evse_controller,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -75,7 +75,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
 
         self.config = config
         # The EVSE controller that implements the interface EVSEControllerInterface
-        self.evse_controller: EVSEControllerInterface = config.evse_controller()
+        self.evse_controller = evse_controller
         # The authorization option(s) offered with ServiceDiscoveryRes in
         # ISO 15118-2 and with AuthorizationSetupRes in ISO 15118-20
         self.offered_auth_options: Optional[List[AuthEnum]] = []
@@ -139,12 +139,13 @@ class CommunicationSessionHandler:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, config: Config, codec: IEXICodec):
+    def __init__(self, config: Config, codec: IEXICodec, evse_controller):
 
         self.list_of_tasks = []
         self.udp_server = None
         self.tcp_server = None
         self.config = config
+        self.evse_controller = evse_controller
 
         # Set the selected EXI codec implementation
         EXI().set_exi_codec(codec)
@@ -213,7 +214,10 @@ class CommunicationSessionHandler:
                         comm_session.resume()
                     except KeyError:
                         comm_session = SECCCommunicationSession(
-                            notification.transport, self._rcv_queue, self.config
+                            notification.transport,
+                            self._rcv_queue,
+                            self.config,
+                            self.evse_controller,
                         )
 
                     task = asyncio.create_task(

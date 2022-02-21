@@ -6,7 +6,6 @@ from typing import List, Optional, Type
 import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
-from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.network import validate_nic
 
@@ -16,8 +15,6 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Config:
     iface: Optional[str] = None
-    redis_host: Optional[str] = None
-    redis_port: Optional[int] = None
     log_level: Optional[int] = None
     evse_controller: Type[EVSEControllerInterface] = None
     enforce_tls: bool = False
@@ -44,15 +41,7 @@ class Config:
         # validate the NIC selected
         validate_nic(self.iface)
 
-        # Redis Configuration
-        self.redis_host = env.str("REDIS_HOST", default="localhost")
-        self.redis_port = env.int("REDIS_PORT", default=6379)
-
         self.log_level = env.str("LOG_LEVEL", default="INFO")
-
-        self.evse_controller = EVSEControllerInterface
-        if env.bool("SECC_CONTROLLER_SIM", default=False):
-            self.evse_controller = SimEVSEController
 
         # Indicates whether or not the SECC should always enforce a TLS-secured
         # communication session. If True, the SECC will only fire up a TCP server
