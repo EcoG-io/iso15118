@@ -13,7 +13,7 @@ async def main():
     Entrypoint function that starts the ISO 15118 code running on
     the SECC (Supply Equipment Communication Controller)
     """
-    
+
     await SECCHandler(
         exi_codec=ExificientEXICodec(), evse_controller=SimEVSEController()
     ).start()
