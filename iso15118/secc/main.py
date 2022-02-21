@@ -13,9 +13,7 @@ async def main():
     Entrypoint function that starts the ISO 15118 code running on
     the SECC (Supply Equipment Communication Controller)
     """
-    # if no EVSEController implementation is passed to the constructor of SECCHandler,
-    # then SimEVSEController will be used.
-
+    
     await SECCHandler(
         exi_codec=ExificientEXICodec(), evse_controller=SimEVSEController()
     ).start()

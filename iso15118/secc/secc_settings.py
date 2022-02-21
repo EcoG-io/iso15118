@@ -15,8 +15,6 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Config:
     iface: Optional[str] = None
-    redis_host: Optional[str] = None
-    redis_port: Optional[int] = None
     log_level: Optional[int] = None
     evse_controller: Type[EVSEControllerInterface] = None
     enforce_tls: bool = False
@@ -42,10 +40,6 @@ class Config:
         self.iface = env.str("NETWORK_INTERFACE", default="eth0")
         # validate the NIC selected
         validate_nic(self.iface)
-
-        # Redis Configuration
-        self.redis_host = env.str("REDIS_HOST", default="localhost")
-        self.redis_port = env.int("REDIS_PORT", default=6379)
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
 
