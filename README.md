@@ -111,8 +111,6 @@ The following table provides a few of the available variables:
 | EVCC_USE_TLS      | `True`                       | Whether or not the EVCC signals the preference to communicate with a TLS connection                                                                             |
 | EVCC_ENFORCE_TLS  | `False`                      | Whether or not the EVCC will only accept TLS connections                                                                                                        |
 | PKI_PATH          | `<CWD>/iso15118/shared/pki/` | Path for the location of the PKI where the certificates are located. By default, the system will look for the PKI directory under the current working directory |
-| REDIS_HOST        | `localhost`                  | Redis Host URL                                                                                                                                                  |
-| REDIS_PORT        | `6379`                       | Redis Port                                                                                                                                                      |
 | LOG_LEVEL         | `INFO`                       | Level of the Python log service                                                                                                                                 |
 
 The project includes a few environmental files, in the root directory, for
