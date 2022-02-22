@@ -1,13 +1,11 @@
 import logging
 import os
 from dataclasses import dataclass
-from typing import List, Optional, Type
+from typing import List, Optional
 
 import environs
 from marshmallow.validate import Range
 
-from iso15118.evcc.controller.interface import EVControllerInterface
-from iso15118.evcc.controller.simulator import SimEVController
 from iso15118.shared.messages.enums import Protocol
 from iso15118.shared.network import validate_nic
 
@@ -17,10 +15,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Config:
     iface: Optional[str] = None
-    redis_host: Optional[str] = None
-    redis_port: Optional[int] = None
     log_level: Optional[int] = None
-    ev_controller: Type[EVControllerInterface] = None
     sdp_retry_cycles: Optional[int] = None
     max_contract_certs: Optional[int] = None
     use_tls: bool = True
@@ -44,17 +39,7 @@ class Config:
         # validate the NIC selected
         validate_nic(self.iface)
 
-        # Redis Configuration
-        self.redis_host = env.str("REDIS_HOST", default="localhost")
-        self.redis_port = env.int("REDIS_PORT", default=6379)
-
         self.log_level = env.str("LOG_LEVEL", default="INFO")
-
-        # Choose the EVController implementation. Must be the class name of the
-        # controller that implements the EVControllerInterface
-        self.ev_controller = EVControllerInterface
-        if env.bool("EVCC_CONTROLLER_SIM", default=False):
-            self.ev_controller = SimEVController
 
         # How often shall SDP (SECC Discovery Protocol) retries happen before reverting
         # to using nominal duty cycle PWM-based charging?

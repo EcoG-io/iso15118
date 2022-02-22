@@ -9,7 +9,6 @@ from pydantic import ValidationError
 from iso15118.shared.exceptions import EXIDecodingError, EXIEncodingError
 from iso15118.shared.exificient_exi_codec import ExificientEXICodec
 from iso15118.shared.iexi_codec import IEXICodec
-
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
