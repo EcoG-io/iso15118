@@ -28,6 +28,7 @@ from iso15118.shared.exceptions import (
     SDPFailedError,
 )
 from iso15118.shared.exi_codec import EXI
+from iso15118.shared.iexi_codec import IEXICodec
 from iso15118.shared.messages.app_protocol import AppProtocol, SupportedAppProtocolReq
 from iso15118.shared.messages.enums import (
     AuthEnum,
@@ -46,7 +47,6 @@ from iso15118.shared.notifications import (
     UDPPacketNotification,
 )
 from iso15118.shared.utils import cancel_task, wait_till_finished
-from iso15118.shared.iexi_codec import IEXICodec
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +64,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         transport: Tuple[StreamReader, StreamWriter],
         session_handler_queue: asyncio.Queue,
         config: Config,
+        ev_controller: EVControllerInterface,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -79,7 +80,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
 
         self.config = config
         # The EV controller that implements the interface EVControllerInterface
-        self.ev_controller: EVControllerInterface = self.config.ev_controller()
+        self.ev_controller = ev_controller
         # The authorization option (called PaymentOption in ISO 15118-2) the
         # EVCC selected from the authorization options offered by the SECC
         self.selected_auth_option: Optional[AuthEnum] = None
@@ -208,12 +209,15 @@ class CommunicationSessionHandler:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, config: Config, codec: IEXICodec):
+    def __init__(
+        self, config: Config, codec: IEXICodec, ev_controller: EVControllerInterface
+    ):
         self.list_of_tasks = []
         self.udp_client = None
         self.tcp_client = None
         self.tls_client = None
         self.config = config
+        self.ev_controller = ev_controller
         self.sdp_retries_number = SDP_MAX_REQUEST_COUNTER
         self._sdp_retry_cycles = self.config.sdp_retry_cycles
 
@@ -364,6 +368,7 @@ class CommunicationSessionHandler:
             (self.tcp_client.reader, self.tcp_client.writer),
             self._rcv_queue,
             self.config,
+            self.ev_controller,
         )
 
         try:

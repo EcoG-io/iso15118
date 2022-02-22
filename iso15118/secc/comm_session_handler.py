@@ -16,6 +16,7 @@ import socket
 from asyncio.streams import StreamReader, StreamWriter
 from typing import Dict, List, Optional, Tuple, Union
 
+from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.secc.failed_responses import (
     init_failed_responses_iso_v2,
     init_failed_responses_iso_v20,
@@ -65,7 +66,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         transport: Tuple[StreamReader, StreamWriter],
         session_handler_queue: asyncio.Queue,
         config: Config,
-        evse_controller,
+        evse_controller: EVSEControllerInterface,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -139,7 +140,9 @@ class CommunicationSessionHandler:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, config: Config, codec: IEXICodec, evse_controller):
+    def __init__(
+        self, config: Config, codec: IEXICodec, evse_controller: EVSEControllerInterface
+    ):
 
         self.list_of_tasks = []
         self.udp_server = None

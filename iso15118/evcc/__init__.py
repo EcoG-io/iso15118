@@ -1,19 +1,26 @@
 import logging
 from typing import Optional
-from iso15118.shared.logging import _init_logger
-from iso15118.shared.iexi_codec import IEXICodec
+
 from iso15118.evcc.comm_session_handler import CommunicationSessionHandler
+from iso15118.evcc.controller.interface import EVControllerInterface
 from iso15118.evcc.evcc_settings import Config
+from iso15118.shared.iexi_codec import IEXICodec
+from iso15118.shared.logging import _init_logger
 
 _init_logger()
 logger = logging.getLogger(__name__)
 
 
 class EVCCHandler(CommunicationSessionHandler):
-    def __init__(self, exi_codec: IEXICodec, env_path: Optional[str] = None):
+    def __init__(
+        self,
+        exi_codec: IEXICodec,
+        ev_controller: EVControllerInterface,
+        env_path: Optional[str] = None,
+    ):
         config = Config()
         config.load_envs(env_path)
-        CommunicationSessionHandler.__init__(self, config, exi_codec)
+        CommunicationSessionHandler.__init__(self, config, exi_codec, ev_controller)
 
     async def start(self):
         try:
