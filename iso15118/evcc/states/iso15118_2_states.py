@@ -48,10 +48,11 @@ from iso15118.shared.messages.iso15118_2.body import (
     CableCheckRes,
     PreChargeReq,
     PreChargeRes,
-    CurrentDemandRes,
+    CurrentDemandRes, WeldingDetectionReq,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
+    DCEVSEStatus,
     ChargeProgress,
     ChargeService,
     ChargingSession,
@@ -809,7 +810,7 @@ class PowerDelivery(StateEVCC):
         if not msg:
             return
 
-        if self.comm_session.charging_session_stop:
+        if self.comm_session.charging_session_stop and self.comm_session.selected_energy_mode.value.startswith("AC"):
             session_stop_req = SessionStopReq(
                 charging_session=self.comm_session.charging_session_stop
             )
@@ -817,6 +818,16 @@ class PowerDelivery(StateEVCC):
                 SessionStop,
                 session_stop_req,
                 Timeouts.SESSION_STOP_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+        elif self.comm_session.charging_session_stop:
+            welding_detection_req = WeldingDetectionReq(
+                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
+            )
+            self.create_next_message(
+                WeldingDetection,
+                welding_detection_req,
+                Timeouts.WELDING_DETECTION_REQ,
                 Namespace.ISO_V2_MSG_DEF,
             )
         elif self.comm_session.renegotiation_requested:
@@ -1217,23 +1228,63 @@ class CurrentDemand(StateEVCC):
             return
 
         current_demand_res: CurrentDemandRes = msg.body.current_demand_res
+        dc_evse_status: DCEVSEStatus = current_demand_res.dc_evse_status
 
-        ev_controller = self.comm_session.ev_controller
-        current_demand_req = CurrentDemandReq(
-            dc_ev_status=ev_controller.get_dc_ev_status(),
-            ev_target_current=ev_controller.get_ev_target_current(),
-            ev_max_current_limit=ev_controller.get_ev_max_current_limit(),
-            ev_max_power_limit=ev_controller.get_ev_max_power_limit(),
-            bulk_charging_complete=ev_controller.get_bulk_charging_complete(),
-            charging_complete=ev_controller.get_charging_complete(),
-            remaining_time_to_full_soc=ev_controller.get_remaining_time_to_full_soc(),
-            remaining_time_to_bulk_soc=ev_controller.get_remaining_time_to_bulk_soc(),
-            ev_target_voltage=ev_controller.get_ev_target_voltage(),
+        if dc_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
+            self.stop_charging()
+
+        else:
+            ev_controller = self.comm_session.ev_controller
+            current_demand_req = CurrentDemandReq(
+                dc_ev_status=ev_controller.get_dc_ev_status(),
+                ev_target_current=ev_controller.get_ev_target_current(),
+                ev_max_current_limit=ev_controller.get_ev_max_current_limit(),
+                ev_max_power_limit=ev_controller.get_ev_max_power_limit(),
+                bulk_charging_complete=ev_controller.get_bulk_charging_complete(),
+                charging_complete=ev_controller.get_charging_complete(),
+                remaining_time_to_full_soc=ev_controller.get_remaining_time_to_full_soc(),
+                remaining_time_to_bulk_soc=ev_controller.get_remaining_time_to_bulk_soc(),
+                ev_target_voltage=ev_controller.get_ev_target_voltage(),
+            )
+
+            self.create_next_message(
+                CurrentDemand,
+                current_demand_req,
+                Timeouts.POWER_DELIVERY_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+
+    def stop_charging(self):
+        power_delivery_req = PowerDeliveryReq(
+            charge_progress=ChargeProgress.STOP,
+            sa_schedule_tuple_id=self.comm_session.selected_schedule,
         )
-
         self.create_next_message(
-            CurrentDemand,
-            current_demand_req,
+            PowerDelivery,
+            power_delivery_req,
             Timeouts.POWER_DELIVERY_REQ,
             Namespace.ISO_V2_MSG_DEF,
         )
+        self.comm_session.charging_session_stop = ChargingSession.TERMINATE
+        logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
+
+
+class WeldingDetection(StateEVCC):
+    """
+    The ISO 15118-2 state in which the EVCC processes a
+    WeldingDetectionRes from the SECC.
+    """
+
+    def __init__(self, comm_session: EVCCCommunicationSession):
+        super().__init__(comm_session, Timeouts.WELDING_DETECTION_REQ)
+
+    def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+        ],
+    ):
+        raise NotImplementedError("WeldingDetection not yet implemented")
