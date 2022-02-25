@@ -262,3 +262,7 @@ class EVControllerInterface(ABC):
     @abstractmethod
     def get_remaining_time_to_bulk_soc(self) -> PVRemainingTimeToBulkSOC:
         raise NotImplementedError
+
+    @abstractmethod
+    def welding_detection_has_finished(self):
+        return True

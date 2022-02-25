@@ -59,7 +59,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupRes,
     SessionStopReq,
     SessionStopRes,
-    WeldingDetectionReq, CurrentDemandRes,
+    WeldingDetectionReq, CurrentDemandRes, WeldingDetectionRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
@@ -1047,6 +1047,7 @@ class PowerDelivery(StateSECC):
     3. a ChargingStatusReq (AC-Message)
     4. a SessionStopReq
     5. a CurrentDemandReq (DC-Message)
+    6. a WeldingDetectionReq (DC-Message)
 
     Upon first initialisation of this state, we expect a
     PowerDeliveryReq, but after that, the next possible request could
@@ -1085,6 +1086,7 @@ class PowerDelivery(StateSECC):
                 ChargingStatusReq,
                 SessionStopReq,
                 CurrentDemandReq,
+                WeldingDetectionReq,
             ],
             self.expecting_power_delivery_req,
         )
@@ -1105,6 +1107,10 @@ class PowerDelivery(StateSECC):
 
         if msg.body.current_demand_req:
             CurrentDemand(self.comm_session).process_message(message)
+            return
+
+        if msg.body.welding_detection_req:
+            WeldingDetection(self.comm_session).process_message(message)
             return
 
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
@@ -1158,9 +1164,11 @@ class PowerDelivery(StateSECC):
                 power_delivery_req.sa_schedule_tuple_id
             )
             self.comm_session.charge_progress_started = True
-        elif power_delivery_req.charge_progress == ChargeProgress.STOP:
+        elif power_delivery_req.charge_progress == ChargeProgress.STOP and is_charging_ac:
             self.comm_session.evse_controller.set_hlc_charging(False)
             next_state = SessionStop
+        elif power_delivery_req.charge_progress == ChargeProgress.STOP:
+            next_state = WeldingDetection
         else:
             # ChargeProgress only has three enum values: Start, Stop, and
             # Renegotiate. So this is the renegotiation case.
@@ -1702,6 +1710,7 @@ class WeldingDetection(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        self.expecting_welding_detection_req = True
 
     def process_message(
         self,
@@ -1712,7 +1721,40 @@ class WeldingDetection(StateSECC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("WeldingDetection not yet implemented")
+        msg = self.check_msg_v2(
+            message,
+            [
+                WeldingDetectionReq,
+                SessionStopReq,
+             ],
+            self.expecting_welding_detection_req,
+        )
+        if not msg:
+            return
+
+        if msg.body.session_stop_req:
+            SessionStop(self.comm_session).process_message(message)
+            return
+
+        welding_detection_res = WeldingDetectionRes(
+            # todo llr: java exi codec throws error with this message.
+            #  Exception Description: No conversion value provided for the value [OK] in field [ns5:WeldingDetectionRes.ns5:ResponseCode/text()].
+            response_code=ResponseCode.OK,
+            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
+            evse_present_voltage=self.comm_session.evse_controller.get_evse_present_voltage(),
+        )
+
+        next_state = None
+        self.create_next_message(
+            next_state,
+            welding_detection_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+        )
+
+        self.expecting_welding_detection_req = False
+
+
 
 
 def get_state_by_msg_type(message_type: Type[BodyBase]) -> Optional[Type[State]]:

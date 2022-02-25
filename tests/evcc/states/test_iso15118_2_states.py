@@ -1,4 +1,3 @@
-import copy
 from unittest.mock import Mock
 
 import pytest
@@ -24,6 +23,7 @@ def comm_session_mock():
     comm_session_mock.ev_controller = SimEVController()
     comm_session_mock.protocol = Protocol.UNKNOWN
     comm_session_mock.selected_schedule = 1
+    comm_session_mock.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
     return comm_session_mock
 
 
@@ -48,11 +48,12 @@ def test_current_demand_to_power_delivery__when__stopped_by_ev(comm_session_mock
     pass
 
 
-
 def test_power_delivery_to_welding_detection__when__charge_progress_is_stop(comm_session_mock):
     # V2G2-533
+    comm_session_mock.stop_reason = StopNotification(
+        True, "pytest"
+    )
     power_delivery = PowerDelivery(comm_session_mock)
     comm_session_mock.charging_session_stop = ChargingSession.TERMINATE
-    comm_session_mock.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
     power_delivery.process_message(message=get_v2g_message_power_delivery_res())
     assert power_delivery.next_state == WeldingDetection

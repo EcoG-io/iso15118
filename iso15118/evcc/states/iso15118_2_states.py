@@ -48,7 +48,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     CableCheckRes,
     PreChargeReq,
     PreChargeRes,
-    CurrentDemandRes, WeldingDetectionReq,
+    CurrentDemandRes, WeldingDetectionReq, WeldingDetectionRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
@@ -1233,7 +1233,7 @@ class CurrentDemand(StateEVCC):
         if dc_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
             self.stop_charging()
 
-        else:
+        elif self.comm_session.ev_controller.continue_charging():
             ev_controller = self.comm_session.ev_controller
             current_demand_req = CurrentDemandReq(
                 dc_ev_status=ev_controller.get_dc_ev_status(),
@@ -1253,6 +1253,8 @@ class CurrentDemand(StateEVCC):
                 Timeouts.POWER_DELIVERY_REQ,
                 Namespace.ISO_V2_MSG_DEF,
             )
+        else:
+            self.stop_charging()
 
     def stop_charging(self):
         power_delivery_req = PowerDeliveryReq(
@@ -1287,4 +1289,28 @@ class WeldingDetection(StateEVCC):
             V2GMessageV20,
         ],
     ):
-        raise NotImplementedError("WeldingDetection not yet implemented")
+        msg = self.check_msg_v2(message, WeldingDetectionRes)
+        if not msg:
+            return
+
+        if self.comm_session.ev_controller.welding_detection_has_finished():
+
+            session_stop_req = SessionStopReq(
+                charging_session=self.comm_session.charging_session_stop
+            )
+            self.create_next_message(
+                SessionStop,
+                session_stop_req,
+                Timeouts.SESSION_STOP_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+        else:
+            welding_detection_req = WeldingDetectionReq(
+                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
+            )
+            self.create_next_message(
+                WeldingDetection,
+                welding_detection_req,
+                Timeouts.WELDING_DETECTION_REQ,
+                Namespace.ISO_V2_MSG_DEF,
+            )

@@ -267,3 +267,6 @@ class SimEVController(EVControllerInterface):
         return PVRemainingTimeToBulkSOC(
             multiplier=0, value=80, unit="s"
         )
+
+    def welding_detection_has_finished(self):
+        return True
