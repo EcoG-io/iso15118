@@ -1123,9 +1123,11 @@ class CableCheck(StateEVCC):
         msg = self.check_msg_v2(message, CableCheckRes)
         if not msg:
             return
-        # todo llr: Timeout cablecheck 40s
+
         cable_check_res: CableCheckRes = msg.body.cable_check_res
         if cable_check_res.evse_processing == EVSEProcessing.FINISHED:
+            # Reset the Ongoing timer
+            self.comm_session.ongoing_timer = -1
             precharge_req = PreChargeReq(
                 dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
                 ev_target_voltage=self.comm_session.ev_controller.get_ev_target_voltage(),
@@ -1139,6 +1141,17 @@ class CableCheck(StateEVCC):
             )
         else:
             logger.debug("SECC is still precessing the CableCheck")
+            elapsed_time: float = 0
+            if self.comm_session.ongoing_timer >= 0:
+                elapsed_time = time() - self.comm_session.ongoing_timer
+                if elapsed_time > Timeouts.V2G_EVCC_CABLE_CHECK_TIMEOUT:
+                    self.stop_state_machine(
+                        "Ongoing timer timed out for CableCheck"
+                    )
+                    return
+            else:
+                self.comm_session.ongoing_timer = time()
+
             cable_check_req = CableCheckReq(
                 dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
             )
@@ -1176,9 +1189,9 @@ class PreCharge(StateEVCC):
 
         self.comm_session.ev_controller.set_present_voltage_evse(precharge_res.evse_present_voltage)
 
-        # todo llr: implement timer 7s
 
         if self.comm_session.ev_controller.is_precharged():
+            self.comm_session.ongoing_timer = -1
             power_delivery_req = PowerDeliveryReq(
                 charge_progress=ChargeProgress.START,
                 sa_schedule_tuple_id=self.comm_session.selected_schedule,
@@ -1192,10 +1205,22 @@ class PreCharge(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
         else:
+            logger.debug("EVSE is still precharging")
+            elapsed_time: float = 0
+            if self.comm_session.ongoing_timer >= 0:
+                elapsed_time = time() - self.comm_session.ongoing_timer
+                if elapsed_time > Timeouts.V2G_EVCC_PRE_CHARGE_TIMEOUT:
+                    self.stop_state_machine(
+                        "Timeout Precharge"
+                    )
+                    return
+            else:
+                self.comm_session.ongoing_timer = time()
+
             precharge_req = PreChargeReq(
                 dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
                 ev_target_voltage=self.comm_session.ev_controller.get_ev_target_voltage(),
-                ev_target_current=0,
+                ev_target_current=self.comm_session.ev_controller.get_ev_target_current(),
             )
             self.create_next_message(
                 PreCharge,

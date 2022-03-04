@@ -1535,8 +1535,6 @@ class CableCheck(StateSECC):
             else EVSEProcessing.ONGOING,
         )
 
-        # todo llr: Check timeout cablecheck
-
         self.create_next_message(
             next_state,
             cable_check_res,
