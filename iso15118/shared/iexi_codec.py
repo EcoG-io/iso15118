@@ -21,5 +21,5 @@ class IEXICodec(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def get_version(self, stream: bytes, namespace: str) -> str:
+    def get_version(self) -> str:
         pass

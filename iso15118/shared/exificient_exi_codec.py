@@ -26,7 +26,6 @@ class ExificientEXICodec(IEXICodec):
         )
 
         self.exi_codec = self.gateway.jvm.com.siemens.ct.exi.main.cmd.EXICodec()
-        logger.debug(f"EXICodec version: {self.exi_codec.get_version()}")
 
     def encode(self, message: str, namespace: str) -> bytes:
         """
