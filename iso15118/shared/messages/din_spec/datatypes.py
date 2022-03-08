@@ -611,7 +611,7 @@ class ParameterSet(BaseModel):
     """TODO: NO description found in spec"""
 
     parameter_set_id: int = Field(..., ge=0, le=65535, alias="ParameterSetID")
-    parameter: Parameter = Field(..., max_items=16, alias="Parameter")
+    parameter: List[Parameter] = Field(..., max_items=16, alias="Parameter")
 
 
 class ServiceParameterList(BaseModel):
