@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.secc.failed_responses import (
+    init_failed_responses_din_spec_70121,
     init_failed_responses_iso_v2,
     init_failed_responses_iso_v20,
 )
@@ -101,6 +102,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         self.contract_cert_chain: Optional[CertificateChainV2] = None
         # Initialise the failed possible responses per request message for a
         # faster lookup later when needed
+        self.failed_responses_din_spec = init_failed_responses_din_spec_70121()
         self.failed_responses_isov2 = init_failed_responses_iso_v2()
         self.failed_responses_isov20 = init_failed_responses_iso_v20()
         # self.failed_responses_isov20 = init_failed_responses_iso_v20()

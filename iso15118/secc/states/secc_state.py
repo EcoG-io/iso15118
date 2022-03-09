@@ -14,6 +14,13 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolRes,
 )
 from iso15118.shared.messages.enums import Namespace
+from iso15118.shared.messages.din_spec.body import BodyBase as BodyBaseDINSPEC
+from iso15118.shared.messages.din_spec.body import (
+    SessionSetupReq as SessionSetupReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import get_msg_type as get_msg_type_dinspec
+from iso15118.shared.messages.din_spec.datatypes import ResponseCode as ResponseCodeDINSPEC
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.body import BodyBase
 from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupReq as SessionSetupReqV2,
@@ -56,7 +63,7 @@ class StateSECC(State, ABC):
     # The response code can be set by various methods on which a State's
     # process_message() method might rely on, such as is_message_valid().
     # The default response code 'OK' can be overwritten as needed.
-    response_code: Union[ResponseCodeV2, ResponseCodeV20] = ResponseCodeV2.OK
+    response_code: Union[ResponseCodeDINSPEC, ResponseCodeV2, ResponseCodeV20] = ResponseCodeV2.OK
 
     def __init__(
         self, comm_session: "SECCCommunicationSession", timeout: Union[float, int] = 0
@@ -82,6 +89,22 @@ class StateSECC(State, ABC):
 
     T = TypeVar("T")
 
+    def check_msg_dinspec(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC
+        ],
+        expected_msg_types: List[
+            Union[Type[SupportedAppProtocolReq], Type[BodyBaseDINSPEC], Type[V2GRequest]]
+        ],
+        expect_first: bool = True,
+    ) -> V2GMessageDINSPEC:
+        return self.check_msg(message, V2GMessageDINSPEC, expected_msg_types, expect_first)
+
     def check_msg_v2(
         self,
         message: Union[
@@ -89,6 +112,7 @@ class StateSECC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
         expected_msg_types: List[
             Union[Type[SupportedAppProtocolReq], Type[BodyBase], Type[V2GRequest]]
@@ -104,6 +128,7 @@ class StateSECC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
         expected_msg_types: List[
             Union[Type[SupportedAppProtocolReq], Type[BodyBase], Type[V2GRequest]]
@@ -119,10 +144,11 @@ class StateSECC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
         expected_return_type: Type[T],
         expected_msg_types: List[
-            Union[Type[SupportedAppProtocolReq], Type[BodyBase], Type[V2GRequest]]
+            Union[Type[SupportedAppProtocolReq], Type[BodyBase], Type[V2GRequest], Type[BodyBaseDINSPEC]]
         ],
         expect_first: bool = True,
     ) -> Optional[T]:
@@ -137,10 +163,11 @@ class StateSECC(State, ABC):
             expected_return_type: A type indication as to which of the Union types of
                                   the first 'message' parameter we are expecting. This
                                   will either be of type SupportedAppProtocolReq,
-                                  V2GMessageV2 (ISO 15118-2), or V2GMessageV20
-                                  (ISO 15118-20). This helps to narrow down the return
-                                  type and to avoid lots of mypy errors (e.g. saying
-                                  "SupportedAppProtocolReq has not attribute 'body'")
+                                  V2GMessageV2 (ISO 15118-2), V2GMessageV20
+                                  (ISO 15118-20) or V2GMessageDINSPEC. This helps to narrow
+                                  down the return type and to avoid lots of mypy errors
+                                  (e.g. saying "SupportedAppProtocolReq has
+                                  no attribute 'body'")
             expected_msg_types: The expected request message type, in particular the
                                 message body
             expect_first: Whether or not only the first message type provided
@@ -165,7 +192,6 @@ class StateSECC(State, ABC):
             session's StopNotification and setting the next state to Terminate) and the
             last response message is prepared.
         """
-        # TODO Add support for DIN SPEC 70121
         if not isinstance(message, expected_return_type):
             self.stop_state_machine(
                 f"{type(message)}' not a valid message type " f"in state {str(self)}",
@@ -174,8 +200,8 @@ class StateSECC(State, ABC):
             )
             return None
 
-        msg_body: Union[SupportedAppProtocolReq, BodyBase, V2GRequest]
-        if isinstance(message, V2GMessageV2):
+        msg_body: Union[SupportedAppProtocolReq, BodyBase, V2GRequest, BodyBaseDINSPEC]
+        if isinstance(message, V2GMessageV2) or isinstance(message, V2GMessageDINSPEC):
             # ISO 15118-2
             msg_body = message.body.get_message()
         else:
@@ -209,7 +235,7 @@ class StateSECC(State, ABC):
             return None
 
         if (
-            not isinstance(msg_body, (SessionSetupReqV2, SessionSetupReqV20))
+            not isinstance(msg_body, (SessionSetupReqV2, SessionSetupReqV20, SessionSetupReqDINSPEC))
             and not isinstance(message, SupportedAppProtocolReq)
             and not message.header.session_id == self.comm_session.session_id
         ):
@@ -232,8 +258,9 @@ class StateSECC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
-        response_code: Union[ResponseCodeSAP, ResponseCodeV2, ResponseCodeV20],
+        response_code: Union[ResponseCodeSAP, ResponseCodeV2, ResponseCodeV20, ResponseCodeDINSPEC],
     ):
         """
         In case the processing of a message from the EVCC fails, the SECC needs
@@ -256,6 +283,11 @@ class StateSECC(State, ABC):
             error_res = self.comm_session.failed_responses_isov2.get(msg_type)
             error_res.response_code = response_code
             self.create_next_message(Terminate, error_res, 0, Namespace.ISO_V2_MSG_DEF)
+        elif isinstance(faulty_request, V2GMessageDINSPEC):
+            msg_type = get_msg_type_dinspec(str(faulty_request))
+            error_res = self.comm_session.failed_responses_din_spec.get(msg_type)
+            error_res.response_code = response_code
+            self.create_next_message(Terminate, error_res, 0, Namespace.DIN_MSG_DEF)
         elif isinstance(faulty_request, V2GRequest):
             error_res, namespace = self.comm_session.failed_responses_isov20.get(
                 type(faulty_request)

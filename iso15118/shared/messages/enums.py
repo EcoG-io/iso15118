@@ -143,6 +143,7 @@ class Protocol(Enum):
     UNKNOWN = ("", ISOV2PayloadTypes)
     DIN_SPEC_70121 = (Namespace.DIN_MSG_DEF, DINPayloadTypes)
     ISO_15118_2 = (Namespace.ISO_V2_MSG_DEF, ISOV2PayloadTypes)
+    ISO_15118_20_COMMON_MESSAGES = (Namespace.ISO_V20_COMMON_MSG, ISOV20PayloadTypes)
     ISO_15118_20_AC = (Namespace.ISO_V20_AC, ISOV20PayloadTypes)
     ISO_15118_20_DC = (Namespace.ISO_V20_DC, ISOV20PayloadTypes)
     ISO_15118_20_WPT = (Namespace.ISO_V20_WPT, ISOV20PayloadTypes)

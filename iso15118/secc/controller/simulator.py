@@ -49,7 +49,9 @@ class SimEVSEController(EVSEControllerInterface):
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
 
-    def get_evse_id(self) -> str:
+    def get_evse_id(self, protocol: Protocol) -> str:
+        if protocol ==  Protocol.DIN_SPEC_70121:
+            return "12341234"
         """Overrides EVSEControllerInterface.get_evse_id()."""
         return "UK123E1234"
 

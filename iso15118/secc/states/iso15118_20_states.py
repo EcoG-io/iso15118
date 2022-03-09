@@ -15,7 +15,8 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import AuthEnum, Namespace
+from iso15118.shared.messages.enums import AuthEnum, Namespace, Protocol
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
@@ -67,6 +68,7 @@ class SessionSetup(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(message, [SessionSetupReq])
@@ -96,7 +98,7 @@ class SessionSetup(StateSECC):
         session_setup_res = SessionSetupRes(
             header=MessageHeader(session_id=session_id, timestamp=time.time()),
             response_code=self.response_code,
-            evse_id=self.comm_session.evse_controller.get_evse_id(),
+            evse_id=self.comm_session.evse_controller.get_evse_id(Protocol.ISO_15118_20_COMMON_MESSAGES),
         )
 
         self.comm_session.evcc_id = session_setup_req.evcc_id
@@ -143,6 +145,7 @@ class AuthorizationSetup(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(
@@ -223,6 +226,7 @@ class CertificateInstallation(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("CertificateInstallation not yet implemented")
@@ -261,6 +265,7 @@ class Authorization(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(
@@ -352,6 +357,7 @@ class ServiceDiscovery(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("ServiceDiscovery not yet implemented")
@@ -373,6 +379,7 @@ class SessionStop(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("SessionStop not yet implemented")

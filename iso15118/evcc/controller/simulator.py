@@ -45,7 +45,7 @@ class SimEVController(EVControllerInterface):
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
 
-        if protocol in (Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121):
+        if protocol == Protocol.ISO_15118_2:
             try:
                 hex_str = get_nic_mac_address(iface)
                 return hex_str.replace(":", "").upper()
@@ -56,6 +56,8 @@ class SimEVController(EVControllerInterface):
                     "'000000000000'"
                 )
                 return "000000000000"
+        elif protocol == Protocol.DIN_SPEC_70121:
+            return "1234ABCD"
         elif protocol.ns.startswith(Namespace.ISO_V20_BASE):
             # The check digit (last character) is not a correctly computed one
             return "WMIV1234567890ABCDEX"

@@ -20,6 +20,11 @@ from iso15118.shared.messages.enums import (
     ISOV20PayloadTypes,
     Namespace,
 )
+from iso15118.shared.messages.din_spec.body import Body as BodyDINSPEC, BodyBase as BodyBaseDINSPEC
+from iso15118.shared.messages.din_spec.datatypes import FaultCode as FaultCodeDINSPEC,\
+    Notification as NotificationDINSPEC
+from iso15118.shared.messages.din_spec.header import MessageHeader as MessageHeaderDINSPEC
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.body import Body, BodyBase
 from iso15118.shared.messages.iso15118_2.datatypes import FaultCode, Notification
 from iso15118.shared.messages.iso15118_2.header import MessageHeader as MessageHeaderV2
@@ -85,14 +90,18 @@ class State(ABC):
         self.next_state: Optional[Type["State"]] = None
         # The optional signature in a V2GMessage's header
         self.next_msg_signature: Optional[Signature] = None
-        # The next message, which is either a SupportedAppProtocolReq,
-        # SupportedAppProtocolRes, a BodyBase instance of an ISO 15118-20 V2GMessage
+        # The next message, which is either a
+        # SupportedAppProtocolReq,
+        # SupportedAppProtocolRes,
+        # a BodyBase instance of an ISO 15118-20 V2GMessage,
+        # a BodyBase of DINSPEC V2G Message
         # or an instance of an ISO 15118-20 V2GMessage
         self.next_msg: Union[
             SupportedAppProtocolReq,
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
             None,
         ] = None
         # Each V2GMessage (and SupportedAppProtocolReq and -Res)
@@ -117,6 +126,7 @@ class State(ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         """
@@ -143,7 +153,7 @@ class State(ABC):
         self,
         next_state: Optional[Type["State"]],
         next_msg: Union[
-            SupportedAppProtocolReq, SupportedAppProtocolRes, BodyBase, V2GMessageV20
+            SupportedAppProtocolReq, SupportedAppProtocolRes, BodyBase, V2GMessageV20, BodyBaseDINSPEC
         ],
         next_msg_timeout: Union[float, int],
         namespace: Namespace,
@@ -217,9 +227,35 @@ class State(ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ]
-        # TODO add support for DIN SPEC 70121
-        if isinstance(next_msg, BodyBase):
+        if isinstance(next_msg, BodyBaseDINSPEC):
+            note: Union[NotificationDINSPEC, None] = None
+            if (
+                    self.comm_session.stop_reason
+                    and not self.comm_session.stop_reason.successful
+            ):
+                # The fault message must not be bigger than 64 characters according to
+                # the XSD data type description
+                if len(self.comm_session.stop_reason.reason) > 64:
+                    fault_msg = self.comm_session.stop_reason.reason[:62] + ".."
+                else:
+                    fault_msg = self.comm_session.stop_reason.reason
+                note = NotificationDINSPEC(
+                    fault_code=FaultCodeDINSPEC.PARSING_ERROR, fault_msg=fault_msg
+                )
+            header = MessageHeaderDINSPEC(
+                session_id=self.comm_session.session_id,
+                signature=signature,
+                notification=note,
+            )
+            body = BodyDINSPEC.parse_obj({str(next_msg): next_msg.dict()})
+            try:
+                to_be_exi_encoded = V2GMessageDINSPEC(header=header, body=body)
+            except ValidationError as exc:
+                logger.exception(exc)
+                raise exc
+        elif isinstance(next_msg, BodyBase):
             note: Union[Notification, None] = None
             if (
                 self.comm_session.stop_reason
@@ -305,6 +341,7 @@ class Terminate(State):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         pass
@@ -324,6 +361,7 @@ class Pause(State):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         pass

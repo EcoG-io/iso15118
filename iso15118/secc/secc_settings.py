@@ -72,7 +72,7 @@ class Config:
         # the protocols are listed here determines the priority (i.e. first list entry
         # has higher priority than second list entry). A list entry must be a member
         # of the Protocol enum
-        self.supported_protocols = [Protocol.ISO_15118_2, Protocol.ISO_15118_20_AC]
+        self.supported_protocols = [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2, Protocol.ISO_15118_20_AC]
 
         # Supported authentication options (named payment options in ISO 15118-2).
         # Note: SECC will not offer 'pnc' if chosen transport protocol is not TLS

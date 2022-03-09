@@ -25,7 +25,7 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import AuthEnum, Namespace
+from iso15118.shared.messages.enums import AuthEnum, Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
     AuthorizationReq,
@@ -84,6 +84,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ServiceParameterList,
     SubCertificates,
 )
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
@@ -131,6 +132,7 @@ class SessionSetup(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, [SessionSetupReq])
@@ -159,7 +161,7 @@ class SessionSetup(StateSECC):
 
         session_setup_res = SessionSetupRes(
             response_code=self.response_code,
-            evse_id=self.comm_session.evse_controller.get_evse_id(),
+            evse_id=self.comm_session.evse_controller.get_evse_id(Protocol.ISO_15118_2),
             evse_timestamp=time.time(),
         )
 
@@ -206,6 +208,7 @@ class ServiceDiscovery(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -349,6 +352,7 @@ class ServiceDetail(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -433,6 +437,7 @@ class PaymentServiceSelection(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -548,6 +553,7 @@ class CertificateInstallation(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, [CertificateInstallationReq])
@@ -716,6 +722,7 @@ class PaymentDetails(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, [PaymentDetailsReq])
@@ -825,6 +832,7 @@ class Authorization(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, [AuthorizationReq])
@@ -914,6 +922,7 @@ class ChargeParameterDiscovery(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -1062,6 +1071,7 @@ class PowerDelivery(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -1199,6 +1209,7 @@ class MeteringReceipt(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -1298,6 +1309,7 @@ class CableCheck(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("CableCheck not yet implemented")
@@ -1319,6 +1331,7 @@ class PreCharge(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("PreCharge not yet implemented")
@@ -1359,6 +1372,7 @@ class ChargingStatus(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -1381,7 +1395,7 @@ class ChargingStatus(StateSECC):
         # do, then set receipt_required to True and set the field meter_info
         charging_status_res = ChargingStatusRes(
             response_code=ResponseCode.OK,
-            evse_id=self.comm_session.evse_controller.get_evse_id(),
+            evse_id=self.comm_session.evse_controller.get_evse_id(Protocol.ISO_15118_2),
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             ac_evse_status=ACEVSEStatus(
                 notification_max_delay=0,
@@ -1441,6 +1455,7 @@ class CurrentDemand(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("CurrentDemand not yet implemented")
@@ -1462,6 +1477,7 @@ class WeldingDetection(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("WeldingDetection not yet implemented")
@@ -1483,6 +1499,7 @@ class SessionStop(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, [SessionStopReq])

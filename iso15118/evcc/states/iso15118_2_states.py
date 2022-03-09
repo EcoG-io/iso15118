@@ -59,6 +59,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ServiceCategory,
     ServiceID,
 )
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_2.timeouts import Timeouts
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -111,6 +112,7 @@ class SessionSetup(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, SessionSetupRes)
@@ -146,6 +148,7 @@ class ServiceDiscovery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, ServiceDiscoveryRes)
@@ -315,6 +318,7 @@ class ServiceDetail(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, ServiceDetailRes)
@@ -371,6 +375,7 @@ class PaymentServiceSelection(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, PaymentServiceSelectionRes)
@@ -471,6 +476,7 @@ class CertificateInstallation(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, CertificateInstallationRes)
@@ -573,6 +579,7 @@ class PaymentDetails(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, PaymentDetailsRes)
@@ -626,6 +633,7 @@ class Authorization(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, AuthorizationRes)
@@ -692,6 +700,7 @@ class ChargeParameterDiscovery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, ChargeParameterDiscoveryRes)
@@ -785,6 +794,7 @@ class PowerDelivery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, PowerDeliveryRes)
@@ -854,6 +864,7 @@ class ChargingStatus(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, ChargingStatusRes)
@@ -957,6 +968,7 @@ class CurrentDemand(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
 
@@ -979,6 +991,7 @@ class MeteringReceipt(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, MeteringReceiptRes)
@@ -1052,6 +1065,7 @@ class SessionStop(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC
         ],
     ):
         msg = self.check_msg_v2(message, SessionStopRes)
