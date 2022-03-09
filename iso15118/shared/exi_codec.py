@@ -15,6 +15,7 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolRes,
 )
 from iso15118.shared.messages.enums import Namespace
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq as AuthorizationReqV20,
@@ -191,8 +192,7 @@ class EXI:
                 # str(message) would not be 'OEMProvisioningCertificateChain' but
                 # 'SignedCertificateChain' (the type of OEMProvisioningCertificateChain)
                 message_dict = {"OEMProvisioningCertificateChain": msg_to_dct}
-            elif isinstance(msg_element, V2GMessageV2):
-                # TODO Add support for DIN SPEC 70121
+            elif isinstance(msg_element, V2GMessageV2) or isinstance(msg_element, V2GMessageDINSPEC):
                 message_dict = {"V2G_Message": msg_to_dct}
             else:
                 message_dict = {str(msg_element): msg_to_dct}
@@ -229,7 +229,7 @@ class EXI:
     def from_exi(
         self, exi_message: bytes, namespace: str
     ) -> Union[
-        SupportedAppProtocolReq, SupportedAppProtocolRes, V2GMessageV2, V2GMessageV20
+        SupportedAppProtocolReq, SupportedAppProtocolRes, V2GMessageV2, V2GMessageV20, V2GMessageDINSPEC
     ]:
         """
         Decodes the EXI encoded bytearray into a message according to the payload
@@ -246,7 +246,7 @@ class EXI:
         if MESSAGE_LOG_EXI:
             logger.debug(
                 f"EXI-encoded message: \n{exi_message.hex()}"
-                f"\n XSD namespace: {namespace}"
+                f"\nXSD namespace: {namespace}"
             )
             logger.debug(
                 "EXI-encoded message (Base64):"
@@ -283,6 +283,9 @@ class EXI:
                     decoded_dict["supportedAppProtocolRes"]
                 )
 
+            if namespace == Namespace.DIN_MSG_DEF:
+                return V2GMessageDINSPEC.parse_obj(decoded_dict["V2G_Message"])
+
             if namespace == Namespace.ISO_V2_MSG_DEF:
                 return V2GMessageV2.parse_obj(decoded_dict["V2G_Message"])
 
@@ -314,8 +317,6 @@ class EXI:
                     raise EXIDecodingError(f"Unable to decode {msg_name}")
 
                 return msg_class.parse_obj(msg_dict)
-
-            # TODO Add support for DIN SPEC 70121
 
             raise EXIDecodingError("Can't identify protocol to use for decoding")
         except ValidationError as exc:
