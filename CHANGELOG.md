@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2022-03-13
+
+### Changed
+
+- downgraded cryptography version @tropxy in https://github.com/SwitchEV/iso15118/pull/23
+
+
 ## [0.2.0] - 2022-02-22
 
 ### Changed
