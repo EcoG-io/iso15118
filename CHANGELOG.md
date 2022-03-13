@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- fixed get_version arguments and version extraction by @tropxy in https://github.com/SwitchEV/iso15118/pull/22
 - downgraded cryptography version @tropxy in https://github.com/SwitchEV/iso15118/pull/23
-
 
 ## [0.2.0] - 2022-02-22
 
