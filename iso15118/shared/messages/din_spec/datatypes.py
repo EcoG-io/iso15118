@@ -21,7 +21,7 @@ from iso15118.shared.messages.enums import (
     INT_8_MIN,
     INT_16_MAX,
     INT_16_MIN,
-    UINT_32_MAX
+    UINT_32_MAX,
 )
 
 from iso15118.shared.validators import one_field_must_be_set
@@ -60,11 +60,17 @@ class EnergyTransferModeEnum(str, Enum):
     DC_EXTENDED = "DC_extended"
     DC_COMBO_CORE = "DC_combo_core"  # NOT USED IN THE SCOPE OF DIN SPEC 70121
     DC_DUEL = "DC_duel"  # NOT USED IN THE SCOPE OF DIN SPEC 70121
-    AC_CORE1P_DC_EXTENDED = "AC_core1p_DC_extended"  # NOT USED IN THE SCOPE OF DIN SPEC 70121
+    AC_CORE1P_DC_EXTENDED = (
+        "AC_core1p_DC_extended"  # NOT USED IN THE SCOPE OF DIN SPEC 70121
+    )
     AC_SINGLE_DC_CORE = "AC_single_DC_core"  # NOT USED IN THE SCOPE OF DIN SPEC 70121
-    AC_SINGLE_PHASE_THREE_PHRASE_CORE_DC_EXTENDED = "AC_single_phase_three_ph ase_core_DC_extended"  # NOT USED IN
+    AC_SINGLE_PHASE_THREE_PHRASE_CORE_DC_EXTENDED = (
+        "AC_single_phase_three_ph ase_core_DC_extended"  # NOT USED IN
+    )
     # THE SCOPE OF DIN SPEC 70121
-    AC_CORE3P_DC_EXTENDED = "AC_core3p_DC_extended"  # NOT USED IN THE SCOPE OF DIN SPEC 70121
+    AC_CORE3P_DC_EXTENDED = (
+        "AC_core3p_DC_extended"  # NOT USED IN THE SCOPE OF DIN SPEC 70121
+    )
 
 
 class EnergyTransferModeList(BaseModel):
@@ -98,7 +104,10 @@ class ServiceCategory(str, Enum):
 
 
 class ServiceName(str, Enum):
-    """See section 8.6.3.6, Table 105 in ISO 15118-2"""
+    """
+    In the scope of DIN SPEC 70121, the optional element “ServiceName”
+    shall not be used.
+    """
 
     CHARGING = "AC_DC_Charging"
     CERTIFICATE = "Certificate"
@@ -107,19 +116,25 @@ class ServiceName(str, Enum):
 
 
 class ServiceDetails(BaseModel):
-    """See section 8.5.2.1 in ISO 15118-2"""
+    """
+    See section 9.5.2.1 in DIN SPEC 70121
+    [V2G-DC-628] In the scope of DIN SPEC 70121, the optional
+    element “ServiceName” shall not be used.
+    [V2G-DC-629] In the scope of DIN SPEC 70121, the optional
+    element “ServiceScope” shall not be used.
+    """
 
     # XSD type unsignedShort (16 bit integer) with value range [0..65535]
     service_id: ServiceID = Field(..., ge=0, le=65535, alias="ServiceID")
     service_name: ServiceName = Field(None, max_length=32, alias="ServiceName")
     service_category: ServiceCategory = Field(..., alias="ServiceCategory")
     service_scope: str = Field(None, max_length=64, alias="ServiceScope")
-    free_service: bool = Field(..., alias="FreeService")
 
 
-class ChargeService(ServiceDetails):
+class ChargeService(BaseModel):
     """See section 9.5.2.3 in DIN SPEC 70121"""
 
+    service_tag: ServiceDetails = Field(..., alias="ServiceTag")
     free_service: bool = Field(..., alias="FreeService")
     energy_transfer_type: EnergyTransferModeEnum = Field(
         ..., alias="EnergyTransferType"
@@ -132,28 +147,6 @@ class PaymentOptionType(BaseModel):
 
 class ContractID(BaseModel):
     contract_id: str = Field(..., max_length=24, alias="ContractID")
-
-
-class SubCertificates(BaseModel):
-    """See sections 8.5.2.5 and 8.5.2.26 in ISO 15118-2
-
-    According to the schemas, SubCertificates can contain up to 4 certificates.
-    However, according to requirement [V2G2-656]:
-     `The number of Certificates in the SubCertificates shall not exceed 2`
-    So, we set it here to 2, the max number of certificates allowed.
-    """
-
-    certificates: List[Certificate] = Field(..., max_items=2, alias="Certificate")
-
-
-class CertificateChain(BaseModel):
-    """See section 8.5.2.5 in ISO 15118-2"""
-
-    certificate: Certificate = Field(..., alias="Certificate")
-    sub_certificates: SubCertificates = Field(None, alias="SubCertificates")
-
-    def __str__(self):
-        return type(self).__name__
 
 
 class PhysicalValue(BaseModel):
@@ -383,15 +376,6 @@ class DCEVErrorCode(str, Enum):
     NO_DATA = "NoData"
 
 
-class DCEVStatus(BaseModel):
-    """See section 8.5.4.2 in ISO 15118-2"""
-
-    ev_ready: bool = Field(..., alias="EVReady")
-    ev_error_code: DCEVErrorCode = Field(..., alias="EVErrorCode")
-    # XSD type byte with value range [0..100]
-    ev_ress_soc: int = Field(..., ge=0, le=100, alias="EVRESSSOC")
-
-
 class PVEVSEMaxCurrent(PhysicalValue):
     """See section 9.5.2.4 in DIN SPEC 70121"""
 
@@ -437,31 +421,13 @@ class EVChargeParameter(BaseModel):
 
 class ACEVChargeParameter(EVChargeParameter):
     """See section 8.5.3.2 in ISO 15118-2"""
+
     # XSD type unsignedInt (32-bit unsigned integer) with value range
     departure_time: int = Field(None, ge=0, le=UINT_32_MAX, alias="DepartureTime")
     e_amount: PVEAmount = Field(..., alias="EAmount")
     ev_max_voltage: PVEVMaxVoltage = Field(..., alias="EVMaxVoltage")
     ev_max_current: PVEVMaxCurrent = Field(..., alias="EVMaxCurrent")
     ev_min_current: PVEVMinCurrent = Field(..., alias="EVMinCurrent")
-
-
-class DCEVChargeParameter(EVChargeParameter):
-    """See section 8.5.4.3 in ISO 15118-2"""
-
-    dc_ev_status: DCEVStatus = Field(..., alias="DC_EVStatus")
-    ev_maximum_current_limit: PVEVMaxCurrentLimit = Field(
-        ..., alias="EVMaximumCurrentLimit"
-    )
-    ev_maximum_power_limit: PVEVMaxPowerLimit = Field(None, alias="EVMaximumPowerLimit")
-    ev_maximum_voltage_limit: PVEVMaxVoltageLimit = Field(
-        ..., alias="EVMaximumVoltageLimit"
-    )
-    ev_energy_capacity: PVEVEnergyCapacity = Field(None, alias="EVEnergyCapacity")
-    ev_energy_request: PVEVEnergyRequest = Field(None, alias="EVEnergyRequest")
-    # XSD type byte with value range [0..100]
-    full_soc: int = Field(None, ge=0, le=100, alias="FullSOC")
-    # XSD type byte with value range [0..100]
-    bulk_soc: int = Field(None, ge=0, le=100, alias="BulkSOC")
 
 
 class PVPMax(PhysicalValue):
@@ -812,6 +778,7 @@ class ProfileEntryDetails(BaseModel):
 
 class ChargingProfile(BaseModel):
     """See section 9.5.2.6 in DIN SPEC 70121"""
+
     sa_schedule_tuple_id: int = Field(..., ge=0, le=65535, alias="SAScheduleTupleID")
     profile_entries: List[ProfileEntryDetails] = Field(
         ..., max_items=24, alias="ProfileEntry"
@@ -855,9 +822,12 @@ class DCEVSEStatus(EVSEStatus):
 
 class DCEVStatus(BaseModel):
     """See Table 69 in section 9.5.3.2 in DIN SPEC 70121"""
-    """For DC charging according to DINSPEC 70121, the elements EVReady, EVCabinConditioning, 
-    and EVRESSConiditioning shall not affect the charging session. However, they may be used for customer 
-    information. """
+
+    """
+    For DC charging according to DINSPEC 70121, the elements EVReady,
+    EVCabinConditioning and EVRESSConiditioning shall not affect the charging session.
+    However, they may be used for customer information.
+    """
     ev_ready: bool = Field(..., alias="EVReady")
     ev_cabin_conditioning: bool = Field(None, alias="EVCabinConditioning")
     ev_ress_conditioning: bool = Field(None, alias="EVRESSConditioning")
@@ -873,10 +843,14 @@ class DCEVChargeParameter(EVChargeParameter):
     ev_maximum_current_limit: PVEVMaxCurrentLimit = Field(
         ..., alias="EVMaximumCurrentLimit"
     )
-    """In the scope of DIN SPEC 70121, if the element “EVMaximumPowerLimit” is contained the message 
-    ChargeParameterDiscoveryReq, it shall represent the maximum power that the EV will request (by means of 
-    CurrentDemandReq) at any time during the charging process. If the element “EVMaximumPowerLimit” is contained in 
-    the message ChargeParameterDiscoveryReq, this allows the EVSE to compute suitable PMaxSchedules. """
+    """
+    In the scope of DIN SPEC 70121, if the element “EVMaximumPowerLimit”
+    is contained the message ChargeParameterDiscoveryReq, it shall represent
+    the maximum power that the EV will request (by means of CurrentDemandReq)
+    at any time during the charging process. If the element “EVMaximumPowerLimit”
+    is contained in the message ChargeParameterDiscoveryReq, this allows the
+    EVSE to compute suitable PMaxSchedules.
+     """
     ev_maximum_power_limit: PVEVMaxPowerLimit = Field(None, alias="EVMaximumPowerLimit")
     ev_maximum_voltage_limit: PVEVMaxVoltageLimit = Field(
         ..., alias="EVMaximumVoltageLimit"
@@ -932,7 +906,7 @@ class PaymentOption(str, Enum):
     EXTERNAL_PAYMENT = "ExternalPayment"
 
 
-class PaymentOptionsList(BaseModel):
+class AuthOptionList(BaseModel):
     """
     See section 9.5.2.5 in DIN SPEC 70121
     For DIN SPEC, this list will only contain one item - External Payment
@@ -1011,5 +985,3 @@ class ResponseCode(str, Enum):
     FAILED_EVSE_PRESENT_VOLATE_TO_LOW = "FAILED_EVSEPresentVoltageToLow"
     FAILED_METERING_SIGNATURE_NOT_VALID = "FAILED_MeteringSignatureNotValid"
     FAILED_WRONG_ENERGY_TRANSFER_MODE = "FAILED_WrongEnergyTransferMode"
-
-

@@ -1,17 +1,17 @@
-
 import logging
 from abc import ABC
 from typing import Optional, Tuple, Type
+
+from iso15118.shared.messages.enums import AuthEnum
 from pydantic import Field, root_validator, validator
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.din_spec.datatypes import (
     ACEVChargeParameter,
     ACEVSEChargeParameter,
     ACEVSEStatus,
+    AuthOptionList,
     ChargeService,
     ChargingProfile,
-    ContractID,
-    CertificateChain,
     DCEVChargeParameter,
     DCEVSEStatus,
     DCEVStatus,
@@ -19,15 +19,11 @@ from iso15118.shared.messages.din_spec.datatypes import (
     DCEVSEChargeParameter,
     EnergyTransferModeEnum,
     EVSEProcessing,
-    MeterInfo,
     ResponseCode,
-    PaymentOptionType,
-    PaymentOptionsList,
     PVEVSEPresentCurrent,
     PVEVSEPresentVoltage,
     PVEVMaxCurrentLimit,
     PVEVSEMaxVoltageLimit,
-    PVEVSEMaxCurrent,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
     PVEVMaxPowerLimit,
@@ -39,8 +35,7 @@ from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleList,
     SelectedServiceList,
     ServiceCategory,
-    ServiceParameterList,
-    ServiceList
+    ServiceList,
 )
 from iso15118.shared.validators import one_field_must_be_set
 
@@ -70,6 +65,7 @@ class Response(BodyBase, ABC):
 
 class SessionSetupReq(BodyBase):
     """See section 9.4.1.2.2 in DIN SPEC 70121"""
+
     """Refer Table 29 under section 9.4.1.2.2"""
     # XSD type hexBinary with max 6 bytes
     evcc_id: str = Field(..., max_length=8, alias="EVCCID")
@@ -97,57 +93,48 @@ class SessionSetupReq(BodyBase):
 
 
 class SessionSetupRes(Response):
-    """See section 9.4.1.2.3 in DIN SPEC 70121"""
-    """The SECC and the EVCC shall use the format for EVSEID as defined in DIN SPEC 91286."""
+    """
+    See section 9.4.1.2.3 in DIN SPEC 70121
+    The SECC and the EVCC shall use the format for EVSEID as defined
+    in DIN SPEC 91286.
+    """
 
     evse_id: str = Field(..., max_length=32, alias="EVSEID")
     datetime_now: int = Field(None, alias="DateTimeNow")
 
 
 class ServiceDiscoveryReq(BodyBase):
-    """See section 9.4.1.3.2 in DIN SPEC 70121"""
-    """ 
-        In the scope of DIN SPEC 70121, the optional element ServiceScope shall NOT be used.
-        Add this here for the sake of completion.
-        In the scope of DIN SPEC 70121, if the optional element ServiceCategory is used,
-        it shall always contain the value "EVCharging"
     """
+    See section 9.4.1.3.2 in DIN SPEC 70121
+    In the scope of DIN SPEC 70121, the optional element ServiceScope shall NOT be used.
+    In the scope of DIN SPEC 70121, if the optional element ServiceCategory is used,
+    it shall always contain the value "EVCharging"
+    """
+
     service_scope: str = Field(None, max_length=32, alias="ServiceScope")
     service_category: ServiceCategory = Field(None, alias="ServiceCategory")
 
 
 class ServiceDiscoveryRes(Response):
-    """See section 9.4.1.3.3 in DIN SPEC 70121"""
-    """In the scope of DIN SPEC 70121, the element “ServiceList” shall not be used."""
-    """In the scope of DIN SPEC 70121, only the PaymentOption “ExternalPayment” shall be used."""
-    auth_option_list: PaymentOptionsList = Field(..., alias="PaymentOptions")
+    """See section 9.4.1.3.3 in DIN SPEC 70121
+    In the scope of DIN SPEC 70121, the element “ServiceList” shall not be used.
+    In the scope of DIN SPEC 70121, only the PaymentOption “ExternalPayment”
+    shall be used.
+    """
+
+    auth_option_list: AuthOptionList = Field(..., alias="PaymentOptions")
     charge_service: ChargeService = Field(..., alias="ChargeService")
     service_list: ServiceList = Field(None, alias="ServiceList")
 
 
-class ServiceDetailReq(BodyBase):
-    """TODO: NO DESCRIPTION FOUND IN SPEC"""
-
-    # XSD type unsignedShort (16 bit integer) with value range [0..65535]
-    service_id: int = Field(..., ge=0, le=65535, alias="ServiceID")
-
-
-class ServiceDetailRes(Response):
-    """TODO: NO DESCRIPTION FOUND IN SPEC"""
-
-    # XSD type unsignedShort (16 bit integer) with value range [0..65535]
-    service_id: int = Field(..., ge=0, le=65535, alias="ServiceID")
-    service_parameter_list: ServiceParameterList = Field(
-        None, alias="ServiceParameterList"
-    )
-
-
 class ServicePaymentSelectionReq(BodyBase):
-    """See section 9.4.1.4.2 in DIN SPEC 70121"""
     """
-    [V2G-DC-252] Only the PaymentOption “ExternalPayment” shall be used, since detailed payment options are not defined.
+    See section 9.4.1.4.2 in DIN SPEC 70121
+    [V2G-DC-252] Only the PaymentOption “ExternalPayment” shall be used,
+    since detailed payment options are not defined.
     """
-    selected_payment_option: PaymentOptionType = Field(..., alias="SelectedPaymentOption")
+
+    selected_payment_option: AuthEnum = Field(..., alias="SelectedPaymentOption")
     selected_service_list: SelectedServiceList = Field(..., alias="SelectedServiceList")
 
 
@@ -155,18 +142,9 @@ class ServicePaymentSelectionRes(Response):
     """See section 9.4.1.4.3 in DIN SPEC 70121"""
 
 
-class PaymentDetailsReq(BodyBase):
-    """TODO: NO DESCRIPTION FOUND IN SPEC BUT PRESENT IN SCHEMA"""
-    contract_id: ContractID = Field(..., alias="ContractID")
-    contract_signature_cert_chain: CertificateChain = Field(..., alias="ContractSignatureCertChain")
-
-
-class PaymentDetailsRes(Response):
-    """TODO: NO DESCRIPTION FOUND IN SPEC BUT PRESENT IN SCHEMA"""
-
-
 class ContractAuthenticationReq(BodyBase):
     """See section 9.4.1.5.1 in DIN SPEC 70121"""
+
     # In the scope of DIN SPEC 70121, the element “GenChallenge” shall not be used.
     # In the scope of DIN SPEC 70121, the element “Id” shall not be used.
     gen_challenge: str = Field(None, alias="GenChallenge")
@@ -174,27 +152,38 @@ class ContractAuthenticationReq(BodyBase):
 
 
 class ContractAuthenticationRes(Response):
-    """See section 9.4.1.5.2 in DIN SPEC 70121"""
-    """Parameter indicating that the EVSE has finished the processing that was initiated after the 
-    ContractAuthenticationReq or that the EVSE is still processing at the time the response message was sent. """
+    """
+    See section 9.4.1.5.2 in DIN SPEC 70121
+    Parameter indicating that the EVSE has finished the processing
+    that was initiated after the ContractAuthenticationReq or that
+    the EVSE is still processing at the time the response message was sent.
+    """
+
     evse_processing: EVSEProcessing = Field(None, alias="EVSEProcessing")
 
 
 class ChargeParameterDiscoveryReq(BodyBase):
-    """See section 9.4.1.6.2 in DIN SPEC 70121"""
-    """In the scope of DIN SPEC 70121, the EVCC shall not transmit other values than “DC_extended” and “DC_core” in 
-    EVRequestedEnergyTransferType. """
-    requested_energy_mode: EnergyTransferModeEnum = Field(
-        ..., alias="RequestedEnergyTransferMode"
-    )
+    """
+    See section 9.4.1.6.2 in DIN SPEC 70121
+    In the scope of DIN SPEC 70121, the EVCC shall not transmit other values
+    than “DC_extended” and “DC_core” in EVRequestedEnergyTransferType.
+    """
 
-    """In the scope of DIN SPEC 70121, the element “AC_EVChargeParameter” shall not be used."""
+    requested_energy_mode: EnergyTransferModeEnum = Field(
+        ..., alias="EVRequestedEnergyTransferType"
+    )
+    """
+    In the scope of DIN SPEC 70121, the element “AC_EVChargeParameter”
+    shall not be used.
+    """
     ac_ev_charge_parameter: ACEVChargeParameter = Field(
         None, alias="AC_EVChargeParameter"
     )
-
-    """In the scope of DIN SPEC 70121, the EVSE shall provide its maximum output power limit in the element 
-    “EVSEMaximumPowerLimit” of “DC_EVSEChargeParameter”. """
+    """
+    In the scope of DIN SPEC 70121, the EVSE shall provide its
+    maximum output power limit in the element “EVSEMaximumPowerLimit”
+    of “DC_EVSEChargeParameter”.
+    """
     dc_ev_charge_parameter: DCEVChargeParameter = Field(
         None, alias="DC_EVChargeParameter"
     )
@@ -210,12 +199,12 @@ class ChargeParameterDiscoveryReq(BodyBase):
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
         if one_field_must_be_set(
-                [
-                    "dc_ev_charge_parameter",
-                    "DC_EVChargeParameter",
-                ],
-                values,
-                True,
+            [
+                "dc_ev_charge_parameter",
+                "DC_EVChargeParameter",
+            ],
+            values,
+            True,
         ):
             return values
 
@@ -246,7 +235,7 @@ class ChargeParameterDiscoveryReq(BodyBase):
                 f"Wrong energy transfer mode transfer mode {requested_energy_mode}"
             )
         if ("AC_" in requested_energy_mode and dc_params) or (
-                "DC_" in requested_energy_mode and ac_params
+            "DC_" in requested_energy_mode and ac_params
         ):
             raise ValueError(
                 "Wrong charge parameters for requested energy "
@@ -257,10 +246,12 @@ class ChargeParameterDiscoveryReq(BodyBase):
 
 class ChargeParameterDiscoveryRes(Response):
     """See section 9.4.1.6.3 in DIN SPEC 70121"""
+
     evse_processing: EVSEProcessing = Field(..., alias="EVSEProcessing")
     sa_schedule_list: SAScheduleList = Field(None, alias="SAScheduleList")
     """
-    In the scope of DIN SPEC 70121, the element “AC_EVSEChargeParameter” shall not be used.
+    In the scope of DIN SPEC 70121, the element “AC_EVSEChargeParameter”
+    shall not be used.
     """
     ac_charge_parameter: ACEVSEChargeParameter = Field(
         None, alias="AC_EVSEChargeParameter"
@@ -314,6 +305,7 @@ class ChargeParameterDiscoveryRes(Response):
 
 class PowerDeliveryReq(BodyBase):
     """See section 9.4.1.7.2 in DIN SPEC 70121"""
+
     ready_to_charge: bool = Field(..., alias="ReadyToChargeState")
     charging_profile: ChargingProfile = Field(None, alias="ChargingProfile")
     dc_ev_power_delivery_parameter: DCEVPowerDeliveryParameter = Field(
@@ -323,6 +315,7 @@ class PowerDeliveryReq(BodyBase):
 
 class PowerDeliveryRes(Response):
     """See section 9.4.1.7.3 in DIN SPEC 70121"""
+
     """ In the scope of DIN SPEC 70121, AC_EVSEStatus shall not be used. """
     ac_evse_status: ACEVSEStatus = Field(None, alias="AC_EVSEStatus")
     dc_evse_status: DCEVSEStatus = Field(..., alias="DC_EVSEStatus")
@@ -349,24 +342,6 @@ class PowerDeliveryRes(Response):
     #         return values
 
 
-class ChargingStatusReq(BodyBase):
-    """TODO: NO DESCRIPTION FOUND IN SPEC"""
-
-
-class ChargingStatusRes(Response):
-    """TODO: NO DESCRIPTION FOUND IN SPEC"""
-    """TODO: AS AC_EVSE_STATUS IS NOT SET AS OPTIONAL IN THE SPEC, 
-        MAYBE CHARGINGSTATUSREQ/RES MESSAGES ARE NOT USED IN DIN SPEC"""
-
-    evse_id: str = Field(..., min_length=7, max_length=37, alias="EVSEID")
-    # XSD type unsignedByte with value range [1..255]
-    sa_schedule_tuple_id: int = Field(..., ge=1, le=255, alias="SAScheduleTupleID")
-    evse_max_current: PVEVSEMaxCurrent = Field(None, alias="EVSEMaxCurrent")
-    meter_info: MeterInfo = Field(None, alias="MeterInfo")
-    receipt_required: bool = Field(..., alias="ReceiptRequired")
-    ac_evse_status: ACEVSEStatus = Field(..., alias="AC_EVSEStatus")
-
-
 class CableCheckReq(BodyBase):
     """See section 9.4.2.2.2 in DIN SPEC 70121"""
 
@@ -380,17 +355,17 @@ class CableCheckRes(Response):
     evse_processing: EVSEProcessing = Field(..., alias="EVSEProcessing")
 
 
-"""
-With the Pre Charging Request the EV asks the EVSE to apply certain values for output voltage and output current. 
-Since the contactors of the EV are open during Pre Charging, the actual current flow from the EVSE to the EV will be 
-very small, i. e. in most cases smaller than the requested output current. The EV may use several Pre Charging 
-Request/Response message pairs in order to precisely adjust the EVSE output voltage to the EV RESS voltage measured 
-inside the EV.
-"""
-
-
 class PreChargeReq(BodyBase):
-    """See section 9.4.2.3.2 in DIN SPEC 70121"""
+    """
+    See section 9.4.2.3.2 in DIN SPEC 70121
+    With the Pre Charging Request the EV asks the EVSE to apply certain values
+     for output voltage and output current. Since the contactors of the EV are
+    open during Pre Charging, the actual current flow from the EVSE to the EV
+    will be very small, i. e. in most cases smaller than the requested output
+    current. The EV may use several Pre Charging Request/Response message pairs
+    in order to precisely adjust the EVSE output voltage to the EV RESS voltage
+    measured inside the EV.
+    """
 
     dc_ev_status: DCEVStatus = Field(..., alias="DC_EVStatus")
     ev_target_voltage: PVEVTargetVoltage = Field(..., alias="EVTargetVoltage")
@@ -406,6 +381,7 @@ class PreChargeRes(Response):
 
 class CurrentDemandReq(BodyBase):
     """See section 9.4.2.4.2 in DIN SPEC 70121"""
+
     dc_ev_status: DCEVStatus = Field(..., alias="DC_EVStatus")
     ev_target_current: PVEVTargetCurrent = Field(..., alias="EVTargetCurrent")
     ev_max_voltage_limit: PVEVMaxVoltageLimit = Field(
@@ -484,16 +460,18 @@ class Body(BaseModel):
     service_discovery_res: ServiceDiscoveryRes = Field(
         None, alias="ServiceDiscoveryRes"
     )
-    service_detail_req: ServiceDetailReq = Field(None, alias="ServiceDetailReq")
-    service_detail_res: ServiceDetailRes = Field(None, alias="ServiceDetailRes")
     service_payment_selection_req: ServicePaymentSelectionReq = Field(
-        None, alias="ServicePaymentSelectionReq")
+        None, alias="ServicePaymentSelectionReq"
+    )
     service_payment_selection_res: ServicePaymentSelectionRes = Field(
-        None, alias="ServicePaymentSelectionRes")
+        None, alias="ServicePaymentSelectionRes"
+    )
     contract_authentication_req: ContractAuthenticationReq = Field(
-        None, alias="ContractAuthenticationReq")
+        None, alias="ContractAuthenticationReq"
+    )
     contract_authentication_res: ContractAuthenticationRes = Field(
-        None, alias="ContractAuthenticationRes")
+        None, alias="ContractAuthenticationRes"
+    )
     charge_parameter_discovery_req: ChargeParameterDiscoveryReq = Field(
         None, alias="ChargeParameterDiscoveryReq"
     )
@@ -502,8 +480,6 @@ class Body(BaseModel):
     )
     power_delivery_req: PowerDeliveryReq = Field(None, alias="PowerDeliveryReq")
     power_delivery_res: PowerDeliveryRes = Field(None, alias="PowerDeliveryRes")
-    charging_status_req: ChargingStatusReq = Field(None, alias="ChargingStatusReq")
-    charging_status_res: ChargingStatusRes = Field(None, alias="ChargingStatusRes")
     cable_check_req: CableCheckReq = Field(None, alias="CableCheckReq")
     cable_check_res: CableCheckRes = Field(None, alias="CableCheckRes")
     pre_charge_req: PreChargeReq = Field(None, alias="PreChargeReq")
@@ -559,12 +535,10 @@ def get_msg_type(msg_name: str) -> Optional[Type[BodyBase]]:
         "SessionSetupRes": SessionSetupRes,
         "ServiceDiscoveryReq": ServiceDiscoveryReq,
         "ServiceDiscoveryRes": ServiceDiscoveryRes,
-        "ServiceDetailReq": ServiceDetailReq,
-        "ServiceDetailRes": ServiceDetailRes,
-        "PaymentDetailsReq": PaymentDetailsReq,
-        "PaymentDetailsRes": PaymentDetailsRes,
         "ServicePaymentSelectionReq": ServicePaymentSelectionReq,
         "ServicePaymentSelectionRes": ServicePaymentSelectionRes,
+        "ContractAuthenticationReq": ContractAuthenticationReq,
+        "ContractAuthenticationRes": ContractAuthenticationRes,
         "ChargeParameterDiscoveryReq": ChargeParameterDiscoveryReq,
         "ChargeParameterDiscoveryRes": ChargeParameterDiscoveryRes,
         "CableCheckReq": CableCheckReq,
@@ -573,8 +547,6 @@ def get_msg_type(msg_name: str) -> Optional[Type[BodyBase]]:
         "PreChargeRes": PreChargeRes,
         "PowerDeliveryReq": PowerDeliveryReq,
         "PowerDeliveryRes": PowerDeliveryRes,
-        "ChargingStatusReq": ChargingStatusReq,
-        "ChargingStatusRes": ChargingStatusRes,
         "CurrentDemandReq": CurrentDemandReq,
         "CurrentDemandRes": CurrentDemandRes,
         "WeldingDetectionReq": WeldingDetectionReq,
