@@ -13,8 +13,8 @@ INT_8_MIN = -(2**7)
 
 class AuthEnum(str, Enum):
     """
-    The enum values for the authorisation options differ between ISO 15118-2 and
-    ISO 15118-20. This enumeration helps to unify different values.
+    The enum values for the authorisation options differ between DIN SPEC 70121,
+    ISO 15118-2 and ISO 15118-20. This enumeration helps to unify different values.
 
     The default value for the enum members (EIM and PNC) are the ones from
     ISO 15118-20. They are used in the session variables and evcc/secc settings.

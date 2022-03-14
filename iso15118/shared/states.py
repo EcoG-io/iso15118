@@ -20,10 +20,17 @@ from iso15118.shared.messages.enums import (
     ISOV20PayloadTypes,
     Namespace,
 )
-from iso15118.shared.messages.din_spec.body import Body as BodyDINSPEC, BodyBase as BodyBaseDINSPEC
-from iso15118.shared.messages.din_spec.datatypes import FaultCode as FaultCodeDINSPEC,\
-    Notification as NotificationDINSPEC
-from iso15118.shared.messages.din_spec.header import MessageHeader as MessageHeaderDINSPEC
+from iso15118.shared.messages.din_spec.body import (
+    Body as BodyDINSPEC,
+    BodyBase as BodyBaseDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    FaultCode as FaultCodeDINSPEC,
+    Notification as NotificationDINSPEC,
+)
+from iso15118.shared.messages.din_spec.header import (
+    MessageHeader as MessageHeaderDINSPEC,
+)
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.body import Body, BodyBase
 from iso15118.shared.messages.iso15118_2.datatypes import FaultCode, Notification
@@ -126,7 +133,7 @@ class State(ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         """
@@ -153,7 +160,11 @@ class State(ABC):
         self,
         next_state: Optional[Type["State"]],
         next_msg: Union[
-            SupportedAppProtocolReq, SupportedAppProtocolRes, BodyBase, V2GMessageV20, BodyBaseDINSPEC
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            BodyBase,
+            V2GMessageV20,
+            BodyBaseDINSPEC,
         ],
         next_msg_timeout: Union[float, int],
         namespace: Namespace,
@@ -227,13 +238,13 @@ class State(ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ]
         if isinstance(next_msg, BodyBaseDINSPEC):
             note: Union[NotificationDINSPEC, None] = None
             if (
-                    self.comm_session.stop_reason
-                    and not self.comm_session.stop_reason.successful
+                self.comm_session.stop_reason
+                and not self.comm_session.stop_reason.successful
             ):
                 # The fault message must not be bigger than 64 characters according to
                 # the XSD data type description
@@ -341,7 +352,7 @@ class Terminate(State):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         pass
@@ -361,7 +372,7 @@ class Pause(State):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         pass

@@ -193,7 +193,9 @@ class EXI:
                 # str(message) would not be 'OEMProvisioningCertificateChain' but
                 # 'SignedCertificateChain' (the type of OEMProvisioningCertificateChain)
                 message_dict = {"OEMProvisioningCertificateChain": msg_to_dct}
-            elif isinstance(msg_element, V2GMessageV2) or isinstance(msg_element, V2GMessageDINSPEC):
+            elif isinstance(msg_element, V2GMessageV2) or isinstance(
+                msg_element, V2GMessageDINSPEC
+            ):
                 message_dict = {"V2G_Message": msg_to_dct}
             else:
                 message_dict = {str(msg_element): msg_to_dct}
@@ -230,7 +232,11 @@ class EXI:
     def from_exi(
         self, exi_message: bytes, namespace: str
     ) -> Union[
-        SupportedAppProtocolReq, SupportedAppProtocolRes, V2GMessageV2, V2GMessageV20, V2GMessageDINSPEC
+        SupportedAppProtocolReq,
+        SupportedAppProtocolRes,
+        V2GMessageV2,
+        V2GMessageV20,
+        V2GMessageDINSPEC,
     ]:
         """
         Decodes the EXI encoded bytearray into a message according to the payload
