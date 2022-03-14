@@ -56,7 +56,7 @@ class SimEVController(EVControllerInterface):
                 )
                 return "000000000000"
         elif protocol == Protocol.DIN_SPEC_70121:
-            return "1234ABCD"
+            return "00000000"
         elif protocol.ns.startswith(Namespace.ISO_V20_BASE):
             # The check digit (last character) is not a correctly computed one
             return "WMIV1234567890ABCDEX"
@@ -88,7 +88,9 @@ class SimEVController(EVControllerInterface):
             ev_max_current=ev_max_current,
             ev_min_current=ev_min_current,
         )
-        return ChargeParamsV2(self.get_energy_transfer_mode(protocol), ac_charge_params, None)
+        return ChargeParamsV2(
+            self.get_energy_transfer_mode(protocol), ac_charge_params, None
+        )
 
     def get_charge_params_v20(
         self,

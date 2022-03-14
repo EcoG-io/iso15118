@@ -50,9 +50,17 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_evse_id(self, protocol: Protocol) -> str:
         if protocol == Protocol.DIN_SPEC_70121:
-            return "12341234"
+            #  To transform a string-based DIN SPEC 91286 EVSE ID to hexBinary
+            #  representation and vice versa, the following conversion rules shall
+            #  be used for each character and hex digit: '0' <--> 0x0, '1' <--> 0x1,
+            #  '2' <--> 0x2, '3' <--> 0x3, '4' <--> 0x4, '5' <--> 0x5, '6' <--> 0x6,
+            #  '7' <--> 0x7, '8' <--> 0x8, '9' <--> 0x9, '*' <--> 0xA,
+            #  Unused <--> 0xB .. 0xF.
+            # Example: The DIN SPEC 91286 EVSE ID “49*89*6360” is represented
+            # as “0x49 0xA8 0x9A 0x63 0x60”.
+            return "49A89A6360"
         """Overrides EVSEControllerInterface.get_evse_id()."""
-        return "UK123E1234"
+        return "+44*123*456*789"
 
     def get_supported_energy_transfer_modes(
         self, protocol: Protocol

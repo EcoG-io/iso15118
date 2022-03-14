@@ -38,6 +38,7 @@ class EnergyTransferModeEnum(str, Enum):
      values than “DC_extended” and “DC_core” in EVRequestedEnergyTransferType.
     For ISO 15118-2 see sections 8.5.2.4 and 8.4.3.8.2 in ISO 15118-2
     """
+
     AC_SINGLE_PHASE_CORE = "AC_single_phase_core"
     AC_THREE_PHASE_CORE = "AC_three_phase_core"
     DC_CORE = "DC_core"

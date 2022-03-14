@@ -17,7 +17,12 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import AuthEnum, Namespace, Protocol, EnergyTransferModeEnum
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    Namespace,
+    Protocol,
+    EnergyTransferModeEnum,
+)
 from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
     AuthorizationReq,
@@ -221,7 +226,9 @@ class ServiceDiscovery(StateEVCC):
             evcc_settings.RESUME_REQUESTED_ENERGY_MODE = None
         else:
             self.comm_session.selected_energy_mode = (
-                self.comm_session.ev_controller.get_energy_transfer_mode(Protocol.ISO_15118_2)
+                self.comm_session.ev_controller.get_energy_transfer_mode(
+                    Protocol.ISO_15118_2
+                )
             )
 
     def select_auth_mode(self, auth_option_list: List[AuthEnum]):
@@ -645,7 +652,9 @@ class Authorization(StateEVCC):
             # Reset the Ongoing timer
             self.comm_session.ongoing_timer = -1
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2(Protocol.ISO_15118_2)
+            charge_params = self.comm_session.ev_controller.get_charge_params_v2(
+                Protocol.ISO_15118_2
+            )
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,
@@ -758,7 +767,9 @@ class ChargeParameterDiscovery(StateEVCC):
             else:
                 self.comm_session.ongoing_timer = time()
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2(Protocol.ISO_15118_2)
+            charge_params = self.comm_session.ev_controller.get_charge_params_v2(
+                Protocol.ISO_15118_2
+            )
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,

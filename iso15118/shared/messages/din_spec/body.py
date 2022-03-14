@@ -96,9 +96,22 @@ class SessionSetupRes(Response):
     See section 9.4.1.2.3 in DIN SPEC 70121
     The SECC and the EVCC shall use the format for EVSEID as defined
     in DIN SPEC 91286.
+
+    For EVSE ID format see section 5.3.2:
+    "Each <EVSEID> has a variable length with at least five characters (one
+    digit <Country Code>, three digits <Spot Operator ID>, one digit <Power Outlet ID>)
+    and at most forty-one characters (three digits <Country Code>,
+     six digits <Spot Operator ID>, thirty-two digits <Power Outlet ID>).
+    While the <Spot Operator ID> must be assigned by a central issuing authority,
+     each operator with an assigned <Spot Operator ID> can choose the <Power Outlet ID>
+      within the above mentioned rules freely."
+
+    This must be represented in hexbinary.
+    Example: The DIN SPEC 91286 EVSE ID “49*89*6360” is represented
+     as “0x49 0xA8 0x9A 0x63 0x60”.
     """
 
-    evse_id: str = Field(..., max_length=32, alias="EVSEID")
+    evse_id: str = Field(..., min_length=7, max_length=32, alias="EVSEID")
     datetime_now: int = Field(None, alias="DateTimeNow")
 
 
