@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from typing import Optional, Tuple, Type
 
-from iso15118.shared.messages.enums import AuthEnum
+from iso15118.shared.messages.enums import AuthEnum, EnergyTransferModeEnum
 from pydantic import Field, root_validator, validator
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.din_spec.datatypes import (
@@ -17,7 +17,6 @@ from iso15118.shared.messages.din_spec.datatypes import (
     DCEVStatus,
     DCEVPowerDeliveryParameter,
     DCEVSEChargeParameter,
-    EnergyTransferModeEnum,
     EVSEProcessing,
     ResponseCode,
     PVEVSEPresentCurrent,

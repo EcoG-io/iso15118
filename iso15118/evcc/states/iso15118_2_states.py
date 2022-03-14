@@ -17,7 +17,7 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import AuthEnum, Namespace, Protocol
+from iso15118.shared.messages.enums import AuthEnum, Namespace, Protocol, EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
     AuthorizationReq,
@@ -50,7 +50,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargeProgress,
     ChargeService,
     ChargingSession,
-    EnergyTransferModeEnum,
     EVSENotification,
     EVSEProcessing,
     RootCertificateIDList,
@@ -112,7 +111,7 @@ class SessionSetup(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, SessionSetupRes)
@@ -148,7 +147,7 @@ class ServiceDiscovery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, ServiceDiscoveryRes)
@@ -222,7 +221,7 @@ class ServiceDiscovery(StateEVCC):
             evcc_settings.RESUME_REQUESTED_ENERGY_MODE = None
         else:
             self.comm_session.selected_energy_mode = (
-                self.comm_session.ev_controller.get_energy_transfer_mode()
+                self.comm_session.ev_controller.get_energy_transfer_mode(Protocol.ISO_15118_2)
             )
 
     def select_auth_mode(self, auth_option_list: List[AuthEnum]):
@@ -318,7 +317,7 @@ class ServiceDetail(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, ServiceDetailRes)
@@ -375,7 +374,7 @@ class PaymentServiceSelection(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, PaymentServiceSelectionRes)
@@ -476,7 +475,7 @@ class CertificateInstallation(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, CertificateInstallationRes)
@@ -579,7 +578,7 @@ class PaymentDetails(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, PaymentDetailsRes)
@@ -633,7 +632,7 @@ class Authorization(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, AuthorizationRes)
@@ -646,7 +645,7 @@ class Authorization(StateEVCC):
             # Reset the Ongoing timer
             self.comm_session.ongoing_timer = -1
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2()
+            charge_params = self.comm_session.ev_controller.get_charge_params_v2(Protocol.ISO_15118_2)
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,
@@ -700,7 +699,7 @@ class ChargeParameterDiscovery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, ChargeParameterDiscoveryRes)
@@ -759,7 +758,7 @@ class ChargeParameterDiscovery(StateEVCC):
             else:
                 self.comm_session.ongoing_timer = time()
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2()
+            charge_params = self.comm_session.ev_controller.get_charge_params_v2(Protocol.ISO_15118_2)
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,
@@ -794,7 +793,7 @@ class PowerDelivery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, PowerDeliveryRes)
@@ -864,7 +863,7 @@ class ChargingStatus(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, ChargingStatusRes)
@@ -968,7 +967,7 @@ class CurrentDemand(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
 
@@ -991,7 +990,7 @@ class MeteringReceipt(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, MeteringReceiptRes)
@@ -1065,7 +1064,7 @@ class SessionStop(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, SessionStopRes)

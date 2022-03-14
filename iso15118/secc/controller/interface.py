@@ -6,13 +6,12 @@ This module contains the abstract class for an SECC to retrieve data from the EV
 from abc import ABC, abstractmethod
 from typing import List, Optional, Union
 
-from iso15118.shared.messages.enums import Protocol
+from iso15118.shared.messages.enums import Protocol, EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
     DCEVSEChargeParameter,
     DCEVSEStatus,
-    EnergyTransferModeEnum,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -44,7 +43,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_supported_energy_transfer_modes(self) -> List[EnergyTransferModeEnum]:
+    def get_supported_energy_transfer_modes(
+        self, protocol: Protocol
+    ) -> List[EnergyTransferModeEnum]:
         """
         The MQTT interface needs to provide the information on the available energy
         transfer modes, which depends on the socket the EV is connected to

@@ -6,13 +6,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-from iso15118.shared.messages.enums import Protocol
+from iso15118.shared.messages.enums import Protocol, EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
     ChargingProfile,
     DCEVChargeParameter,
-    EnergyTransferModeEnum,
     SAScheduleTupleEntry,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
@@ -53,7 +52,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_energy_transfer_mode(self) -> EnergyTransferModeEnum:
+    def get_energy_transfer_mode(self, protocol: Protocol) -> EnergyTransferModeEnum:
         """
         Gets the energy transfer mode requested for the current charging session.
         This depends on the charging cable being plugged in, which could be a

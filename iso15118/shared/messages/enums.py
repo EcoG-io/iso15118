@@ -30,6 +30,22 @@ class AuthEnum(str, Enum):
     PNC_V2 = "Contract"
 
 
+class EnergyTransferModeEnum(str, Enum):
+    """
+    This enum is shared between DIN SPEC 70121 and ISO 15118-2
+    For DIN SPEC see table 38 in section 9.4.1.6.2
+    [V2G-DC-625] In the scope of DIN SPEC 70121, the EVCC shall not transmit other
+     values than “DC_extended” and “DC_core” in EVRequestedEnergyTransferType.
+    For ISO 15118-2 see sections 8.5.2.4 and 8.4.3.8.2 in ISO 15118-2
+    """
+    AC_SINGLE_PHASE_CORE = "AC_single_phase_core"
+    AC_THREE_PHASE_CORE = "AC_three_phase_core"
+    DC_CORE = "DC_core"
+    DC_EXTENDED = "DC_extended"
+    DC_COMBO_CORE = "DC_combo_core"
+    DC_UNIQUE = "DC_unique"
+
+
 class V2GTPVersion(IntEnum):
     """
     These enums are used in the header of a V2G Transfer Protocol (V2GTP)

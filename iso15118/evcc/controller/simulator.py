@@ -8,12 +8,11 @@ from typing import List, Optional, Tuple
 
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
-from iso15118.shared.messages.enums import Namespace, Protocol
+from iso15118.shared.messages.enums import Namespace, Protocol, EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
     ChargingProfile,
-    EnergyTransferModeEnum,
     ProfileEntryDetails,
     PVEAmount,
     PVEVMaxCurrent,
@@ -65,11 +64,13 @@ class SimEVController(EVControllerInterface):
             logger.error(f"Invalid protocol '{protocol}', can't determine EVCCID")
             raise InvalidProtocolError
 
-    def get_energy_transfer_mode(self) -> EnergyTransferModeEnum:
+    def get_energy_transfer_mode(self, protocol: Protocol) -> EnergyTransferModeEnum:
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
+        if protocol == Protocol.DIN_SPEC_70121:
+            return EnergyTransferModeEnum.DC_CORE
         return EnergyTransferModeEnum.AC_THREE_PHASE_CORE
 
-    def get_charge_params_v2(self) -> ChargeParamsV2:
+    def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
         """Overrides EVControllerInterface.get_charge_params_v2()."""
         # This is for simulating AC only. You can modify to simulate DC charging
         e_amount = PVEAmount(multiplier=0, value=60, unit=UnitSymbol.WATT_HOURS)
@@ -87,7 +88,7 @@ class SimEVController(EVControllerInterface):
             ev_max_current=ev_max_current,
             ev_min_current=ev_min_current,
         )
-        return ChargeParamsV2(self.get_energy_transfer_mode(), ac_charge_params, None)
+        return ChargeParamsV2(self.get_energy_transfer_mode(protocol), ac_charge_params, None)
 
     def get_charge_params_v20(
         self,

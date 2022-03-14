@@ -24,6 +24,7 @@ from iso15118.shared.messages.enums import (
     INT_16_MIN,
     UINT_32_MAX,
     AuthEnum,
+    EnergyTransferModeEnum,
 )
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
 from iso15118.shared.validators import one_field_must_be_set
@@ -440,17 +441,6 @@ class ChargeProgress(str, Enum):
     START = "Start"
     STOP = "Stop"
     RENEGOTIATE = "Renegotiate"
-
-
-class EnergyTransferModeEnum(str, Enum):
-    """See sections 8.5.2.4 and 8.4.3.8.2 in ISO 15118-2"""
-
-    AC_SINGLE_PHASE_CORE = "AC_single_phase_core"
-    AC_THREE_PHASE_CORE = "AC_three_phase_core"
-    DC_CORE = "DC_core"
-    DC_EXTENDED = "DC_extended"
-    DC_COMBO_CORE = "DC_combo_core"
-    DC_UNIQUE = "DC_unique"
 
 
 class EnergyTransferModeList(BaseModel):

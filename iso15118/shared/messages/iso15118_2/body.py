@@ -16,7 +16,7 @@ from typing import Optional, Tuple, Type
 from pydantic import Field, root_validator, validator
 
 from iso15118.shared.messages import BaseModel
-from iso15118.shared.messages.enums import AuthEnum
+from iso15118.shared.messages.enums import AuthEnum, EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
     EMAID,
     ACEVChargeParameter,
@@ -35,7 +35,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVStatus,
     DHPublicKey,
     EncryptedPrivateKey,
-    EnergyTransferModeEnum,
     EVSEProcessing,
     MeterInfo,
     PVEVMaxCurrentLimit,

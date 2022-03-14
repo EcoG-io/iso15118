@@ -132,7 +132,7 @@ class SessionSetup(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, [SessionSetupReq])
@@ -268,7 +268,9 @@ class ServiceDiscovery(StateSECC):
         self.comm_session.offered_auth_options = auth_options
 
         energy_modes = (
-            self.comm_session.evse_controller.get_supported_energy_transfer_modes()
+            self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+                Protocol.ISO_15118_2
+            )
         )
 
         charge_service = ChargeService(
@@ -943,7 +945,9 @@ class ChargeParameterDiscovery(StateSECC):
 
         if (
             charge_params_req.requested_energy_mode
-            not in self.comm_session.evse_controller.get_supported_energy_transfer_modes()  # noqa: E501
+            not in self.comm_session.evse_controller.get_supported_energy_transfer_modes(  # noqa: E501
+                Protocol.ISO_15118_2
+            )
         ):
             self.stop_state_machine(
                 f"{charge_params_req.requested_energy_mode} not "

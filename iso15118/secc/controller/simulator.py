@@ -8,14 +8,13 @@ from typing import List, Optional, Union
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError
-from iso15118.shared.messages.enums import Namespace, Protocol
+from iso15118.shared.messages.enums import Namespace, Protocol, EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
     DCEVSEChargeParameter,
     DCEVSEStatus,
     DCEVSEStatusCode,
-    EnergyTransferModeEnum,
     EVSENotification,
     IsolationLevel,
 )
@@ -50,13 +49,20 @@ class SimEVSEController(EVSEControllerInterface):
     # ============================================================================
 
     def get_evse_id(self, protocol: Protocol) -> str:
-        if protocol ==  Protocol.DIN_SPEC_70121:
+        if protocol == Protocol.DIN_SPEC_70121:
             return "12341234"
         """Overrides EVSEControllerInterface.get_evse_id()."""
         return "UK123E1234"
 
-    def get_supported_energy_transfer_modes(self) -> List[EnergyTransferModeEnum]:
+    def get_supported_energy_transfer_modes(
+        self, protocol: Protocol
+    ) -> List[EnergyTransferModeEnum]:
         """Overrides EVSEControllerInterface.get_supported_energy_transfer_modes()."""
+        if protocol == Protocol.DIN_SPEC_70121:
+            dc_core = EnergyTransferModeEnum.DC_CORE
+            dc_extended = EnergyTransferModeEnum.DC_EXTENDED
+            return [dc_core, dc_extended]
+
         ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
         ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
         return [ac_single_phase, ac_three_phase]

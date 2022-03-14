@@ -73,7 +73,7 @@ class SessionSetup(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(message, SessionSetupRes)
@@ -115,7 +115,7 @@ class AuthorizationSetup(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(message, AuthorizationSetupRes)
@@ -259,7 +259,7 @@ class CertificateInstallation(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("CertificateInstallation not yet implemented")
@@ -281,7 +281,7 @@ class Authorization(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("CertificateInstallation not yet implemented")
@@ -308,7 +308,7 @@ class ACChargeParameterDiscovery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("ACChargeParameterDiscovery not yet implemented")
@@ -330,7 +330,7 @@ class ACChargeLoop(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("ACChargeLoop not yet implemented")
@@ -357,7 +357,7 @@ class DCChargeParameterDiscovery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("DCChargeParameterDiscovery not yet implemented")
@@ -379,7 +379,7 @@ class DCCableCheck(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("DCCableCheck not yet implemented")
@@ -401,7 +401,7 @@ class DCPreCharge(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("DCPreCharge not yet implemented")
@@ -423,7 +423,7 @@ class DCChargeLoop(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("DCChargeLoop not yet implemented")
@@ -445,7 +445,7 @@ class DCWeldingDetection(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("DCWeldingDetection not yet implemented")
