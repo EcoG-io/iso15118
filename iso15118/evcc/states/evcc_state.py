@@ -12,7 +12,7 @@ from iso15118.shared.messages.app_protocol import (
 )
 from iso15118.shared.messages.din_spec.body import (
     Response as ResponseDINSPEC,
-    BodyBase as BodyBaseDINSPEC
+    BodyBase as BodyBaseDINSPEC,
 )
 from iso15118.shared.messages.din_spec.body import (
     SessionSetupRes as SessionSetupResDINSPEC,
@@ -81,10 +81,13 @@ class StateEVCC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
         expected_msg_type: Union[
-            Type[SupportedAppProtocolRes], Type[Response], Type[V2GResponse], Type[ResponseDINSPEC]
+            Type[SupportedAppProtocolRes],
+            Type[Response],
+            Type[V2GResponse],
+            Type[ResponseDINSPEC],
         ],
     ) -> Optional[V2GMessageDINSPEC]:
         return self.check_msg(message, V2GMessageDINSPEC, expected_msg_type)
@@ -96,10 +99,13 @@ class StateEVCC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
         expected_msg_type: Union[
-            Type[SupportedAppProtocolRes], Type[Response], Type[V2GResponse], Type[ResponseDINSPEC]
+            Type[SupportedAppProtocolRes],
+            Type[Response],
+            Type[V2GResponse],
+            Type[ResponseDINSPEC],
         ],
     ) -> Optional[V2GMessageV2]:
         return self.check_msg(message, V2GMessageV2, expected_msg_type)
@@ -111,7 +117,7 @@ class StateEVCC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
         expected_msg_type: Type[T],
     ) -> Optional[T]:
@@ -124,11 +130,14 @@ class StateEVCC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
         expected_return_type: Type[T],
         expected_msg_type: Union[
-            Type[SupportedAppProtocolRes], Type[Response], Type[V2GResponse], Type[ResponseDINSPEC]
+            Type[SupportedAppProtocolRes],
+            Type[Response],
+            Type[V2GResponse],
+            Type[ResponseDINSPEC],
         ],
     ) -> Optional[T]:
         """
@@ -186,7 +195,12 @@ class StateEVCC(State, ABC):
         if (
             not isinstance(
                 msg_body,
-                (SupportedAppProtocolRes, SessionSetupResV2, SessionSetupResV20, SessionSetupResDINSPEC),
+                (
+                    SupportedAppProtocolRes,
+                    SessionSetupResV2,
+                    SessionSetupResV20,
+                    SessionSetupResDINSPEC,
+                ),
             )
             and not message.header.session_id == self.comm_session.session_id
         ):

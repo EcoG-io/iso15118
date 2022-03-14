@@ -47,7 +47,7 @@ class SupportedAppProtocol(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg(

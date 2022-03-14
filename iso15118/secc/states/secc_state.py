@@ -19,7 +19,9 @@ from iso15118.shared.messages.din_spec.body import (
     SessionSetupReq as SessionSetupReqDINSPEC,
 )
 from iso15118.shared.messages.din_spec.body import get_msg_type as get_msg_type_dinspec
-from iso15118.shared.messages.din_spec.datatypes import ResponseCode as ResponseCodeDINSPEC
+from iso15118.shared.messages.din_spec.datatypes import (
+    ResponseCode as ResponseCodeDINSPEC,
+)
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.body import BodyBase
 from iso15118.shared.messages.iso15118_2.body import (
@@ -63,7 +65,9 @@ class StateSECC(State, ABC):
     # The response code can be set by various methods on which a State's
     # process_message() method might rely on, such as is_message_valid().
     # The default response code 'OK' can be overwritten as needed.
-    response_code: Union[ResponseCodeDINSPEC, ResponseCodeV2, ResponseCodeV20] = ResponseCodeV2.OK
+    response_code: Union[
+        ResponseCodeDINSPEC, ResponseCodeV2, ResponseCodeV20
+    ] = ResponseCodeV2.OK
 
     def __init__(
         self, comm_session: "SECCCommunicationSession", timeout: Union[float, int] = 0
@@ -96,14 +100,18 @@ class StateSECC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
         expected_msg_types: List[
-            Union[Type[SupportedAppProtocolReq], Type[BodyBaseDINSPEC], Type[V2GRequest]]
+            Union[
+                Type[SupportedAppProtocolReq], Type[BodyBaseDINSPEC], Type[V2GRequest]
+            ]
         ],
         expect_first: bool = True,
     ) -> V2GMessageDINSPEC:
-        return self.check_msg(message, V2GMessageDINSPEC, expected_msg_types, expect_first)
+        return self.check_msg(
+            message, V2GMessageDINSPEC, expected_msg_types, expect_first
+        )
 
     def check_msg_v2(
         self,
@@ -148,7 +156,12 @@ class StateSECC(State, ABC):
         ],
         expected_return_type: Type[T],
         expected_msg_types: List[
-            Union[Type[SupportedAppProtocolReq], Type[BodyBase], Type[V2GRequest], Type[BodyBaseDINSPEC]]
+            Union[
+                Type[SupportedAppProtocolReq],
+                Type[BodyBase],
+                Type[V2GRequest],
+                Type[BodyBaseDINSPEC],
+            ]
         ],
         expect_first: bool = True,
     ) -> Optional[T]:
@@ -235,7 +248,10 @@ class StateSECC(State, ABC):
             return None
 
         if (
-            not isinstance(msg_body, (SessionSetupReqV2, SessionSetupReqV20, SessionSetupReqDINSPEC))
+            not isinstance(
+                msg_body,
+                (SessionSetupReqV2, SessionSetupReqV20, SessionSetupReqDINSPEC),
+            )
             and not isinstance(message, SupportedAppProtocolReq)
             and not message.header.session_id == self.comm_session.session_id
         ):
@@ -258,9 +274,11 @@ class StateSECC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC
+            V2GMessageDINSPEC,
         ],
-        response_code: Union[ResponseCodeSAP, ResponseCodeV2, ResponseCodeV20, ResponseCodeDINSPEC],
+        response_code: Union[
+            ResponseCodeSAP, ResponseCodeV2, ResponseCodeV20, ResponseCodeDINSPEC
+        ],
     ):
         """
         In case the processing of a message from the EVCC fails, the SECC needs

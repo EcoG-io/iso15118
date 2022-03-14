@@ -8,14 +8,13 @@ from typing import List, Optional, Union
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError
-from iso15118.shared.messages.enums import Namespace, Protocol
+from iso15118.shared.messages.enums import Namespace, Protocol, EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
     DCEVSEChargeParameter,
     DCEVSEStatus,
     DCEVSEStatusCode,
-    EnergyTransferModeEnum,
     EVSENotification,
     IsolationLevel,
 )
@@ -23,20 +22,10 @@ from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfo
 from iso15118.shared.messages.iso15118_2.datatypes import (
     PMaxScheduleEntry,
     PMaxScheduleEntryDetails,
-    PVEVSECurrentRegulationTolerance,
-    PVEVSEEnergyToBeDelivered,
     PVEVSEMaxCurrent,
-    PVEVSEMaxCurrentLimit,
-    PVEVSEMaxPowerLimit,
-    PVEVSEMaxVoltageLimit,
-    PVEVSEMinCurrentLimit,
-    PVEVSEMinVoltageLimit,
     PVEVSENominalVoltage,
-    PVEVSEPeakCurrentRipple,
     PVEVSEPresentCurrent,
     PVEVSEPresentVoltage,
-    PVEVTargetCurrent,
-    PVEVTargetVoltage,
     PVPMax,
     RelativeTimeInterval,
     SalesTariff,
@@ -60,17 +49,23 @@ class SimEVSEController(EVSEControllerInterface):
     # ============================================================================
 
     def get_evse_id(self, protocol: Protocol) -> str:
-        if protocol ==  Protocol.DIN_SPEC_70121:
+        if protocol == Protocol.DIN_SPEC_70121:
             return "12341234"
         """Overrides EVSEControllerInterface.get_evse_id()."""
         return "UK123E1234"
 
-    def get_supported_energy_transfer_modes(self) -> List[EnergyTransferModeEnum]:
+    def get_supported_energy_transfer_modes(
+        self, protocol: Protocol
+    ) -> List[EnergyTransferModeEnum]:
         """Overrides EVSEControllerInterface.get_supported_energy_transfer_modes()."""
-        # ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
-        # ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
-        dc_extended = EnergyTransferModeEnum.DC_EXTENDED
-        return [dc_extended]
+        if protocol == Protocol.DIN_SPEC_70121:
+            dc_core = EnergyTransferModeEnum.DC_CORE
+            dc_extended = EnergyTransferModeEnum.DC_EXTENDED
+            return [dc_core, dc_extended]
+
+        ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
+        ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
+        return [ac_single_phase, ac_three_phase]
 
     def is_authorised(self) -> bool:
         """Overrides EVSEControllerInterface.is_authorised()."""
@@ -153,9 +148,6 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.set_hlc_charging()."""
         pass
 
-    def stop_charger(self) -> None:
-        pass
-
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
@@ -195,34 +187,7 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_dc_evse_charge_parameter()."""
-
-        evse_minimum_curren_limit = PVEVSEMinCurrentLimit(
-            multiplier=0, value=5, unit=UnitSymbol.AMPERE
-        )
-        evse_minimum_voltage_limit = PVEVSEMinVoltageLimit(
-            multiplier=0, value=250, unit=UnitSymbol.VOLTAGE
-        )
-        evse_peak_current_ripple = PVEVSEPeakCurrentRipple(
-            multiplier=0, value=5, unit=UnitSymbol.AMPERE
-        )
-        evse_current_regulation_tolerance = PVEVSECurrentRegulationTolerance(
-            multiplier=0, value=50, unit=UnitSymbol.AMPERE
-        )
-        evse_energy_to_be_delivered = PVEVSEEnergyToBeDelivered(
-            multiplier=0, value=10000, unit=UnitSymbol.WATT_HOURS
-        )
-
-        return DCEVSEChargeParameter(
-            dc_evse_status=self.get_dc_evse_status(),
-            evse_maximum_current_limit=self.get_evse_max_current_limit(),
-            evse_maximum_power_limit=self.get_evse_max_power_limit(),
-            evse_maximum_voltage_limit=self.get_evse_max_voltage_limit(),
-            evse_minimum_current_limit=evse_minimum_curren_limit,
-            evse_minimum_voltage_limit=evse_minimum_voltage_limit,
-            evse_current_regulation_tolerance=evse_current_regulation_tolerance,  # opt
-            evse_peak_current_ripple=evse_peak_current_ripple,
-            evse_energy_to_be_delivered=evse_energy_to_be_delivered,  # opt
-        )
+        pass
 
     def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
         """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
@@ -230,33 +195,4 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_evse_present_current(self) -> PVEVSEPresentCurrent:
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
-        return PVEVSEPresentCurrent(multiplier=0, value=1, unit="A")
-
-    def start_cable_check(self):
-        pass
-
-    def set_precharge(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
-        pass
-
-    def send_charging_command(
-        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
-    ):
-        pass
-
-    def get_evse_current_limit_achieved(self) -> bool:
-        return False
-
-    def get_evse_voltage_limit_achieved(self) -> bool:
-        return False
-
-    def get_evse_power_limit_achieved(self) -> bool:
-        return False
-
-    def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
-        return PVEVSEMaxVoltageLimit(multiplier=0, value=600, unit="V")
-
-    def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
-        return PVEVSEMaxCurrentLimit(multiplier=0, value=300, unit="A")
-
-    def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
-        return PVEVSEMaxPowerLimit(multiplier=1, value=1000, unit="W")
+        return PVEVSEPresentCurrent(multiplier=0, value=10, unit="A")

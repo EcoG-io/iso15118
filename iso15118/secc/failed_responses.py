@@ -1,4 +1,4 @@
-from iso15118.shared.messages.enums import AuthEnum, Namespace
+from iso15118.shared.messages.enums import AuthEnum, Namespace, EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.body import EMAID
 from iso15118.shared.messages.iso15118_2.body import (
     AuthorizationReq as AuthorizationReqV2,
@@ -72,7 +72,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVSEStatusCode,
     DHPublicKey,
     EncryptedPrivateKey,
-    EnergyTransferModeEnum,
     EnergyTransferModeList,
     EVSENotification,
     EVSEProcessing,
@@ -175,6 +174,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 
 # TODO: Implement DIN SPEC 70121 case (failed_response_din = {})
 
+
 def init_failed_responses_din_spec_70121() -> dict:
     """
     Initiates a dictionary containing the XSD compliant failed responses with
@@ -245,12 +245,12 @@ def init_failed_responses_iso_v2() -> dict:
         ),
         ChargeParameterDiscoveryReq:
         # TODO: Need to find a way to circumvent the root_validator
-            ChargeParameterDiscoveryRes(
-                response_code=ResponseCodeV2.FAILED, evse_processing=EVSEProcessing.FINISHED
-            ),
+        ChargeParameterDiscoveryRes(
+            response_code=ResponseCodeV2.FAILED, evse_processing=EVSEProcessing.FINISHED
+        ),
         PowerDeliveryReqV2:
         # TODO: Need to find a way to circumvent the root_validator
-            PowerDeliveryResV2(response_code=ResponseCodeV2.FAILED),
+        PowerDeliveryResV2(response_code=ResponseCodeV2.FAILED),
         ChargingStatusReq: ChargingStatusRes(
             response_code=ResponseCodeV2.FAILED,
             evse_id="1234567",
@@ -303,7 +303,7 @@ def init_failed_responses_iso_v2() -> dict:
         ),
         MeteringReceiptReq:
         # TODO: Need to find a way to circumvent the root_validator
-            MeteringReceiptRes(response_code=ResponseCodeV2.FAILED),
+        MeteringReceiptRes(response_code=ResponseCodeV2.FAILED),
         WeldingDetectionReqV2: WeldingDetectionResV2(
             response_code=ResponseCodeV2.FAILED,
             dc_evse_status=DCEVSEStatus(

@@ -76,7 +76,11 @@ class SupportedAppProtocol(StateEVCC):
         sap_res: SupportedAppProtocolRes = msg
 
         next_msg: Union[
-            SupportedAppProtocolReq, SupportedAppProtocolRes, BodyBase, V2GRequest, BodyBaseDINSPEC
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            BodyBase,
+            V2GRequest,
+            BodyBaseDINSPEC,
         ] = SessionSetupReqV2(
             evcc_id=self.comm_session.ev_controller.get_evcc_id(
                 Protocol.ISO_15118_2, self.comm_session.config.iface
@@ -100,7 +104,8 @@ class SupportedAppProtocol(StateEVCC):
 
                     next_msg = SessionSetupReqDINSPEC(
                         evcc_id=self.comm_session.ev_controller.get_evcc_id(
-                            Protocol.DIN_SPEC_70121, self.comm_session.config.iface)
+                            Protocol.DIN_SPEC_70121, self.comm_session.config.iface
+                        )
                     )
 
                     next_ns = Namespace.DIN_MSG_DEF

@@ -22,6 +22,7 @@ from iso15118.shared.messages.enums import (
     INT_16_MAX,
     INT_16_MIN,
     UINT_32_MAX,
+    EnergyTransferModeEnum,
 )
 
 from iso15118.shared.validators import one_field_must_be_set
@@ -49,28 +50,6 @@ class UnitSymbol(str, Enum):
     WATT = "W"
     WATT_PER_SECOND = "W/s"
     WATT_HOURS = "Wh"
-
-
-class EnergyTransferModeEnum(str, Enum):
-    """See sections 9.5.2.3 in DIN SPEC 70121"""
-
-    AC_SINGLE_PHASE_CORE = "AC_single_phase_core"
-    AC_THREE_PHASE_CORE = "AC_three_phase_core"
-    DC_CORE = "DC_core"
-    DC_EXTENDED = "DC_extended"
-    DC_COMBO_CORE = "DC_combo_core"  # NOT USED IN THE SCOPE OF DIN SPEC 70121
-    DC_DUEL = "DC_duel"  # NOT USED IN THE SCOPE OF DIN SPEC 70121
-    AC_CORE1P_DC_EXTENDED = (
-        "AC_core1p_DC_extended"  # NOT USED IN THE SCOPE OF DIN SPEC 70121
-    )
-    AC_SINGLE_DC_CORE = "AC_single_DC_core"  # NOT USED IN THE SCOPE OF DIN SPEC 70121
-    AC_SINGLE_PHASE_THREE_PHRASE_CORE_DC_EXTENDED = (
-        "AC_single_phase_three_ph ase_core_DC_extended"  # NOT USED IN
-    )
-    # THE SCOPE OF DIN SPEC 70121
-    AC_CORE3P_DC_EXTENDED = (
-        "AC_core3p_DC_extended"  # NOT USED IN THE SCOPE OF DIN SPEC 70121
-    )
 
 
 class EnergyTransferModeList(BaseModel):

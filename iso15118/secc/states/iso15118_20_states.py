@@ -98,7 +98,9 @@ class SessionSetup(StateSECC):
         session_setup_res = SessionSetupRes(
             header=MessageHeader(session_id=session_id, timestamp=time.time()),
             response_code=self.response_code,
-            evse_id=self.comm_session.evse_controller.get_evse_id(Protocol.ISO_15118_20_COMMON_MESSAGES),
+            evse_id=self.comm_session.evse_controller.get_evse_id(
+                Protocol.ISO_15118_20_COMMON_MESSAGES
+            ),
         )
 
         self.comm_session.evcc_id = session_setup_req.evcc_id

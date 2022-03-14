@@ -6,22 +6,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-from iso15118.shared.messages.enums import Protocol
-from iso15118.shared.messages.iso15118_2.body import CurrentDemandReq, PreChargeReq
+from iso15118.shared.messages.enums import Protocol, EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
     ChargingProfile,
     DCEVChargeParameter,
-    DCEVPowerDeliveryParameter,
-    DCEVStatus,
-    EnergyTransferModeEnum,
-    PVEVMaxCurrentLimit,
-    PVEVMaxPowerLimit,
-    PVEVMaxVoltageLimit,
-    PVEVSEPresentVoltage,
-    PVRemainingTimeToBulkSOC,
-    PVRemainingTimeToFullSOC,
     SAScheduleTupleEntry,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
@@ -62,7 +52,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_energy_transfer_mode(self) -> EnergyTransferModeEnum:
+    def get_energy_transfer_mode(self, protocol: Protocol) -> EnergyTransferModeEnum:
         """
         Gets the energy transfer mode requested for the current charging session.
         This depends on the charging cable being plugged in, which could be a
@@ -207,166 +197,5 @@ class EVControllerInterface(ABC):
 
         Relevant for:
         - ISO 15118-20
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_dc_ev_status(self) -> DCEVStatus:
-        """
-        Gets the DC-specific EV Status information.
-
-        Relevant for:
-        - DIN SPEC 70121
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
-        """
-        Return True if the output voltage of the EVSE has reached
-        the requested precharge voltage. Otherwise return False.
-        According 61851-23
-
-        Relevant for:
-        - DIN SPEC 70121
-        - ISO 15118-2
-        - ISO 15118-20
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
-        """
-        gets the Power Delivery Parameter of the EV
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_ev_max_voltage_limit(self) -> PVEVMaxVoltageLimit:
-        """
-        gets the Maximum Voltage Limit of the EV battery
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_ev_max_current_limit(self) -> PVEVMaxCurrentLimit:
-        """
-        gets the Maximum current Limit of the EV battery
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_ev_max_power_limit(self) -> PVEVMaxPowerLimit:
-        """
-        gets the Maximum Power Limit of the EV battery
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_bulk_charging_complete(self) -> bool:
-        """
-        Returns True if the soc for bulk charging is reached
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_charging_complete(self) -> bool:
-        """
-        According ISO15118-2 8.4.5.4.2:
-        If set to TRUE, the EV indicates that full charge (100% SOC) is complete.
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_remaining_time_to_full_soc(self) -> PVRemainingTimeToFullSOC:
-        """
-        Gets the remaining time until full soc is reached.
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_remaining_time_to_bulk_soc(self) -> PVRemainingTimeToBulkSOC:
-        """
-        Gets the remaining time until bulk soc is reached.
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def welding_detection_has_finished(self):
-        """
-        Returns true as soon as the process of welding
-        detection has finished successfully.
-
-        Relevant for:
-        - DIN SPEC 70121
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_pre_charge_data(self) -> PreChargeReq:
-        """
-        Gets the data needed for the PrechargeReq.
-        For the PreCharge phase, the requested current
-        must be < 2 A (maximum inrush current according to CC.5.2 in IEC61851 -23)
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    def get_current_demand_data(self) -> CurrentDemandReq:
-        """
-        Gets all the data needed for the CurrentDemandReq.
-
-        Relevant for:
-        - DIN SPEC 70121
-        - ISO 15118-2
-        - ISO 15118-20 ??
         """
         raise NotImplementedError
