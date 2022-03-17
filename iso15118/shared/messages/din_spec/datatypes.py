@@ -132,15 +132,11 @@ class PhysicalValue(BaseModel):
     """
     All classes inheriting from PhysicalValue start with 'PV'
     (abbreviation for 'Physical Value') and define value and unit fields.
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
 
     Those classes also inherit the private attribute `_max_limit`, which is used
     to set the maximum limit of each specific physical type and used in the
     `validate_value_range` method. This private attribute is not added to the
     Pydantic model in anyway: https://github.com/samuelcolvin/pydantic/issues/655
-
-    The minimum limit is fixed to 0, as in ISO 15118-2 there are no PhysicalValues
-    that can go below that value.
     """
 
     _max_limit: int = 0
@@ -961,6 +957,6 @@ class ResponseCode(str, Enum):
     FAILED_POWER_DELIVERY_NOT_APPLIED = "FAILED_PowerDeliveryNotApplied"
     FAILED_TARIFF_SELECTION_INVALID = "FAILED_TariffSelectionInvalid"
     FAILED_CHARGING_PROFILE_INVALID = "FAILED_ChargingProfileInvalid"
-    FAILED_EVSE_PRESENT_VOLATE_TO_LOW = "FAILED_EVSEPresentVoltageToLow"
+    FAILED_EVSE_PRESENT_VOLTAGE_TO_LOW = "FAILED_EVSEPresentVoltageToLow"
     FAILED_METERING_SIGNATURE_NOT_VALID = "FAILED_MeteringSignatureNotValid"
     FAILED_WRONG_ENERGY_TRANSFER_MODE = "FAILED_WrongEnergyTransferMode"

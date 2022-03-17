@@ -9,6 +9,15 @@ from typing import List, Optional, Union
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError
 from iso15118.shared.messages.enums import Namespace, Protocol, EnergyTransferModeEnum
+from iso15118.shared.messages.din_spec.datatypes import (
+    DCEVSEChargeParameter as DCEVSEChargeParameterDINSPEC,
+    PVEVSEMaxPowerLimit,
+    PVEVSEMaxCurrentLimit,
+    PVEVSEMaxVoltageLimit,
+    PVEVSEMinCurrentLimit,
+    PVEVSEMinVoltageLimit,
+    PVEVSEPeakCurrentRipple,
+)
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
@@ -69,7 +78,7 @@ class SimEVSEController(EVSEControllerInterface):
         if protocol == Protocol.DIN_SPEC_70121:
             dc_core = EnergyTransferModeEnum.DC_CORE
             dc_extended = EnergyTransferModeEnum.DC_EXTENDED
-            return [dc_core, dc_extended]
+            return [dc_extended, dc_core]
 
         ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
         ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
@@ -204,3 +213,40 @@ class SimEVSEController(EVSEControllerInterface):
     def get_evse_present_current(self) -> PVEVSEPresentCurrent:
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
         return PVEVSEPresentCurrent(multiplier=0, value=10, unit="A")
+
+    def get_dinspec_dc_evse_charge_parameter(self) -> DCEVSEChargeParameterDINSPEC:
+        return DCEVSEChargeParameter(
+            dc_evse_status=DCEVSEStatus(
+                notification_max_delay=100,
+                evse_notification=EVSENotification.NONE,
+                evse_isolation_status=IsolationLevel.VALID,
+                evse_status_code=DCEVSEStatusCode.EVSE_READY,
+            ),
+            evse_maximum_power_limit=PVEVSEMaxPowerLimit(
+                multiplier=1, value=230, unit="W"
+            ),
+            evse_maximum_current_limit=PVEVSEMaxCurrentLimit(
+                multiplier=1, value=4, unit="A"
+            ),
+            evse_maximum_voltage_limit=PVEVSEMaxVoltageLimit(
+                multiplier=1, value=4, unit="V"
+            ),
+            evse_minimum_current_limit=PVEVSEMinCurrentLimit(
+                multiplier=1, value=2, unit="A"
+            ),
+            evse_minimum_voltage_limit=PVEVSEMinVoltageLimit(
+                multiplier=1, value=4, unit="V"
+            ),
+            evse_peak_current_ripple=PVEVSEPeakCurrentRipple(
+                multiplier=1, value=4, unit="A"
+            ),
+        )
+
+    def is_evse_current_limit_achieved(self) -> bool:
+        return True
+
+    def is_evse_voltage_limit_achieved(self) -> bool:
+        return True
+
+    def is_evse_power_limit_achieved(self) -> bool:
+        return True

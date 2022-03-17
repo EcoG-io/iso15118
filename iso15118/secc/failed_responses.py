@@ -170,9 +170,55 @@ from iso15118.shared.messages.iso15118_20.common_types import Processing, Ration
 from iso15118.shared.messages.iso15118_20.common_types import (
     ResponseCode as ResponseCodeV20,
 )
-
-
-# TODO: Implement DIN SPEC 70121 case (failed_response_din = {})
+from iso15118.shared.messages.din_spec.body import (
+    SessionSetupReq as SessionSetupReqDINSPEC,
+    SessionSetupRes as SessionSetupResDINSPEC,
+    ServiceDiscoveryReq as ServiceDiscoveryReqDINSPEC,
+    ServiceDiscoveryRes as ServiceDiscoveryResDINSPEC,
+    ServicePaymentSelectionReq as ServicePaymentSelectionReqDINSPEC,
+    ServicePaymentSelectionRes as ServicePaymentSelectionResDINSPEC,
+    ContractAuthenticationReq as ContractAuthenticationReqDINSPEC,
+    ContractAuthenticationRes as ContractAuthenticationResDINSPEC,
+    ChargeParameterDiscoveryReq as ChargeParameterDiscoveryReqDINSPEC,
+    ChargeParameterDiscoveryRes as ChargeParameterDiscoveryResDINSPEC,
+    CableCheckReq as CableCheckReqDINSPEC,
+    CableCheckRes as CableCheckResDINSPEC,
+    PreChargeReq as PreChargeReqDINSPEC,
+    PreChargeRes as PreChargeResDINSPEC,
+    PowerDeliveryReq as PowerDeliveryReqDINSPEC,
+    PowerDeliveryRes as PowerDeliveryResDINSPEC,
+    CurrentDemandReq as CurrentDemandReqDINPEC,
+    CurrentDemandRes as CurrentDemandResDINSPEC,
+    WeldingDetectionReq as WeldingDetectionReqDINSPEC,
+    WeldingDetectionRes as WeldingDetectionResDINSPEC,
+    SessionStopReq as SessionStopReqDINSPEC,
+    SessionStopRes as SessionStopResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    AuthOptionList as AuthOptionListDINSPEC,
+    EVSEProcessing as EVSEProcessingDINSPEC,
+    DCEVSEChargeParameter as DCEVSEChargeParameterDINSPEC,
+    DCEVSEStatusCode as DCEVSEStatusCodeDINSPEC,
+    ChargeService as ChargeServiceDINSPEC,
+    DCEVSEStatus as DCEVSEStatusDINSPEC,
+    IsolationLevel as IsolationLevelDINSPEC,
+    EVSENotification as EVSENotificationDINSPEC,
+    PVEVSEMaxPowerLimit as PVEVSEMaxPowerLimitDINSPEC,
+    PVEVSEMaxCurrentLimit as PVEVSEMaxCurrentLimitDINSPEC,
+    PVEVSEMaxVoltageLimit as PVEVSEMaxVoltageLimitDINSPEC,
+    PVEVSEMinCurrentLimit as PVEVSEMinCurrentLimitDINSPEC,
+    PVEVSEMinVoltageLimit as PVEVSEMinVoltageLimitDINSPEC,
+    PVEVSECurrentRegulationTolerance as PVEVSECurrentRegulationToleranceDINSPEC,
+    PVEVSEPeakCurrentRipple as PVEVSEPeakCurrentRippleDINSPEC,
+    PVEVSEPresentVoltage as PVEVSEPresentVoltageDINSPEC,
+    PVEVSEPresentCurrent as PVEVSEPresentCurrentDINSPEC,
+    PVEVSEEnergyToBeDelivered as PVEVSEEnergyToBeDeliveredDINSPEC,
+    ResponseCode as ResponseCodeDINSPEC,
+    ServiceDetails as ServiceDetailsDINSPEC,
+    ServiceID as ServiceIDDINSPEC,
+    ServiceCategory as ServiceCategoryDINSPEC,
+    UnitSymbol as UnitSymbolDINSPEC,
+)
 
 
 def init_failed_responses_din_spec_70121() -> dict:
@@ -184,7 +230,140 @@ def init_failed_responses_din_spec_70121() -> dict:
     Note: When sending the actual response, you must override the preset
           response code with the failure response code that is most fitting.
     """
-    pass
+    failed_response_iso_dinspec = {
+        SessionSetupReqDINSPEC: SessionSetupResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED, evse_id="1234567"
+        ),
+        ServiceDiscoveryReqDINSPEC: ServiceDiscoveryResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            auth_option_list=AuthOptionListDINSPEC(auth_options=[AuthEnum.EIM_V2]),
+            charge_service=ChargeServiceDINSPEC(
+                service_tag=ServiceDetailsDINSPEC(
+                    service_id=ServiceIDDINSPEC.CHARGING,
+                    service_category=ServiceCategoryDINSPEC.CHARGING,
+                ),
+                free_service=False,
+                energy_transfer_type=EnergyTransferModeEnum.DC_EXTENDED,
+            ),
+        ),
+        ServicePaymentSelectionReqDINSPEC: ServicePaymentSelectionResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED
+        ),
+        ContractAuthenticationReqDINSPEC: ContractAuthenticationResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            evse_processing=EVSEProcessingDINSPEC.FINISHED,
+        ),
+        ChargeParameterDiscoveryReqDINSPEC: ChargeParameterDiscoveryResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            evse_processing=EVSEProcessingDINSPEC.FINISHED,
+            dc_charge_parameter=DCEVSEChargeParameterDINSPEC(
+                dc_evse_status=DCEVSEStatusDINSPEC(
+                    notification_max_delay=1000,
+                    evse_notification=EVSENotificationDINSPEC.STOP_CHARGING,
+                    evse_isolation_status=IsolationLevelDINSPEC.INVALID,
+                    evse_status_code=DCEVSEStatusCodeDINSPEC.EVSE_NOT_READY,
+                ),
+                evse_maximum_power_limit=PVEVSEMaxPowerLimitDINSPEC(
+                    multiplier=0, value=0, unit=UnitSymbolDINSPEC.WATT
+                ),
+                evse_maximum_current_limit=PVEVSEMaxCurrentLimitDINSPEC(
+                    multiplier=0, value=0, unit=UnitSymbolDINSPEC.AMPERE
+                ),
+                evse_maximum_voltage_limit=PVEVSEMaxVoltageLimitDINSPEC(
+                    multiplier=0, value=0, unit=UnitSymbolDINSPEC.VOLTAGE
+                ),
+                evse_minimum_current_limit=PVEVSEMinCurrentLimitDINSPEC(
+                    multiplier=0, value=0, unit=UnitSymbolDINSPEC.AMPERE
+                ),
+                evse_minimum_voltage_limit=PVEVSEMinVoltageLimitDINSPEC(
+                    multiplier=0, value=0, unit=UnitSymbolDINSPEC.VOLTAGE
+                ),
+                evse_current_regulation_tolerance=PVEVSECurrentRegulationToleranceDINSPEC(
+                    multiplier=0, value=0, unit=UnitSymbolDINSPEC.AMPERE
+                ),
+                evse_peak_current_ripple=PVEVSEPeakCurrentRippleDINSPEC(
+                    multiplier=0, value=0, unit=UnitSymbolDINSPEC.AMPERE
+                ),
+                evse_energy_to_be_delivered=PVEVSEEnergyToBeDeliveredDINSPEC(
+                    multiplier=0, value=0, unit=UnitSymbolDINSPEC.WATT_HOURS
+                ),
+            ),
+        ),
+        CableCheckReqDINSPEC: CableCheckResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            dc_evse_status=DCEVSEStatusDINSPEC(
+                notification_max_delay=1000,
+                evse_notification=EVSENotificationDINSPEC.STOP_CHARGING,
+                evse_isolation_status=IsolationLevelDINSPEC.INVALID,
+                evse_status_code=DCEVSEStatusCodeDINSPEC.EVSE_NOT_READY,
+            ),
+            evse_processing=EVSEProcessingDINSPEC.FINISHED,
+        ),
+        PreChargeReqDINSPEC: PreChargeResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            dc_evse_status=DCEVSEStatusDINSPEC(
+                notification_max_delay=1000,
+                evse_notification=EVSENotificationDINSPEC.STOP_CHARGING,
+                evse_isolation_status=IsolationLevelDINSPEC.INVALID,
+                evse_status_code=DCEVSEStatusCodeDINSPEC.EVSE_NOT_READY,
+            ),
+            evse_present_voltage=PVEVSEPresentVoltageDINSPEC(
+                multiplier=0, value=0, unit=UnitSymbolDINSPEC.VOLTAGE
+            ),
+        ),
+        PowerDeliveryReqDINSPEC: PowerDeliveryResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            dc_evse_status=DCEVSEStatusDINSPEC(
+                notification_max_delay=1000,
+                evse_notification=EVSENotificationDINSPEC.STOP_CHARGING,
+                evse_isolation_status=IsolationLevelDINSPEC.INVALID,
+                evse_status_code=DCEVSEStatusCodeDINSPEC.EVSE_NOT_READY,
+            ),
+        ),
+        CurrentDemandReqDINPEC: CurrentDemandResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            dc_evse_status=DCEVSEStatusDINSPEC(
+                notification_max_delay=1000,
+                evse_notification=EVSENotificationDINSPEC.STOP_CHARGING,
+                evse_isolation_status=IsolationLevelDINSPEC.INVALID,
+                evse_status_code=DCEVSEStatusCodeDINSPEC.EVSE_NOT_READY,
+            ),
+            evse_present_voltage=PVEVSEPresentVoltageDINSPEC(
+                multiplier=0, value=0, unit=UnitSymbolDINSPEC.VOLTAGE
+            ),
+            evse_present_current=PVEVSEPresentCurrentDINSPEC(
+                multiplier=0, value=0, unit=UnitSymbolDINSPEC.AMPERE
+            ),
+            evse_current_limit_achieved=False,
+            evse_voltage_limit_achieved=False,
+            evse_power_limit_achieved=False,
+            evse_max_voltage_limit=PVEVSEMaxVoltageLimitDINSPEC(
+                multiplier=0, value=0, unit=UnitSymbolDINSPEC.VOLTAGE
+            ),
+            evse_max_current_limit=PVEVSEMaxCurrentLimitDINSPEC(
+                multiplier=0, value=0, unit=UnitSymbolDINSPEC.AMPERE
+            ),
+            evse_max_power_limit=PVEVSEMaxPowerLimitDINSPEC(
+                multiplier=0, value=0, unit=UnitSymbolDINSPEC.WATT
+            ),
+        ),
+        WeldingDetectionReqDINSPEC: WeldingDetectionResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            dc_evse_status=DCEVSEStatusDINSPEC(
+                notification_max_delay=1000,
+                evse_notification=EVSENotificationDINSPEC.STOP_CHARGING,
+                evse_isolation_status=IsolationLevelDINSPEC.INVALID,
+                evse_status_code=DCEVSEStatusCodeDINSPEC.EVSE_NOT_READY,
+            ),
+            evse_present_voltage=PVEVSEPresentVoltageDINSPEC(
+                multiplier=0, value=0, unit=UnitSymbolDINSPEC.VOLTAGE
+            ),
+        ),
+        SessionStopReqDINSPEC: SessionStopResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED
+        ),
+    }
+    return failed_response_iso_dinspec
 
 
 def init_failed_responses_iso_v2() -> dict:

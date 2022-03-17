@@ -83,7 +83,7 @@ class PhysicalValue(BaseModel):
         """
         value = values.get("value")
         multiplier = values.get("multiplier")
-        calculated_value = value * 10 ** multiplier
+        calculated_value = value * 10**multiplier
         if calculated_value > cls._max_limit or calculated_value < 0:
             raise ValueError(
                 f"{cls.__name__[2:]} value limit exceeded: {calculated_value} \n"

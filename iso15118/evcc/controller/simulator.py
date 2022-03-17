@@ -6,6 +6,17 @@ EVControllerInterface.
 import logging
 from typing import List, Optional, Tuple
 
+from iso15118.shared.messages.din_spec.datatypes import (
+    PVEVMaxCurrentLimit,
+    PVEVMaxVoltageLimit,
+    DCEVStatus,
+    DCEVErrorCode,
+    UnitSymbol as UnitSymbolDINSPEC,
+    PVEVTargetVoltage,
+    PVEVTargetCurrent,
+    DCEVPowerDeliveryParameter,
+)
+
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
 from iso15118.shared.messages.enums import Namespace, Protocol, EnergyTransferModeEnum
@@ -67,7 +78,7 @@ class SimEVController(EVControllerInterface):
     def get_energy_transfer_mode(self, protocol: Protocol) -> EnergyTransferModeEnum:
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
         if protocol == Protocol.DIN_SPEC_70121:
-            return EnergyTransferModeEnum.DC_CORE
+            return EnergyTransferModeEnum.DC_EXTENDED
         return EnergyTransferModeEnum.AC_THREE_PHASE_CORE
 
     def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
@@ -179,3 +190,39 @@ class SimEVController(EVControllerInterface):
 
     def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         return None
+
+    def get_dc_max_current_limit(self) -> PVEVMaxCurrentLimit:
+        return PVEVMaxCurrentLimit(
+            multiplier=1, value=10, unit=UnitSymbolDINSPEC.AMPERE
+        )
+
+    def get_dc_max_voltage_limit(self) -> PVEVMaxVoltageLimit:
+        return PVEVMaxVoltageLimit(
+            multiplier=1, value=40, unit=UnitSymbolDINSPEC.VOLTAGE
+        )
+
+    def get_dc_ev_status(self) -> DCEVStatus:
+        return DCEVStatus(
+            ev_ready=True,
+            ev_error_code=DCEVErrorCode.NO_ERROR,
+            ev_ress_soc=10,
+        )
+
+    def get_dc_target_voltage(self) -> PVEVTargetVoltage:
+        return PVEVTargetVoltage(multiplier=1, value=40, unit=UnitSymbolDINSPEC.VOLTAGE)
+
+    def get_dc_target_current(self) -> PVEVTargetCurrent:
+        return PVEVTargetCurrent(multiplier=1, value=10, unit=UnitSymbolDINSPEC.AMPERE)
+
+    def ready_to_charge(self) -> bool:
+        return self.continue_charging()
+
+    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
+        return DCEVPowerDeliveryParameter(
+            dc_ev_status=self.get_dc_ev_status(),
+            bulk_charging_complete=False,
+            charging_complete=self.continue_charging(),
+        )
+
+    def is_charging_complete(self) -> bool:
+        return True

@@ -6,6 +6,15 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
+from iso15118.shared.messages.din_spec.datatypes import (
+    PVEVMaxCurrentLimit,
+    PVEVMaxVoltageLimit,
+    DCEVStatus,
+    PVEVTargetVoltage,
+    PVEVTargetCurrent,
+    DCEVPowerDeliveryParameter,
+)
+
 from iso15118.shared.messages.enums import Protocol, EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
@@ -198,4 +207,36 @@ class EVControllerInterface(ABC):
         Relevant for:
         - ISO 15118-20
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_max_current_limit(self) -> PVEVMaxCurrentLimit:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_max_voltage_limit(self) -> PVEVMaxVoltageLimit:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_ev_status(self) -> DCEVStatus:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_target_voltage(self) -> PVEVTargetVoltage:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_target_current(self) -> PVEVTargetCurrent:
+        raise NotImplementedError
+
+    @abstractmethod
+    def ready_to_charge(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_charging_complete(self) -> bool:
         raise NotImplementedError
