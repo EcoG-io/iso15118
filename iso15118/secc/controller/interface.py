@@ -7,6 +7,9 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Union
 
 from iso15118.shared.messages.enums import Protocol, EnergyTransferModeEnum
+from iso15118.shared.messages.din_spec.datatypes import (
+    DCEVSEChargeParameter as DCEVSEChargeParameterDINSPEC,
+)
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
@@ -210,4 +213,26 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dinspec_dc_evse_charge_parameter(self) -> DCEVSEChargeParameterDINSPEC:
+        """
+        Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
+
+        Relevant for:
+        - DIN SPEC 70121
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_evse_current_limit_achieved(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_evse_voltage_limit_achieved(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_evse_power_limit_achieved(self) -> bool:
         raise NotImplementedError

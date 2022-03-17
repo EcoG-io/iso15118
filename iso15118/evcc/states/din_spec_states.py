@@ -7,6 +7,10 @@ SessionStopRes.
 import logging
 from typing import Union, List
 
+from iso15118.shared.notifications import StopNotification
+
+from iso15118.shared.states import Terminate
+
 from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol
 from iso15118.evcc import evcc_settings
 from iso15118.shared.messages.din_spec.datatypes import (
@@ -17,10 +21,6 @@ from iso15118.shared.messages.din_spec.datatypes import (
     EVSEProcessing,
     DCEVChargeParameter,
     DCEVStatus,
-    DCEVErrorCode,
-    PVEVMaxCurrentLimit,
-    UnitSymbol,
-    PVEVMaxVoltageLimit,
 )
 
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
@@ -38,6 +38,19 @@ from iso15118.shared.messages.din_spec.body import (
     ContractAuthenticationReq,
     ContractAuthenticationRes,
     ChargeParameterDiscoveryReq,
+    SessionStopRes,
+    CableCheckReq,
+    ChargeParameterDiscoveryRes,
+    CableCheckRes,
+    PreChargeReq,
+    PreChargeRes,
+    PowerDeliveryReq,
+    PowerDeliveryRes,
+    CurrentDemandReq,
+    WeldingDetectionReq,
+    CurrentDemandRes,
+    WeldingDetectionRes,
+    SessionStopReq,
 )
 from iso15118.shared.messages.enums import Namespace, AuthEnum
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
@@ -185,7 +198,7 @@ class ServiceDiscovery(StateEVCC):
 
     def select_auth_mode(self, auth_option_list: List[AuthEnum]):
         """
-        Check if an authorization mode (aka payment option in ISO 15118-2) was
+        Check if an authorization mode (aka payment option) was
         saved from a previously paused communication session and reuse for
         resumed session, otherwise request from EV controller.
         """
@@ -206,14 +219,6 @@ class ServiceDiscovery(StateEVCC):
                 self.comm_session.selected_auth_option = AuthEnum.EIM_V2
 
     def select_services(self, service_discovery_res: ServiceDiscoveryRes):
-        """
-        According to [V2G2-422], a ServiceDetailReq is needed in case VAS
-        (value added services) such as certificate installation/update are to
-        be used and offered by the SECC. Furthermore, it must be checked if VAS
-        are allowed (-> only if TLS connection is used).
-
-        The mandatory ChargeService is not a VAS, though.
-        """
         # Add the ChargeService as a selected service
         self.comm_session.selected_services.append(
             SelectedService(
@@ -302,22 +307,14 @@ class ContractAuthentication(StateEVCC):
             self.create_next_message(
                 ChargeParameterDiscovery,
                 charge_parameter_discovery_req,
-                Timeouts.CONTRACT_AUTHENTICATION_REQ,
+                Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ,
                 Namespace.DIN_MSG_DEF,
             )
 
     def build_charge_parameter_discovery_req(self) -> ChargeParameterDiscoveryReq:
-        dc_ev_status: DCEVStatus = DCEVStatus(
-            ev_ready=True,
-            ev_error_code=DCEVErrorCode.NO_ERROR,
-            ev_ress_soc=10,
-        )
-        max_current_limit = PVEVMaxCurrentLimit(
-            multiplier=1, value=2, unit=UnitSymbol.AMPERE
-        )
-        max_voltage_limit = PVEVMaxVoltageLimit(
-            multiplier=1, value=2, unit=UnitSymbol.VOLTAGE
-        )
+        dc_ev_status: DCEVStatus = self.comm_session.ev_controller.get_dc_ev_status()
+        max_current_limit = self.comm_session.ev_controller.get_dc_max_current_limit()
+        max_voltage_limit = self.comm_session.ev_controller.get_dc_max_voltage_limit()
         dc_charge_parameter: DCEVChargeParameter = DCEVChargeParameter(
             dc_ev_status=dc_ev_status,
             ev_maximum_current_limit=max_current_limit,
@@ -343,14 +340,37 @@ class ChargeParameterDiscovery(StateEVCC):
             V2GMessageDINSPEC,
         ],
     ):
-        raise NotImplementedError("ChargeParameterDiscovery not yet implemented")
+        msg = self.check_msg_din_spec(message, ChargeParameterDiscoveryRes)
+        if not msg:
+            return
+
+        charge_parameter_discovery_res: ChargeParameterDiscoveryRes = (
+            msg.body.charge_parameter_discovery_res
+        )
+        # TODO: USE THE RETURNED PARAMETERS.
+        if charge_parameter_discovery_res.response_code != ResponseCode.OK:
+            return
+
+        cable_check_req = self.build_cable_check_req()
+        self.create_next_message(
+            CableCheck,
+            cable_check_req,
+            Timeouts.CABLE_CHECK_REQ,
+            Namespace.DIN_MSG_DEF,
+        )
+
+    def build_cable_check_req(self) -> CableCheckReq:
+        cable_check_req = CableCheckReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
+        )
+        return cable_check_req
 
 
 class CableCheck(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         # TODO: less the time used for waiting for and processing the
         #       SDPRequest and SupportedAppProtocolReq
-        super().__init__(comm_session, Timeouts.V2G_EVCC_ONGOING_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
 
     def process_message(
         self,
@@ -362,12 +382,35 @@ class CableCheck(StateEVCC):
             V2GMessageDINSPEC,
         ],
     ):
-        raise NotImplementedError("CableCheck not yet implemented")
+        msg = self.check_msg_din_spec(message, CableCheckRes)
+        if not msg:
+            return
+
+        cable_check_res: CableCheckRes = msg.body.cable_check_res
+        # TODO: USE THE RETURNED PARAMETERS.
+        if cable_check_res.response_code != ResponseCode.OK:
+            return
+
+        pre_charge_req: PreChargeReq = self.build_pre_charge_req()
+        self.create_next_message(
+            PreCharge,
+            pre_charge_req,
+            Timeouts.PRE_CHARGE_REQ,
+            Namespace.DIN_MSG_DEF,
+        )
+
+    def build_pre_charge_req(self) -> PreChargeReq:
+        pre_charge_req = PreChargeReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            ev_target_voltage=self.comm_session.ev_controller.get_dc_target_voltage(),
+            ev_target_current=self.comm_session.ev_controller.get_dc_target_current(),
+        )
+        return pre_charge_req
 
 
 class PreCharge(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_ONGOING_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
 
     def process_message(
         self,
@@ -379,12 +422,52 @@ class PreCharge(StateEVCC):
             V2GMessageDINSPEC,
         ],
     ):
-        raise NotImplementedError("PreCharge not yet implemented")
+        msg = self.check_msg_din_spec(message, PreChargeRes)
+        if not msg:
+            return
+
+        pre_charge_res: PreChargeRes = msg.body.pre_charge_res
+        # TODO: USE THE RETURNED PARAMETERS.
+        if pre_charge_res.response_code != ResponseCode.OK:
+            return
+
+        # if pre_charge_res.evse_present_voltage < self.comm_session.ev_controller.get_param_dc_target_voltage():
+        if False:
+            pre_charge_req: PreChargeReq = self.build_pre_charge_req()
+            self.create_next_message(
+                None,
+                pre_charge_req,
+                Timeouts.PRE_CHARGE_REQ,
+                Namespace.DIN_MSG_DEF,
+            )
+        else:
+            power_delivery_req: PowerDeliveryReq = self.build_power_delivery_req()
+            self.create_next_message(
+                PowerDelivery,
+                power_delivery_req,
+                Timeouts.POWER_DELIVERY_REQ,
+                Namespace.DIN_MSG_DEF,
+            )
+
+    def build_pre_charge_req(self) -> PreChargeReq:
+        pre_charge_req = PreChargeReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            ev_target_voltage=self.comm_session.ev_controller.get_dc_target_voltage(),
+            ev_target_current=self.comm_session.ev_controller.get_dc_target_current(),
+        )
+        return pre_charge_req
+
+    def build_power_delivery_req(self) -> PowerDeliveryReq:
+        power_delivery_req = PowerDeliveryReq(
+            ready_to_charge=self.comm_session.ev_controller.ready_to_charge(),
+            dc_ev_power_delivery_parameter=self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter(),
+        )
+        return power_delivery_req
 
 
 class PowerDelivery(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_ONGOING_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
 
     def process_message(
         self,
@@ -396,12 +479,51 @@ class PowerDelivery(StateEVCC):
             V2GMessageDINSPEC,
         ],
     ):
-        raise NotImplementedError("PowerDelivery not yet implemented")
+        msg = self.check_msg_din_spec(message, PowerDeliveryRes)
+        if not msg:
+            return
+
+        power_delivery_res: PowerDeliveryRes = msg.body.power_delivery_res
+        # TODO: USE THE RETURNED PARAMETERS.
+        if power_delivery_res.response_code != ResponseCode.OK:
+            return
+
+        if self.comm_session.ev_controller.continue_charging():
+            self.create_next_message(
+                CurrentDemand,
+                self.build_current_demand_req(),
+                Timeouts.POWER_DELIVERY_REQ,
+                Namespace.DIN_MSG_DEF,
+            )
+        else:
+            self.create_next_message(
+                WeldingDetection,
+                self.build_welding_detection_req(),
+                Timeouts.POWER_DELIVERY_REQ,
+                Namespace.DIN_MSG_DEF,
+            )
+
+    def build_current_demand_req(self):
+        current_demand_req: CurrentDemandReq = CurrentDemandReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            ev_target_current=self.comm_session.ev_controller.get_dc_target_current(),
+            charging_complete=False
+            if self.comm_session.ev_controller.continue_charging()
+            else True,
+            ev_target_voltage=self.comm_session.ev_controller.get_dc_target_voltage(),
+        )
+        return current_demand_req
+
+    def build_welding_detection_req(self):
+        welding_detection_req: WeldingDetectionReq = WeldingDetectionReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
+        )
+        return welding_detection_req
 
 
 class CurrentDemand(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_ONGOING_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
 
     def process_message(
         self,
@@ -413,12 +535,52 @@ class CurrentDemand(StateEVCC):
             V2GMessageDINSPEC,
         ],
     ):
-        raise NotImplementedError("CurrentDemand not yet implemented")
+        msg = self.check_msg_din_spec(message, CurrentDemandRes)
+        if not msg:
+            return
+
+        current_demand_res: CurrentDemandRes = msg.body.current_demand_res
+        # TODO: USE THE RETURNED PARAMETERS.
+        if current_demand_res.response_code != ResponseCode.OK:
+            return
+
+        if current_demand_res.evse_current_limit_achieved:
+            self.create_next_message(
+                PowerDelivery,
+                self.build_power_delivery_req(),
+                Timeouts.POWER_DELIVERY_REQ,
+                Namespace.DIN_MSG_DEF,
+            )
+        else:
+            self.create_next_message(
+                None,
+                self.build_current_demand_req(),
+                Timeouts.POWER_DELIVERY_REQ,
+                Namespace.DIN_MSG_DEF,
+            )
+
+    def build_power_delivery_req(self) -> PowerDeliveryReq:
+        power_delivery_req = PowerDeliveryReq(
+            ready_to_charge=self.comm_session.ev_controller.ready_to_charge(),
+            dc_ev_power_delivery_parameter=self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter(),
+        )
+        return power_delivery_req
+
+    def build_current_demand_req(self):
+        current_demand_req: CurrentDemandReq = CurrentDemandReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            ev_target_current=self.comm_session.ev_controller.get_dc_target_current(),
+            charging_complete=False
+            if self.comm_session.ev_controller.continue_charging()
+            else True,
+            ev_target_voltage=self.comm_session.ev_controller.get_dc_target_voltage(),
+        )
+        return current_demand_req
 
 
 class WeldingDetection(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_ONGOING_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
 
     def process_message(
         self,
@@ -430,12 +592,26 @@ class WeldingDetection(StateEVCC):
             V2GMessageDINSPEC,
         ],
     ):
-        raise NotImplementedError("WeldingDetection not yet implemented")
+        msg = self.check_msg_din_spec(message, WeldingDetectionRes)
+        if not msg:
+            return
+
+        welding_detection_res: WeldingDetectionRes = msg.body.welding_detection_res
+        # TODO: USE THE RETURNED PARAMETERS.
+        if welding_detection_res.response_code != ResponseCode.OK:
+            return
+
+        self.create_next_message(
+            SessionStop,
+            SessionStopReq(),
+            Timeouts.POWER_DELIVERY_REQ,
+            Namespace.DIN_MSG_DEF,
+        )
 
 
 class SessionStop(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_ONGOING_TIMEOUT)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
 
     def process_message(
         self,
@@ -447,4 +623,21 @@ class SessionStop(StateEVCC):
             V2GMessageDINSPEC,
         ],
     ):
-        raise NotImplementedError("SessionStop not yet implemented")
+        msg = self.check_msg_din_spec(message, SessionStopRes)
+        if not msg:
+            return
+
+        # if self.comm_session.charging_session_stop == ChargingSession.TERMINATE:
+        #     stopped = "terminated"
+        # else:
+        #     stopped = "paused"
+
+        self.comm_session.stop_reason = StopNotification(
+            True,
+            f"Communication session stopped successfully",
+            self.comm_session.writer.get_extra_info("peername"),
+        )
+
+        self.next_state = Terminate
+
+        return

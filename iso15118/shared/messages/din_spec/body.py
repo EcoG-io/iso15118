@@ -432,8 +432,6 @@ class CurrentDemandRes(Response):
     evse_max_power_limit: PVEVSEMaxPowerLimit = Field(
         None, alias="EVSEMaximumPowerLimit"
     )
-    # Note: Table 56 denotes the EVSEID type falsely as hexBinary
-    evse_id: str = Field(..., min_length=7, max_length=37, alias="EVSEID")
 
 
 class WeldingDetectionReq(BodyBase):
