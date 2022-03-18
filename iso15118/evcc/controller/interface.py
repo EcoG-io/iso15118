@@ -6,12 +6,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
+from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
+    DCEVChargeParams,
+)
 from iso15118.shared.messages.din_spec.datatypes import (
-    PVEVMaxCurrentLimit,
-    PVEVMaxVoltageLimit,
     DCEVStatus,
-    PVEVTargetVoltage,
-    PVEVTargetCurrent,
     DCEVPowerDeliveryParameter,
 )
 
@@ -210,23 +209,18 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_max_current_limit(self) -> PVEVMaxCurrentLimit:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_dc_max_voltage_limit(self) -> PVEVMaxVoltageLimit:
+    def get_dc_charge_params(self) -> DCEVChargeParams:
+        """
+        This would return an encapsulation of the following parameters:
+        DC Max Current Limit
+        DC Max Voltage Limit
+        DC Target Current
+        DC Target Voltage
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_dc_ev_status(self) -> DCEVStatus:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_dc_target_voltage(self) -> PVEVTargetVoltage:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_dc_target_current(self) -> PVEVTargetCurrent:
         raise NotImplementedError
 
     @abstractmethod

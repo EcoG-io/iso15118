@@ -17,11 +17,13 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
+from iso15118.shared.messages.datatypes_iso15118_2_dinspec import EVSENotification
 from iso15118.shared.messages.enums import (
     AuthEnum,
     Namespace,
     Protocol,
     EnergyTransferModeEnum,
+    EVSEProcessing,
 )
 from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
@@ -55,8 +57,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargeProgress,
     ChargeService,
     ChargingSession,
-    EVSENotification,
-    EVSEProcessing,
     RootCertificateIDList,
     SelectedService,
     SelectedServiceList,

@@ -12,10 +12,27 @@ element names by using the 'alias' attribute.
 """
 
 from enum import Enum, IntEnum
-from typing import List, Literal
+from typing import List
 
 from pydantic import Field, conbytes, constr, root_validator, validator
 
+from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
+    PVEAmount,
+    PVEVMaxVoltage,
+    PVEVMaxCurrent,
+    PVEVMinCurrent,
+    PVEVSENominalVoltage,
+    PVEVSEMaxCurrent,
+    PVPMax,
+    PVStartValue,
+    PVEVMaxCurrentLimit,
+    PVEVMaxPowerLimit,
+    PVEVMaxVoltageLimit,
+    PVEVEnergyCapacity,
+    PVEVEnergyRequest,
+    PhysicalValue,
+    EVSEStatus,
+)
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
     INT_8_MAX,
@@ -25,6 +42,7 @@ from iso15118.shared.messages.enums import (
     UINT_32_MAX,
     AuthEnum,
     EnergyTransferModeEnum,
+    DCEVErrorCode,
 )
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
 from iso15118.shared.validators import one_field_must_be_set
@@ -35,333 +53,6 @@ from iso15118.shared.validators import one_field_must_be_set
 Certificate = conbytes(max_length=800)
 # Check Annex C.6 or the eMAIDType in V2G_CI_MsgDataTypes.xsd
 eMAID = constr(min_length=14, max_length=15)
-
-
-class UnitSymbol(str, Enum):
-    """
-    These are the physical units used in the PhysicalValue subclasses.
-    See Table 68 in section 8.5.2.7 in ISO 15118-2.
-    """
-
-    HOURS = "h"
-    MINUTES = "m"
-    SECONDS = "s"
-    AMPERE = "A"
-    VOLTAGE = "V"
-    WATT = "W"
-    WATT_HOURS = "Wh"
-
-
-class PhysicalValue(BaseModel):
-    """
-    All classes inheriting from PhysicalValue start with 'PV'
-    (abbreviation for 'Physical Value') and define value and unit fields.
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
-
-    Those classes also inherit the private attribute `_max_limit`, which is used
-    to set the maximum limit of each specific physical type and used in the
-    `validate_value_range` method. This private attribute is not added to the
-    Pydantic model in anyway: https://github.com/samuelcolvin/pydantic/issues/655
-
-    The minimum limit is fixed to 0, as in ISO 15118-2 there are no PhysicalValues
-    that can go below that value.
-    """
-
-    _max_limit: int = 0
-    # XSD int16 range [-32768, 32767]
-    value: int = Field(..., ge=INT_16_MIN, le=INT_16_MAX, alias="Value")
-    # XSD type byte with value range [-3..3]
-    multiplier: int = Field(..., ge=-3, le=3, alias="Multiplier")
-
-    @root_validator
-    def validate_value_range(cls, values):
-        """
-        Validator for the range of the PhysicalValue type
-
-        Raises:
-            ValueError, if the calculated value exceeds the limits set
-        """
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        calculated_value = value * 10**multiplier
-        if calculated_value > cls._max_limit or calculated_value < 0:
-            raise ValueError(
-                f"{cls.__name__[2:]} value limit exceeded: {calculated_value} \n"
-                f"Max: {cls._max_limit} \n"
-                f"Min: 0"
-            )
-        return values
-
-
-class PVChargingProfileEntryMaxPower(PhysicalValue):
-    """
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
-
-    Value is of XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 200000 for ChargingProfileEntryMaxPower.
-    Therefore, you'll have to use the multiplier to reach the max value
-    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
-    """
-
-    _max_limit: int = 200000
-    unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
-
-
-class PVEAmount(PhysicalValue):
-    """
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
-
-    Value is of XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 200000 for EAmount.
-    Therefore, you'll have to use the multiplier to reach the max value
-    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
-    """
-
-    _max_limit: int = 200000
-    unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
-
-
-class PVEVEnergyCapacity(PhysicalValue):
-    """
-     See Table 68 in section 8.5.2.7 in ISO 15118-2
-
-     Value is of XSD type short (16 bit integer) with value range [-32768..32767].
-     But Table 68 shows a max value of 200000 for EVEnergyCapacity.
-    Therefore, you'll have to use the multiplier to reach the max value
-     (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
-    """
-
-    _max_limit: int = 200000
-    unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
-
-
-class PVEVEnergyRequest(PhysicalValue):
-    """
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
-
-    Value is of XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 200000 for EVEnergyRequest.
-    Therefore, you'll have to use the multiplier to reach the max value
-    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
-    """
-
-    _max_limit: int = 200000
-    unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
-
-
-class PVEVMaxCurrent(PhysicalValue):
-    """
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
-    """
-
-    _max_limit: int = 400
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-
-class PVEVMaxCurrentLimit(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 400
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-
-class PVEVMaxPowerLimit(PhysicalValue):
-    """
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
-
-    Value is of XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 200000 for EVMaxPowerLimit.
-    Therefore, you'll have to use the multiplier to reach the max value
-    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
-    """
-
-    _max_limit: int = 200000
-    unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
-
-
-class PVEVMaxVoltage(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 1000
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-
-class PVEVMaxVoltageLimit(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 1000
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-
-class PVEVMinCurrent(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 400
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-
-class PVEVSECurrentRegulationTolerance(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 400
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-
-class PVEVSEEnergyToBeDelivered(PhysicalValue):
-    """
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
-
-    Value is of XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 200000 for EVSEEnergyToBeDelivered.
-    Therefore, you'll have to use the multiplier to reach the max value
-    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
-    """
-
-    _max_limit: int = 200000
-    unit: Literal[UnitSymbol.WATT_HOURS] = Field(..., alias="Unit")
-
-
-class PVEVSEMaxCurrent(PhysicalValue):
-    """See sections 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 400
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-
-class PVEVSEMaxCurrentLimit(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 400
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-
-class PVEVSEMaxPowerLimit(PhysicalValue):
-    """
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
-
-    Value is of XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 200000 for EVSEMaxPowerLimit.
-    Therefore, you'll have to use the multiplier to reach the max value
-    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
-    """
-
-    _max_limit: int = 200000
-    unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
-
-
-class PVEVSEMaxVoltageLimit(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 1000
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-
-class PVEVSENominalVoltage(PhysicalValue):
-    """See section 8.5.2.7  in ISO 15118-2"""
-
-    _max_limit: int = 1000
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-
-class PVEVSEMinCurrentLimit(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 400
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-
-class PVEVSEMinVoltageLimit(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 1000
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-
-class PVEVSEPeakCurrentRipple(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 400
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-
-class PVEVSEPresentCurrent(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 400
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-
-class PVEVSEPresentVoltage(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 1000
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-
-class PVEVTargetCurrent(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 400
-    unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
-
-
-class PVEVTargetVoltage(PhysicalValue):
-    """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
-
-    _max_limit: int = 1000
-    unit: Literal[UnitSymbol.VOLTAGE] = Field(..., alias="Unit")
-
-
-class PVPMax(PhysicalValue):
-    """
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
-    XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 200000 for PMax.
-    Therefore, you'll have to use the multiplier to reach the max value
-    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
-    """
-
-    _max_limit: int = 200000
-    unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
-
-
-class PVRemainingTimeToBulkSOC(PhysicalValue):
-    """
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
-    XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 172800 for RemainingTimeToBulkSOC.
-    Therefore, you'll have to use the multiplier to reach the max value
-    (multiplier = 2 and value = 1728 => 1728 * 10 ^ 2)
-    """
-
-    _max_limit: int = 172800
-    unit: Literal[UnitSymbol.SECONDS] = Field(..., alias="Unit")
-
-
-class PVRemainingTimeToFullSOC(PhysicalValue):
-    """
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
-    XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 172800 for RemainingTimeToFullSOC.
-    Therefore, you'll have to use the multiplier to reach the max value
-    (e.g. multiplier = 2 and value = 1728 => 1728 * 10 ^ 2)
-    """
-
-    _max_limit: int = 172800
-    unit: Literal[UnitSymbol.SECONDS] = Field(..., alias="Unit")
-
-
-class PVStartValue(PhysicalValue):
-    """
-    See Table 68 in section 8.5.2.7 in ISO 15118-2
-    XSD type short (16 bit integer) with value range [-32768..32767].
-    But Table 68 shows a max value of 200000 for StartValue.
-    Therefore, you'll have to use the multiplier to reach the max value
-    (e.g. multiplier = 3 and value = 200 => 200 * 10 ^ 3)
-    """
-
-    _max_limit: int = 200000
-    unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
 
 class EVChargeParameter(BaseModel):
@@ -378,24 +69,6 @@ class ACEVChargeParameter(EVChargeParameter):
     ev_max_voltage: PVEVMaxVoltage = Field(..., alias="EVMaxVoltage")
     ev_max_current: PVEVMaxCurrent = Field(..., alias="EVMaxCurrent")
     ev_min_current: PVEVMinCurrent = Field(..., alias="EVMinCurrent")
-
-
-class EVSENotification(str, Enum):
-    """See sections 8.5.3.1 and 8.5.4.1 in ISO 15118-2"""
-
-    NONE = "None"
-    STOP_CHARGING = "StopCharging"
-    RE_NEGOTIATION = "ReNegotiation"
-
-
-class EVSEStatus(BaseModel):
-    """See sections 8.5.3.1 and 8.5.4.1 in ISO 15118-2"""
-
-    # XSD type unsignedShort (16 bit integer) with value range [0..65535]
-    notification_max_delay: int = Field(
-        ..., ge=0, le=65535, alias="NotificationMaxDelay"
-    )
-    evse_notification: EVSENotification = Field(..., alias="EVSENotification")
 
 
 class ACEVSEStatus(EVSEStatus):
@@ -568,23 +241,6 @@ class EncryptedPrivateKey(BaseModel):
         return "ContractSignatureEncryptedPrivateKey"
 
 
-class DCEVErrorCode(str, Enum):
-    """See section 8.5.4.2 in ISO 15118-2"""
-
-    NO_ERROR = "NO_ERROR"
-    FAILED_RESS_TEMPERATURE_INHIBIT = "FAILED_RESSTemperatureInhibit"
-    FAILED_EV_SHIFT_POSITION = "FAILED_EVShiftPosition"
-    FAILED_CHARGER_CONNECTOR_LOCK_FAULT = "FAILED_ChargerConnectorLockFault"
-    FAILED_EV_RESS_MALFUNCTION = "FAILED_EVRESSMalfunction"
-    FAILED_CHARGING_CURRENT_DIFFERENTIAL = "FAILED_ChargingCurrentdifferential"
-    FAILED_CHARGING_VOLTAGE_OUT_OF_RANGE = "FAILED_ChargingVoltageOutOfRange"
-    FAILED_CHARGING_SYSTEM_INCOMPATIBILITY = "FAILED_ChargingSystemIncompatibility"
-    NO_DATA = "NoData"
-    RESERVED_A = "Reserved_A"
-    RESERVED_B = "Reserved_B"
-    RESERVED_C = "Reserved_C"
-
-
 class DCEVStatus(BaseModel):
     """See section 8.5.4.2 in ISO 15118-2"""
 
@@ -621,71 +277,6 @@ class DCEVPowerDeliveryParameter(BaseModel):
     charging_complete: bool = Field(..., alias="ChargingComplete")
 
 
-class DCEVSEStatusCode(str, Enum):
-    """See section 8.5.4.1 in ISO 15118-2"""
-
-    EVSE_NOT_READY = "EVSE_NotReady"
-    EVSE_READY = "EVSE_Ready"
-    EVSE_SHUTDOWN = "EVSE_Shutdown"
-    # XSD typo in "Interrupt"
-    EVSE_UTILITY_INTERUPT_EVENT = "EVSE_UtilityInterruptEvent"
-    EVSE_ISOLATION_MONITORING_ACTIVE = "EVSE_IsolationMonitoringActive"
-    EVSE_EMERGENCY_SHUTDOWN = "EVSE_EmergencyShutdown"
-    EVSE_MALFUNCTION = "EVSE_Malfunction"
-    RESERVED_8 = "Reserved_8"
-    RESERVED_9 = "Reserved_9"
-    RESERVED_A = "Reserved_A"
-    RESERVED_B = "Reserved_B"
-    RESERVED_C = "Reserved_C"
-
-
-class IsolationLevel(str, Enum):
-    """See section 8.5.4.1 in ISO 15118-2"""
-
-    INVALID = "Invalid"
-    VALID = "Valid"
-    WARNING = "Warning"
-    FAULT = "Fault"
-    NO_IMD = "No_IMD"
-
-
-class DCEVSEStatus(EVSEStatus):
-    """See section 8.5.4.1 in ISO 15118-2"""
-
-    evse_isolation_status: IsolationLevel = Field(None, alias="EVSEIsolationStatus")
-    evse_status_code: DCEVSEStatusCode = Field(..., alias="EVSEStatusCode")
-
-
-class DCEVSEChargeParameter(BaseModel):
-    """See section 8.5.4.4 in ISO 15118-2"""
-
-    dc_evse_status: DCEVSEStatus = Field(..., alias="DC_EVSEStatus")
-    evse_maximum_current_limit: PVEVSEMaxCurrentLimit = Field(
-        ..., alias="EVSEMaximumCurrentLimit"
-    )
-    evse_maximum_power_limit: PVEVSEMaxPowerLimit = Field(
-        ..., alias="EVSEMaximumPowerLimit"
-    )
-    evse_maximum_voltage_limit: PVEVSEMaxVoltageLimit = Field(
-        ..., alias="EVSEMaximumVoltageLimit"
-    )
-    evse_minimum_current_limit: PVEVSEMinCurrentLimit = Field(
-        ..., alias="EVSEMinimumCurrentLimit"
-    )
-    evse_minimum_voltage_limit: PVEVSEMinVoltageLimit = Field(
-        ..., alias="EVSEMinimumVoltageLimit"
-    )
-    evse_current_regulation_tolerance: PVEVSECurrentRegulationTolerance = Field(
-        None, alias="EVSECurrentRegulationTolerance"
-    )
-    evse_peak_current_ripple: PVEVSEPeakCurrentRipple = Field(
-        ..., alias="EVSEPeakCurrentRipple"
-    )
-    evse_energy_to_be_delivered: PVEVSEEnergyToBeDelivered = Field(
-        None, alias="EVSEEnergyToBeDelivered"
-    )
-
-
 class DHPublicKey(BaseModel):
     """See section 8.5.2.29 in ISO 15118-2
 
@@ -704,14 +295,6 @@ class DHPublicKey(BaseModel):
     def __str__(self):
         # The XSD has a typo here, not using pascal case for the datatype
         return "DHpublickey"
-
-
-class EVSEProcessing(str, Enum):
-    """See sections 8.4.3.8.3, 8.4.3.7.2, and 8.4.5.2.3 in ISO 15118-2"""
-
-    FINISHED = "Finished"
-    ONGOING = "Ongoing"
-    ONGOING_WAITING_FOR_CUSTOMER = "Ongoing_WaitingForCustomerInteraction"
 
 
 class FaultCode(str, Enum):

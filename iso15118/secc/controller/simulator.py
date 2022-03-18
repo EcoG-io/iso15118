@@ -8,24 +8,33 @@ from typing import List, Optional, Union
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError
-from iso15118.shared.messages.enums import Namespace, Protocol, EnergyTransferModeEnum
-from iso15118.shared.messages.din_spec.datatypes import (
-    DCEVSEChargeParameter as DCEVSEChargeParameterDINSPEC,
+from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
+    PVEVSEPresentVoltage,
+    PVEVSEPresentCurrent,
+    EVSENotification,
+    DCEVSEStatusCode,
+    DCEVSEChargeParameter,
+    DCEVSEStatus,
     PVEVSEMaxPowerLimit,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxVoltageLimit,
     PVEVSEMinCurrentLimit,
     PVEVSEMinVoltageLimit,
     PVEVSEPeakCurrentRipple,
+    PVEVTargetVoltage,
+    PVEVTargetCurrent,
+)
+from iso15118.shared.messages.enums import (
+    Namespace,
+    Protocol,
+    EnergyTransferModeEnum,
+    UnitSymbol,
+    EVSEProcessing,
+    IsolationLevel,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
-    DCEVSEChargeParameter,
-    DCEVSEStatus,
-    DCEVSEStatusCode,
-    EVSENotification,
-    IsolationLevel,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -33,14 +42,11 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     PMaxScheduleEntryDetails,
     PVEVSEMaxCurrent,
     PVEVSENominalVoltage,
-    PVEVSEPresentCurrent,
-    PVEVSEPresentVoltage,
     PVPMax,
     RelativeTimeInterval,
     SalesTariff,
     SalesTariffEntry,
     SAScheduleTupleEntry,
-    UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
@@ -214,7 +220,7 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
         return PVEVSEPresentCurrent(multiplier=0, value=10, unit="A")
 
-    def get_dinspec_dc_evse_charge_parameter(self) -> DCEVSEChargeParameterDINSPEC:
+    def get_dinspec_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         return DCEVSEChargeParameter(
             dc_evse_status=DCEVSEStatus(
                 notification_max_delay=100,
@@ -250,3 +256,12 @@ class SimEVSEController(EVSEControllerInterface):
 
     def is_evse_power_limit_achieved(self) -> bool:
         return True
+
+    def get_evse_processing_state(self) -> EVSEProcessing:
+        return EVSEProcessing.FINISHED
+
+    def set_ev_target_voltage(self, ev_target_voltage: PVEVTargetVoltage):
+        pass
+
+    def set_ev_target_current(self, ev_target_current: PVEVTargetCurrent):
+        pass
