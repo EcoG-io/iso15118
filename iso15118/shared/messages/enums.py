@@ -47,6 +47,65 @@ class EnergyTransferModeEnum(str, Enum):
     DC_UNIQUE = "DC_unique"
 
 
+class UnitSymbol(str, Enum):
+    """
+    These are the physical units used in the PhysicalValue subclasses.
+    See Table 68 in section 8.5.2.7 in ISO 15118-2.
+    Page 202-203 in DIN SPEC 70121. - MULTIPLIER AND UNIT TYPES
+    """
+
+    HOURS = "h"
+    MINUTES = "m"
+    SECONDS = "s"
+    AMPERE = "A"
+    VOLTAGE = "V"
+    WATT = "W"
+    WATT_HOURS = "Wh"
+    AMPERE_HOUR = "Ah"
+    VOLT_AMPERE = "VA"
+    WATT_PER_SECOND = "W/s"
+
+
+class EVSEProcessing(str, Enum):
+    """See sections 8.4.3.8.3, 8.4.3.7.2, and 8.4.5.2.3 in ISO 15118-2"""
+
+    """See A 1.1.5 in DIN SPEC 70121"""
+    FINISHED = "Finished"
+    ONGOING = "Ongoing"
+    ONGOING_WAITING_FOR_CUSTOMER = (
+        "Ongoing_WaitingForCustomerInteraction"  # State not valid for DIN SPEC 70121
+    )
+
+
+class IsolationLevel(str, Enum):
+    """See section 8.5.4.1 in ISO 15118-2"""
+
+    """See Table 97 in 8.5.4.1 in DIN SPEC 70121"""
+    INVALID = "Invalid"
+    VALID = "Valid"
+    WARNING = "Warning"
+    FAULT = "Fault"
+    NO_IMD = "No_IMD"
+
+
+class DCEVErrorCode(str, Enum):
+    """See section 8.5.4.2 in ISO 15118-2"""
+
+    """See C.6 V2G_CI_MsgDataTypes.xsd (Page 272) in DIN SPEC 70121"""
+    NO_ERROR = "NO_ERROR"
+    FAILED_RESS_TEMPERATURE_INHIBIT = "FAILED_RESSTemperatureInhibit"
+    FAILED_EV_SHIFT_POSITION = "FAILED_EVShiftPosition"
+    FAILED_CHARGER_CONNECTOR_LOCK_FAULT = "FAILED_ChargerConnectorLockFault"
+    FAILED_EV_RESS_MALFUNCTION = "FAILED_EVRESSMalfunction"
+    FAILED_CHARGING_CURRENT_DIFFERENTIAL = "FAILED_ChargingCurrentdifferential"
+    FAILED_CHARGING_VOLTAGE_OUT_OF_RANGE = "FAILED_ChargingVoltageOutOfRange"
+    FAILED_CHARGING_SYSTEM_INCOMPATIBILITY = "FAILED_ChargingSystemIncompatibility"
+    NO_DATA = "NoData"
+    RESERVED_A = "Reserved_A"
+    RESERVED_B = "Reserved_B"
+    RESERVED_C = "Reserved_C"
+
+
 class V2GTPVersion(IntEnum):
     """
     These enums are used in the header of a V2G Transfer Protocol (V2GTP)

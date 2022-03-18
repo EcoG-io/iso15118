@@ -6,32 +6,38 @@ EVControllerInterface.
 import logging
 from typing import List, Optional, Tuple
 
-from iso15118.shared.messages.din_spec.datatypes import (
-    PVEVMaxCurrentLimit,
-    PVEVMaxVoltageLimit,
-    DCEVStatus,
-    DCEVErrorCode,
-    UnitSymbol as UnitSymbolDINSPEC,
+from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
     PVEVTargetVoltage,
     PVEVTargetCurrent,
+    PVEAmount,
+    PVEVMaxVoltage,
+    PVEVMaxCurrent,
+    PVEVMinCurrent,
+    PVPMax,
+    PVEVMaxCurrentLimit,
+    PVEVMaxVoltageLimit,
+    DCEVChargeParams,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    DCEVStatus,
     DCEVPowerDeliveryParameter,
 )
 
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
-from iso15118.shared.messages.enums import Namespace, Protocol, EnergyTransferModeEnum
+from iso15118.shared.messages.enums import (
+    Namespace,
+    Protocol,
+    EnergyTransferModeEnum,
+    UnitSymbol,
+    DCEVErrorCode,
+)
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
     ChargingProfile,
     ProfileEntryDetails,
-    PVEAmount,
-    PVEVMaxCurrent,
-    PVEVMaxVoltage,
-    PVEVMinCurrent,
-    PVPMax,
     SAScheduleTupleEntry,
-    UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -51,6 +57,20 @@ class SimEVController(EVControllerInterface):
 
     def __init__(self):
         self.charging_loop_cycles: int = 0
+        self.dc_ev_charge_params: DCEVChargeParams = DCEVChargeParams(
+            dc_max_current_limit=PVEVMaxCurrentLimit(
+                multiplier=1, value=10, unit=UnitSymbol.AMPERE
+            ),
+            dc_max_voltage_limit=PVEVMaxVoltageLimit(
+                multiplier=1, value=40, unit=UnitSymbol.VOLTAGE
+            ),
+            dc_target_current=PVEVTargetCurrent(
+                multiplier=1, value=10, unit=UnitSymbol.AMPERE
+            ),
+            dc_target_voltage=PVEVTargetVoltage(
+                multiplier=1, value=40, unit=UnitSymbol.VOLTAGE
+            ),
+        )
 
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
@@ -191,15 +211,8 @@ class SimEVController(EVControllerInterface):
     def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         return None
 
-    def get_dc_max_current_limit(self) -> PVEVMaxCurrentLimit:
-        return PVEVMaxCurrentLimit(
-            multiplier=1, value=10, unit=UnitSymbolDINSPEC.AMPERE
-        )
-
-    def get_dc_max_voltage_limit(self) -> PVEVMaxVoltageLimit:
-        return PVEVMaxVoltageLimit(
-            multiplier=1, value=40, unit=UnitSymbolDINSPEC.VOLTAGE
-        )
+    def get_dc_charge_params(self) -> DCEVChargeParams:
+        return self.dc_ev_charge_params
 
     def get_dc_ev_status(self) -> DCEVStatus:
         return DCEVStatus(
@@ -207,12 +220,6 @@ class SimEVController(EVControllerInterface):
             ev_error_code=DCEVErrorCode.NO_ERROR,
             ev_ress_soc=10,
         )
-
-    def get_dc_target_voltage(self) -> PVEVTargetVoltage:
-        return PVEVTargetVoltage(multiplier=1, value=40, unit=UnitSymbolDINSPEC.VOLTAGE)
-
-    def get_dc_target_current(self) -> PVEVTargetCurrent:
-        return PVEVTargetCurrent(multiplier=1, value=10, unit=UnitSymbolDINSPEC.AMPERE)
 
     def ready_to_charge(self) -> bool:
         return self.continue_charging()

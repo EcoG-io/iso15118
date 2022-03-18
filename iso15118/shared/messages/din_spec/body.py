@@ -2,7 +2,27 @@ import logging
 from abc import ABC
 from typing import Optional, Tuple, Type
 
-from iso15118.shared.messages.enums import AuthEnum, EnergyTransferModeEnum
+from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
+    PVEVTargetVoltage,
+    PVEVTargetCurrent,
+    PVEVSEPresentVoltage,
+    PVRemainingTimeToFullSOC,
+    PVRemainingTimeToBulkSOC,
+    PVEVSEPresentCurrent,
+    PVEVMaxVoltageLimit,
+    PVEVMaxCurrentLimit,
+    PVEVMaxPowerLimit,
+    PVEVSEMaxVoltageLimit,
+    PVEVSEMaxCurrentLimit,
+    PVEVSEMaxPowerLimit,
+    DCEVSEChargeParameter,
+    DCEVSEStatus,
+)
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    EnergyTransferModeEnum,
+    EVSEProcessing,
+)
 from pydantic import Field, root_validator, validator
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.din_spec.datatypes import (
@@ -13,24 +33,9 @@ from iso15118.shared.messages.din_spec.datatypes import (
     ChargeService,
     ChargingProfile,
     DCEVChargeParameter,
-    DCEVSEStatus,
     DCEVStatus,
     DCEVPowerDeliveryParameter,
-    DCEVSEChargeParameter,
-    EVSEProcessing,
     ResponseCode,
-    PVEVSEPresentCurrent,
-    PVEVSEPresentVoltage,
-    PVEVMaxCurrentLimit,
-    PVEVSEMaxVoltageLimit,
-    PVEVSEMaxCurrentLimit,
-    PVEVSEMaxPowerLimit,
-    PVEVMaxPowerLimit,
-    PVRemainingTimeToBulkSOC,
-    PVRemainingTimeToFullSOC,
-    PVEVMaxVoltageLimit,
-    PVEVTargetCurrent,
-    PVEVTargetVoltage,
     SAScheduleList,
     SelectedServiceList,
     ServiceCategory,

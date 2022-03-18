@@ -6,20 +6,25 @@ This module contains the abstract class for an SECC to retrieve data from the EV
 from abc import ABC, abstractmethod
 from typing import List, Optional, Union
 
-from iso15118.shared.messages.enums import Protocol, EnergyTransferModeEnum
-from iso15118.shared.messages.din_spec.datatypes import (
-    DCEVSEChargeParameter as DCEVSEChargeParameterDINSPEC,
+from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
+    PVEVSEPresentVoltage,
+    PVEVSEPresentCurrent,
+    DCEVSEChargeParameter,
+    DCEVSEStatus,
+    PVEVTargetVoltage,
+    PVEVTargetCurrent,
+)
+from iso15118.shared.messages.enums import (
+    Protocol,
+    EnergyTransferModeEnum,
+    EVSEProcessing,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
-    DCEVSEChargeParameter,
-    DCEVSEStatus,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
-    PVEVSEPresentCurrent,
-    PVEVSEPresentVoltage,
     SAScheduleTupleEntry,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
@@ -216,7 +221,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dinspec_dc_evse_charge_parameter(self) -> DCEVSEChargeParameterDINSPEC:
+    def get_dinspec_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         """
         Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
 
@@ -235,4 +240,16 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     def is_evse_power_limit_achieved(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_evse_processing_state(self) -> EVSEProcessing:
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_ev_target_voltage(self, ev_target_voltage: PVEVTargetVoltage):
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_ev_target_current(self, ev_target_current: PVEVTargetCurrent):
         raise NotImplementedError

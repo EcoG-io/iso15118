@@ -7,18 +7,22 @@ SessionStopRes.
 import logging
 from typing import Union, List
 
+from iso15118.shared.messages.datatypes_iso15118_2_dinspec import DCEVChargeParams
 from iso15118.shared.notifications import StopNotification
 
 from iso15118.shared.states import Terminate
 
-from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol
+from iso15118.shared.messages.enums import (
+    EnergyTransferModeEnum,
+    Protocol,
+    EVSEProcessing,
+)
 from iso15118.evcc import evcc_settings
 from iso15118.shared.messages.din_spec.datatypes import (
     ChargeService,
     SelectedService,
     SelectedServiceList,
     ResponseCode,
-    EVSEProcessing,
     DCEVChargeParameter,
     DCEVStatus,
 )
@@ -60,7 +64,6 @@ from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -313,8 +316,11 @@ class ContractAuthentication(StateEVCC):
 
     def build_charge_parameter_discovery_req(self) -> ChargeParameterDiscoveryReq:
         dc_ev_status: DCEVStatus = self.comm_session.ev_controller.get_dc_ev_status()
-        max_current_limit = self.comm_session.ev_controller.get_dc_max_current_limit()
-        max_voltage_limit = self.comm_session.ev_controller.get_dc_max_voltage_limit()
+        dc_charge_params: DCEVChargeParams = (
+            self.comm_session.ev_controller.get_dc_charge_params()
+        )
+        max_current_limit = dc_charge_params.dc_max_current_limit
+        max_voltage_limit = dc_charge_params.dc_max_voltage_limit
         dc_charge_parameter: DCEVChargeParameter = DCEVChargeParameter(
             dc_ev_status=dc_ev_status,
             ev_maximum_current_limit=max_current_limit,
@@ -400,10 +406,11 @@ class CableCheck(StateEVCC):
         )
 
     def build_pre_charge_req(self) -> PreChargeReq:
+        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
         pre_charge_req = PreChargeReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
-            ev_target_voltage=self.comm_session.ev_controller.get_dc_target_voltage(),
-            ev_target_current=self.comm_session.ev_controller.get_dc_target_current(),
+            ev_target_voltage=dc_charge_params.dc_target_voltage,
+            ev_target_current=dc_charge_params.dc_target_current,
         )
         return pre_charge_req
 
@@ -431,7 +438,7 @@ class PreCharge(StateEVCC):
         if pre_charge_res.response_code != ResponseCode.OK:
             return
 
-        # if pre_charge_res.evse_present_voltage < self.comm_session.ev_controller.get_param_dc_target_voltage():
+        #  if pre_charge_res.evse_present_voltage < self.comm_session.ev_controller.get_param_dc_target_voltage():  # noqa
         if False:
             pre_charge_req: PreChargeReq = self.build_pre_charge_req()
             self.create_next_message(
@@ -450,17 +457,20 @@ class PreCharge(StateEVCC):
             )
 
     def build_pre_charge_req(self) -> PreChargeReq:
+        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
         pre_charge_req = PreChargeReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
-            ev_target_voltage=self.comm_session.ev_controller.get_dc_target_voltage(),
-            ev_target_current=self.comm_session.ev_controller.get_dc_target_current(),
+            ev_target_voltage=dc_charge_params.dc_target_voltage,
+            ev_target_current=dc_charge_params.dc_target_current,
         )
         return pre_charge_req
 
     def build_power_delivery_req(self) -> PowerDeliveryReq:
         power_delivery_req = PowerDeliveryReq(
             ready_to_charge=self.comm_session.ev_controller.ready_to_charge(),
-            dc_ev_power_delivery_parameter=self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter(),
+            dc_ev_power_delivery_parameter=(
+                self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
+            ),
         )
         return power_delivery_req
 
@@ -504,13 +514,14 @@ class PowerDelivery(StateEVCC):
             )
 
     def build_current_demand_req(self):
+        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
-            ev_target_current=self.comm_session.ev_controller.get_dc_target_current(),
+            ev_target_current=dc_charge_params.dc_target_current,
             charging_complete=False
             if self.comm_session.ev_controller.continue_charging()
             else True,
-            ev_target_voltage=self.comm_session.ev_controller.get_dc_target_voltage(),
+            ev_target_voltage=dc_charge_params.dc_target_voltage,
         )
         return current_demand_req
 
@@ -562,18 +573,23 @@ class CurrentDemand(StateEVCC):
     def build_power_delivery_req(self) -> PowerDeliveryReq:
         power_delivery_req = PowerDeliveryReq(
             ready_to_charge=self.comm_session.ev_controller.ready_to_charge(),
-            dc_ev_power_delivery_parameter=self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter(),
+            dc_ev_power_delivery_parameter=(
+                self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
+            ),
         )
         return power_delivery_req
 
     def build_current_demand_req(self):
+        dc_charge_params: DCEVChargeParams = (
+            self.comm_session.ev_controller.get_dc_charge_params()
+        )
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
-            ev_target_current=self.comm_session.ev_controller.get_dc_target_current(),
+            ev_target_current=dc_charge_params.dc_target_current,
             charging_complete=False
             if self.comm_session.ev_controller.continue_charging()
             else True,
-            ev_target_voltage=self.comm_session.ev_controller.get_dc_target_voltage(),
+            ev_target_voltage=dc_charge_params.dc_target_voltage,
         )
         return current_demand_req
 
@@ -634,7 +650,7 @@ class SessionStop(StateEVCC):
 
         self.comm_session.stop_reason = StopNotification(
             True,
-            f"Communication session stopped successfully",
+            "Communication session stopped successfully",
             self.comm_session.writer.get_extra_info("peername"),
         )
 
