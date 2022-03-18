@@ -144,6 +144,10 @@ class EVSEControllerInterface(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def stop_charger(self) -> None:
+        raise NotImplementedError
+
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
@@ -213,27 +217,19 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set_ev_target_voltage(self, voltage):
-        raise NotImplementedError
-
-    @abstractmethod
-    def set_ev_target_current(self, current):
-        raise NotImplementedError
-
-    @abstractmethod
-    def session_terminated(self):
-        raise NotImplementedError
-
-    @abstractmethod
     def set_ev_soc(self, soc):
         raise NotImplementedError
 
     @abstractmethod
-    def set_precharge(self):
+    def set_precharge(self, voltage, PVEVTargetVoltage):
         raise NotImplementedError
 
     @abstractmethod
     def set_cable_check(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def send_charging_command(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
         raise NotImplementedError
 
     @abstractmethod

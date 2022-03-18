@@ -55,6 +55,7 @@ class SimEVController(EVControllerInterface):
 
     def __init__(self):
         self.charging_loop_cycles: int = 0
+        self.precharge_loop_cycles: int = 0
 
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
@@ -241,7 +242,12 @@ class SimEVController(EVControllerInterface):
         )
 
     def is_precharged(self):
-        return True
+        if self.precharge_loop_cycles == 50:
+            # To simulate a bit of a precharge loop, we'll let it run 10 times
+            return True
+        else:
+            self.precharge_loop_cycles += 1
+            return False
 
     def get_ev_max_voltage_limit(self) -> PVEVMaxVoltageLimit:
         return PVEVMaxVoltageLimit(multiplier=0, value=500, unit="V")

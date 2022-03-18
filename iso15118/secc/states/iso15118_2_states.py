@@ -1169,6 +1169,7 @@ class PowerDelivery(StateSECC):
             next_state = SessionStop
         elif power_delivery_req.charge_progress == ChargeProgress.STOP:
             next_state = WeldingDetection
+            self.comm_session.evse_controller.stop_charger()
         else:
             # ChargeProgress only has three enum values: Start, Stop, and
             # Renegotiate. So this is the renegotiation case.
@@ -1483,6 +1484,7 @@ class CableCheck(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_cable_check_req = True
+        self.cable_check_req_was_reveived = False
 
     def process_message(
         self,
@@ -1518,7 +1520,9 @@ class CableCheck(StateSECC):
             )
             return
 
-        self.comm_session.evse_controller.set_cable_check()
+        if not self.cable_check_req_was_reveived:
+            self.comm_session.evse_controller.set_cable_check()
+            self.cable_check_req_was_reveived = True
         self.comm_session.evse_controller.set_ev_soc(cable_check_req.dc_ev_status.ev_ress_soc)
 
         dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
@@ -1554,6 +1558,7 @@ class PreCharge(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_precharge_req = False
+        self.precharge_req_was_reveived = False
 
     def process_message(
         self,
@@ -1591,9 +1596,9 @@ class PreCharge(StateSECC):
             return
 
         self.comm_session.evse_controller.set_ev_soc(precharge_req.dc_ev_status.ev_ress_soc)
-        self.comm_session.evse_controller.set_ev_target_current(precharge_req.ev_target_current)
-        self.comm_session.evse_controller.set_ev_target_voltage(precharge_req.ev_target_voltage)
-        self.comm_session.evse_controller.set_precharge()
+        if not self.precharge_req_was_reveived:
+            self.comm_session.evse_controller.set_precharge(precharge_req.ev_target_voltage)
+            self.precharge_req_was_reveived = True
 
         evse_present_voltage = self.comm_session.evse_controller.get_evse_present_voltage()
         dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
@@ -1647,6 +1652,12 @@ class CurrentDemand(StateSECC):
         if msg.body.metering_receipt_req:
             MeteringReceipt(self.comm_session).process_message(message)
             return
+
+        current_demand_req: CurrentDemandReq = msg.body.current_demand_req
+
+        self.comm_session.evse_controller.set_ev_soc(current_demand_req.dc_ev_status.ev_ress_soc)
+        self.comm_session.evse_controller.send_charging_command(current_demand_req.ev_target_voltage,
+                                                                current_demand_req.ev_target_current)
 
         # We don't care about signed meter values from the EVCC, but if you
         # do, then set receipt_required to True and set the field meter_info

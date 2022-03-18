@@ -151,6 +151,9 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.set_hlc_charging()."""
         pass
 
+    def stop_charger(self) -> None:
+        pass
+
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
@@ -227,19 +230,13 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
         return PVEVSEPresentCurrent(multiplier=0, value=10, unit="A")
 
-    def set_ev_target_voltage(self, voltage):
-        pass
-
-    def set_ev_target_current(self, current):
-        pass
-
     def set_cable_check(self):
         pass
 
-    def set_precharge(self):
+    def set_precharge(self, voltage: PVEVTargetVoltage):
         pass
 
-    def session_terminated(self):
+    def send_charging_command(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
         pass
 
     def set_ev_soc(self, soc):
