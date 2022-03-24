@@ -9,6 +9,7 @@ from typing import List, Optional, Tuple
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
 from iso15118.shared.messages.enums import Namespace, Protocol
+from iso15118.shared.messages.iso15118_2.body import PreChargeReq, CurrentDemandReq
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
@@ -56,6 +57,8 @@ class SimEVController(EVControllerInterface):
     def __init__(self):
         self.charging_loop_cycles: int = 0
         self.precharge_loop_cycles: int = 0
+        self._charging_is_completed = False
+        self._soc = 10
 
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
@@ -199,7 +202,7 @@ class SimEVController(EVControllerInterface):
 
     def continue_charging(self) -> bool:
         """Overrides EVControllerInterface.continue_charging()."""
-        if self.charging_loop_cycles == 10:
+        if self.charging_loop_cycles == 10 or self.get_charging_complete():
             # To simulate a bit of a charging loop, we'll let it run 10 times
             return False
         else:
@@ -222,7 +225,7 @@ class SimEVController(EVControllerInterface):
         return DCEVStatus(
             ev_ready=True,
             ev_error_code=DCEVErrorCode.NO_ERROR,
-            ev_ress_soc=10
+            ev_ress_soc=self._soc
         )
 
     def get_ev_target_voltage(self) -> PVEVTargetVoltage:
@@ -241,9 +244,10 @@ class SimEVController(EVControllerInterface):
             charging_complete=False,
         )
 
-    def is_precharged(self):
+    def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
+        # deviation shall have a max deviation of 20 A, according to CC.5.1 of IEC61851-23
         if self.precharge_loop_cycles == 50:
-            # To simulate a bit of a precharge loop, we'll let it run 10 times
+            # To simulate a bit of a precharge loop, we'll let it run 50 times
             return True
         else:
             self.precharge_loop_cycles += 1
@@ -262,7 +266,10 @@ class SimEVController(EVControllerInterface):
         return False
 
     def get_charging_complete(self) -> bool:
-        return False
+        if self._soc == 100:
+            return True
+        else:
+            return False
 
     def get_remaining_time_to_full_soc(self) -> PVRemainingTimeToFullSOC:
         return PVRemainingTimeToFullSOC(
@@ -276,3 +283,25 @@ class SimEVController(EVControllerInterface):
 
     def welding_detection_has_finished(self):
         return True
+
+    def get_pre_charge_data(self) -> PreChargeReq:
+        pre_charge_req = PreChargeReq(
+                    dc_ev_status=self.get_dc_ev_status(),
+                    ev_target_voltage=PVEVTargetVoltage(multiplier=0, value=450, unit="V"),
+                    ev_target_current=PVEVTargetCurrent(multiplier=0, value=1, unit="A"),
+                )
+        return pre_charge_req
+
+    def get_current_demand_data(self) -> CurrentDemandReq:
+        current_demand_req = CurrentDemandReq(
+            dc_ev_status=self.get_dc_ev_status(),
+            ev_target_current=PVEVTargetCurrent(multiplier=0, value=10, unit="A"),
+            ev_max_current_limit=self.get_ev_max_current_limit(),
+            ev_max_power_limit=self.get_ev_max_power_limit(),
+            bulk_charging_complete=self.get_bulk_charging_complete(),
+            charging_complete=self.get_charging_complete(),
+            remaining_time_to_full_soc=self.get_remaining_time_to_full_soc(),
+            remaining_time_to_bulk_soc=self.get_remaining_time_to_bulk_soc(),
+            ev_target_voltage=PVEVTargetVoltage(multiplier=0, value=450, unit="V"),
+        )
+        return current_demand_req

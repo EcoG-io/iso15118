@@ -64,6 +64,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     SelectedServiceList,
     ServiceCategory,
     ServiceID,
+    DCEVSEStatusCode,
+    IsolationLevel,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_2.timeouts import Timeouts
@@ -226,6 +228,9 @@ class ServiceDiscovery(StateEVCC):
         else:
             self.comm_session.selected_energy_mode = (
                 self.comm_session.ev_controller.get_energy_transfer_mode()
+            )
+            self.comm_session.selected_charging_type_is_ac = (
+                self.comm_session.selected_energy_mode.value.startswith("AC")
             )
 
     def select_auth_mode(self, auth_option_list: List[AuthEnum]):
@@ -724,7 +729,7 @@ class ChargeParameterDiscovery(StateEVCC):
                 charge_params_res.sa_schedule_list.values
             )
 
-            if self.comm_session.selected_energy_mode.value.startswith("AC"):
+            if self.comm_session.selected_charging_type_is_ac:
 
                 power_delivery_req = PowerDeliveryReq(
                     charge_progress=charge_progress,
@@ -810,7 +815,7 @@ class PowerDelivery(StateEVCC):
         if not msg:
             return
 
-        if self.comm_session.charging_session_stop and self.comm_session.selected_energy_mode.value.startswith("AC"):
+        if self.comm_session.charging_session_stop and self.comm_session.selected_charging_type_is_ac:
             session_stop_req = SessionStopReq(
                 charging_session=self.comm_session.charging_session_stop
             )
@@ -849,7 +854,7 @@ class PowerDelivery(StateEVCC):
             )
         elif (
             self.comm_session.selected_energy_mode
-            and self.comm_session.selected_energy_mode.value.startswith("AC")
+            and self.comm_session.selected_charging_type_is_ac
         ):
             self.create_next_message(
                 ChargingStatus,
@@ -858,18 +863,8 @@ class PowerDelivery(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
         else:
-            current_demand_req = CurrentDemandReq(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
-                ev_target_current=self.comm_session.ev_controller.get_ev_target_current(),
-                ev_max_voltage_limit=self.comm_session.ev_controller.get_ev_max_voltage_limit(),
-                ev_max_current_limit=self.comm_session.ev_controller.get_ev_max_current_limit(),
-                ev_max_power_limit=self.comm_session.ev_controller.get_ev_max_power_limit(),
-                bulk_charging_complete=self.comm_session.ev_controller.get_bulk_charging_complete(),
-                charging_complete=self.comm_session.ev_controller.get_charging_complete(),
-                remaining_time_to_full_soc=self.comm_session.ev_controller.get_remaining_time_to_full_soc(),
-                remaining_time_to_bulk_soc=self.comm_session.ev_controller.get_remaining_time_to_bulk_soc(),
-                ev_target_voltage=self.comm_session.ev_controller.get_ev_target_voltage(),
-            )
+            current_demand_req = self.comm_session.ev_controller.get_current_demand_data()
+
             self.create_next_message(
                 CurrentDemand,
                 current_demand_req,
@@ -933,7 +928,7 @@ class MeteringReceipt(StateEVCC):
         else:
             if (
                 self.comm_session.selected_energy_mode
-                and self.comm_session.selected_energy_mode.value.startswith("AC")
+                and self.comm_session.selected_charging_type_is_ac
             ):
                 self.create_next_message(
                     ChargingStatus,
@@ -973,14 +968,9 @@ class SessionStop(StateEVCC):
         if not msg:
             return
 
-        if self.comm_session.charging_session_stop == ChargingSession.TERMINATE:
-            stopped = "terminated"
-        else:
-            stopped = "paused"
-
         self.comm_session.stop_reason = StopNotification(
             True,
-            f"Communication session {stopped} successfully",
+            f"Communication session {self.comm_session.charging_session_stop.lower()}d",
             self.comm_session.writer.get_extra_info("peername"),
         )
 
@@ -1125,22 +1115,26 @@ class CableCheck(StateEVCC):
             return
 
         cable_check_res: CableCheckRes = msg.body.cable_check_res
+        dc_evse_status: DCEVSEStatus = cable_check_res.dc_evse_status
+        evse_status_code: DCEVSEStatusCode = dc_evse_status.evse_status_code
+        isolation_status: IsolationLevel = dc_evse_status.evse_isolation_status
         if cable_check_res.evse_processing == EVSEProcessing.FINISHED:
             # Reset the Ongoing timer
             self.comm_session.ongoing_timer = -1
-            precharge_req = PreChargeReq(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
-                ev_target_voltage=self.comm_session.ev_controller.get_ev_target_voltage(),
-                ev_target_current=self.comm_session.ev_controller.get_ev_target_current(),
-            )
-            self.create_next_message(
-                PreCharge,
-                precharge_req,
-                Timeouts.PRE_CHARGE_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
+            if evse_status_code == DCEVSEStatusCode.EVSE_READY and isolation_status == IsolationLevel.VALID:
+                precharge_req = self.comm_session.ev_controller.get_pre_charge_data()
+                self.create_next_message(
+                    PreCharge,
+                    precharge_req,
+                    Timeouts.PRE_CHARGE_REQ,
+                    Namespace.ISO_V2_MSG_DEF,
+                )
+            else:
+                self.stop_state_machine(
+                    "Isolation-Level of EVSE is not Valid"
+                )
         else:
-            logger.debug("SECC is still precessing the CableCheck")
+            logger.debug(f"{evse_status_code}")
             elapsed_time: float = 0
             if self.comm_session.ongoing_timer >= 0:
                 elapsed_time = time() - self.comm_session.ongoing_timer
@@ -1187,10 +1181,7 @@ class PreCharge(StateEVCC):
 
         precharge_res: PreChargeRes = msg.body.pre_charge_res
 
-        self.comm_session.ev_controller.set_present_voltage_evse(precharge_res.evse_present_voltage)
-
-
-        if self.comm_session.ev_controller.is_precharged():
+        if self.comm_session.ev_controller.is_precharged(precharge_res.evse_present_voltage):
             self.comm_session.ongoing_timer = -1
             power_delivery_req = PowerDeliveryReq(
                 charge_progress=ChargeProgress.START,
@@ -1217,11 +1208,7 @@ class PreCharge(StateEVCC):
             else:
                 self.comm_session.ongoing_timer = time()
 
-            precharge_req = PreChargeReq(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
-                ev_target_voltage=self.comm_session.ev_controller.get_ev_target_voltage(),
-                ev_target_current=self.comm_session.ev_controller.get_ev_target_current(),
-            )
+            precharge_req = self.comm_session.ev_controller.get_pre_charge_data()
             self.create_next_message(
                 PreCharge,
                 precharge_req,
@@ -1260,17 +1247,7 @@ class CurrentDemand(StateEVCC):
 
         elif self.comm_session.ev_controller.continue_charging():
             ev_controller = self.comm_session.ev_controller
-            current_demand_req = CurrentDemandReq(
-                dc_ev_status=ev_controller.get_dc_ev_status(),
-                ev_target_current=ev_controller.get_ev_target_current(),
-                ev_max_current_limit=ev_controller.get_ev_max_current_limit(),
-                ev_max_power_limit=ev_controller.get_ev_max_power_limit(),
-                bulk_charging_complete=ev_controller.get_bulk_charging_complete(),
-                charging_complete=ev_controller.get_charging_complete(),
-                remaining_time_to_full_soc=ev_controller.get_remaining_time_to_full_soc(),
-                remaining_time_to_bulk_soc=ev_controller.get_remaining_time_to_bulk_soc(),
-                ev_target_voltage=ev_controller.get_ev_target_voltage(),
-            )
+            current_demand_req = self.comm_session.ev_controller.get_current_demand_data()
 
             self.create_next_message(
                 CurrentDemand,

@@ -87,6 +87,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     SubCertificates,
     IsolationLevel,
     DCEVErrorCode,
+    DCEVSEStatus,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -954,6 +955,7 @@ class ChargeParameterDiscovery(StateSECC):
             return
 
         self.comm_session.selected_energy_mode = charge_params_req.requested_energy_mode
+        self.comm_session.selected_charging_type_is_ac = self.comm_session.selected_energy_mode.value.startswith("AC")
 
         max_schedule_entries: Optional[
             int
@@ -1051,15 +1053,19 @@ class PowerDelivery(StateSECC):
 
     Upon first initialisation of this state, we expect a
     PowerDeliveryReq, but after that, the next possible request could
-    be either a ChargeParameterDiscoveryReq (if the SECC requests a
-    renegotiation of the charging profile), or a ChargingStatusReq, if the
-    PowerDeliveryReq's ChargeProgress field is set to 'Start', or a
-    SessionStopReq, if the PowerDeliveryReq's ChargeProgress field is set to
-    'Stop'.
+    be either
+    - a ChargeParameterDiscoveryReq (if the SECC requests a
+    renegotiation of the charging profile),
+    - a ChargingStatusReq in case of AC-Charging and if the PowerDeliveryReq's
+    ChargeProgress field is set to 'Start',
+    - a CurrentDemandReq in case of DC-Charging and if the PowerdeliveryReq's
+    ChargeProgress field is set to 'Start',
+    - or a SessionStopReq in case of AC-Charging and if the PowerDeliveryReq's
+    ChargeProgress field is set to 'Stop'.
+    - In case of DC-Charging after a PowerDeliverReq's ChargeProgress field is set to 'Stop',
+    the EV can send a WeldingDetectionReq or a SesstionStopReq
 
-    So we remain in this state until we know which is the following request from
-    the EVCC and then transition to the appropriate state (or terminate if the
-    incoming message doesn't fit any of the expected requests).
+    So when a PowerDeliveryReq is received, we know the next state. Except when stopping DC-Charging
 
     As a result, the create_next_message() method might be called with
     next_state = None.
@@ -1093,20 +1099,8 @@ class PowerDelivery(StateSECC):
         if not msg:
             return
 
-        if msg.body.charge_parameter_discovery_req:
-            ChargeParameterDiscovery(self.comm_session).process_message(message)
-            return
-
-        if msg.body.charging_status_req:
-            ChargingStatus(self.comm_session).process_message(message)
-            return
-
         if msg.body.session_stop_req:
             SessionStop(self.comm_session).process_message(message)
-            return
-
-        if msg.body.current_demand_req:
-            CurrentDemand(self.comm_session).process_message(message)
             return
 
         if msg.body.welding_detection_req:
@@ -1153,10 +1147,9 @@ class PowerDelivery(StateSECC):
         logger.debug(f"ChargeProgress set to {power_delivery_req.charge_progress}")
 
         next_state: Type[State]
-        is_charging_ac = True if self.comm_session.selected_energy_mode.value.startswith("AC") else False
         if power_delivery_req.charge_progress == ChargeProgress.START:
             self.comm_session.evse_controller.set_hlc_charging(True)
-            if is_charging_ac:
+            if self.comm_session.selected_charging_type_is_ac:
                 next_state = ChargingStatus
             else:
                 next_state = CurrentDemand
@@ -1164,11 +1157,12 @@ class PowerDelivery(StateSECC):
                 power_delivery_req.sa_schedule_tuple_id
             )
             self.comm_session.charge_progress_started = True
-        elif power_delivery_req.charge_progress == ChargeProgress.STOP and is_charging_ac:
+        elif power_delivery_req.charge_progress == ChargeProgress.STOP and \
+                self.comm_session.selected_charging_type_is_ac:
             self.comm_session.evse_controller.set_hlc_charging(False)
             next_state = SessionStop
         elif power_delivery_req.charge_progress == ChargeProgress.STOP:
-            next_state = WeldingDetection
+            next_state = None
             self.comm_session.evse_controller.stop_charger()
         else:
             # ChargeProgress only has three enum values: Start, Stop, and
@@ -1186,16 +1180,17 @@ class PowerDelivery(StateSECC):
                 )
                 next_state = Terminate
 
-        if is_charging_ac:
-            power_delivery_res = PowerDeliveryRes(
-                response_code=ResponseCode.OK,
-                ac_evse_status=self.comm_session.evse_controller.get_ac_evse_status(),
-            )
+        ac_evse_status: Optional[ACEVSEStatus] = None
+        dc_evse_status: Optional[DCEVSEStatus] = None
+        if self.comm_session.selected_charging_type_is_ac:
+            ac_evse_status = self.comm_session.evse_controller.get_ac_evse_status()
         else:
-            power_delivery_res = PowerDeliveryRes(
-                response_code=ResponseCode.OK,
-                dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
-            )
+            dc_evse_status = self.comm_session.evse_controller.get_dc_evse_status()
+        power_delivery_res = PowerDeliveryRes(
+            response_code=ResponseCode.OK,
+            ac_evse_status=ac_evse_status,
+            dc_evse_status=dc_evse_status
+        )
 
         self.create_next_message(
             next_state,
@@ -1301,7 +1296,7 @@ class MeteringReceipt(StateSECC):
 
         if (
             self.comm_session.selected_energy_mode
-            and self.comm_session.selected_energy_mode.value.startswith("AC")
+            and self.comm_session.selected_charging_type_is_ac
         ):
             metering_receipt_res = MeteringReceiptRes(
                 response_code=ResponseCode.OK,
@@ -1484,7 +1479,7 @@ class CableCheck(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_cable_check_req = True
-        self.cable_check_req_was_reveived = False
+        self.cable_check_req_was_received = False
 
     def process_message(
         self,
@@ -1498,8 +1493,7 @@ class CableCheck(StateSECC):
         msg = self.check_msg_v2(
             message,
             [
-                CableCheckReq,
-                PreChargeReq
+                CableCheckReq
              ],
             self.expecting_cable_check_req,
         )
@@ -1520,9 +1514,9 @@ class CableCheck(StateSECC):
             )
             return
 
-        if not self.cable_check_req_was_reveived:
-            self.comm_session.evse_controller.set_cable_check()
-            self.cable_check_req_was_reveived = True
+        if not self.cable_check_req_was_received:
+            self.comm_session.evse_controller.start_cable_check()
+            self.cable_check_req_was_received = True
         self.comm_session.evse_controller.set_ev_soc(cable_check_req.dc_ev_status.ev_ress_soc)
 
         dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
@@ -1553,6 +1547,9 @@ class PreCharge(StateSECC):
     """
     The ISO 15118-2 state in which the SECC processes an
     PreChargeReq message from the EVCC.
+    In this state the EVSE adapts the DC output voltage to the requested voltage from the EV.
+    The difference between these voltages must be smaller than 20V (according 61851-23).
+    The EV sends a PowerDeliveryReq as soon as the precharge process has finished.
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
@@ -1597,7 +1594,8 @@ class PreCharge(StateSECC):
 
         self.comm_session.evse_controller.set_ev_soc(precharge_req.dc_ev_status.ev_ress_soc)
         if not self.precharge_req_was_reveived:
-            self.comm_session.evse_controller.set_precharge(precharge_req.ev_target_voltage)
+            self.comm_session.evse_controller.set_precharge(precharge_req.ev_target_voltage,
+                                                            precharge_req.ev_target_current)
             self.precharge_req_was_reveived = True
 
         evse_present_voltage = self.comm_session.evse_controller.get_evse_present_voltage()
@@ -1639,7 +1637,7 @@ class CurrentDemand(StateSECC):
     ):
         msg = self.check_msg_v2(
             message,
-            [CurrentDemandReq, PowerDeliveryReq, MeteringReceiptReq],
+            [CurrentDemandReq, PowerDeliveryReq],
             self.expecting_current_demand_req,
         )
         if not msg:
@@ -1647,10 +1645,6 @@ class CurrentDemand(StateSECC):
 
         if msg.body.power_delivery_req:
             PowerDelivery(self.comm_session).process_message(message)
-            return
-
-        if msg.body.metering_receipt_req:
-            MeteringReceipt(self.comm_session).process_message(message)
             return
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req

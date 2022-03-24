@@ -218,40 +218,106 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     def set_ev_soc(self, soc):
+        """
+        Sets the present SOC (state of charge) from the EV
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError
 
     @abstractmethod
-    def set_precharge(self, voltage, PVEVTargetVoltage):
+    def set_precharge(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
+        """
+        Sets the precharge information coming from the EV.
+        The charger must adapt it's output voltage to the requested voltage from the EV.
+        The current may not exceed 2A (according 61851-23)
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError
 
     @abstractmethod
-    def set_cable_check(self):
+    def start_cable_check(self):
+        """
+        This method is called at the beginning of the state CableCheck.
+        It requests the charger to perform a CableCheck
+
+        Relevant for:
+        - ISO 15118-2
+        """
+        #
         raise NotImplementedError
 
     @abstractmethod
     def send_charging_command(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
+        """
+        This method is called in the state CurrentDemand. The values target current
+        and target voltage from the EV are passed.
+        These information must be provided for the charger's power electronics.
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_evse_current_limit_achieved(self) -> bool:
+        """
+        Returns true if the current limit of the charger has achieved
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_evse_voltage_limit_achieved(self) -> bool:
+        """
+        Returns true if the voltage limit of the charger has achieved
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_evse_power_limit_achieved(self) -> bool:
+        """
+        Returns true if the power limit of the charger has achieved
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
+        """
+        Gets the max voltage that can be provided by the charger
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
+        """
+        Gets the max current that can be provided by the charger
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
+        """
+        Gets the max power that can be provided by the charger
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError

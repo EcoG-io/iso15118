@@ -230,10 +230,10 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
         return PVEVSEPresentCurrent(multiplier=0, value=10, unit="A")
 
-    def set_cable_check(self):
+    def start_cable_check(self):
         pass
 
-    def set_precharge(self, voltage: PVEVTargetVoltage):
+    def set_precharge(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
         pass
 
     def send_charging_command(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
