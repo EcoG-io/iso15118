@@ -1500,10 +1500,6 @@ class CableCheck(StateSECC):
         if not msg:
             return
 
-        if msg.body.pre_charge_req:
-            PreCharge(self.comm_session).process_message(message)
-            return
-
         cable_check_req: CableCheckReq = msg.body.cable_check_req
         if cable_check_req.dc_ev_status.ev_error_code != DCEVErrorCode.NO_ERROR:
             self.stop_state_machine(
