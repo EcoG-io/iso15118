@@ -228,7 +228,7 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_evse_present_current(self) -> PVEVSEPresentCurrent:
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
-        return PVEVSEPresentCurrent(multiplier=0, value=10, unit="A")
+        return PVEVSEPresentCurrent(multiplier=0, value=1, unit="A")
 
     def start_cable_check(self):
         pass

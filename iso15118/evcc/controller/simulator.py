@@ -130,6 +130,8 @@ class SimEVController(EVControllerInterface):
             full_soc=90,
             bulk_soc=80,
         )
+        if self.get_energy_transfer_mode().value.startswith("AC"):
+            return ChargeParamsV2(self.get_energy_transfer_mode(), ac_charge_params, None)
         return ChargeParamsV2(self.get_energy_transfer_mode(), None, dc_charge_params)
 
     def get_charge_params_v20(
@@ -234,9 +236,6 @@ class SimEVController(EVControllerInterface):
     def get_ev_target_current(self) -> PVEVTargetCurrent:
         return PVEVTargetCurrent(multiplier=0, value=10, unit="A")
 
-    def set_present_voltage_evse(self, present_voltage_evse: PVEVSEPresentVoltage):
-        pass
-
     def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
         return DCEVPowerDeliveryParameter(
             dc_ev_status=self.get_dc_ev_status(),
@@ -246,12 +245,11 @@ class SimEVController(EVControllerInterface):
 
     def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
         # deviation shall have a max deviation of 20 A, according to CC.5.1 of IEC61851-23
+        self.precharge_loop_cycles += 1
         if self.precharge_loop_cycles == 50:
             # To simulate a bit of a precharge loop, we'll let it run 50 times
             return True
-        else:
-            self.precharge_loop_cycles += 1
-            return False
+        return False
 
     def get_ev_max_voltage_limit(self) -> PVEVMaxVoltageLimit:
         return PVEVMaxVoltageLimit(multiplier=0, value=500, unit="V")

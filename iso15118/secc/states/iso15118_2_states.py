@@ -980,16 +980,6 @@ class ChargeParameterDiscovery(StateSECC):
             max_schedule_entries, departure_time
         )
 
-        charge_params_res = ChargeParameterDiscoveryRes(
-            response_code=ResponseCode.OK,
-            evse_processing=EVSEProcessing.FINISHED
-            if sa_schedule_list
-            else EVSEProcessing.ONGOING,
-            sa_schedule_list=SAScheduleList(values=sa_schedule_list),
-            ac_charge_parameter=ac_evse_charge_params,
-            dc_charge_parameter=dc_evse_charge_params,
-        )
-
         signature = None
         next_state = None
         if sa_schedule_list:
@@ -1028,6 +1018,16 @@ class ChargeParameterDiscovery(StateSECC):
             self.expecting_charge_parameter_discovery_req = False
         else:
             self.expecting_charge_parameter_discovery_req = True
+
+        charge_params_res = ChargeParameterDiscoveryRes(
+            response_code=ResponseCode.OK,
+            evse_processing=EVSEProcessing.FINISHED
+            if sa_schedule_list
+            else EVSEProcessing.ONGOING,
+            sa_schedule_list=SAScheduleList(values=sa_schedule_list),
+            ac_charge_parameter=ac_evse_charge_params,
+            dc_charge_parameter=dc_evse_charge_params,
+        )
 
         self.create_next_message(
             next_state,
@@ -1088,10 +1088,7 @@ class PowerDelivery(StateSECC):
             message,
             [
                 PowerDeliveryReq,
-                ChargeParameterDiscoveryReq,
-                ChargingStatusReq,
                 SessionStopReq,
-                CurrentDemandReq,
                 WeldingDetectionReq,
             ],
             self.expecting_power_delivery_req,
@@ -1478,7 +1475,6 @@ class CableCheck(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
-        self.expecting_cable_check_req = True
         self.cable_check_req_was_received = False
 
     def process_message(
@@ -1490,13 +1486,7 @@ class CableCheck(StateSECC):
             V2GMessageV20,
         ],
     ):
-        msg = self.check_msg_v2(
-            message,
-            [
-                CableCheckReq
-             ],
-            self.expecting_cable_check_req,
-        )
+        msg = self.check_msg_v2(message, [CableCheckReq])
         if not msg:
             return
 
@@ -1517,16 +1507,21 @@ class CableCheck(StateSECC):
 
         dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
 
-        iso_state_is_ok = True if dc_charger_state.evse_isolation_status is IsolationLevel.VALID \
-            else False
-        next_state = PreCharge if iso_state_is_ok else None
+        evse_processing = EVSEProcessing.ONGOING
+        next_state = None
+        if dc_charger_state.evse_isolation_status == IsolationLevel.VALID \
+                or dc_charger_state.evse_isolation_status == IsolationLevel.WARNING:
+            evse_processing = EVSEProcessing.FINISHED
+            next_state = PreCharge
+        elif dc_charger_state.evse_isolation_status == IsolationLevel.FAULT \
+                or dc_charger_state.evse_isolation_status == IsolationLevel.NO_IMD:
+            evse_processing = EVSEProcessing.FINISHED
+            next_state = Terminate
 
         cable_check_res = CableCheckRes(
             response_code=ResponseCode.OK,
             dc_evse_status=dc_charger_state,
-            evse_processing=EVSEProcessing.FINISHED
-            if iso_state_is_ok
-            else EVSEProcessing.ONGOING,
+            evse_processing=evse_processing,
         )
 
         self.create_next_message(
@@ -1535,8 +1530,6 @@ class CableCheck(StateSECC):
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.ISO_V2_MSG_DEF,
         )
-
-        self.expecting_cable_check_req = False
 
 
 class PreCharge(StateSECC):
@@ -1594,7 +1587,12 @@ class PreCharge(StateSECC):
                                                             precharge_req.ev_target_current)
             self.precharge_req_was_reveived = True
 
+        next_state = None
         evse_present_voltage = self.comm_session.evse_controller.get_evse_present_voltage()
+        present_current = self.comm_session.evse_controller.get_evse_present_current()
+        present_current_in_a = present_current.value * 10 ** present_current.multiplier
+        if present_current_in_a > 2:
+            next_state = Terminate
         dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
 
         precharge_res = PreChargeRes(
@@ -1603,7 +1601,6 @@ class PreCharge(StateSECC):
             evse_present_voltage=evse_present_voltage,
         )
 
-        next_state = None
         self.create_next_message(
             next_state,
             precharge_res,

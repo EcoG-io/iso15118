@@ -350,7 +350,7 @@ class EVControllerInterface(ABC):
     @abstractmethod
     def get_pre_charge_data(self) -> PreChargeReq:
         """
-        Gets the data needed the PrechargeReq.
+        Gets the data needed for the PrechargeReq.
         For the PreCharge phase, the requested current
         must be < 2 A (maximum inrush current according to CC.5.2 in IEC61851 -23)
 

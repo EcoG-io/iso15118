@@ -79,7 +79,3 @@ class Config:
         self.supported_auth_options = [AuthEnum.EIM, AuthEnum.PNC]
 
         env.seal()  # raise all errors at once, if any
-
-    def validate_config(self):
-        # validate the NIC selected
-        validate_nic(self.iface)
