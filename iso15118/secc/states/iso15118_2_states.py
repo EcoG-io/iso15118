@@ -1503,20 +1503,26 @@ class CableCheck(StateSECC):
         if not self.cable_check_req_was_received:
             self.comm_session.evse_controller.start_cable_check()
             self.cable_check_req_was_received = True
-        self.comm_session.evse_controller.set_ev_soc(cable_check_req.dc_ev_status.ev_ress_soc)
+        self.comm_session.evse_controller.update_ev_data(soc=cable_check_req.dc_ev_status.ev_ress_soc)
 
         dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
 
         evse_processing = EVSEProcessing.ONGOING
         next_state = None
-        if dc_charger_state.evse_isolation_status == IsolationLevel.VALID \
-                or dc_charger_state.evse_isolation_status == IsolationLevel.WARNING:
+        if dc_charger_state.evse_isolation_status in [IsolationLevel.VALID, IsolationLevel.WARNING]:
+            if dc_charger_state.evse_isolation_status == IsolationLevel.WARNING:
+                logger.warning(
+                    f"Isolation resistance measured by EVSE is in Warning-Range"
+                )
             evse_processing = EVSEProcessing.FINISHED
             next_state = PreCharge
-        elif dc_charger_state.evse_isolation_status == IsolationLevel.FAULT \
-                or dc_charger_state.evse_isolation_status == IsolationLevel.NO_IMD:
-            evse_processing = EVSEProcessing.FINISHED
-            next_state = Terminate
+        elif dc_charger_state.evse_isolation_status in [IsolationLevel.FAULT, IsolationLevel.NO_IMD]:
+            self.stop_state_machine(
+                f"Isolation Failure: {dc_charger_state.evse_isolation_status}",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         cable_check_res = CableCheckRes(
             response_code=ResponseCode.OK,
@@ -1543,7 +1549,6 @@ class PreCharge(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
-        self.expecting_precharge_req = False
         self.precharge_req_was_reveived = False
 
     def process_message(
@@ -1561,7 +1566,7 @@ class PreCharge(StateSECC):
                 PreChargeReq,
                 PowerDeliveryReq
             ],
-            self.expecting_precharge_req,
+            not self.precharge_req_was_reveived,
         )
         if not msg:
             return
@@ -1581,19 +1586,30 @@ class PreCharge(StateSECC):
             )
             return
 
-        self.comm_session.evse_controller.set_ev_soc(precharge_req.dc_ev_status.ev_ress_soc)
+        self.comm_session.evse_controller.update_ev_data(soc=precharge_req.dc_ev_status.ev_ress_soc)
+
+        # for the PreCharge phase, the requested current must be < 2 A
+        # (maximum inrush current according to CC.5.2 in IEC61851 -23)
+        present_current = self.comm_session.evse_controller.get_evse_present_current()
+        present_current_in_a = present_current.value * 10 ** present_current.multiplier
+        target_current = precharge_req.ev_target_current
+        target_current_in_a = target_current.value * 10 ** target_current.multiplier
+
+        if present_current_in_a > 2 or target_current_in_a > 2:
+            self.stop_state_machine(
+                f"Target current or present current too high in state Precharge",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
+
         if not self.precharge_req_was_reveived:
             self.comm_session.evse_controller.set_precharge(precharge_req.ev_target_voltage,
                                                             precharge_req.ev_target_current)
             self.precharge_req_was_reveived = True
 
-        next_state = None
-        evse_present_voltage = self.comm_session.evse_controller.get_evse_present_voltage()
-        present_current = self.comm_session.evse_controller.get_evse_present_current()
-        present_current_in_a = present_current.value * 10 ** present_current.multiplier
-        if present_current_in_a > 2:
-            next_state = Terminate
         dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
+        evse_present_voltage = self.comm_session.evse_controller.get_evse_present_voltage()
 
         precharge_res = PreChargeRes(
             response_code=ResponseCode.OK,
@@ -1601,6 +1617,7 @@ class PreCharge(StateSECC):
             evse_present_voltage=evse_present_voltage,
         )
 
+        next_state = None
         self.create_next_message(
             next_state,
             precharge_res,
@@ -1642,7 +1659,7 @@ class CurrentDemand(StateSECC):
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
 
-        self.comm_session.evse_controller.set_ev_soc(current_demand_req.dc_ev_status.ev_ress_soc)
+        self.comm_session.evse_controller.update_ev_data(soc=current_demand_req.dc_ev_status.ev_ress_soc)
         self.comm_session.evse_controller.send_charging_command(current_demand_req.ev_target_voltage,
                                                                 current_demand_req.ev_target_current)
 

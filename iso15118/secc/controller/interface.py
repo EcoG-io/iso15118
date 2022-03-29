@@ -4,6 +4,7 @@ This module contains the abstract class for an SECC to retrieve data from the EV
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import List, Optional, Union
 
 from iso15118.shared.messages.enums import Protocol
@@ -23,6 +24,15 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 )
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
+
+
+@dataclass
+class ev_data_context:
+    dc_current: Optional[int] = None
+    dc_voltage: Optional[int] = None
+    ac_current: Optional[dict] = None # {"l1": 10, "l2": 10, "l3": 10}
+    ac_voltage: Optional[dict] = None # {"l1": 230, "l2": 230, "l3": 230}
+    soc: Optional[int] = None # 0-100
 
 
 class EVSEControllerInterface(ABC):
@@ -148,6 +158,14 @@ class EVSEControllerInterface(ABC):
     def stop_charger(self) -> None:
         raise NotImplementedError
 
+    @abstractmethod
+    def update_ev_data(self, soc: int = None,
+                       dc_current: int = None,
+                       dc_voltage: int = None,
+                       ac_current: dict = None,
+                       ac_voltage: dict = None):
+        raise NotImplementedError
+
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
@@ -210,16 +228,6 @@ class EVSEControllerInterface(ABC):
     def get_evse_present_current(self) -> PVEVSEPresentCurrent:
         """
         Gets the presently available voltage at the EVSE
-
-        Relevant for:
-        - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def set_ev_soc(self, soc):
-        """
-        Sets the present SOC (state of charge) from the EV
 
         Relevant for:
         - ISO 15118-2
