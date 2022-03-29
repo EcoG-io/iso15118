@@ -5,6 +5,7 @@ SessionStopRes.
 """
 
 import logging
+from time import time
 from typing import Union, List
 
 from iso15118.shared.messages.datatypes_iso15118_2_dinspec import DCEVChargeParams
@@ -64,6 +65,7 @@ from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
+from iso15118.shared.messages.timeouts import Timeouts as TimeoutsShared
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +84,7 @@ class SessionSetup(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         # TODO: less the time used for waiting for and processing the
         #       SDPResponse and SupportedAppProtocolRes
-        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
+        super().__init__(comm_session, Timeouts.SESSION_SETUP_REQ)
 
     def process_message(
         self,
@@ -121,7 +123,7 @@ class ServiceDiscovery(StateEVCC):
     """
 
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
+        super().__init__(comm_session, Timeouts.SERVICE_DISCOVERY_REQ)
 
     def process_message(
         self,
@@ -170,9 +172,9 @@ class ServiceDiscovery(StateEVCC):
         )
 
         self.create_next_message(
-            ServiceAndPaymentSelection,
+            ServicePaymentSelection,
             service_payment_selection,
-            Timeouts.SERVICE_DISCOVERY_REQ,
+            Timeouts.SERVICE_PAYMENT_SELECTION_REQ,
             Namespace.DIN_MSG_DEF,
         )
 
@@ -230,9 +232,9 @@ class ServiceDiscovery(StateEVCC):
         )
 
 
-class ServiceAndPaymentSelection(StateEVCC):
+class ServicePaymentSelection(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
+        super().__init__(comm_session, Timeouts.SERVICE_PAYMENT_SELECTION_REQ)
 
     def process_message(
         self,
@@ -261,14 +263,14 @@ class ServiceAndPaymentSelection(StateEVCC):
         self.create_next_message(
             ContractAuthentication,
             contract_authentication_req,
-            Timeouts.SERVICE_PAYMENT_SELECTION_REQ,
+            Timeouts.CONTRACT_AUTHENTICATION_REQ,
             Namespace.DIN_MSG_DEF,
         )
 
 
 class ContractAuthentication(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
+        super().__init__(comm_session, Timeouts.CONTRACT_AUTHENTICATION_REQ)
 
     def process_message(
         self,
@@ -299,7 +301,7 @@ class ContractAuthentication(StateEVCC):
             self.create_next_message(
                 None,
                 ContractAuthentication(),
-                Timeouts.SERVICE_PAYMENT_SELECTION_REQ,
+                Timeouts.CONTRACT_AUTHENTICATION_REQ,
                 Namespace.DIN_MSG_DEF,
             )
         elif contract_authentication_res.evse_processing == EVSEProcessing.FINISHED:
@@ -317,7 +319,7 @@ class ContractAuthentication(StateEVCC):
     def build_charge_parameter_discovery_req(self) -> ChargeParameterDiscoveryReq:
         dc_ev_status: DCEVStatus = self.comm_session.ev_controller.get_dc_ev_status()
         dc_charge_params: DCEVChargeParams = (
-            self.comm_session.ev_controller.get_dc_charge_params()
+            self.comm_session.ev_controller.get_charge_params_dinspec()
         )
         max_current_limit = dc_charge_params.dc_max_current_limit
         max_voltage_limit = dc_charge_params.dc_max_voltage_limit
@@ -334,7 +336,7 @@ class ContractAuthentication(StateEVCC):
 
 class ChargeParameterDiscovery(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
+        super().__init__(comm_session, Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ)
 
     def process_message(
         self,
@@ -353,30 +355,71 @@ class ChargeParameterDiscovery(StateEVCC):
         charge_parameter_discovery_res: ChargeParameterDiscoveryRes = (
             msg.body.charge_parameter_discovery_res
         )
-        # TODO: USE THE RETURNED PARAMETERS.
-        if charge_parameter_discovery_res.response_code != ResponseCode.OK:
-            return
 
-        cable_check_req = self.build_cable_check_req()
-        self.create_next_message(
-            CableCheck,
-            cable_check_req,
-            Timeouts.CABLE_CHECK_REQ,
-            Namespace.DIN_MSG_DEF,
-        )
+        if charge_parameter_discovery_res.evse_processing == EVSEProcessing.FINISHED:
+            # Reset the Ongoing timer
+            self.comm_session.ongoing_timer = -1
 
-    def build_cable_check_req(self) -> CableCheckReq:
-        cable_check_req = CableCheckReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
-        )
-        return cable_check_req
+            # TODO Look at EVSEStatus and EVSENotification and react accordingly
+            #      if e.g. EVSENotification is set to STOP_CHARGING or if RCD
+            #      is True. But let's do that after the testival
+
+            schedule_id = self.comm_session.ev_controller.process_sa_schedules_dinspec(
+                charge_parameter_discovery_res.sa_schedule_list.values
+            )
+
+            cable_check_req = CableCheckReq(
+                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            )
+
+            self.create_next_message(
+                CableCheck,
+                cable_check_req,
+                Timeouts.CABLE_CHECK_REQ,
+                Namespace.DIN_MSG_DEF,
+            )
+
+            self.comm_session.selected_schedule = schedule_id
+
+            # TODO Set CP state to C max. 250 ms after sending PowerDeliveryReq
+        else:
+            logger.debug(
+                "SECC is still processing the proposed charging "
+                "schedule and charge parameters"
+            )
+            elapsed_time: float = 0
+            if self.comm_session.ongoing_timer >= 0:
+                elapsed_time = time() - self.comm_session.ongoing_timer
+                if elapsed_time > TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT:
+                    self.stop_state_machine(
+                        "Ongoing timer timed out for " "ChargeParameterDiscoveryRes"
+                    )
+                    return
+            else:
+                self.comm_session.ongoing_timer = time()
+
+            charge_params = self.comm_session.ev_controller.get_charge_params_dinspec()
+
+            charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
+                requested_energy_mode=charge_params.energy_mode,
+                ac_ev_charge_parameter=charge_params.ac_parameters,
+                dc_ev_charge_parameter=charge_params.dc_parameters,
+            )
+
+            self.create_next_message(
+                ChargeParameterDiscovery,
+                charge_parameter_discovery_req,
+                min(
+                    Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ,
+                    TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT - elapsed_time,
+                ),
+                Namespace.ISO_V2_MSG_DEF,
+            )
 
 
 class CableCheck(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        # TODO: less the time used for waiting for and processing the
-        #       SDPRequest and SupportedAppProtocolReq
-        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
+        super().__init__(comm_session, Timeouts.CABLE_CHECK_REQ)
 
     def process_message(
         self,
@@ -406,7 +449,7 @@ class CableCheck(StateEVCC):
         )
 
     def build_pre_charge_req(self) -> PreChargeReq:
-        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
+        dc_charge_params = self.comm_session.ev_controller.get_charge_params_dinspec()
         pre_charge_req = PreChargeReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
@@ -417,7 +460,7 @@ class CableCheck(StateEVCC):
 
 class PreCharge(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
+        super().__init__(comm_session, Timeouts.PRE_CHARGE_REQ)
 
     def process_message(
         self,
@@ -457,7 +500,7 @@ class PreCharge(StateEVCC):
             )
 
     def build_pre_charge_req(self) -> PreChargeReq:
-        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
+        dc_charge_params = self.comm_session.ev_controller.get_charge_params_dinspec()
         pre_charge_req = PreChargeReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
@@ -477,7 +520,7 @@ class PreCharge(StateEVCC):
 
 class PowerDelivery(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
+        super().__init__(comm_session, Timeouts.POWER_DELIVERY_REQ)
 
     def process_message(
         self,
@@ -502,19 +545,19 @@ class PowerDelivery(StateEVCC):
             self.create_next_message(
                 CurrentDemand,
                 self.build_current_demand_req(),
-                Timeouts.POWER_DELIVERY_REQ,
+                Timeouts.CURRENT_DEMAND_REQ,
                 Namespace.DIN_MSG_DEF,
             )
         else:
             self.create_next_message(
                 WeldingDetection,
                 self.build_welding_detection_req(),
-                Timeouts.POWER_DELIVERY_REQ,
+                Timeouts.WELDING_DETECTION_REQ,
                 Namespace.DIN_MSG_DEF,
             )
 
     def build_current_demand_req(self):
-        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
+        dc_charge_params = self.comm_session.ev_controller.get_charge_params_dinspec()
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_current=dc_charge_params.dc_target_current,
@@ -534,7 +577,7 @@ class PowerDelivery(StateEVCC):
 
 class CurrentDemand(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
+        super().__init__(comm_session, Timeouts.CURRENT_DEMAND_REQ)
 
     def process_message(
         self,
@@ -566,7 +609,7 @@ class CurrentDemand(StateEVCC):
             self.create_next_message(
                 None,
                 self.build_current_demand_req(),
-                Timeouts.POWER_DELIVERY_REQ,
+                Timeouts.CURRENT_DEMAND_REQ,
                 Namespace.DIN_MSG_DEF,
             )
 
@@ -581,7 +624,7 @@ class CurrentDemand(StateEVCC):
 
     def build_current_demand_req(self):
         dc_charge_params: DCEVChargeParams = (
-            self.comm_session.ev_controller.get_dc_charge_params()
+            self.comm_session.ev_controller.get_charge_params_dinspec()
         )
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
@@ -596,7 +639,7 @@ class CurrentDemand(StateEVCC):
 
 class WeldingDetection(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
+        super().__init__(comm_session, Timeouts.WELDING_DETECTION_REQ)
 
     def process_message(
         self,
@@ -613,21 +656,28 @@ class WeldingDetection(StateEVCC):
             return
 
         welding_detection_res: WeldingDetectionRes = msg.body.welding_detection_res
-        # TODO: USE THE RETURNED PARAMETERS.
         if welding_detection_res.response_code != ResponseCode.OK:
-            return
-
-        self.create_next_message(
-            SessionStop,
-            SessionStopReq(),
-            Timeouts.POWER_DELIVERY_REQ,
-            Namespace.DIN_MSG_DEF,
-        )
+            welding_detection_req = WeldingDetectionReq(
+                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
+            )
+            self.create_next_message(
+                None,
+                welding_detection_req,
+                Timeouts.SESSION_STOP_REQ,
+                Namespace.DIN_MSG_DEF,
+            )
+        else:
+            self.create_next_message(
+                SessionStop,
+                SessionStopReq(),
+                Timeouts.SESSION_STOP_REQ,
+                Namespace.DIN_MSG_DEF,
+            )
 
 
 class SessionStop(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
-        super().__init__(comm_session, Timeouts.V2G_EVCC_SEQUENCE_PERFORMANCE_TIME)
+        super().__init__(comm_session, Timeouts.SESSION_STOP_REQ)
 
     def process_message(
         self,

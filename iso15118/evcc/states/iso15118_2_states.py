@@ -824,7 +824,9 @@ class PowerDelivery(StateEVCC):
         elif self.comm_session.renegotiation_requested:
             self.comm_session.renegotiation_requested = False
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2()
+            charge_params = self.comm_session.ev_controller.get_charge_params_v2(
+                Protocol.ISO_15118_2
+            )
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,

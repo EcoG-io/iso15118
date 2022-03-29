@@ -41,7 +41,7 @@ class PhysicalValue(BaseModel):
         """
         value = values.get("value")
         multiplier = values.get("multiplier")
-        calculated_value = value * 10 ** multiplier
+        calculated_value = value * 10**multiplier
         if calculated_value > cls._max_limit or calculated_value < 0:
             raise ValueError(
                 f"{cls.__name__[2:]} value limit exceeded: {calculated_value} \n"
@@ -325,7 +325,9 @@ class PVStartValue(PhysicalValue):
 
 class DCEVChargeParams(BaseModel):
     dc_max_current_limit: PVEVMaxCurrentLimit
+    dc_max_power_limit: PVEVMaxPowerLimit
     dc_max_voltage_limit: PVEVMaxVoltageLimit
+    dc_energy_capacity: PVEVEnergyCapacity
     dc_target_current: PVEVTargetCurrent
     dc_target_voltage: PVEVTargetVoltage
 

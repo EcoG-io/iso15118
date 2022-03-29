@@ -32,6 +32,12 @@ from iso15118.shared.messages.enums import (
     EVSEProcessing,
     IsolationLevel,
 )
+from iso15118.shared.messages.din_spec.datatypes import (
+    SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
+    PMaxScheduleEntry as PMaxScheduleEntryDINSPEC,
+    RelativeTimeInterval as RelativeTimeIntervalDINSPEC,
+    PMaxScheduleEntryDetails as PMaxScheduleEntryDetailsDINSPEC,
+)
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
@@ -75,7 +81,7 @@ class SimEVSEController(EVSEControllerInterface):
             # as “0x49 0xA8 0x9A 0x63 0x60”.
             return "49A89A6360"
         """Overrides EVSEControllerInterface.get_evse_id()."""
-        return "+44*123*456*789"
+        return "UK123E1234"
 
     def get_supported_energy_transfer_modes(
         self, protocol: Protocol
@@ -93,6 +99,27 @@ class SimEVSEController(EVSEControllerInterface):
     def is_authorised(self) -> bool:
         """Overrides EVSEControllerInterface.is_authorised()."""
         return True
+
+    def get_sa_schedule_list_dinspec(
+        self, max_schedule_entries: Optional[int], departure_time: int = 0
+    ) -> Optional[List[SAScheduleTupleEntryDINSPEC]]:
+        """Overrides EVSEControllerInterface.get_sa_schedule_list_dinspec()."""
+        sa_schedule_list: List[SAScheduleTupleEntryDINSPEC] = []
+        entry_details = PMaxScheduleEntryDetailsDINSPEC(
+            p_max=200, time_interval=RelativeTimeIntervalDINSPEC(start=0, duration=3600)
+        )
+        p_max_schedule_entries = [entry_details]
+        pmax_schedule_entry = PMaxScheduleEntryDINSPEC(
+            p_max_schedule_id=0, entry_details=p_max_schedule_entries
+        )
+
+        sa_schedule_tuple_entry = SAScheduleTupleEntryDINSPEC(
+            sa_schedule_tuple_id=1,
+            p_max_schedule=pmax_schedule_entry,
+            sales_tariff=None,
+        )
+        sa_schedule_list.append(sa_schedule_tuple_entry)
+        return sa_schedule_list
 
     def get_sa_schedule_list(
         self, max_schedule_entries: Optional[int], departure_time: int = 0
@@ -210,17 +237,6 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_dc_evse_charge_parameter()."""
-        pass
-
-    def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
-        """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
-        return PVEVSEPresentVoltage(multiplier=0, value=230, unit="V")
-
-    def get_evse_present_current(self) -> PVEVSEPresentCurrent:
-        """Overrides EVSEControllerInterface.get_evse_present_current()."""
-        return PVEVSEPresentCurrent(multiplier=0, value=10, unit="A")
-
-    def get_dinspec_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         return DCEVSEChargeParameter(
             dc_evse_status=DCEVSEStatus(
                 notification_max_delay=100,
@@ -247,6 +263,14 @@ class SimEVSEController(EVSEControllerInterface):
                 multiplier=1, value=4, unit="A"
             ),
         )
+
+    def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
+        """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
+        return PVEVSEPresentVoltage(multiplier=0, value=230, unit="V")
+
+    def get_evse_present_current(self) -> PVEVSEPresentCurrent:
+        """Overrides EVSEControllerInterface.get_evse_present_current()."""
+        return PVEVSEPresentCurrent(multiplier=0, value=10, unit="A")
 
     def is_evse_current_limit_achieved(self) -> bool:
         return True
