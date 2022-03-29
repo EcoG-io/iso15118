@@ -59,6 +59,7 @@ from iso15118.shared.messages.din_spec.datatypes import (
     ChargeService,
     AuthOptionList,
     ServiceID,
+    SAScheduleList,
 )
 
 logger = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ class SessionSetup(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session, Timeouts.SESSION_SETUP_RES)
+        super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATIONSETUP_TIMEOUT)
 
     def process_message(
         self,
@@ -144,8 +145,7 @@ class ServiceDiscovery(StateSECC):
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session, Timeouts.SERVICE_DISCOVERY_RES)
-        self.expecting_service_discovery_req: bool = True
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
     def process_message(
         self,
@@ -157,11 +157,7 @@ class ServiceDiscovery(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_dinspec(
-            message,
-            [ServiceDiscoveryReq],
-            self.expecting_service_discovery_req,
-        )
+        msg = self.check_msg_dinspec(message, [ServiceDiscoveryReq])
         if not msg:
             return
 
@@ -176,8 +172,6 @@ class ServiceDiscovery(StateSECC):
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.DIN_MSG_DEF,
         )
-
-        self.expecting_service_discovery_req = False
 
     def get_services(self, category_filter: ServiceCategory) -> ServiceDiscoveryRes:
         """
@@ -230,8 +224,7 @@ class ServiceDiscovery(StateSECC):
 
 class ServiceAndPaymentSelection(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session, Timeouts.SERVICE_PAYMENT_SELECTION_RES)
-        self.expecting_service_and_payment_selection_req: bool = True
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
     def process_message(
         self,
@@ -243,11 +236,7 @@ class ServiceAndPaymentSelection(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_dinspec(
-            message,
-            [ServicePaymentSelectionReq],
-            self.expecting_service_and_payment_selection_req,
-        )
+        msg = self.check_msg_dinspec(message, [ServicePaymentSelectionReq])
         if not msg:
             return
 
@@ -277,8 +266,7 @@ class ServiceAndPaymentSelection(StateSECC):
 
 class ContractAuthentication(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session, Timeouts.CONTRACT_AUTHENTICATION_RES)
-        self.expecting_contract_authentication_req = True
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
     def process_message(
         self,
@@ -290,11 +278,7 @@ class ContractAuthentication(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_dinspec(
-            message,
-            [ContractAuthenticationReq],
-            self.expecting_contract_authentication_req,
-        )
+        msg = self.check_msg_dinspec(message, [ContractAuthenticationReq])
         if not msg:
             return
 
@@ -324,8 +308,7 @@ class ContractAuthentication(StateSECC):
 
 class ChargeParameterDiscovery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session, Timeouts.CHARGE_PARAMETER_DISCOVERY_RES)
-        self.charge_parameter_discovery_req = True
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
     def process_message(
         self,
@@ -337,11 +320,7 @@ class ChargeParameterDiscovery(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_dinspec(
-            message,
-            [ChargeParameterDiscoveryReq],
-            self.charge_parameter_discovery_req,
-        )
+        msg = self.check_msg_dinspec(message, [ChargeParameterDiscoveryReq])
         if not msg:
             return
 
@@ -354,11 +333,37 @@ class ChargeParameterDiscovery(StateSECC):
                 Protocol.DIN_SPEC_70121
             )
         ):
+            self.stop_state_machine(
+                f"{charge_parameter_discovery_req.requested_energy_mode} not "
+                f"offered as energy transfer mode",
+                message,
+                ResponseCode.FAILED_WRONG_ENERGY_TRANSFER_MODE,
+            )
             return
 
-        charge_parameter_discovery_res: ChargeParameterDiscoveryRes = (
-            self.build_charge_parameter_discovery_res()
+        self.comm_session.selected_energy_mode = (
+            charge_parameter_discovery_req.requested_energy_mode
         )
+
+        dc_evse_charge_params = (
+            self.comm_session.evse_controller.get_dc_evse_charge_parameter()  # noqa
+        )
+
+        sa_schedule_list = (
+            self.comm_session.evse_controller.get_sa_schedule_list_dinspec(None, 0)
+        )
+
+        charge_parameter_discovery_res: ChargeParameterDiscoveryRes = (
+            ChargeParameterDiscoveryRes(
+                response_code=ResponseCode.OK,
+                evse_processing=EVSEProcessing.FINISHED
+                if sa_schedule_list
+                else EVSEProcessing.ONGOING,
+                sa_schedule_list=SAScheduleList(values=sa_schedule_list),
+                dc_charge_parameter=dc_evse_charge_params,
+            )
+        )
+
         self.create_next_message(
             CableCheck,
             charge_parameter_discovery_res,
@@ -366,22 +371,10 @@ class ChargeParameterDiscovery(StateSECC):
             Namespace.DIN_MSG_DEF,
         )
 
-    def build_charge_parameter_discovery_res(self) -> ChargeParameterDiscoveryRes:
-        return ChargeParameterDiscoveryRes(
-            response_code=ResponseCode.OK,
-            evse_processing=(
-                self.comm_session.evse_controller.get_evse_processing_state()
-            ),
-            dc_charge_parameter=(
-                self.comm_session.evse_controller.get_dinspec_dc_evse_charge_parameter()  # noqa
-            ),
-        )
-
 
 class CableCheck(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session, Timeouts.CABLE_CHECK_RES)
-        self.expect_cable_check_req = True
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
     def process_message(
         self,
@@ -393,11 +386,7 @@ class CableCheck(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_dinspec(
-            message,
-            [CableCheckReq],
-            self.expect_cable_check_req,
-        )
+        msg = self.check_msg_dinspec(message, [CableCheckReq])
         if not msg:
             return
 
@@ -406,7 +395,13 @@ class CableCheck(StateSECC):
         if not cable_check_req.dc_ev_status.ev_ready:
             return
 
-        cable_check_res: CableCheckRes = self.build_cable_check_res()
+        cable_check_res: CableCheckRes = CableCheckRes(
+            response_code=ResponseCode.OK,
+            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
+            evse_processing=(
+                self.comm_session.evse_controller.get_evse_processing_state()
+            ),
+        )
 
         # [V2G-DC-418] Stay in CableCheck state until EVSEProcessing is complete.
         # Until EVSEProcessing is completed, EV will send identical
@@ -423,21 +418,10 @@ class CableCheck(StateSECC):
             Namespace.DIN_MSG_DEF,
         )
 
-    def build_cable_check_res(self) -> CableCheckRes:
-        cable_check_res: CableCheckRes = CableCheckRes(
-            response_code=ResponseCode.OK,
-            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
-            evse_processing=(
-                self.comm_session.evse_controller.get_evse_processing_state()
-            ),
-        )
-        return cable_check_res
-
 
 class PreCharge(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session, Timeouts.PRE_CHARGE_RES)
-        self.expect_pre_charge_req = True
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
     def process_message(
         self,
@@ -449,11 +433,7 @@ class PreCharge(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_dinspec(
-            message,
-            [PreChargeReq],
-            self.expect_pre_charge_req,
-        )
+        msg = self.check_msg_dinspec(message, [PreChargeReq])
         if not msg:
             return
 
@@ -467,15 +447,6 @@ class PreCharge(StateSECC):
         self.comm_session.evse_controller.set_ev_target_current(
             pre_charge_req.ev_target_current
         )
-        pre_charge_res: PreChargeRes = self.build_pre_charge_res()
-        self.create_next_message(
-            PowerDelivery,
-            pre_charge_res,
-            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-            Namespace.DIN_MSG_DEF,
-        )
-
-    def build_pre_charge_res(self) -> PreChargeRes:
         pre_charge_res: PreChargeRes = PreChargeRes(
             response_code=ResponseCode.OK,
             dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
@@ -483,13 +454,17 @@ class PreCharge(StateSECC):
                 self.comm_session.evse_controller.get_evse_present_voltage()
             ),
         )
-        return pre_charge_res
+        self.create_next_message(
+            PowerDelivery,
+            pre_charge_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.DIN_MSG_DEF,
+        )
 
 
 class PowerDelivery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session, Timeouts.POWER_DELIVERY_RES)
-        self.expect_power_delivery_req = True
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
     def process_message(
         self,
@@ -501,17 +476,16 @@ class PowerDelivery(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_dinspec(
-            message,
-            [PowerDeliveryReq],
-            self.expect_power_delivery_req,
-        )
+        msg = self.check_msg_dinspec(message, [PowerDeliveryReq])
         if not msg:
             return
 
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
 
-        power_delivery_res: PowerDeliveryRes = self.build_power_delivery_res()
+        power_delivery_res: PowerDeliveryRes = PowerDeliveryRes(
+            response_code=ResponseCode.OK,
+            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
+        )
 
         if power_delivery_req.ready_to_charge:
             self.create_next_message(
@@ -528,18 +502,10 @@ class PowerDelivery(StateSECC):
                 Namespace.DIN_MSG_DEF,
             )
 
-    def build_power_delivery_res(self) -> PowerDeliveryRes:
-        power_delivery_res: PowerDeliveryRes = PowerDeliveryRes(
-            response_code=ResponseCode.OK,
-            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
-        )
-        return power_delivery_res
-
 
 class CurrentDemand(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session, Timeouts.CURRENT_DEMAND_RES)
-        self.expect_current_demand_req = True
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
     def process_message(
         self,
@@ -551,18 +517,28 @@ class CurrentDemand(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_dinspec(
-            message,
-            [CurrentDemandReq],
-            self.expect_current_demand_req,
-        )
+        msg = self.check_msg_dinspec(message, [CurrentDemandReq])
         if not msg:
             return
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
 
-        current_demand_res: CurrentDemandRes = self.build_current_demand_res(
-            current_demand_req.charging_complete
+        current_demand_res: CurrentDemandRes = CurrentDemandRes(
+            response_code=ResponseCode.OK,
+            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
+            evse_present_voltage=(
+                self.comm_session.evse_controller.get_evse_present_voltage()
+            ),
+            evse_present_current=(
+                self.comm_session.evse_controller.get_evse_present_current()
+            ),
+            evse_current_limit_achieved=current_demand_req.charging_complete,
+            evse_voltage_limit_achieved=(
+                self.comm_session.evse_controller.is_evse_voltage_limit_achieved()
+            ),
+            evse_power_limit_achieved=(
+                self.comm_session.evse_controller.is_evse_power_limit_achieved()
+            ),
         )
 
         if current_demand_req.charging_complete:
@@ -580,31 +556,11 @@ class CurrentDemand(StateSECC):
                 Namespace.DIN_MSG_DEF,
             )
 
-    def build_current_demand_res(self, charge_complete: bool) -> CurrentDemandRes:
-        pre_charge_res: CurrentDemandRes = CurrentDemandRes(
-            response_code=ResponseCode.OK,
-            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
-            evse_present_voltage=(
-                self.comm_session.evse_controller.get_evse_present_voltage()
-            ),
-            evse_present_current=(
-                self.comm_session.evse_controller.get_evse_present_current()
-            ),
-            evse_current_limit_achieved=charge_complete,
-            evse_voltage_limit_achieved=(
-                self.comm_session.evse_controller.is_evse_voltage_limit_achieved()
-            ),
-            evse_power_limit_achieved=(
-                self.comm_session.evse_controller.is_evse_power_limit_achieved()
-            ),
-        )
-        return pre_charge_res
-
 
 class WeldingDetection(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session, Timeouts.WELDING_DETECTION_RES)
-        self.expect_welding_detection_req = False
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        self.expect_session_stop_req = False
 
     def process_message(
         self,
@@ -618,8 +574,8 @@ class WeldingDetection(StateSECC):
     ):
         msg = self.check_msg_dinspec(
             message,
-            [WeldingDetectionReq, SessionStopReq],
-            self.expect_welding_detection_req,
+            [SessionStopReq, WeldingDetectionReq],
+            self.expect_session_stop_req,
         )
         if not msg:
             return
@@ -630,7 +586,7 @@ class WeldingDetection(StateSECC):
         if welding_detection_req is None:
             session_stop_req: SessionStopReq = msg.body.session_stop_req
             self.create_next_message(
-                SessionStop,
+                Terminate,
                 SessionStopRes(response_code=ResponseCode.OK),
                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
                 Namespace.DIN_MSG_DEF,
@@ -658,7 +614,7 @@ class WeldingDetection(StateSECC):
 
 class SessionStop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
-        super().__init__(comm_session, Timeouts.SESSION_STOP_RES)
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
     def process_message(
         self,

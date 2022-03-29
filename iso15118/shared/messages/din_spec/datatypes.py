@@ -13,7 +13,7 @@ element names by using the 'alias' attribute.
 
 from enum import Enum, IntEnum
 from typing import List
-from pydantic import Field, conbytes, root_validator, validator
+from pydantic import Field, conbytes, root_validator
 
 from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
     PhysicalValue,
@@ -22,7 +22,6 @@ from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
     PVEVMaxVoltage,
     PVEVMaxCurrent,
     PVEVMinCurrent,
-    PVPMax,
     PVEVMaxPowerLimit,
     PVEVMaxVoltageLimit,
     PVEVEnergyCapacity,
@@ -292,134 +291,45 @@ class ConsumptionCost(BaseModel):
 
 
 class RelativeTimeInterval(BaseModel):
-    """See section 8.5.2.18 in ISO 15118-2"""
+    """See section 9.5.2.12 in DIN SPEC 70121"""
 
     start: int = Field(..., ge=0, le=16777214, alias="start")
     duration: int = Field(None, ge=0, le=86400, alias="duration")
 
 
 class PMaxScheduleEntryDetails(BaseModel):
-    """See section 8.5.2.15 in ISO 15118-2"""
+    """See section 9.5.2.10 in DIN SPEC 70121"""
 
-    p_max: PVPMax = Field(..., alias="PMax")
+    p_max: int = Field(..., ge=0, le=255, alias="PMax")
     time_interval: RelativeTimeInterval = Field(..., alias="RelativeTimeInterval")
 
 
 class PMaxScheduleEntry(BaseModel):
-    """See section 8.5.2.14 in ISO 15118-2"""
+    """See section 9.5.2.10 in DIN SPEC 70121"""
 
+    p_max_schedule_id: int = Field(..., ge=0, le=255, alias="PMaxScheduleID")
     entry_details: List[PMaxScheduleEntryDetails] = Field(
         ..., max_items=1024, alias="PMaxScheduleEntry"
     )
 
 
 class SalesTariffEntry(BaseModel):
-    """See section 8.5.2.17 in ISO 15118-2"""
+    """NOT USED IN DIN SPEC 70121"""
 
-    # XSD type unsignedByte with value range [0..255]
-    e_price_level: int = Field(None, ge=0, le=255, alias="EPriceLevel")
-    time_interval: RelativeTimeInterval = Field(..., alias="RelativeTimeInterval")
-    consumption_cost: List[ConsumptionCost] = Field(
-        None, max_items=3, alias="ConsumptionCost"
-    )
-
-    @validator("consumption_cost")
-    def at_least_one_cost_indicator(cls, value, values):
-        """
-        Check that either e_price_level or consumption_cost is used.
-        Both cannot be optional.
-
-        Pydantic validators are "class methods",
-        see https://pydantic-docs.helpmanual.io/usage/validators/
-        """
-        # pylint: disable=no-self-argument
-        # pylint: disable=no-self-use
-        if not value and not values.get("e_price_level"):
-            raise ValueError(
-                "At least e_price_level or consumption_cost must "
-                "be set, both cannot be optional."
-            )
-        return value
+    pass
 
 
 class SalesTariff(BaseModel):
-    """See section 8.5.2.16 in ISO 15118-2"""
+    """NOT USED IN DIN SPEC 70121"""
 
-    id: str = Field(None, alias="Id")
-    # XSD type unsignedByte with value range [0 .. 255]
-    # Table 77 says it's both of type SAIDType (which is unsignedByte) and
-    # short, so we choose the smaller value range.
-    sales_tariff_id: int = Field(..., ge=0, le=255, alias="SalesTariffID")
-    sales_tariff_description: str = Field(
-        None, max_length=32, alias="SalesTariffDescription"
-    )
-    # XSD type unsignedByte with value range [0..255]
-    num_e_price_levels: int = Field(None, ge=0, le=255, alias="NumEPriceLevels")
-    sales_tariff_entry: List[SalesTariffEntry] = Field(
-        ..., max_items=102, alias="SalesTariffEntry"
-    )
-
-    @validator("sales_tariff_entry")
-    def check_num_e_price_levels(cls, value, values):
-        """
-        If at least one sales_tariff_entry contains an e_price_level entry,
-        then num_e_price_levels must be set accordingly to the aggregate
-        number of e_price_levels across all sales_tariff_entry elements.
-
-        Pydantic validators are "class methods",
-        see https://pydantic-docs.helpmanual.io/usage/validators/
-        """
-        # pylint: disable=no-self-argument
-        # pylint: disable=no-self-
-        e_price_levels = 0
-        for sales_tariff_entry in value:
-            if (
-                "e_price_level" in sales_tariff_entry
-                or sales_tariff_entry.e_price_level
-            ):
-                e_price_levels += 1
-
-        if e_price_levels > 0 and "num_e_price_levels" not in values:
-            raise ValueError(
-                f"SalesTariff contains {e_price_levels} "
-                "distinct e_price_level entries, but field "
-                "'num_e_price_levels' is not provided."
-            )
-
-        if e_price_levels != values["num_e_price_levels"]:
-            raise ValueError(
-                "The amount of distinct e_price_levels "
-                f"{e_price_levels} does not match "
-                f"num_e_price_levels "
-                f"({values['num_e_price_levels']})"
-            )
-        return value
-
-    @validator("sales_tariff_id")
-    def sales_tariff_id_value_range(cls, value):
-        """
-        Checks whether the sales_tariff_id field of a SalesTariff object
-        object is within the value range [1..255].
-
-        Pydantic validators are "class methods",
-        see https://pydantic-docs.helpmanual.io/usage/validators/
-        """
-        # pylint: disable=no-self-argument
-        # pylint: disable=no-self-use
-        if not 1 <= value <= 255:
-            raise ValueError(
-                f"The value {value} is outside the allowed value "
-                f"range [1..255] for SalesTariffID"
-            )
-        return value
-
-    def __str__(self):
-        # The XSD conform element name
-        return type(self).__name__
+    pass
 
 
 class SAScheduleTupleEntry(BaseModel):
-    """See section 8.5.2.13 in ISO 15118-2"""
+    """See section 9.5.2.8 in DIN SPEC 70121"""
+
+    # [V2G-DC-554] In the scope of DIN SPEC 70121, the element
+    # “SalesTariff” shall not be used.
 
     # XSD type unsignedByte with value range [1..255]
     sa_schedule_tuple_id: int = Field(..., ge=1, le=255, alias="SAScheduleTupleID")
@@ -434,10 +344,10 @@ class SAScheduleList(BaseModel):
 
 
 class ProfileEntryDetails(BaseModel):
-    """See section 8.5.2.11 in ISO 15118-2"""
+    """See section 9.5.2.7 in DIN SPEC 70121"""
 
     start: int = Field(..., alias="ChargingProfileEntryStart")
-    max_power: PVPMax = Field(..., alias="ChargingProfileEntryMaxPower")
+    max_power: int = Field(..., ge=1, le=255, alias="ChargingProfileMaxPower")
 
 
 class ChargingProfile(BaseModel):

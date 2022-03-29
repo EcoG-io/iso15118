@@ -19,6 +19,9 @@ from iso15118.shared.messages.enums import (
     EnergyTransferModeEnum,
     EVSEProcessing,
 )
+from iso15118.shared.messages.din_spec.datatypes import (
+    SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
+)
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
@@ -90,6 +93,37 @@ class EVSEControllerInterface(ABC):
         and the ampacity of the charging cable.
 
         Args:
+            protocol: Specifies the protocol currently being used.
+            max_schedule_entries: The maximum amount of schedule entries the EVCC
+                                  can handle, or None if not provided
+            departure_time: The departure time given in seconds from the time of
+                            sending the ChargeParameterDiscoveryReq. If the
+                            request doesn't provide a departure time, then this
+                            implies the need to start charging immediately.
+
+        Returns:
+            A list of SAScheduleTupleEntry values to influence the EV's charging profile
+            if the backend/charger can provide the information already, or None if
+            the calculation is still ongoing.
+
+        Relevant for:
+        - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_sa_schedule_list_dinspec(
+        self, max_schedule_entries: Optional[int], departure_time: int = 0
+    ) -> Optional[List[SAScheduleTupleEntryDINSPEC]]:
+        """
+        Requests the charging schedule from a secondary actor (SA) like a
+        charge point operator, if available. If no backend information is given
+        regarding the restrictions imposed on an EV charging profile, then the
+        charging schedule is solely influenced by the max rating of the charger
+        and the ampacity of the charging cable.
+
+        Args:
+            protocol: Specifies the protocol currently being used.
             max_schedule_entries: The maximum amount of schedule entries the EVCC
                                   can handle, or None if not provided
             departure_time: The departure time given in seconds from the time of
@@ -217,16 +251,6 @@ class EVSEControllerInterface(ABC):
 
         Relevant for:
         - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_dinspec_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
-        """
-        Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
-
-        Relevant for:
-        - DIN SPEC 70121
         """
         raise NotImplementedError
 

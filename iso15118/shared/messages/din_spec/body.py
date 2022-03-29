@@ -72,7 +72,7 @@ class SessionSetupReq(BodyBase):
 
     """Refer Table 29 under section 9.4.1.2.2"""
     # XSD type hexBinary with max 6 bytes
-    evcc_id: str = Field(..., max_length=8, alias="EVCCID")
+    evcc_id: str = Field(..., max_length=12, alias="EVCCID")
 
     @validator("evcc_id")
     def check_sessionid_is_hexbinary(cls, value):

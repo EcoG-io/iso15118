@@ -10,8 +10,10 @@ from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
     DCEVChargeParams,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
-    DCEVStatus,
+    DCEVStatus as DCEVStatusDINSPEC,
+    DCEVChargeParameter as DCEVChargeParameterDINSPEC,
     DCEVPowerDeliveryParameter,
+    SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 
 from iso15118.shared.messages.enums import Protocol, EnergyTransferModeEnum
@@ -34,6 +36,12 @@ class ChargeParamsV2:
     energy_mode: EnergyTransferModeEnum
     ac_parameters: Optional[ACEVChargeParameter]
     dc_parameters: Optional[DCEVChargeParameter]
+
+
+@dataclass
+class ChargeParamsDINSPEC:
+    energy_mode: EnergyTransferModeEnum
+    dc_parameters: Optional[DCEVChargeParameterDINSPEC]
 
 
 class EVControllerInterface(ABC):
@@ -73,7 +81,29 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_charge_params_v2(self) -> ChargeParamsV2:
+    def is_energy_transfer_mode_ac(self, protocol: Protocol) -> bool:
+        """
+        Helper method to check if current energy transfer mode is AC
+        Returns True if energy transfer mode is AC
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_charge_params_dinspec(self) -> DCEVChargeParams:
+        """
+        This would return an encapsulation of the following parameters:
+        DC Max Current Limit
+        DC Max Voltage Limit
+        DC Target Current
+        DC Target Voltage
+
+        Relevant for
+        - DIN SPEC 70121
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
         """
         Gets the charge parameter needed for ChargeParameterDiscoveryReq (ISO 15118-2),
         including the energy transfer mode and the energy mode-specific parameters,
@@ -128,6 +158,36 @@ class EVControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def process_sa_schedules_dinspec(
+        self, sa_schedules: List[SAScheduleTupleEntryDINSPEC]
+    ) -> Tuple[ChargeProgress, int, ChargingProfile]:
+        """
+        Processes the SAScheduleList provided with the ChargeParameterDiscoveryRes
+        to decide which of the offered schedules to choose and whether or not to
+        start charging instantly (ChargeProgress=Start) or to delay the charging
+        process (ChargeProgress=Stop), including information on how the EV's
+        charging profile will look like.
+
+        Args:
+            sa_schedules: The list of offered charging profiles (SAScheduleTuple
+                          elements), each of which contains a mandatory PMaxSchedule
+                          and an optional SalesTariff
+
+        Returns:
+            A tuple consisting of
+            1. the ChargeProgress status,
+            2. the ID of the chosen charging schedule (SAScheduleTuple), and
+            3. the resulting charging profile of the EV, which may follow the
+               suggestion of the offered charging schedule exactly or deviate
+               (consume less power, but never more than the max limit provided by
+               the SECC).
+
+        Relevant for:
+        - DIN SPEC 70121
         """
         raise NotImplementedError
 
@@ -209,18 +269,10 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_charge_params(self) -> DCEVChargeParams:
+    def get_dc_ev_status(self) -> DCEVStatusDINSPEC:
         """
-        This would return an encapsulation of the following parameters:
-        DC Max Current Limit
-        DC Max Voltage Limit
-        DC Target Current
-        DC Target Voltage
+        Returns current DC EV status.
         """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_dc_ev_status(self) -> DCEVStatus:
         raise NotImplementedError
 
     @abstractmethod
