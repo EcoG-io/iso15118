@@ -36,6 +36,7 @@ from iso15118.shared.messages.enums import (
     ISOV20PayloadTypes,
     Namespace,
     Protocol,
+    DINPayloadTypes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import ChargingSession
 from iso15118.shared.messages.sdp import SDPRequest, SDPResponse, Security, Transport
@@ -122,7 +123,19 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         app_protocols = []
         schema_id = 0
         priority = 0
-        for protocol in self.config.supported_protocols:
+        supported_protocols = self.config.supported_protocols
+
+        # [V2G-DC-618] For DC charging according to DIN SPEC 70121,
+        # an SDP server shall send an SECC Discovery Response message with Transport Protocol equal to “TCP” and
+        # Security equal to “No transport layer security” according to Table 23.
+        # Remove it from the supported protocols list if use_tls is enabled
+        if self.config.use_tls:
+            try:
+                supported_protocols.remove(Protocol.DIN_SPEC_70121)
+            except ValueError:
+                pass
+
+        for protocol in supported_protocols:
             # A SchemaID (schema_id) is simply a running counter, enabling the
             # SECC to refer to a specific entry. It can, in principle, be
             # randomly chosen by the EVCC as long as it's in the value range of
@@ -139,7 +152,9 @@ class EVCCCommunicationSession(V2GCommunicationSession):
             priority += 1
             app_protocol_entry = AppProtocol(
                 protocol_ns=protocol.ns.value,
-                major_version=2 if protocol is Protocol.ISO_15118_2 else 1,
+                major_version=2
+                if protocol in [Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121]
+                else 1,
                 minor_version=0,
                 schema_id=schema_id,
                 priority=priority,
@@ -400,7 +415,10 @@ class CommunicationSessionHandler:
             logger.error(exc)
             return
 
-        if v2gtp_msg.payload_type == ISOV2PayloadTypes.SDP_RESPONSE:
+        if v2gtp_msg.payload_type in [
+            ISOV2PayloadTypes.SDP_RESPONSE,
+            DINPayloadTypes.SDP_RESPONSE,
+        ]:
             try:
                 sdp_response = SDPResponse.from_payload(v2gtp_msg.payload)
             except InvalidSDPResponseError as exc:

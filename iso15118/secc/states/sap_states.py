@@ -88,7 +88,7 @@ class SupportedAppProtocol(StateSECC):
 
                 if (
                     protocol.protocol_ns == Protocol.DIN_SPEC_70121.ns.value
-                    and protocol.major_version == 1
+                    and protocol.major_version == 2
                 ):
                     selected_protocol = Protocol.get_by_ns(protocol.protocol_ns)
                     next_state = SessionSetupDINSPEC
