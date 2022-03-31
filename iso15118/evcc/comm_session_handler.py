@@ -318,9 +318,9 @@ class CommunicationSessionHandler:
         if new_sdp_cycle:
             if self._sdp_retry_cycles == 0:
                 raise SDPFailedError(
-                    f"EVCC tried {self.config.sdp_retry_cycles} times to initiate a "
-                    "V2GCommunicationSession, but maximum number of SDP retry "
-                    f"cycles is now reached. {shutdown_msg}"
+                    f"EVCC tried to initiate a V2GCommunicationSession, "
+                    f"but maximum number of SDP retry cycles "
+                    f"({self.config.sdp_retry_cycles}) is now reached. {shutdown_msg}"
                 )
 
             self._sdp_retry_cycles -= 1

@@ -335,16 +335,16 @@ class V2GCommunicationSession(SessionStateMachine):
         else:
             terminate_or_pause = "Terminate"
 
-        logger.debug(
+        logger.info(
             f"The data link will {terminate_or_pause} in 2 seconds and "
             "the TCP connection will close in 5 seconds. "
-            f"Reason: {reason}"
         )
+        logger.info(f"Reason: {reason}")
 
         await asyncio.sleep(2)
         # TODO Signal data link layer to either terminate or pause the data
         #      link connection
-        logger.debug(f"{terminate_or_pause}d the data link")
+        logger.info(f"{terminate_or_pause}d the data link")
         await asyncio.sleep(3)
         self.writer.close()
         await self.writer.wait_closed()
@@ -433,7 +433,7 @@ class V2GCommunicationSession(SessionStateMachine):
                     await self.send(self.current_state.next_v2gtp_msg)
 
                 if self.current_state.next_state in (Terminate, Pause):
-                    await self.stop(reason="")
+                    await self.stop(reason=self.comm_session.stop_reason.reason)
                     self.comm_session.session_handler_queue.put_nowait(
                         self.comm_session.stop_reason
                     )

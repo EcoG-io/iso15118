@@ -9,34 +9,34 @@ from typing import List, Optional, Tuple
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
 from iso15118.shared.messages.enums import Namespace, Protocol
-from iso15118.shared.messages.iso15118_2.body import PreChargeReq, CurrentDemandReq
+from iso15118.shared.messages.iso15118_2.body import CurrentDemandReq, PreChargeReq
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
     ChargingProfile,
+    DCEVChargeParameter,
+    DCEVErrorCode,
+    DCEVPowerDeliveryParameter,
+    DCEVStatus,
     EnergyTransferModeEnum,
     ProfileEntryDetails,
     PVEAmount,
-    PVEVMaxCurrent,
-    PVEVMaxVoltage,
-    PVEVMinCurrent,
-    PVPMax,
-    SAScheduleTupleEntry,
-    UnitSymbol,
-    DCEVChargeParameter,
+    PVEVEnergyCapacity,
     PVEVEnergyRequest,
-    DCEVStatus,
+    PVEVMaxCurrent,
     PVEVMaxCurrentLimit,
     PVEVMaxPowerLimit,
+    PVEVMaxVoltage,
     PVEVMaxVoltageLimit,
-    PVEVEnergyCapacity,
-    DCEVErrorCode,
+    PVEVMinCurrent,
+    PVEVSEPresentVoltage,
     PVEVTargetCurrent,
     PVEVTargetVoltage,
-    PVEVSEPresentVoltage,
-    DCEVPowerDeliveryParameter,
+    PVPMax,
     PVRemainingTimeToBulkSOC,
     PVRemainingTimeToFullSOC,
+    SAScheduleTupleEntry,
+    UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -246,7 +246,7 @@ class SimEVController(EVControllerInterface):
     def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
         # deviation shall have a max deviation of 20A, according CC.5.1 of IEC61851-23
         self.precharge_loop_cycles += 1
-        if self.precharge_loop_cycles == 50:
+        if self.precharge_loop_cycles == 10:
             # To simulate a bit of a precharge loop, we'll let it run 50 times
             return True
         return False

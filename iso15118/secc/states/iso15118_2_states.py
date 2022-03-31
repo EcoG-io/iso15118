@@ -40,6 +40,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     ChargingStatusReq,
     ChargingStatusRes,
     CurrentDemandReq,
+    CurrentDemandRes,
     MeteringReceiptReq,
     MeteringReceiptRes,
     PaymentDetailsReq,
@@ -60,7 +61,6 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionStopReq,
     SessionStopRes,
     WeldingDetectionReq,
-    CurrentDemandRes,
     WeldingDetectionRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -71,12 +71,15 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargeProgress,
     ChargeService,
     ChargingSession,
+    DCEVErrorCode,
     DCEVSEChargeParameter,
+    DCEVSEStatus,
     DHPublicKey,
     EncryptedPrivateKey,
     EnergyTransferModeList,
     EVSENotification,
     EVSEProcessing,
+    IsolationLevel,
     Parameter,
     ParameterSet,
     SAScheduleList,
@@ -87,9 +90,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ServiceName,
     ServiceParameterList,
     SubCertificates,
-    IsolationLevel,
-    DCEVErrorCode,
-    DCEVSEStatus,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -1343,15 +1343,10 @@ class SessionStop(StateSECC):
         msg = self.check_msg_v2(message, [SessionStopReq])
         if not msg:
             return
-
-        if msg.body.session_stop_req.charging_session == ChargingSession.TERMINATE:
-            stopped = "terminated"
-        else:
-            stopped = "paused"
-
+        session_status = msg.body.session_stop_req.charging_session.lower()
         self.comm_session.stop_reason = StopNotification(
             True,
-            f"Communication session {stopped} successfully",
+            f"EV Requested to {session_status} the communication session",
             self.comm_session.writer.get_extra_info("peername"),
         )
 
@@ -1608,9 +1603,9 @@ class PreCharge(StateSECC):
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
         present_current = self.comm_session.evse_controller.get_evse_present_current()
-        present_current_in_a = present_current.value * 10 ** present_current.multiplier
+        present_current_in_a = present_current.value * 10**present_current.multiplier
         target_current = precharge_req.ev_target_current
-        target_current_in_a = target_current.value * 10 ** target_current.multiplier
+        target_current_in_a = target_current.value * 10**target_current.multiplier
 
         if present_current_in_a > 2 or target_current_in_a > 2:
             self.stop_state_machine(

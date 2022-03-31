@@ -1,6 +1,11 @@
 from unittest.mock import Mock
 
 import pytest
+from secc.states.test_messages import (
+    get_dummy_v2g_message_welding_detection_req,
+    get_sa_schedule_list,
+    get_v2g_message_power_delivery_req,
+)
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.simulator import SimEVSEController
@@ -12,11 +17,6 @@ from iso15118.secc.states.iso15118_2_states import (
 from iso15118.shared.messages.enums import Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.notifications import StopNotification
-from secc.states.test_messages import (
-    get_v2g_message_power_delivery_req,
-    get_sa_schedule_list,
-    get_dummy_v2g_message_welding_detection_req,
-)
 
 
 @pytest.fixture

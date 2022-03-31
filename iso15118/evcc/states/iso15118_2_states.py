@@ -22,6 +22,8 @@ from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
     AuthorizationReq,
     AuthorizationRes,
+    CableCheckReq,
+    CableCheckRes,
     CertificateInstallationReq,
     CertificateInstallationRes,
     ChargeParameterDiscoveryReq,
@@ -29,6 +31,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     ChargingStatusReq,
     ChargingStatusRes,
     CurrentDemandReq,
+    CurrentDemandRes,
     MeteringReceiptReq,
     MeteringReceiptRes,
     PaymentDetailsReq,
@@ -37,6 +40,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     PaymentServiceSelectionRes,
     PowerDeliveryReq,
     PowerDeliveryRes,
+    PreChargeRes,
     ServiceDetailReq,
     ServiceDetailRes,
     ServiceDiscoveryReq,
@@ -44,29 +48,25 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupRes,
     SessionStopReq,
     SessionStopRes,
-    CableCheckReq,
-    CableCheckRes,
-    PreChargeRes,
-    CurrentDemandRes,
     WeldingDetectionReq,
     WeldingDetectionRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
-    DCEVSEStatus,
     ChargeProgress,
     ChargeService,
     ChargingSession,
+    DCEVSEStatus,
+    DCEVSEStatusCode,
     EnergyTransferModeEnum,
     EVSENotification,
     EVSEProcessing,
+    IsolationLevel,
     RootCertificateIDList,
     SelectedService,
     SelectedServiceList,
     ServiceCategory,
     ServiceID,
-    DCEVSEStatusCode,
-    IsolationLevel,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_2.timeouts import Timeouts
@@ -1210,7 +1210,7 @@ class PreCharge(StateEVCC):
             if self.comm_session.ongoing_timer >= 0:
                 elapsed_time = time() - self.comm_session.ongoing_timer
                 if elapsed_time > Timeouts.V2G_EVCC_PRE_CHARGE_TIMEOUT:
-                    self.stop_state_machine("Timeout Precharge")
+                    self.stop_state_machine("Timeout triggered during Precharge")
                     return
             else:
                 self.comm_session.ongoing_timer = time()
