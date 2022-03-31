@@ -6,7 +6,7 @@ import logging
 import time
 from typing import List, Optional, Union
 
-from iso15118.secc.controller.interface import EVSEControllerInterface, ev_data_context
+from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError
 from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -152,13 +152,6 @@ class SimEVSEController(EVSEControllerInterface):
         pass
 
     def stop_charger(self) -> None:
-        pass
-
-    def update_ev_data(self, soc: int = None,
-                       dc_current: int = None,
-                       dc_voltage: int = None,
-                       ac_current: dict = None,
-                       ac_voltage: dict = None):
         pass
 
     # ============================================================================

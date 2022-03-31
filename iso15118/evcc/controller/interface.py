@@ -225,7 +225,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:  # TODO: maybe find a better name
+    def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
         """
         Return True if the output voltage of the EVSE has reached the requested precharge voltage.
         Otherwise return False.

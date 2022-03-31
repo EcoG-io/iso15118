@@ -27,7 +27,7 @@ from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as Meter
 
 
 @dataclass
-class ev_data_context:
+class EVDataContext:
     dc_current: Optional[int] = None
     dc_voltage: Optional[int] = None
     ac_current: Optional[dict] = None # {"l1": 10, "l2": 10, "l3": 10}
@@ -36,6 +36,11 @@ class ev_data_context:
 
 
 class EVSEControllerInterface(ABC):
+    def __init__(self):
+        self.ev_data_context = EVDataContext()
+
+    def reset_ev_data_context(self):
+        self.ev_data_context = EVDataContext()
 
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
@@ -156,14 +161,6 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     def stop_charger(self) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    def update_ev_data(self, soc: int = None,
-                       dc_current: int = None,
-                       dc_voltage: int = None,
-                       ac_current: dict = None,
-                       ac_voltage: dict = None):
         raise NotImplementedError
 
     # ============================================================================

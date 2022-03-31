@@ -1503,7 +1503,9 @@ class CableCheck(StateSECC):
         if not self.cable_check_req_was_received:
             self.comm_session.evse_controller.start_cable_check()
             self.cable_check_req_was_received = True
-        self.comm_session.evse_controller.update_ev_data(soc=cable_check_req.dc_ev_status.ev_ress_soc)
+        self.comm_session.evse_controller.ev_data_context.soc = (
+            cable_check_req.dc_ev_status.ev_ress_soc
+        )
 
         dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
 
@@ -1586,7 +1588,9 @@ class PreCharge(StateSECC):
             )
             return
 
-        self.comm_session.evse_controller.update_ev_data(soc=precharge_req.dc_ev_status.ev_ress_soc)
+        self.comm_session.evse_controller.ev_data_context.soc = (
+            precharge_req.dc_ev_status.ev_ress_soc
+        )
 
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
@@ -1659,9 +1663,12 @@ class CurrentDemand(StateSECC):
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
 
-        self.comm_session.evse_controller.update_ev_data(soc=current_demand_req.dc_ev_status.ev_ress_soc)
-        self.comm_session.evse_controller.send_charging_command(current_demand_req.ev_target_voltage,
-                                                                current_demand_req.ev_target_current)
+        self.comm_session.evse_controller.ev_data_context.soc = (
+            current_demand_req.dc_ev_status.ev_ress_soc
+        )
+        self.comm_session.evse_controller.send_charging_command(
+            current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
+        )
 
         # We don't care about signed meter values from the EVCC, but if you
         # do, then set receipt_required to True and set the field meter_info
