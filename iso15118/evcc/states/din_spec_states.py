@@ -8,7 +8,11 @@ import logging
 from time import time
 from typing import Union, List
 
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import DCEVChargeParams, DCEVSEStatus, DCEVSEStatusCode
+from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
+    DCEVChargeParams,
+    DCEVSEStatus,
+    DCEVSEStatusCode,
+)
 from iso15118.shared.notifications import StopNotification
 
 from iso15118.shared.states import Terminate
@@ -16,7 +20,8 @@ from iso15118.shared.states import Terminate
 from iso15118.shared.messages.enums import (
     EnergyTransferModeEnum,
     Protocol,
-    EVSEProcessing, IsolationLevel,
+    EVSEProcessing,
+    IsolationLevel,
 )
 from iso15118.evcc import evcc_settings
 from iso15118.shared.messages.din_spec.datatypes import (
@@ -87,14 +92,14 @@ class SessionSetup(StateEVCC):
         super().__init__(comm_session, Timeouts.SESSION_SETUP_REQ)
 
     def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-            V2GMessageDINSPEC,
-        ],
+            self,
+            message: Union[
+                SupportedAppProtocolReq,
+                SupportedAppProtocolRes,
+                V2GMessageV2,
+                V2GMessageV20,
+                V2GMessageDINSPEC,
+            ],
     ):
         msg = self.check_msg_din_spec(message, SessionSetupRes)
         if not msg:
@@ -126,14 +131,14 @@ class ServiceDiscovery(StateEVCC):
         super().__init__(comm_session, Timeouts.SERVICE_DISCOVERY_REQ)
 
     def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-            V2GMessageDINSPEC,
-        ],
+            self,
+            message: Union[
+                SupportedAppProtocolReq,
+                SupportedAppProtocolRes,
+                V2GMessageV2,
+                V2GMessageV20,
+                V2GMessageDINSPEC,
+            ],
     ):
         msg = self.check_msg_din_spec(message, ServiceDiscoveryRes)
         if not msg:
@@ -153,6 +158,14 @@ class ServiceDiscovery(StateEVCC):
         offered_energy_modes: List[EnergyTransferModeEnum] = [
             charge_service.energy_transfer_type
         ]
+
+        if self.comm_session.selected_auth_option is None:
+            self.stop_state_machine(
+                f"Offered payment option(s) "
+                f"[{service_discovery_res.auth_option_list.auth_options}]"
+                f" are not valid"
+            )
+            return
 
         if self.comm_session.selected_energy_mode not in offered_energy_modes:
             self.stop_state_machine(
@@ -220,6 +233,7 @@ class ServiceDiscovery(StateEVCC):
         else:
             # Choose External Identification Means (eim)
             # as the selected authorization option.
+            self.comm_session.selected_auth_option = None
             if AuthEnum.EIM_V2 in auth_option_list:
                 self.comm_session.selected_auth_option = AuthEnum.EIM_V2
 
@@ -237,14 +251,14 @@ class ServicePaymentSelection(StateEVCC):
         super().__init__(comm_session, Timeouts.SERVICE_PAYMENT_SELECTION_REQ)
 
     def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-            V2GMessageDINSPEC,
-        ],
+            self,
+            message: Union[
+                SupportedAppProtocolReq,
+                SupportedAppProtocolRes,
+                V2GMessageV2,
+                V2GMessageV20,
+                V2GMessageDINSPEC,
+            ],
     ):
         msg = self.check_msg_din_spec(message, ServicePaymentSelectionRes)
         if not msg:
@@ -255,9 +269,7 @@ class ServicePaymentSelection(StateEVCC):
         )
 
         if service_payment_selection_res.response_code != ResponseCode.OK:
-            self.stop_state_machine(
-                "Service payment selection not accepted by SECC"
-            )
+            self.stop_state_machine("Service payment selection not accepted by SECC")
             return
 
         contract_authentication_req: ContractAuthenticationReq = (
@@ -276,14 +288,14 @@ class ContractAuthentication(StateEVCC):
         super().__init__(comm_session, Timeouts.CONTRACT_AUTHENTICATION_REQ)
 
     def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-            V2GMessageDINSPEC,
-        ],
+            self,
+            message: Union[
+                SupportedAppProtocolReq,
+                SupportedAppProtocolRes,
+                V2GMessageV2,
+                V2GMessageV20,
+                V2GMessageDINSPEC,
+            ],
     ):
         msg = self.check_msg_din_spec(message, ContractAuthenticationRes)
         if not msg:
@@ -294,6 +306,7 @@ class ContractAuthentication(StateEVCC):
         )
 
         if contract_authentication_res.response_code != ResponseCode.OK:
+            self.stop_state_machine("Contract authentication failed.")
             return
 
         # There are two transitions possible in ContractAuthentication state:
@@ -303,7 +316,7 @@ class ContractAuthentication(StateEVCC):
         if contract_authentication_res.evse_processing == EVSEProcessing.ONGOING:
             self.create_next_message(
                 None,
-                ContractAuthentication(),
+                ContractAuthenticationReq(),
                 Timeouts.CONTRACT_AUTHENTICATION_REQ,
                 Namespace.DIN_MSG_DEF,
             )
@@ -322,7 +335,7 @@ class ContractAuthentication(StateEVCC):
     def build_charge_parameter_discovery_req(self) -> ChargeParameterDiscoveryReq:
         dc_ev_status: DCEVStatus = self.comm_session.ev_controller.get_dc_ev_status()
         dc_charge_params: DCEVChargeParams = (
-            self.comm_session.ev_controller.get_charge_params_dinspec()
+            self.comm_session.ev_controller.get_dc_charge_params()
         )
         max_current_limit = dc_charge_params.dc_max_current_limit
         max_voltage_limit = dc_charge_params.dc_max_voltage_limit
@@ -332,7 +345,7 @@ class ContractAuthentication(StateEVCC):
             ev_maximum_voltage_limit=max_voltage_limit,
         )
         return ChargeParameterDiscoveryReq(
-            requested_energy_mode=EnergyTransferModeEnum.DC_CORE,
+            requested_energy_mode=self.comm_session.ev_controller.get_energy_transfer_mode(Protocol.DIN_SPEC_70121),
             dc_ev_charge_parameter=dc_charge_parameter,
         )
 
@@ -342,14 +355,14 @@ class ChargeParameterDiscovery(StateEVCC):
         super().__init__(comm_session, Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ)
 
     def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-            V2GMessageDINSPEC,
-        ],
+            self,
+            message: Union[
+                SupportedAppProtocolReq,
+                SupportedAppProtocolRes,
+                V2GMessageV2,
+                V2GMessageV20,
+                V2GMessageDINSPEC,
+            ],
     ):
         msg = self.check_msg_din_spec(message, ChargeParameterDiscoveryRes)
         if not msg:
@@ -362,11 +375,6 @@ class ChargeParameterDiscovery(StateEVCC):
         if charge_parameter_discovery_res.evse_processing == EVSEProcessing.FINISHED:
             # Reset the Ongoing timer
             self.comm_session.ongoing_timer = -1
-
-            # TODO Look at EVSEStatus and EVSENotification and react accordingly
-            #      if e.g. EVSENotification is set to STOP_CHARGING or if RCD
-            #      is True. But let's do that after the testival
-
             schedule_id = self.comm_session.ev_controller.process_sa_schedules_dinspec(
                 charge_parameter_discovery_res.sa_schedule_list.values
             )
@@ -391,32 +399,41 @@ class ChargeParameterDiscovery(StateEVCC):
                 "schedule and charge parameters"
             )
             elapsed_time: float = 0
-            if self.comm_session.ongoing_timer >= 0:
+            if self.comm_session.ongoing_timer > 0:
                 elapsed_time = time() - self.comm_session.ongoing_timer
                 if elapsed_time > TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT:
                     self.stop_state_machine(
                         "Ongoing timer timed out for " "ChargeParameterDiscoveryRes"
                     )
                     return
-            else:
+            elif self.comm_session.ongoing_timer == -1:
                 self.comm_session.ongoing_timer = time()
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_dinspec()
+            dc_charge_params: DCEVChargeParams = (
+                self.comm_session.ev_controller.get_dc_charge_params()
+            )
+            max_current_limit = dc_charge_params.dc_max_current_limit
+            max_voltage_limit = dc_charge_params.dc_max_voltage_limit
+            dc_charge_parameter: DCEVChargeParameter = DCEVChargeParameter(
+                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+                ev_maximum_current_limit=max_current_limit,
+                ev_maximum_voltage_limit=max_voltage_limit,
+            )
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
-                requested_energy_mode=charge_params.energy_mode,
-                ac_ev_charge_parameter=charge_params.ac_parameters,
-                dc_ev_charge_parameter=charge_params.dc_parameters,
+                requested_energy_mode=self.comm_session.ev_controller.get_energy_transfer_mode(Protocol.DIN_SPEC_70121),
+                ac_ev_charge_parameter=None,
+                dc_ev_charge_parameter=dc_charge_parameter,
             )
 
             self.create_next_message(
-                ChargeParameterDiscovery,
+                None,
                 charge_parameter_discovery_req,
                 min(
                     Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ,
                     TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT - elapsed_time,
                 ),
-                Namespace.ISO_V2_MSG_DEF,
+                Namespace.DIN_MSG_DEF,
             )
 
 
@@ -425,14 +442,14 @@ class CableCheck(StateEVCC):
         super().__init__(comm_session, Timeouts.CABLE_CHECK_REQ)
 
     def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-            V2GMessageDINSPEC,
-        ],
+            self,
+            message: Union[
+                SupportedAppProtocolReq,
+                SupportedAppProtocolRes,
+                V2GMessageV2,
+                V2GMessageV20,
+                V2GMessageDINSPEC,
+            ],
     ):
         msg = self.check_msg_din_spec(message, CableCheckRes)
         if not msg:
@@ -440,9 +457,7 @@ class CableCheck(StateEVCC):
 
         cable_check_res: CableCheckRes = msg.body.cable_check_res
         if cable_check_res.response_code != ResponseCode.OK:
-            self.stop_state_machine(
-                "Cable check response from EVSE failed."
-            )
+            self.stop_state_machine("Cable check response from EVSE failed.")
             return
 
         dc_evse_status: DCEVSEStatus = cable_check_res.dc_evse_status
@@ -453,39 +468,38 @@ class CableCheck(StateEVCC):
             # Reset the Ongoing timer
             self.comm_session.ongoing_timer = -1
             pre_charge_req: PreChargeReq = self.build_pre_charge_req()
-            if evse_status_code == DCEVSEStatusCode.EVSE_READY and isolation_status == IsolationLevel.VALID:
-                self.create_next_message(
-                    PreCharge,
-                    pre_charge_req,
-                    Timeouts.PRE_CHARGE_REQ,
-                    Namespace.ISO_V2_MSG_DEF,
-                )
-            else:
-                self.stop_state_machine(
-                    "Isolation-Level of EVSE is not Valid"
-                )
-        else:
-            logger.debug(f"{evse_status_code}")
-            elapsed_time: float = 0
-            if self.comm_session.ongoing_timer >= 0:
-                elapsed_time = time() - self.comm_session.ongoing_timer
-                if elapsed_time > Timeouts.V2G_EVCC_CABLE_CHECK_TIMEOUT:
-                    self.stop_state_machine(
-                        "Ongoing timer timed out for CableCheck"
-                    )
-                    return
-            else:
-                self.comm_session.ongoing_timer = time()
-                pre_charge_req: PreChargeReq = self.build_pre_charge_req()
+            if (
+                    evse_status_code == DCEVSEStatusCode.EVSE_READY
+                    and isolation_status == IsolationLevel.VALID
+            ):
                 self.create_next_message(
                     PreCharge,
                     pre_charge_req,
                     Timeouts.PRE_CHARGE_REQ,
                     Namespace.DIN_MSG_DEF,
                 )
+            else:
+                self.stop_state_machine("Isolation-Level of EVSE is not Valid")
+                return
+        else:
+            logger.debug(f"{evse_status_code}")
+            elapsed_time: float = 0
+            if self.comm_session.ongoing_timer >= 0:
+                elapsed_time = time() - self.comm_session.ongoing_timer
+                if elapsed_time > Timeouts.V2G_EVCC_CABLE_CHECK_TIMEOUT:
+                    self.stop_state_machine("Ongoing timer timed out for CableCheck")
+                    return
+
+            self.comm_session.ongoing_timer = time()
+            self.create_next_message(
+                None,
+                self.build_cable_check_req(),
+                Timeouts.PRE_CHARGE_REQ,
+                Namespace.DIN_MSG_DEF,
+            )
 
     def build_pre_charge_req(self) -> PreChargeReq:
-        dc_charge_params = self.comm_session.ev_controller.get_charge_params_dinspec()
+        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
         pre_charge_req = PreChargeReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
@@ -493,20 +507,26 @@ class CableCheck(StateEVCC):
         )
         return pre_charge_req
 
+    def build_cable_check_req(self) -> CableCheckReq:
+        cable_check_req = CableCheckReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+        )
+        return cable_check_req
+
 
 class PreCharge(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.PRE_CHARGE_REQ)
 
     def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-            V2GMessageDINSPEC,
-        ],
+            self,
+            message: Union[
+                SupportedAppProtocolReq,
+                SupportedAppProtocolRes,
+                V2GMessageV2,
+                V2GMessageV20,
+                V2GMessageDINSPEC,
+            ],
     ):
         msg = self.check_msg_din_spec(message, PreChargeRes)
         if not msg:
@@ -532,9 +552,7 @@ class PreCharge(StateEVCC):
             if self.comm_session.ongoing_timer >= 0:
                 elapsed_time = time() - self.comm_session.ongoing_timer
                 if elapsed_time > Timeouts.V2G_EVCC_PRE_CHARGE_TIMEOUT:
-                    self.stop_state_machine(
-                        "Precharge timed out"
-                    )
+                    self.stop_state_machine("Precharge timed out")
                     return
             else:
                 self.comm_session.ongoing_timer = time()
@@ -548,7 +566,7 @@ class PreCharge(StateEVCC):
             )
 
     def build_pre_charge_req(self) -> PreChargeReq:
-        dc_charge_params = self.comm_session.ev_controller.get_charge_params_dinspec()
+        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
         pre_charge_req = PreChargeReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
@@ -571,14 +589,14 @@ class PowerDelivery(StateEVCC):
         super().__init__(comm_session, Timeouts.POWER_DELIVERY_REQ)
 
     def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-            V2GMessageDINSPEC,
-        ],
+            self,
+            message: Union[
+                SupportedAppProtocolReq,
+                SupportedAppProtocolRes,
+                V2GMessageV2,
+                V2GMessageV20,
+                V2GMessageDINSPEC,
+            ],
     ):
         msg = self.check_msg_din_spec(message, PowerDeliveryRes)
         if not msg:
@@ -605,7 +623,7 @@ class PowerDelivery(StateEVCC):
             )
 
     def build_current_demand_req(self):
-        dc_charge_params = self.comm_session.ev_controller.get_charge_params_dinspec()
+        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_current=dc_charge_params.dc_target_current,
@@ -628,14 +646,14 @@ class CurrentDemand(StateEVCC):
         super().__init__(comm_session, Timeouts.CURRENT_DEMAND_REQ)
 
     def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-            V2GMessageDINSPEC,
-        ],
+            self,
+            message: Union[
+                SupportedAppProtocolReq,
+                SupportedAppProtocolRes,
+                V2GMessageV2,
+                V2GMessageV20,
+                V2GMessageDINSPEC,
+            ],
     ):
         msg = self.check_msg_din_spec(message, CurrentDemandRes)
         if not msg:
@@ -672,7 +690,7 @@ class CurrentDemand(StateEVCC):
 
     def build_current_demand_req(self):
         dc_charge_params: DCEVChargeParams = (
-            self.comm_session.ev_controller.get_charge_params_dinspec()
+            self.comm_session.ev_controller.get_dc_charge_params()
         )
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
@@ -690,14 +708,14 @@ class WeldingDetection(StateEVCC):
         super().__init__(comm_session, Timeouts.WELDING_DETECTION_REQ)
 
     def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-            V2GMessageDINSPEC,
-        ],
+            self,
+            message: Union[
+                SupportedAppProtocolReq,
+                SupportedAppProtocolRes,
+                V2GMessageV2,
+                V2GMessageV20,
+                V2GMessageDINSPEC,
+            ],
     ):
         msg = self.check_msg_din_spec(message, WeldingDetectionRes)
         if not msg:
@@ -728,14 +746,14 @@ class SessionStop(StateEVCC):
         super().__init__(comm_session, Timeouts.SESSION_STOP_REQ)
 
     def process_message(
-        self,
-        message: Union[
-            SupportedAppProtocolReq,
-            SupportedAppProtocolRes,
-            V2GMessageV2,
-            V2GMessageV20,
-            V2GMessageDINSPEC,
-        ],
+            self,
+            message: Union[
+                SupportedAppProtocolReq,
+                SupportedAppProtocolRes,
+                V2GMessageV2,
+                V2GMessageV20,
+                V2GMessageDINSPEC,
+            ],
     ):
         msg = self.check_msg_din_spec(message, SessionStopRes)
         if not msg:

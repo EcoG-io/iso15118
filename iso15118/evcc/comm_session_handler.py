@@ -126,9 +126,10 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         supported_protocols = self.config.supported_protocols
 
         # [V2G-DC-618] For DC charging according to DIN SPEC 70121,
-        # an SDP server shall send an SECC Discovery Response message with Transport Protocol equal to “TCP” and
-        # Security equal to “No transport layer security” according to Table 23.
-        # Remove it from the supported protocols list if use_tls is enabled
+        # an SDP server shall send an SECC Discovery Response message with Transport
+        # Protocol equal to “TCP” and Security equal to “No transport layer security”
+        # according to Table 23. Remove it from the supported protocols list if
+        # use_tls is enabled
         if self.config.use_tls:
             try:
                 supported_protocols.remove(Protocol.DIN_SPEC_70121)

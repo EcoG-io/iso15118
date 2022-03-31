@@ -89,7 +89,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_charge_params_dinspec(self) -> DCEVChargeParams:
+    def get_dc_charge_params(self) -> DCEVChargeParams:
         """
         This would return an encapsulation of the following parameters:
         DC Max Current Limit

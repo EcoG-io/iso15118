@@ -284,7 +284,7 @@ class SimEVController(EVControllerInterface):
     def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         return None
 
-    def get_charge_params_dinspec(self) -> DCEVChargeParams:
+    def get_dc_charge_params(self) -> DCEVChargeParams:
         return self.dc_ev_charge_params
 
     def get_dc_ev_status(self) -> DCEVStatusDINSPEC:
