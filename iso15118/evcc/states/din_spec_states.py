@@ -8,7 +8,7 @@ import logging
 from time import time
 from typing import Union, List
 
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import DCEVChargeParams
+from iso15118.shared.messages.datatypes_iso15118_2_dinspec import DCEVChargeParams, DCEVSEStatus, DCEVSEStatusCode
 from iso15118.shared.notifications import StopNotification
 
 from iso15118.shared.states import Terminate
@@ -16,7 +16,7 @@ from iso15118.shared.states import Terminate
 from iso15118.shared.messages.enums import (
     EnergyTransferModeEnum,
     Protocol,
-    EVSEProcessing,
+    EVSEProcessing, IsolationLevel,
 )
 from iso15118.evcc import evcc_settings
 from iso15118.shared.messages.din_spec.datatypes import (
@@ -255,6 +255,9 @@ class ServicePaymentSelection(StateEVCC):
         )
 
         if service_payment_selection_res.response_code != ResponseCode.OK:
+            self.stop_state_machine(
+                "Service payment selection not accepted by SECC"
+            )
             return
 
         contract_authentication_req: ContractAuthenticationReq = (
@@ -436,17 +439,50 @@ class CableCheck(StateEVCC):
             return
 
         cable_check_res: CableCheckRes = msg.body.cable_check_res
-        # TODO: USE THE RETURNED PARAMETERS.
         if cable_check_res.response_code != ResponseCode.OK:
+            self.stop_state_machine(
+                "Cable check response from EVSE failed."
+            )
             return
 
-        pre_charge_req: PreChargeReq = self.build_pre_charge_req()
-        self.create_next_message(
-            PreCharge,
-            pre_charge_req,
-            Timeouts.PRE_CHARGE_REQ,
-            Namespace.DIN_MSG_DEF,
-        )
+        dc_evse_status: DCEVSEStatus = cable_check_res.dc_evse_status
+        evse_status_code: DCEVSEStatusCode = dc_evse_status.evse_status_code
+        isolation_status: IsolationLevel = dc_evse_status.evse_isolation_status
+
+        if cable_check_res.evse_processing == EVSEProcessing.FINISHED:
+            # Reset the Ongoing timer
+            self.comm_session.ongoing_timer = -1
+            pre_charge_req: PreChargeReq = self.build_pre_charge_req()
+            if evse_status_code == DCEVSEStatusCode.EVSE_READY and isolation_status == IsolationLevel.VALID:
+                self.create_next_message(
+                    PreCharge,
+                    pre_charge_req,
+                    Timeouts.PRE_CHARGE_REQ,
+                    Namespace.ISO_V2_MSG_DEF,
+                )
+            else:
+                self.stop_state_machine(
+                    "Isolation-Level of EVSE is not Valid"
+                )
+        else:
+            logger.debug(f"{evse_status_code}")
+            elapsed_time: float = 0
+            if self.comm_session.ongoing_timer >= 0:
+                elapsed_time = time() - self.comm_session.ongoing_timer
+                if elapsed_time > Timeouts.V2G_EVCC_CABLE_CHECK_TIMEOUT:
+                    self.stop_state_machine(
+                        "Ongoing timer timed out for CableCheck"
+                    )
+                    return
+            else:
+                self.comm_session.ongoing_timer = time()
+                pre_charge_req: PreChargeReq = self.build_pre_charge_req()
+                self.create_next_message(
+                    PreCharge,
+                    pre_charge_req,
+                    Timeouts.PRE_CHARGE_REQ,
+                    Namespace.DIN_MSG_DEF,
+                )
 
     def build_pre_charge_req(self) -> PreChargeReq:
         dc_charge_params = self.comm_session.ev_controller.get_charge_params_dinspec()
@@ -481,21 +517,33 @@ class PreCharge(StateEVCC):
         if pre_charge_res.response_code != ResponseCode.OK:
             return
 
-        #  if pre_charge_res.evse_present_voltage < self.comm_session.ev_controller.get_param_dc_target_voltage():  # noqa
-        if False:
-            pre_charge_req: PreChargeReq = self.build_pre_charge_req()
-            self.create_next_message(
-                None,
-                pre_charge_req,
-                Timeouts.PRE_CHARGE_REQ,
-                Namespace.DIN_MSG_DEF,
-            )
-        else:
+        if self.comm_session.ev_controller.is_precharge_complete():
+            self.comm_session.ongoing_timer = -1
             power_delivery_req: PowerDeliveryReq = self.build_power_delivery_req()
             self.create_next_message(
                 PowerDelivery,
                 power_delivery_req,
                 Timeouts.POWER_DELIVERY_REQ,
+                Namespace.DIN_MSG_DEF,
+            )
+        else:
+            logger.debug("EVSE still precharging")
+            elapsed_time: float = 0
+            if self.comm_session.ongoing_timer >= 0:
+                elapsed_time = time() - self.comm_session.ongoing_timer
+                if elapsed_time > Timeouts.V2G_EVCC_PRE_CHARGE_TIMEOUT:
+                    self.stop_state_machine(
+                        "Precharge timed out"
+                    )
+                    return
+            else:
+                self.comm_session.ongoing_timer = time()
+
+            pre_charge_req: PreChargeReq = self.build_pre_charge_req()
+            self.create_next_message(
+                None,
+                pre_charge_req,
+                Timeouts.PRE_CHARGE_REQ,
                 Namespace.DIN_MSG_DEF,
             )
 

@@ -280,6 +280,10 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def is_precharge_complete(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
     def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
         raise NotImplementedError
 

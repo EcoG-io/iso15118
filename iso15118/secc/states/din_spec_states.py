@@ -167,7 +167,7 @@ class ServiceDiscovery(StateSECC):
         )
 
         self.create_next_message(
-            ServiceAndPaymentSelection,
+            ServicePaymentSelection,
             service_discovery_res,
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.DIN_MSG_DEF,
@@ -222,7 +222,7 @@ class ServiceDiscovery(StateSECC):
         return service_discovery_res
 
 
-class ServiceAndPaymentSelection(StateSECC):
+class ServicePaymentSelection(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
@@ -245,12 +245,17 @@ class ServiceAndPaymentSelection(StateSECC):
         )
 
         if service_payment_selection_req.selected_payment_option != AuthEnum.EIM_V2:
+            self.stop_state_machine(
+                f"Offered payment option  "
+                f"{service_payment_selection_req.selected_payment_option} not accepted."
+            )
             return
 
         if (
             len(service_payment_selection_req.selected_service_list.selected_service)
             == 0
         ):
+            self.stop_state_machine("No service was selected")
             return
 
         service_payment_selection_res: ServicePaymentSelectionRes = (
@@ -293,11 +298,13 @@ class ContractAuthentication(StateSECC):
             )
         )
 
+        # Stay in ContractAuthenticationState as long as EVSE processing is ONGOING.
         next_state = (
-            ChargeParameterDiscovery
-            if evse_processing == EVSEProcessing.FINISHED
-            else None
+            None
+            if evse_processing == EVSEProcessing.ONGOING
+            else ChargeParameterDiscovery
         )
+
         self.create_next_message(
             next_state,
             contract_authentication_res,
