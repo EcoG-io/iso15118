@@ -297,6 +297,9 @@ class SimEVController(EVControllerInterface):
     def ready_to_charge(self) -> bool:
         return self.continue_charging()
 
+    def is_precharge_complete(self) -> bool:
+        return True
+
     def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
         return DCEVPowerDeliveryParameter(
             dc_ev_status=self.get_dc_ev_status(),
