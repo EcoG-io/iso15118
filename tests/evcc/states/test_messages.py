@@ -1,7 +1,20 @@
-from iso15118.shared.messages.iso15118_2.body import CurrentDemandRes, Body, PowerDeliveryRes
-from iso15118.shared.messages.iso15118_2.datatypes import DCEVSEStatus, EVSENotification, IsolationLevel, \
-    DCEVSEStatusCode, ResponseCode, PVEVSEPresentVoltage, PVEVSEPresentCurrent, PVEVSEMaxVoltageLimit, \
-    PVEVSEMaxCurrentLimit, PVEVSEMaxPowerLimit
+from iso15118.shared.messages.iso15118_2.body import (
+    CurrentDemandRes,
+    Body,
+    PowerDeliveryRes,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    DCEVSEStatus,
+    EVSENotification,
+    IsolationLevel,
+    DCEVSEStatusCode,
+    ResponseCode,
+    PVEVSEPresentVoltage,
+    PVEVSEPresentCurrent,
+    PVEVSEMaxVoltageLimit,
+    PVEVSEMaxCurrentLimit,
+    PVEVSEMaxPowerLimit,
+)
 from iso15118.shared.messages.iso15118_2.header import MessageHeader
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage
 
@@ -39,8 +52,11 @@ def get_v2g_message_current_demand_res():
 
 def get_v2g_message_current_demand_res_with_stop_charging():
     tmp = get_v2g_message_current_demand_res()
-    tmp.body.current_demand_res.dc_evse_status.evse_notification = EVSENotification.STOP_CHARGING
+    tmp.body.current_demand_res.dc_evse_status.evse_notification = (
+        EVSENotification.STOP_CHARGING
+    )
     return tmp
+
 
 def get_v2g_message_power_delivery_res():
     power_delivery_res = PowerDeliveryRes(

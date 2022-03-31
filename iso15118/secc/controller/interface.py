@@ -13,7 +13,11 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
     DCEVSEChargeParameter,
     DCEVSEStatus,
-    EnergyTransferModeEnum, PVEVTargetVoltage, PVEVTargetCurrent, PVEVSEMaxVoltageLimit, PVEVSEMaxCurrentLimit,
+    EnergyTransferModeEnum,
+    PVEVTargetVoltage,
+    PVEVTargetCurrent,
+    PVEVSEMaxVoltageLimit,
+    PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
@@ -30,9 +34,9 @@ from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as Meter
 class EVDataContext:
     dc_current: Optional[int] = None
     dc_voltage: Optional[int] = None
-    ac_current: Optional[dict] = None # {"l1": 10, "l2": 10, "l3": 10}
-    ac_voltage: Optional[dict] = None # {"l1": 230, "l2": 230, "l3": 230}
-    soc: Optional[int] = None # 0-100
+    ac_current: Optional[dict] = None  # {"l1": 10, "l2": 10, "l3": 10}
+    ac_voltage: Optional[dict] = None  # {"l1": 230, "l2": 230, "l3": 230}
+    soc: Optional[int] = None  # 0-100
 
 
 class EVSEControllerInterface(ABC):
@@ -256,7 +260,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def send_charging_command(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
+    def send_charging_command(
+        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
+    ):
         """
         This method is called in the state CurrentDemand. The values target current
         and target voltage from the EV are passed.

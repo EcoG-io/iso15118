@@ -65,8 +65,8 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_supported_energy_transfer_modes(self) -> List[EnergyTransferModeEnum]:
         """Overrides EVSEControllerInterface.get_supported_energy_transfer_modes()."""
-        ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
-        ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
+        # ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
+        # ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
         dc_extended = EnergyTransferModeEnum.DC_EXTENDED
         return [dc_extended]
 
@@ -217,9 +217,9 @@ class SimEVSEController(EVSEControllerInterface):
             evse_maximum_voltage_limit=self.get_evse_max_voltage_limit(),
             evse_minimum_current_limit=evse_minimum_curren_limit,
             evse_minimum_voltage_limit=evse_minimum_voltage_limit,
-            evse_current_regulation_tolerance=evse_current_regulation_tolerance,  # optional
+            evse_current_regulation_tolerance=evse_current_regulation_tolerance,  # opt
             evse_peak_current_ripple=evse_peak_current_ripple,
-            evse_energy_to_be_delivered=evse_energy_to_be_delivered,  # optional
+            evse_energy_to_be_delivered=evse_energy_to_be_delivered,  # opt
         )
 
     def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
@@ -236,7 +236,9 @@ class SimEVSEController(EVSEControllerInterface):
     def set_precharge(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
         pass
 
-    def send_charging_command(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
+    def send_charging_command(
+        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
+    ):
         pass
 
     def get_evse_current_limit_achieved(self) -> bool:

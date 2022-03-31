@@ -1,9 +1,25 @@
 from typing import List
 
-from iso15118.shared.messages.iso15118_2.body import PowerDeliveryReq, Body, WeldingDetectionReq, SessionStopReq
-from iso15118.shared.messages.iso15118_2.datatypes import ChargeProgress, SAScheduleTupleEntry, SalesTariff, \
-    SalesTariffEntry, RelativeTimeInterval, PMaxScheduleEntry, PMaxScheduleEntryDetails, PVPMax, UnitSymbol, DCEVStatus, \
-    DCEVErrorCode, ChargingSession
+from iso15118.shared.messages.iso15118_2.body import (
+    PowerDeliveryReq,
+    Body,
+    WeldingDetectionReq,
+    SessionStopReq,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    ChargeProgress,
+    SAScheduleTupleEntry,
+    SalesTariff,
+    SalesTariffEntry,
+    RelativeTimeInterval,
+    PMaxScheduleEntry,
+    PMaxScheduleEntryDetails,
+    PVPMax,
+    UnitSymbol,
+    DCEVStatus,
+    DCEVErrorCode,
+    ChargingSession,
+)
 from iso15118.shared.messages.iso15118_2.header import MessageHeader
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage
 
@@ -68,7 +84,7 @@ def get_dummy_dc_ev_status():
 
 def get_dummy_v2g_message_welding_detection_req():
     welding_detection_req = WeldingDetectionReq(
-        dc_ev_status=get_dummy_dc_ev_status()
+        dc_ev_status=get_dummy_dc_ev_status(),
     )
 
     return V2GMessage(
@@ -79,7 +95,7 @@ def get_dummy_v2g_message_welding_detection_req():
 
 def get_dummy_v2g_message_session_stop_req():
     session_stop_req = SessionStopReq(
-        charging_session=ChargingSession.TERMINATE
+        charging_session=ChargingSession.TERMINATE,
     )
 
     return V2GMessage(

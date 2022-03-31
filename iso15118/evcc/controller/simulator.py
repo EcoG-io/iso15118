@@ -131,7 +131,9 @@ class SimEVController(EVControllerInterface):
             bulk_soc=80,
         )
         if self.get_energy_transfer_mode().value.startswith("AC"):
-            return ChargeParamsV2(self.get_energy_transfer_mode(), ac_charge_params, None)
+            return ChargeParamsV2(
+                self.get_energy_transfer_mode(), ac_charge_params, None
+            )
         return ChargeParamsV2(self.get_energy_transfer_mode(), None, dc_charge_params)
 
     def get_charge_params_v20(
@@ -225,9 +227,7 @@ class SimEVController(EVControllerInterface):
     def get_dc_ev_status(self) -> DCEVStatus:
         """Overrides EVCCControllerInterface.get_dc_ev_status()."""
         return DCEVStatus(
-            ev_ready=True,
-            ev_error_code=DCEVErrorCode.NO_ERROR,
-            ev_ress_soc=self._soc
+            ev_ready=True, ev_error_code=DCEVErrorCode.NO_ERROR, ev_ress_soc=self._soc
         )
 
     def get_ev_target_voltage(self) -> PVEVTargetVoltage:
@@ -244,7 +244,7 @@ class SimEVController(EVControllerInterface):
         )
 
     def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
-        # deviation shall have a max deviation of 20 A, according to CC.5.1 of IEC61851-23
+        # deviation shall have a max deviation of 20A, according CC.5.1 of IEC61851-23
         self.precharge_loop_cycles += 1
         if self.precharge_loop_cycles == 50:
             # To simulate a bit of a precharge loop, we'll let it run 50 times
@@ -270,24 +270,20 @@ class SimEVController(EVControllerInterface):
             return False
 
     def get_remaining_time_to_full_soc(self) -> PVRemainingTimeToFullSOC:
-        return PVRemainingTimeToFullSOC(
-            multiplier=0, value=100, unit="s"
-        )
+        return PVRemainingTimeToFullSOC(multiplier=0, value=100, unit="s")
 
     def get_remaining_time_to_bulk_soc(self) -> PVRemainingTimeToBulkSOC:
-        return PVRemainingTimeToBulkSOC(
-            multiplier=0, value=80, unit="s"
-        )
+        return PVRemainingTimeToBulkSOC(multiplier=0, value=80, unit="s")
 
     def welding_detection_has_finished(self):
         return True
 
     def get_pre_charge_data(self) -> PreChargeReq:
         pre_charge_req = PreChargeReq(
-                    dc_ev_status=self.get_dc_ev_status(),
-                    ev_target_voltage=PVEVTargetVoltage(multiplier=0, value=450, unit="V"),
-                    ev_target_current=PVEVTargetCurrent(multiplier=0, value=1, unit="A"),
-                )
+            dc_ev_status=self.get_dc_ev_status(),
+            ev_target_voltage=PVEVTargetVoltage(multiplier=0, value=450, unit="V"),
+            ev_target_current=PVEVTargetCurrent(multiplier=0, value=1, unit="A"),
+        )
         return pre_charge_req
 
     def get_current_demand_data(self) -> CurrentDemandReq:

@@ -279,7 +279,7 @@ class V2GCommunicationSession(SessionStateMachine):
         self.selected_services: List[SelectedServiceV2] = []
         # Selected energy modes helps to choose AC or DC specific parameters
         self.selected_energy_mode: Optional[EnergyTransferModeEnum] = None
-        # Variable selected_charging_type_is_ac is set if one of the AC modes is selected
+        # Variable selected_charging_type_is_ac set if one of the AC modes is selected
         self.selected_charging_type_is_ac: bool = True
         # The SAScheduleTuple element the EVCC chose (referenced by ID)
         self.selected_schedule: Optional[int] = None

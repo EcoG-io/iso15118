@@ -7,7 +7,6 @@ import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.enums import AuthEnum, Protocol
-from iso15118.shared.network import validate_nic
 
 logger = logging.getLogger(__name__)
 

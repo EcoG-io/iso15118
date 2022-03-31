@@ -59,7 +59,9 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupRes,
     SessionStopReq,
     SessionStopRes,
-    WeldingDetectionReq, CurrentDemandRes, WeldingDetectionRes,
+    WeldingDetectionReq,
+    CurrentDemandRes,
+    WeldingDetectionRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
@@ -955,7 +957,9 @@ class ChargeParameterDiscovery(StateSECC):
             return
 
         self.comm_session.selected_energy_mode = charge_params_req.requested_energy_mode
-        self.comm_session.selected_charging_type_is_ac = self.comm_session.selected_energy_mode.value.startswith("AC")
+        self.comm_session.selected_charging_type_is_ac = (
+            self.comm_session.selected_energy_mode.value.startswith("AC")
+        )
 
         max_schedule_entries: Optional[
             int
@@ -1062,10 +1066,11 @@ class PowerDelivery(StateSECC):
     ChargeProgress field is set to 'Start',
     - or a SessionStopReq in case of AC-Charging and if the PowerDeliveryReq's
     ChargeProgress field is set to 'Stop'.
-    - In case of DC-Charging after a PowerDeliverReq's ChargeProgress field is set to 'Stop',
-    the EV can send a WeldingDetectionReq or a SesstionStopReq
+    - In case of DC-Charging after a PowerDeliverReq's ChargeProgress field
+    is set to 'Stop', the EV can send a WeldingDetectionReq or a SesstionStopReq
 
-    So when a PowerDeliveryReq is received, we know the next state. Except when stopping DC-Charging
+    So when a PowerDeliveryReq is received, we know the next state.
+    Except when stopping DC-Charging
 
     As a result, the create_next_message() method might be called with
     next_state = None.
@@ -1154,8 +1159,10 @@ class PowerDelivery(StateSECC):
                 power_delivery_req.sa_schedule_tuple_id
             )
             self.comm_session.charge_progress_started = True
-        elif power_delivery_req.charge_progress == ChargeProgress.STOP and \
-                self.comm_session.selected_charging_type_is_ac:
+        elif (
+            power_delivery_req.charge_progress == ChargeProgress.STOP
+            and self.comm_session.selected_charging_type_is_ac
+        ):
             self.comm_session.evse_controller.set_hlc_charging(False)
             next_state = SessionStop
         elif power_delivery_req.charge_progress == ChargeProgress.STOP:
@@ -1186,7 +1193,7 @@ class PowerDelivery(StateSECC):
         power_delivery_res = PowerDeliveryRes(
             response_code=ResponseCode.OK,
             ac_evse_status=ac_evse_status,
-            dc_evse_status=dc_evse_status
+            dc_evse_status=dc_evse_status,
         )
 
         self.create_next_message(
@@ -1494,7 +1501,8 @@ class CableCheck(StateSECC):
         if cable_check_req.dc_ev_status.ev_error_code != DCEVErrorCode.NO_ERROR:
             self.stop_state_machine(
                 f"{cable_check_req.dc_ev_status} "
-                "has Error" f"{cable_check_req.dc_ev_status}",
+                "has Error"
+                f"{cable_check_req.dc_ev_status}",
                 message,
                 ResponseCode.FAILED,
             )
@@ -1511,14 +1519,20 @@ class CableCheck(StateSECC):
 
         evse_processing = EVSEProcessing.ONGOING
         next_state = None
-        if dc_charger_state.evse_isolation_status in [IsolationLevel.VALID, IsolationLevel.WARNING]:
+        if dc_charger_state.evse_isolation_status in [
+            IsolationLevel.VALID,
+            IsolationLevel.WARNING,
+        ]:
             if dc_charger_state.evse_isolation_status == IsolationLevel.WARNING:
                 logger.warning(
-                    f"Isolation resistance measured by EVSE is in Warning-Range"
+                    "Isolation resistance measured by EVSE is in Warning-Range"
                 )
             evse_processing = EVSEProcessing.FINISHED
             next_state = PreCharge
-        elif dc_charger_state.evse_isolation_status in [IsolationLevel.FAULT, IsolationLevel.NO_IMD]:
+        elif dc_charger_state.evse_isolation_status in [
+            IsolationLevel.FAULT,
+            IsolationLevel.NO_IMD,
+        ]:
             self.stop_state_machine(
                 f"Isolation Failure: {dc_charger_state.evse_isolation_status}",
                 message,
@@ -1544,7 +1558,8 @@ class PreCharge(StateSECC):
     """
     The ISO 15118-2 state in which the SECC processes an
     PreChargeReq message from the EVCC.
-    In this state the EVSE adapts the DC output voltage to the requested voltage from the EV.
+    In this state the EVSE adapts the DC output voltage to the
+    requested voltage from the EV.
     The difference between these voltages must be smaller than 20V (according 61851-23).
     The EV sends a PowerDeliveryReq as soon as the precharge process has finished.
     """
@@ -1564,10 +1579,7 @@ class PreCharge(StateSECC):
     ):
         msg = self.check_msg_v2(
             message,
-            [
-                PreChargeReq,
-                PowerDeliveryReq
-            ],
+            [PreChargeReq, PowerDeliveryReq],
             not self.precharge_req_was_reveived,
         )
         if not msg:
@@ -1582,7 +1594,8 @@ class PreCharge(StateSECC):
         if precharge_req.dc_ev_status.ev_error_code != DCEVErrorCode.NO_ERROR:
             self.stop_state_machine(
                 f"{precharge_req.dc_ev_status} "
-                "has Error" f"{precharge_req.dc_ev_status}",
+                "has Error"
+                f"{precharge_req.dc_ev_status}",
                 message,
                 ResponseCode.FAILED,
             )
@@ -1601,19 +1614,22 @@ class PreCharge(StateSECC):
 
         if present_current_in_a > 2 or target_current_in_a > 2:
             self.stop_state_machine(
-                f"Target current or present current too high in state Precharge",
+                "Target current or present current too high in state Precharge",
                 message,
                 ResponseCode.FAILED,
             )
             return
 
         if not self.precharge_req_was_reveived:
-            self.comm_session.evse_controller.set_precharge(precharge_req.ev_target_voltage,
-                                                            precharge_req.ev_target_current)
+            self.comm_session.evse_controller.set_precharge(
+                precharge_req.ev_target_voltage, precharge_req.ev_target_current
+            )
             self.precharge_req_was_reveived = True
 
         dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
-        evse_present_voltage = self.comm_session.evse_controller.get_evse_present_voltage()
+        evse_present_voltage = (
+            self.comm_session.evse_controller.get_evse_present_voltage()
+        )
 
         precharge_res = PreChargeRes(
             response_code=ResponseCode.OK,
@@ -1672,18 +1688,23 @@ class CurrentDemand(StateSECC):
 
         # We don't care about signed meter values from the EVCC, but if you
         # do, then set receipt_required to True and set the field meter_info
+        evse_controller = self.comm_session.evse_controller
         current_demand_res = CurrentDemandRes(
             response_code=ResponseCode.OK,
-            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
-            evse_present_voltage=self.comm_session.evse_controller.get_evse_present_voltage(),
-            evse_present_current=self.comm_session.evse_controller.get_evse_present_current(),
-            evse_current_limit_achieved=self.comm_session.evse_controller.get_evse_current_limit_achieved(),
-            evse_voltage_limit_achieved=self.comm_session.evse_controller.get_evse_voltage_limit_achieved(),
-            evse_power_limit_achieved=self.comm_session.evse_controller.get_evse_power_limit_achieved(),
-            evse_max_voltage_limit=self.comm_session.evse_controller.get_evse_max_voltage_limit(),
-            evse_max_current_limit=self.comm_session.evse_controller.get_evse_max_current_limit(),
-            evse_max_power_limit=self.comm_session.evse_controller.get_evse_max_power_limit(),
-            evse_id=self.comm_session.evse_controller.get_evse_id(),
+            dc_evse_status=evse_controller.get_dc_evse_status(),
+            evse_present_voltage=evse_controller.get_evse_present_voltage(),
+            evse_present_current=evse_controller.get_evse_present_current(),
+            evse_current_limit_achieved=(
+                evse_controller.get_evse_current_limit_achieved()
+            ),
+            evse_voltage_limit_achieved=(
+                evse_controller.get_evse_voltage_limit_achieved()
+            ),
+            evse_power_limit_achieved=evse_controller.get_evse_power_limit_achieved(),
+            evse_max_voltage_limit=evse_controller.get_evse_max_voltage_limit(),
+            evse_max_current_limit=evse_controller.get_evse_max_current_limit(),
+            evse_max_power_limit=evse_controller.get_evse_max_power_limit(),
+            evse_id=evse_controller.get_evse_id(),
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             # TODO Could maybe request an OCPP setting that determines
             #      whether or not a receipt is required and when
@@ -1746,7 +1767,7 @@ class WeldingDetection(StateSECC):
             [
                 WeldingDetectionReq,
                 SessionStopReq,
-             ],
+            ],
             self.expecting_welding_detection_req,
         )
         if not msg:
@@ -1758,10 +1779,13 @@ class WeldingDetection(StateSECC):
 
         welding_detection_res = WeldingDetectionRes(
             # todo llr: java exi codec throws error with this message.
-            #  Exception Description: No conversion value provided for the value [OK] in field [ns5:WeldingDetectionRes.ns5:ResponseCode/text()].
+            #  Exception Description: No conversion value provided for the value [OK]
+            #  in field [ns5:WeldingDetectionRes.ns5:ResponseCode/text()].
             response_code=ResponseCode.OK,
             dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
-            evse_present_voltage=self.comm_session.evse_controller.get_evse_present_voltage(),
+            evse_present_voltage=(
+                self.comm_session.evse_controller.get_evse_present_voltage()
+            ),
         )
 
         next_state = None
@@ -1773,8 +1797,6 @@ class WeldingDetection(StateSECC):
         )
 
         self.expecting_welding_detection_req = False
-
-
 
 
 def get_state_by_msg_type(message_type: Type[BodyBase]) -> Optional[Type[State]]:

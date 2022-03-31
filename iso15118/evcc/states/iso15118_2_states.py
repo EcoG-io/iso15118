@@ -46,9 +46,10 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionStopRes,
     CableCheckReq,
     CableCheckRes,
-    PreChargeReq,
     PreChargeRes,
-    CurrentDemandRes, WeldingDetectionReq, WeldingDetectionRes,
+    CurrentDemandRes,
+    WeldingDetectionReq,
+    WeldingDetectionRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
@@ -815,7 +816,10 @@ class PowerDelivery(StateEVCC):
         if not msg:
             return
 
-        if self.comm_session.charging_session_stop and self.comm_session.selected_charging_type_is_ac:
+        if (
+            self.comm_session.charging_session_stop
+            and self.comm_session.selected_charging_type_is_ac
+        ):
             session_stop_req = SessionStopReq(
                 charging_session=self.comm_session.charging_session_stop
             )
@@ -863,7 +867,9 @@ class PowerDelivery(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
         else:
-            current_demand_req = self.comm_session.ev_controller.get_current_demand_data()
+            current_demand_req = (
+                self.comm_session.ev_controller.get_current_demand_data()
+            )
 
             self.create_next_message(
                 CurrentDemand,
@@ -1121,7 +1127,10 @@ class CableCheck(StateEVCC):
         if cable_check_res.evse_processing == EVSEProcessing.FINISHED:
             # Reset the Ongoing timer
             self.comm_session.ongoing_timer = -1
-            if evse_status_code == DCEVSEStatusCode.EVSE_READY and isolation_status == IsolationLevel.VALID:
+            if (
+                evse_status_code == DCEVSEStatusCode.EVSE_READY
+                and isolation_status == IsolationLevel.VALID
+            ):
                 precharge_req = self.comm_session.ev_controller.get_pre_charge_data()
                 self.create_next_message(
                     PreCharge,
@@ -1130,18 +1139,14 @@ class CableCheck(StateEVCC):
                     Namespace.ISO_V2_MSG_DEF,
                 )
             else:
-                self.stop_state_machine(
-                    "Isolation-Level of EVSE is not Valid"
-                )
+                self.stop_state_machine("Isolation-Level of EVSE is not Valid")
         else:
             logger.debug(f"{evse_status_code}")
             elapsed_time: float = 0
             if self.comm_session.ongoing_timer >= 0:
                 elapsed_time = time() - self.comm_session.ongoing_timer
                 if elapsed_time > Timeouts.V2G_EVCC_CABLE_CHECK_TIMEOUT:
-                    self.stop_state_machine(
-                        "Ongoing timer timed out for CableCheck"
-                    )
+                    self.stop_state_machine("Ongoing timer timed out for CableCheck")
                     return
             else:
                 self.comm_session.ongoing_timer = time()
@@ -1181,13 +1186,17 @@ class PreCharge(StateEVCC):
 
         precharge_res: PreChargeRes = msg.body.pre_charge_res
 
-        if self.comm_session.ev_controller.is_precharged(precharge_res.evse_present_voltage):
+        if self.comm_session.ev_controller.is_precharged(
+            precharge_res.evse_present_voltage
+        ):
             self.comm_session.ongoing_timer = -1
             power_delivery_req = PowerDeliveryReq(
                 charge_progress=ChargeProgress.START,
                 sa_schedule_tuple_id=self.comm_session.selected_schedule,
                 # charging_profile=None,  # TODO
-                dc_ev_power_delivery_parameter=self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter(),
+                dc_ev_power_delivery_parameter=(
+                    self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
+                ),
             )
             self.create_next_message(
                 PowerDelivery,
@@ -1201,9 +1210,7 @@ class PreCharge(StateEVCC):
             if self.comm_session.ongoing_timer >= 0:
                 elapsed_time = time() - self.comm_session.ongoing_timer
                 if elapsed_time > Timeouts.V2G_EVCC_PRE_CHARGE_TIMEOUT:
-                    self.stop_state_machine(
-                        "Timeout Precharge"
-                    )
+                    self.stop_state_machine("Timeout Precharge")
                     return
             else:
                 self.comm_session.ongoing_timer = time()
@@ -1246,8 +1253,9 @@ class CurrentDemand(StateEVCC):
             self.stop_charging()
 
         elif self.comm_session.ev_controller.continue_charging():
-            ev_controller = self.comm_session.ev_controller
-            current_demand_req = self.comm_session.ev_controller.get_current_demand_data()
+            current_demand_req = (
+                self.comm_session.ev_controller.get_current_demand_data()
+            )
 
             self.create_next_message(
                 CurrentDemand,

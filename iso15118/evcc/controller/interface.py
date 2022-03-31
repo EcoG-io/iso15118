@@ -16,8 +16,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     EnergyTransferModeEnum,
     SAScheduleTupleEntry,
     DCEVStatus,
-    PVEVTargetVoltage,
-    PVEVTargetCurrent,
     PVEVSEPresentVoltage,
     DCEVPowerDeliveryParameter,
     PVEVMaxVoltageLimit,
@@ -227,8 +225,8 @@ class EVControllerInterface(ABC):
     @abstractmethod
     def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
         """
-        Return True if the output voltage of the EVSE has reached the requested precharge voltage.
-        Otherwise return False.
+        Return True if the output voltage of the EVSE has reached
+        the requested precharge voltage. Otherwise return False.
         According 61851-23
 
         Relevant for:
@@ -338,7 +336,8 @@ class EVControllerInterface(ABC):
     @abstractmethod
     def welding_detection_has_finished(self):
         """
-        Returns true as soon as the process of welding detection has finished successfully
+        Returns true as soon as the process of welding
+        detection has finished successfully.
 
         Relevant for:
         - DIN SPEC 70121
