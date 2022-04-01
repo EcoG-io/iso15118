@@ -7,7 +7,6 @@ import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.enums import AuthEnum, Protocol
-from iso15118.shared.network import validate_nic
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +37,6 @@ class Config:
         env.read_env(path=env_path)  # read .env file, if it exists
 
         self.iface = env.str("NETWORK_INTERFACE", default="eth0")
-        # validate the NIC selected
-        validate_nic(self.iface)
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
 

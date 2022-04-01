@@ -72,7 +72,9 @@ class SECCCommunicationSession(V2GCommunicationSession):
         # pylint: disable=import-outside-toplevel
         from iso15118.secc.states.sap_states import SupportedAppProtocol
 
-        super().__init__(transport, SupportedAppProtocol, session_handler_queue, self)
+        V2GCommunicationSession.__init__(
+            self, transport, SupportedAppProtocol, session_handler_queue, self
+        )
 
         self.config = config
         # The EVSE controller that implements the interface EVSEControllerInterface
