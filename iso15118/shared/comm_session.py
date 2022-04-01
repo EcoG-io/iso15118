@@ -20,7 +20,6 @@ from iso15118.shared.exceptions import (
     InvalidV2GTPMessageError,
     MessageProcessingError,
 )
-from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,

@@ -20,7 +20,6 @@ from iso15118.shared.exceptions import (
     EncryptionError,
     PrivateKeyReadError,
 )
-from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
@@ -70,7 +69,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain,
     ChargeProgress,
     ChargeService,
-    ChargingSession,
     DCEVErrorCode,
     DCEVSEChargeParameter,
     DCEVSEStatus,

@@ -11,7 +11,6 @@ from typing import Union
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.states.evcc_state import StateEVCC
 from iso15118.shared.exceptions import PrivateKeyReadError
-from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
