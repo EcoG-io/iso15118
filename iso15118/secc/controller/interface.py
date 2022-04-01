@@ -4,6 +4,7 @@ This module contains the abstract class for an SECC to retrieve data from the EV
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import List, Optional, Union
 
 from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
@@ -13,6 +14,9 @@ from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
     DCEVSEStatus,
     PVEVTargetVoltage,
     PVEVTargetCurrent,
+    PVEVSEMaxVoltageLimit,
+    PVEVSEMaxCurrentLimit,
+    PVEVSEMaxPowerLimit,
 )
 from iso15118.shared.messages.enums import (
     Protocol,
@@ -34,7 +38,21 @@ from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
 
 
+@dataclass
+class EVDataContext:
+    dc_current: Optional[int] = None
+    dc_voltage: Optional[int] = None
+    ac_current: Optional[dict] = None  # {"l1": 10, "l2": 10, "l3": 10}
+    ac_voltage: Optional[dict] = None  # {"l1": 230, "l2": 230, "l3": 230}
+    soc: Optional[int] = None  # 0-100
+
+
 class EVSEControllerInterface(ABC):
+    def __init__(self):
+        self.ev_data_context = EVDataContext()
+
+    def reset_ev_data_context(self):
+        self.ev_data_context = EVDataContext()
 
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
@@ -186,6 +204,10 @@ class EVSEControllerInterface(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def stop_charger(self) -> None:
+        raise NotImplementedError
+
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
@@ -255,15 +277,74 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def set_precharge(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
+        """
+        Sets the precharge information coming from the EV.
+        The charger must adapt it's output voltage to the requested voltage from the EV.
+        The current may not exceed 2A (according 61851-23)
+
+        Relevant for:
+        - DIN SPEC 70121
+        - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def start_cable_check(self):
+        """
+        This method is called at the beginning of the state CableCheck.
+        It requests the charger to perform a CableCheck
+
+        Relevant for:
+        - DIN SPEC 70121
+        - ISO 15118-2
+        """
+        #
+        raise NotImplementedError
+
+    @abstractmethod
+    def send_charging_command(
+        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
+    ):
+        """
+        This method is called in the state CurrentDemand. The values target current
+        and target voltage from the EV are passed.
+        These information must be provided for the charger's power electronics.
+
+        Relevant for:
+        - DIN SPEC 70121
+        - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def is_evse_current_limit_achieved(self) -> bool:
+        """
+        Returns true if the current limit of the charger has achieved
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError
 
     @abstractmethod
     def is_evse_voltage_limit_achieved(self) -> bool:
+        """
+        Returns true if the current limit of the charger has achieved
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError
 
     @abstractmethod
     def is_evse_power_limit_achieved(self) -> bool:
+        """
+        Returns true if the current limit of the charger has achieved
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -271,9 +352,31 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set_ev_target_voltage(self, ev_target_voltage: PVEVTargetVoltage):
+    def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
+        """
+        Gets the max voltage that can be provided by the charger
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError
 
     @abstractmethod
-    def set_ev_target_current(self, ev_target_current: PVEVTargetCurrent):
+    def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
+        """
+        Gets the max current that can be provided by the charger
+
+        Relevant for:
+        - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
+        """
+        Gets the max power that can be provided by the charger
+
+        Relevant for:
+        - ISO 15118-2
+        """
         raise NotImplementedError

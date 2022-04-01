@@ -198,6 +198,9 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.set_hlc_charging()."""
         pass
 
+    def stop_charger(self) -> None:
+        pass
+
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
@@ -270,7 +273,18 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_evse_present_current(self) -> PVEVSEPresentCurrent:
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
-        return PVEVSEPresentCurrent(multiplier=0, value=10, unit="A")
+        return PVEVSEPresentCurrent(multiplier=0, value=1, unit="A")
+
+    def start_cable_check(self):
+        pass
+
+    def set_precharge(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
+        pass
+
+    def send_charging_command(
+        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
+    ):
+        pass
 
     def is_evse_current_limit_achieved(self) -> bool:
         return True
@@ -284,8 +298,11 @@ class SimEVSEController(EVSEControllerInterface):
     def get_evse_processing_state(self) -> EVSEProcessing:
         return EVSEProcessing.FINISHED
 
-    def set_ev_target_voltage(self, ev_target_voltage: PVEVTargetVoltage):
-        pass
+    def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
+        return PVEVSEMaxVoltageLimit(multiplier=0, value=600, unit="V")
 
-    def set_ev_target_current(self, ev_target_current: PVEVTargetCurrent):
-        pass
+    def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
+        return PVEVSEMaxCurrentLimit(multiplier=0, value=300, unit="A")
+
+    def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
+        return PVEVSEMaxPowerLimit(multiplier=1, value=1000, unit="W")

@@ -6,9 +6,9 @@ SessionStopReq.
 
 import logging
 import time
-from typing import List, Union
+from typing import List, Union, Type
 
-from iso15118.shared.states import Terminate
+from iso15118.shared.states import Terminate, State
 
 from iso15118.shared.notifications import StopNotification
 
@@ -18,7 +18,14 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import AuthEnum, Namespace, Protocol, EVSEProcessing
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    Namespace,
+    Protocol,
+    EVSEProcessing,
+    DCEVErrorCode,
+    IsolationLevel,
+)
 from iso15118.shared.messages.din_spec.body import (
     SessionSetupReq,
     SessionSetupRes,
@@ -287,10 +294,6 @@ class ContractAuthentication(StateSECC):
         if not msg:
             return
 
-        # The response contract_authentication_req is expected to be
-        # empty and can be ignored. Move on to responding with
-        # ContractAuthenticationRes
-
         evse_processing = self.comm_session.evse_controller.get_evse_processing_state()
         contract_authentication_res: ContractAuthenticationRes = (
             ContractAuthenticationRes(
@@ -382,6 +385,7 @@ class ChargeParameterDiscovery(StateSECC):
 class CableCheck(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        self.cable_check_req_was_received = False
 
     def process_message(
         self,
@@ -399,15 +403,50 @@ class CableCheck(StateSECC):
 
         cable_check_req: CableCheckReq = msg.body.cable_check_req
 
-        if not cable_check_req.dc_ev_status.ev_ready:
+        if cable_check_req.dc_ev_status.ev_error_code != DCEVErrorCode.NO_ERROR:
+            self.stop_state_machine(
+                f"{cable_check_req.dc_ev_status} "
+                "has Error"
+                f"{cable_check_req.dc_ev_status}",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
+
+        if not self.cable_check_req_was_received:
+            self.comm_session.evse_controller.start_cable_check()
+            self.cable_check_req_was_received = True
+        self.comm_session.evse_controller.ev_data_context.soc = (
+            cable_check_req.dc_ev_status.ev_ress_soc
+        )
+
+        dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
+
+        evse_processing = EVSEProcessing.ONGOING
+        if dc_charger_state.evse_isolation_status in [
+            IsolationLevel.VALID,
+            IsolationLevel.WARNING,
+        ]:
+            if dc_charger_state.evse_isolation_status == IsolationLevel.WARNING:
+                logger.warning(
+                    "Isolation resistance measured by EVSE is in Warning-Range"
+                )
+            evse_processing = EVSEProcessing.FINISHED
+        elif dc_charger_state.evse_isolation_status in [
+            IsolationLevel.FAULT,
+            IsolationLevel.NO_IMD,
+        ]:
+            self.stop_state_machine(
+                f"Isolation Failure: {dc_charger_state.evse_isolation_status}",
+                message,
+                ResponseCode.FAILED,
+            )
             return
 
         cable_check_res: CableCheckRes = CableCheckRes(
             response_code=ResponseCode.OK,
             dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
-            evse_processing=(
-                self.comm_session.evse_controller.get_evse_processing_state()
-            ),
+            evse_processing=evse_processing,
         )
 
         # [V2G-DC-418] Stay in CableCheck state until EVSEProcessing is complete.
@@ -429,6 +468,7 @@ class CableCheck(StateSECC):
 class PreCharge(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        self.expect_pre_charge_req = True
 
     def process_message(
         self,
@@ -440,30 +480,67 @@ class PreCharge(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_dinspec(message, [PreChargeReq])
+        msg = self.check_msg_dinspec(
+            message, [PreChargeReq, PowerDeliveryReq], self.expect_pre_charge_req
+        )
         if not msg:
             return
 
-        pre_charge_req: PreChargeReq = msg.body.pre_charge_req
-        if not pre_charge_req.dc_ev_status.ev_ready:
+        if msg.body.power_delivery_req:
+            PowerDelivery(self.comm_session).process_message(message)
             return
 
-        self.comm_session.evse_controller.set_ev_target_voltage(
-            pre_charge_req.ev_target_voltage
+        precharge_req: PreChargeReq = msg.body.pre_charge_req
+
+        if precharge_req.dc_ev_status.ev_error_code != DCEVErrorCode.NO_ERROR:
+            self.stop_state_machine(
+                f"{precharge_req.dc_ev_status} "
+                "has Error"
+                f"{precharge_req.dc_ev_status}",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
+
+        self.comm_session.evse_controller.ev_data_context.soc = (
+            precharge_req.dc_ev_status.ev_ress_soc
         )
-        self.comm_session.evse_controller.set_ev_target_current(
-            pre_charge_req.ev_target_current
+
+        # for the PreCharge phase, the requested current must be < 2 A
+        # (maximum inrush current according to CC.5.2 in IEC61851 -23)
+        present_current = self.comm_session.evse_controller.get_evse_present_current()
+        present_current_in_a = present_current.value * 10**present_current.multiplier
+        target_current = precharge_req.ev_target_current
+        target_current_in_a = target_current.value * 10**target_current.multiplier
+
+        if present_current_in_a > 2 or target_current_in_a > 2:
+            self.stop_state_machine(
+                "Target current or present current too high in state Precharge",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
+
+        if self.expect_pre_charge_req:
+            self.comm_session.evse_controller.set_precharge(
+                precharge_req.ev_target_voltage, precharge_req.ev_target_current
+            )
+            self.expect_pre_charge_req = False
+
+        dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
+        evse_present_voltage = (
+            self.comm_session.evse_controller.get_evse_present_voltage()
         )
-        pre_charge_res: PreChargeRes = PreChargeRes(
+
+        precharge_res = PreChargeRes(
             response_code=ResponseCode.OK,
-            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
-            evse_present_voltage=(
-                self.comm_session.evse_controller.get_evse_present_voltage()
-            ),
+            dc_evse_status=dc_charger_state,
+            evse_present_voltage=evse_present_voltage,
         )
+
         self.create_next_message(
-            PowerDelivery,
-            pre_charge_res,
+            None,
+            precharge_res,
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.DIN_MSG_DEF,
         )
@@ -472,6 +549,7 @@ class PreCharge(StateSECC):
 class PowerDelivery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        self.expecting_power_delivery_req = True
 
     def process_message(
         self,
@@ -480,39 +558,64 @@ class PowerDelivery(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
-            V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_dinspec(message, [PowerDeliveryReq])
+        msg = self.check_msg_dinspec(
+            message,
+            [
+                PowerDeliveryReq,
+                SessionStopReq,
+                WeldingDetectionReq,
+            ],
+            self.expecting_power_delivery_req,
+        )
         if not msg:
+            return
+
+        if msg.body.session_stop_req:
+            SessionStop(self.comm_session).process_message(message)
+            return
+
+        if msg.body.welding_detection_req:
+            WeldingDetection(self.comm_session).process_message(message)
             return
 
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
 
-        power_delivery_res: PowerDeliveryRes = PowerDeliveryRes(
-            response_code=ResponseCode.OK,
-            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
+        logger.debug(
+            f"ChargeProgress set to "
+            f"{'Ready' if power_delivery_req.ready_to_charge else 'Stopping'}"
         )
 
+        next_state: Type[State]
         if power_delivery_req.ready_to_charge:
-            self.create_next_message(
-                CurrentDemand,
-                power_delivery_res,
-                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                Namespace.DIN_MSG_DEF,
-            )
+            self.comm_session.evse_controller.set_hlc_charging(True)
+            next_state = CurrentDemand
+            self.comm_session.charge_progress_started = True
         else:
-            self.create_next_message(
-                WeldingDetection,
-                power_delivery_res,
-                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                Namespace.DIN_MSG_DEF,
-            )
+            next_state = None
+            self.comm_session.evse_controller.stop_charger()
+
+        dc_evse_status = self.comm_session.evse_controller.get_dc_evse_status()
+        power_delivery_res = PowerDeliveryRes(
+            response_code=ResponseCode.OK,
+            dc_evse_status=dc_evse_status,
+        )
+
+        self.create_next_message(
+            next_state,
+            power_delivery_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.DIN_MSG_DEF,
+        )
+
+        self.expecting_power_delivery_req = False
 
 
 class CurrentDemand(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        self.expecting_current_demand_req = True
 
     def process_message(
         self,
@@ -524,11 +627,26 @@ class CurrentDemand(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_dinspec(message, [CurrentDemandReq])
+        msg = self.check_msg_dinspec(
+            message,
+            [CurrentDemandReq, PowerDeliveryReq],
+            self.expecting_current_demand_req,
+        )
         if not msg:
             return
 
+        if msg.body.power_delivery_req:
+            PowerDelivery(self.comm_session).process_message(message)
+            return
+
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
+
+        self.comm_session.evse_controller.ev_data_context.soc = (
+            current_demand_req.dc_ev_status.ev_ress_soc
+        )
+        self.comm_session.evse_controller.send_charging_command(
+            current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
+        )
 
         current_demand_res: CurrentDemandRes = CurrentDemandRes(
             response_code=ResponseCode.OK,
@@ -548,26 +666,20 @@ class CurrentDemand(StateSECC):
             ),
         )
 
-        if current_demand_req.charging_complete:
-            self.create_next_message(
-                PowerDelivery,
-                current_demand_res,
-                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                Namespace.DIN_MSG_DEF,
-            )
-        else:
-            self.create_next_message(
-                None,
-                current_demand_res,
-                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                Namespace.DIN_MSG_DEF,
-            )
+        self.create_next_message(
+            None,
+            current_demand_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.DIN_MSG_DEF,
+        )
+
+        self.expecting_current_demand_req = False
 
 
 class WeldingDetection(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
-        self.expect_session_stop_req = False
+        self.expect_welding_detection = True
 
     def process_message(
         self,
@@ -581,33 +693,23 @@ class WeldingDetection(StateSECC):
     ):
         msg = self.check_msg_dinspec(
             message,
-            [SessionStopReq, WeldingDetectionReq],
-            self.expect_session_stop_req,
+            [WeldingDetectionReq, SessionStopReq],
+            self.expect_welding_detection,
         )
         if not msg:
             return
 
-        welding_detection_req: WeldingDetectionReq = msg.body.welding_detection_req
-
-        session_stop_req: SessionStopReq = None
-        if welding_detection_req is None:
-            session_stop_req: SessionStopReq = msg.body.session_stop_req
-            self.create_next_message(
-                Terminate,
-                SessionStopRes(response_code=ResponseCode.OK),
-                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                Namespace.DIN_MSG_DEF,
-            )
-        else:
-            self.create_next_message(
-                SessionStop,
-                self.build_welding_detection_response(),
-                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                Namespace.DIN_MSG_DEF,
-            )
-
-        if session_stop_req is None:
+        if msg.body.session_stop_req:
+            SessionStop(self.comm_session).process_message(message)
             return
+
+        self.expect_welding_detection = False
+        self.create_next_message(
+            None,
+            self.build_welding_detection_response(),
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.DIN_MSG_DEF,
+        )
 
     def build_welding_detection_response(self) -> WeldingDetectionRes:
         return WeldingDetectionRes(
