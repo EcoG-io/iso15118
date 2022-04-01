@@ -55,7 +55,7 @@ from iso15118.shared.utils import cancel_task, wait_till_finished
 logger = logging.getLogger(__name__)
 
 
-class SECCCommunicationSession(V2GCommunicationSession, EXI):
+class SECCCommunicationSession(V2GCommunicationSession):
     """
     The communication session object for the SECC, which holds session-specific
     variables and also implements a pausing mechanism.
@@ -67,13 +67,11 @@ class SECCCommunicationSession(V2GCommunicationSession, EXI):
         session_handler_queue: asyncio.Queue,
         config: Config,
         evse_controller: EVSEControllerInterface,
-        iexi_codec: IEXICodec,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
         from iso15118.secc.states.sap_states import SupportedAppProtocol
 
-        EXI.__init__(self, iexi_codec)
         V2GCommunicationSession.__init__(
             self, transport, SupportedAppProtocol, session_handler_queue, self
         )
@@ -152,8 +150,10 @@ class CommunicationSessionHandler:
         self.udp_server = None
         self.tcp_server = None
         self.config = config
-        self.iexi_codec = codec
         self.evse_controller = evse_controller
+
+        # Set the selected EXI codec implementation
+        EXI().set_exi_codec(codec)
 
         # Receiving queue for UDP or TCP packets and session
         # triggers (e.g. pause/terminate)
@@ -223,7 +223,6 @@ class CommunicationSessionHandler:
                             self._rcv_queue,
                             self.config,
                             self.evse_controller,
-                            self.iexi_codec,
                         )
 
                     task = asyncio.create_task(

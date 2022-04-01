@@ -68,19 +68,6 @@ from iso15118.shared.messages.xmldsig import (
 )
 from iso15118.shared.settings import PKI_PATH
 
-if TYPE_CHECKING:
-    # EVCCCommunicationSession and SECCCommunicationSession are used for
-    # annotation purposes only, as a type hint for the comm_session class
-    # attribute. But comm_session also imports State. To avoid a circular import
-    # error, one can use the TYPE_CHECKING boolean from typing, which evaluates
-    # to True during mypy or other 3rd party type checker but assumes the value
-    # 'False' during runtime.
-    # Please check:
-    # https://stackoverflow.com/questions/61545580/how-does-mypy-use-typing-type-checking-to-resolve-the-circular-import-annotation
-    # https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
-    from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
-    from iso15118.secc.comm_session_handler import SECCCommunicationSession
-
 logger = logging.getLogger(__name__)
 
 
@@ -674,9 +661,7 @@ def get_cert_issuer_serial(cert_path: str) -> Tuple[str, int]:
 
 
 def create_signature(
-    comm_session: Union["EVCCCommunicationSession", "SECCCommunicationSession"],
-    elements_to_sign: List[Tuple[str, bytes]],
-    signature_key: EllipticCurvePrivateKey,
+    elements_to_sign: List[Tuple[str, bytes]], signature_key: EllipticCurvePrivateKey
 ) -> Signature:
     """
     Creates a Signature element that is placed in the header of a V2GMessage.
@@ -690,7 +675,6 @@ def create_signature(
     generate a signature)
 
     Args:
-        comm_session: instance of the running session
         elements_to_sign: A list of tuples [str, bytes], where the first entry
                           of each tuple is the Id field (XML attribute) and the
                           second entry is the EXI encoded bytes representation
@@ -737,7 +721,7 @@ def create_signature(
     )
 
     # 2. Step: Signature generation
-    exi_encoded_signed_info = comm_session.to_exi(signed_info, Namespace.XML_DSIG)
+    exi_encoded_signed_info = EXI().to_exi(signed_info, Namespace.XML_DSIG)
     signature_value = signature_key.sign(exi_encoded_signed_info, ec.ECDSA(SHA256()))
     signature = Signature(
         signed_info=signed_info, signature_value=SignatureValue(value=signature_value)
@@ -747,7 +731,6 @@ def create_signature(
 
 
 def verify_signature(
-    comm_session: Union["EVCCCommunicationSession", "SECCCommunicationSession"],
     signature: Signature,
     elements_to_sign: List[Tuple[str, bytes]],
     leaf_cert: bytes,
@@ -776,7 +759,6 @@ def verify_signature(
        certificate and sub-CA certificate(s)).
 
     Args:
-        comm_session: instance of the running session
         signature: The Signature instance containing the Reference elements and
                    the SignatureValue needed to verify the signature.
         elements_to_sign: A list of tuples [int, bytes], where the first entry
@@ -828,9 +810,7 @@ def verify_signature(
     # 2. Step: Checking signature value
     logger.debug("Verifying signature value for SignedInfo element")
     pub_key = load_der_x509_certificate(leaf_cert).public_key()
-    exi_encoded_signed_info = comm_session.to_exi(
-        signature.signed_info, Namespace.XML_DSIG
-    )
+    exi_encoded_signed_info = EXI().to_exi(signature.signed_info, Namespace.XML_DSIG)
 
     try:
         if isinstance(pub_key, EllipticCurvePublicKey):

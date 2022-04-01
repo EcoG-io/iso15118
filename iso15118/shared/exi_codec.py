@@ -127,9 +127,13 @@ class EXI:
     The codec to be used will be requested during encode and decode operations.
     """
 
-    def __init__(self, codec: IEXICodec):
-        logger.debug(f"EXI Codec version: {codec.get_version()}")
-        self.exi_codec = codec
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(EXI, cls).__new__(cls)
+            cls._instance.exi_codec = None
+        return cls._instance
 
     def set_exi_codec(self, codec: IEXICodec):
         logger.debug(f"EXI Codec version: {codec.get_version()}")

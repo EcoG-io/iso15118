@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 SDP_MAX_REQUEST_COUNTER = 50
 
 
-class EVCCCommunicationSession(V2GCommunicationSession, EXI):
+class EVCCCommunicationSession(V2GCommunicationSession):
     """
     The communication session object for the EVCC, which holds session-specific
     variables and also implements a pausing mechanism.
@@ -65,13 +65,10 @@ class EVCCCommunicationSession(V2GCommunicationSession, EXI):
         session_handler_queue: asyncio.Queue,
         config: Config,
         ev_controller: EVControllerInterface,
-        iexi_codec: IEXICodec,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
         from iso15118.evcc.states.sap_states import SupportedAppProtocol
-
-        EXI.__init__(self, iexi_codec)
 
         # TODO: There must be another way to do this than to pass the self
         # itself into the child. There are just a few attributes in these
@@ -174,7 +171,7 @@ class EVCCCommunicationSession(V2GCommunicationSession, EXI):
         v2gtp_msg = V2GTPMessage(
             Protocol.UNKNOWN,
             ISOV2PayloadTypes.EXI_ENCODED,
-            self.to_exi(sap_req, Namespace.SAP),
+            EXI().to_exi(sap_req, Namespace.SAP),
         )
         self.current_state.next_msg = sap_req
         await self.send(v2gtp_msg)
@@ -222,10 +219,12 @@ class CommunicationSessionHandler:
         self.tcp_client = None
         self.tls_client = None
         self.config = config
-        self.iexi_codec = codec
         self.ev_controller = ev_controller
         self.sdp_retries_number = SDP_MAX_REQUEST_COUNTER
         self._sdp_retry_cycles = self.config.sdp_retry_cycles
+
+        # Set the selected EXI codec implementation
+        EXI().set_exi_codec(codec)
 
         # Receiving queue for UDP client to notify about incoming datagrams
         self._rcv_queue = asyncio.Queue(0)
@@ -372,7 +371,6 @@ class CommunicationSessionHandler:
             self._rcv_queue,
             self.config,
             self.ev_controller,
-            self.iexi_codec,
         )
 
         try:
