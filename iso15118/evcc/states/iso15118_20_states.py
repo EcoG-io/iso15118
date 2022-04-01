@@ -209,7 +209,9 @@ class AuthorizationSetup(StateEVCC):
                         [
                             (
                                 pnc_params.id,
-                                self.comm_session.to_exi(pnc_params, Namespace.ISO_V20_COMMON_MSG),
+                                self.comm_session.to_exi(
+                                    pnc_params, Namespace.ISO_V20_COMMON_MSG
+                                ),
                             )
                         ],
                         load_priv_key(KeyPath.OEM_LEAF_PEM, KeyEncoding.PEM),

@@ -518,7 +518,9 @@ class CertificateInstallation(StateEVCC):
                 ),
                 (
                     cert_install_res.emaid.id,
-                    self.comm_session.to_exi(cert_install_res.emaid, Namespace.ISO_V2_MSG_DEF),
+                    self.comm_session.to_exi(
+                        cert_install_res.emaid, Namespace.ISO_V2_MSG_DEF
+                    ),
                 ),
             ],
             leaf_cert=cert_install_res.cps_cert_chain.certificate,
@@ -605,7 +607,9 @@ class PaymentDetails(StateEVCC):
                 [
                     (
                         authorization_req.id,
-                        self.comm_session.to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
+                        self.comm_session.to_exi(
+                            authorization_req, Namespace.ISO_V2_MSG_DEF
+                        ),
                     )
                 ],
                 load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),

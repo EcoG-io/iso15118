@@ -67,15 +67,16 @@ class SECCCommunicationSession(V2GCommunicationSession, EXI):
         session_handler_queue: asyncio.Queue,
         config: Config,
         evse_controller: EVSEControllerInterface,
-        iexi_codec: IEXICodec
+        iexi_codec: IEXICodec,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
         from iso15118.secc.states.sap_states import SupportedAppProtocol
 
         EXI.__init__(self, iexi_codec)
-        V2GCommunicationSession.__init__(self, transport, SupportedAppProtocol,
-                                         session_handler_queue, self)
+        V2GCommunicationSession.__init__(
+            self, transport, SupportedAppProtocol, session_handler_queue, self
+        )
 
         self.config = config
         # The EVSE controller that implements the interface EVSEControllerInterface
@@ -222,7 +223,7 @@ class CommunicationSessionHandler:
                             self._rcv_queue,
                             self.config,
                             self.evse_controller,
-                            self.iexi_codec
+                            self.iexi_codec,
                         )
 
                     task = asyncio.create_task(

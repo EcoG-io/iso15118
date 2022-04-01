@@ -26,6 +26,7 @@ from cryptography.x509 import (
     NameOID,
     load_der_x509_certificate,
 )
+from typing_extensions import TYPE_CHECKING
 
 from iso15118.shared.exceptions import (
     CertAttributeError,
@@ -67,7 +68,6 @@ from iso15118.shared.messages.xmldsig import (
     Transforms,
 )
 from iso15118.shared.settings import PKI_PATH
-from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
     # EVCCCommunicationSession and SECCCommunicationSession are used for
@@ -676,7 +676,8 @@ def get_cert_issuer_serial(cert_path: str) -> Tuple[str, int]:
 
 def create_signature(
     comm_session: Union["EVCCCommunicationSession", "SECCCommunicationSession"],
-    elements_to_sign: List[Tuple[str, bytes]], signature_key: EllipticCurvePrivateKey
+    elements_to_sign: List[Tuple[str, bytes]],
+    signature_key: EllipticCurvePrivateKey,
 ) -> Signature:
     """
     Creates a Signature element that is placed in the header of a V2GMessage.
@@ -828,7 +829,9 @@ def verify_signature(
     # 2. Step: Checking signature value
     logger.debug("Verifying signature value for SignedInfo element")
     pub_key = load_der_x509_certificate(leaf_cert).public_key()
-    exi_encoded_signed_info = comm_session.to_exi(signature.signed_info, Namespace.XML_DSIG)
+    exi_encoded_signed_info = comm_session.to_exi(
+        signature.signed_info, Namespace.XML_DSIG
+    )
 
     try:
         if isinstance(pub_key, EllipticCurvePublicKey):

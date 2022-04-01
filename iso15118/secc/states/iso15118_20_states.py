@@ -297,7 +297,9 @@ class Authorization(StateSECC):
             [
                 (
                     auth_req.pnc_params.id,
-                    self.comm_session.to_exi(auth_req.pnc_params, Namespace.ISO_V20_COMMON_MSG),
+                    self.comm_session.to_exi(
+                        auth_req.pnc_params, Namespace.ISO_V20_COMMON_MSG
+                    ),
                 )
             ],
             self.comm_session.contract_cert_chain.certificate,

@@ -65,7 +65,7 @@ class EVCCCommunicationSession(V2GCommunicationSession, EXI):
         session_handler_queue: asyncio.Queue,
         config: Config,
         ev_controller: EVControllerInterface,
-        iexi_codec: IEXICodec
+        iexi_codec: IEXICodec,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -79,8 +79,9 @@ class EVCCCommunicationSession(V2GCommunicationSession, EXI):
         # From what I could see, we just use attributes of the V2GCommunication
         # Session, so we dont need to do this self injection, since self
         # is already injected by default on a child
-        V2GCommunicationSession.__init__(self, transport, SupportedAppProtocol,
-                                         session_handler_queue, self)
+        V2GCommunicationSession.__init__(
+            self, transport, SupportedAppProtocol, session_handler_queue, self
+        )
 
         self.config = config
         # The EV controller that implements the interface EVControllerInterface
@@ -371,7 +372,7 @@ class CommunicationSessionHandler:
             self._rcv_queue,
             self.config,
             self.ev_controller,
-            self.iexi_codec
+            self.iexi_codec,
         )
 
         try:

@@ -1,11 +1,6 @@
-import pytest
 from unittest.mock import Mock
 
-from tests.secc.states.test_messages import (
-    get_dummy_v2g_message_welding_detection_req,
-    get_sa_schedule_list,
-    get_v2g_message_power_delivery_req,
-)
+import pytest
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.simulator import SimEVSEController
@@ -17,6 +12,11 @@ from iso15118.secc.states.iso15118_2_states import (
 from iso15118.shared.messages.enums import Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.notifications import StopNotification
+from tests.secc.states.test_messages import (
+    get_dummy_v2g_message_welding_detection_req,
+    get_sa_schedule_list,
+    get_v2g_message_power_delivery_req,
+)
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def comm_session_mock():
     comm_session_mock.protocol = Protocol.UNKNOWN
     # to exi must return something or the V2GTPMessage creation fails during extraction
     # of the payload length
-    comm_session_mock.to_exi = Mock(return_value=b'\x01')
+    comm_session_mock.to_exi = Mock(return_value=b"\x01")
     return comm_session_mock
 
 
