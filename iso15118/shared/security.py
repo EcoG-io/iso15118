@@ -41,6 +41,7 @@ from iso15118.shared.exceptions import (
     KeyTypeError,
     PrivateKeyReadError,
 )
+from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain as CertificateChainV2,

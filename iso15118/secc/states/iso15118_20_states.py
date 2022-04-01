@@ -10,6 +10,7 @@ from typing import List, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.states.secc_state import StateSECC
+from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
@@ -295,8 +296,6 @@ class Authorization(StateSECC):
             [
                 (
                     auth_req.pnc_params.id,
-                        auth_req.pnc_params, Namespace.ISO_V20_COMMON_MSG
-                    ),
                     EXI().to_exi(auth_req.pnc_params, Namespace.ISO_V20_COMMON_MSG),
                 )
             ],
