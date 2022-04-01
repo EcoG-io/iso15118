@@ -32,6 +32,9 @@ pytest-cov = "^3.0.0"
 [tool.isort]
 profile = "black"
 
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

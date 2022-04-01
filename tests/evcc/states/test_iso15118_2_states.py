@@ -2,18 +2,12 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
-from iso15118.evcc.controller.simulator import SimEVController
 from iso15118.evcc.states.iso15118_2_states import (
     CurrentDemand,
     PowerDelivery,
     WeldingDetection,
 )
-from iso15118.shared.messages.enums import Protocol
-from iso15118.shared.messages.iso15118_2.datatypes import (
-    ChargingSession,
-    EnergyTransferModeEnum,
-)
+from iso15118.shared.messages.iso15118_2.datatypes import ChargingSession
 from iso15118.shared.notifications import StopNotification
 from tests.evcc.states.test_messages import (
     get_v2g_message_current_demand_res,
@@ -22,53 +16,41 @@ from tests.evcc.states.test_messages import (
 )
 
 
-@pytest.fixture
-def comm_session_mock():
-    comm_session_mock = Mock(spec=EVCCCommunicationSession)
-    comm_session_mock.session_id = "F9F9EE8505F55838"
-    comm_session_mock.stop_reason = StopNotification(False, "pytest")
-    comm_session_mock.ev_controller = SimEVController()
-    comm_session_mock.protocol = Protocol.UNKNOWN
-    comm_session_mock.selected_schedule = 1
-    comm_session_mock.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
-    comm_session_mock.selected_charging_type_is_ac = False
-    return comm_session_mock
-
-
 @patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value="\x01"))
-def test_current_demand_to_current_demand(comm_session_mock):
-    #  according V2G2-531
-    current_demand = CurrentDemand(comm_session_mock)
-    current_demand.process_message(message=get_v2g_message_current_demand_res())
-    assert current_demand.next_state == CurrentDemand
+@pytest.mark.asyncio
+class TestEvScenarios:
+    @pytest.fixture(autouse=True)
+    def _comm_session(self, comm_evcc_session_mock):
+        self.comm_session = comm_evcc_session_mock
 
+    async def test_current_demand_to_current_demand(self):
+        #  according V2G2-531
+        current_demand = CurrentDemand(self.comm_session)
+        current_demand.process_message(message=get_v2g_message_current_demand_res())
+        assert current_demand.next_state == CurrentDemand
 
-@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value="\x01"))
-def test_current_demand_to_power_delivery_when_evse_notification_is_stop_charging(
-    comm_session_mock,
-):
-    # according V2G2-679 (EVSENotification = EVSENotification)
-    # as well in states chargeParameterDiscoveryRes, PowerDeliveryREs,
-    # MeteringReceiptRes, PrechargeRes, currentDemandRes, WeldingDetectionREs ??
-    current_demand = CurrentDemand(comm_session_mock)
-    current_demand.process_message(
-        message=get_v2g_message_current_demand_res_with_stop_charging(),
-    )
-    assert current_demand.next_state == PowerDelivery
+    async def test_current_demand_power_delivery_when_evse_notification_is_stop_charging(
+        self,
+    ):
+        # according V2G2-679 (EVSENotification = EVSENotification)
+        # as well in states chargeParameterDiscoveryRes, PowerDeliveryREs,
+        # MeteringReceiptRes, PrechargeRes, currentDemandRes, WeldingDetectionREs ??
+        current_demand = CurrentDemand(self.comm_session)
+        current_demand.process_message(
+            message=get_v2g_message_current_demand_res_with_stop_charging(),
+        )
+        assert current_demand.next_state == PowerDelivery
 
+    async def test_current_demand_to_power_delivery_when_stopped_by_ev(self):
+        # V2G2-527
+        pass
 
-def test_current_demand_to_power_delivery__when__stopped_by_ev(comm_session_mock):
-    # V2G2-527
-    pass
-
-
-@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value="\x01"))
-def test_power_delivery_to_welding_detection__when__charge_progress_is_stop(
-    comm_session_mock,
-):
-    # V2G2-533
-    comm_session_mock.stop_reason = StopNotification(True, "pytest")
-    power_delivery = PowerDelivery(comm_session_mock)
-    comm_session_mock.charging_session_stop = ChargingSession.TERMINATE
-    power_delivery.process_message(message=get_v2g_message_power_delivery_res())
-    assert power_delivery.next_state == WeldingDetection
+    async def test_power_delivery_to_welding_detection_when_charge_progress_is_stop(
+        self,
+    ):
+        # V2G2-533
+        self.comm_session.stop_reason = StopNotification(True, "pytest")
+        power_delivery = PowerDelivery(self.comm_session)
+        self.comm_session.charging_session_stop = ChargingSession.TERMINATE
+        power_delivery.process_message(message=get_v2g_message_power_delivery_res())
+        assert power_delivery.next_state == WeldingDetection
