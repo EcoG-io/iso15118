@@ -176,7 +176,8 @@ class SessionStateMachine(ABC):
             None,
         ] = None
         try:
-            decoded_message = EXI().from_exi(v2gtp_msg.payload, self.get_exi_ns())
+            decoded_message = self.comm_session.from_exi(v2gtp_msg.payload,
+                                                         self.get_exi_ns())
         except EXIDecodingError as exc:
             logger.exception(f"{exc}")
             raise exc

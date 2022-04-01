@@ -142,10 +142,11 @@ class AuthorizationSetup(StateEVCC):
             #       ISO 15118-2 signature
             try:
                 signature = create_signature(
+                    self.comm_session,
                     [
                         (
                             oem_prov_cert_chain.id,
-                            EXI().to_exi(
+                            self.comm_session.to_exi(
                                 oem_prov_cert_chain, Namespace.ISO_V20_COMMON_MSG
                             ),
                         )
@@ -204,10 +205,11 @@ class AuthorizationSetup(StateEVCC):
                 # TODO Need a signature for ISO 15118-20, not ISO 15118-2
                 try:
                     signature = create_signature(
+                        self.comm_session,
                         [
                             (
                                 pnc_params.id,
-                                EXI().to_exi(pnc_params, Namespace.ISO_V20_COMMON_MSG),
+                                self.comm_session.to_exi(pnc_params, Namespace.ISO_V20_COMMON_MSG),
                             )
                         ],
                         load_priv_key(KeyPath.OEM_LEAF_PEM, KeyEncoding.PEM),

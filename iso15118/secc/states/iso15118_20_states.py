@@ -292,11 +292,12 @@ class Authorization(StateSECC):
 
         # Verify signature if EVCC sent PnC authorization data
         if auth_req.pnc_params and not verify_signature(
+            self.comm_session,
             auth_req.header.signature,
             [
                 (
                     auth_req.pnc_params.id,
-                    EXI().to_exi(auth_req.pnc_params, Namespace.ISO_V20_COMMON_MSG),
+                    self.comm_session.to_exi(auth_req.pnc_params, Namespace.ISO_V20_COMMON_MSG),
                 )
             ],
             self.comm_session.contract_cert_chain.certificate,

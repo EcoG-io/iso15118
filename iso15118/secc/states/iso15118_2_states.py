@@ -566,11 +566,12 @@ class CertificateInstallation(StateSECC):
         )
 
         if not verify_signature(
+            comm_session=self.comm_session,
             signature=msg.header.signature,
             elements_to_sign=[
                 (
                     cert_install_req.id,
-                    EXI().to_exi(cert_install_req, Namespace.ISO_V2_MSG_DEF),
+                    self.comm_session.to_exi(cert_install_req, Namespace.ISO_V2_MSG_DEF),
                 )
             ],
             leaf_cert=cert_install_req.oem_provisioning_cert,
@@ -650,17 +651,17 @@ class CertificateInstallation(StateSECC):
             # Elements to sign, containing its id and the exi encoded stream
             contract_cert_tuple = (
                 contract_cert_chain.id,
-                EXI().to_exi(contract_cert_chain, Namespace.ISO_V2_MSG_DEF),
+                self.comm_session.to_exi(contract_cert_chain, Namespace.ISO_V2_MSG_DEF),
             )
             encrypted_priv_key_tuple = (
                 encrypted_priv_key.id,
-                EXI().to_exi(encrypted_priv_key, Namespace.ISO_V2_MSG_DEF),
+                self.comm_session.to_exi(encrypted_priv_key, Namespace.ISO_V2_MSG_DEF),
             )
             dh_public_key_tuple = (
                 dh_public_key.id,
-                EXI().to_exi(dh_public_key, Namespace.ISO_V2_MSG_DEF),
+                self.comm_session.to_exi(dh_public_key, Namespace.ISO_V2_MSG_DEF),
             )
-            emaid_tuple = (emaid.id, EXI().to_exi(emaid, Namespace.ISO_V2_MSG_DEF))
+            emaid_tuple = (emaid.id, self.comm_session.to_exi(emaid, Namespace.ISO_V2_MSG_DEF))
 
             elements_to_sign = [
                 contract_cert_tuple,
@@ -671,7 +672,8 @@ class CertificateInstallation(StateSECC):
             # The private key to be used for the signature
             signature_key = load_priv_key(KeyPath.CPS_LEAF_PEM, KeyEncoding.PEM)
 
-            signature = create_signature(elements_to_sign, signature_key)
+            signature = create_signature(self.comm_session, elements_to_sign,
+                                         signature_key)
 
             self.create_next_message(
                 PaymentDetails,
@@ -852,11 +854,12 @@ class Authorization(StateSECC):
                 return
 
             if not verify_signature(
+                self.comm_session,
                 msg.header.signature,
                 [
                     (
                         authorization_req.id,
-                        EXI().to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
+                        self.comm_session.to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
                     )
                 ],
                 self.comm_session.contract_cert_chain.certificate,
@@ -1002,14 +1005,15 @@ class ChargeParameterDiscovery(StateSECC):
                     try:
                         element_to_sign = (
                             schedule.sales_tariff.id,
-                            EXI().to_exi(
+                            self.comm_session.to_exi(
                                 schedule.sales_tariff, Namespace.ISO_V2_MSG_DEF
                             ),
                         )
                         signature_key = load_priv_key(
                             KeyPath.MO_SUB_CA2_PEM, KeyEncoding.PEM
                         )
-                        signature = create_signature([element_to_sign], signature_key)
+                        signature = create_signature(self.comm_session,
+                                                     [element_to_sign], signature_key)
                     except PrivateKeyReadError as exc:
                         logger.warning(
                             "Can't read private key to needed to create "
@@ -1269,11 +1273,12 @@ class MeteringReceipt(StateSECC):
                 "signature of MeteringReceiptReq"
             )
         elif not verify_signature(
+            self.comm_session,
             msg.header.signature,
             [
                 (
                     metering_receipt_req.id,
-                    EXI().to_exi(metering_receipt_req, Namespace.ISO_V2_MSG_DEF),
+                    self.comm_session.to_exi(metering_receipt_req, Namespace.ISO_V2_MSG_DEF),
                 )
             ],
             self.comm_session.contract_cert_chain.certificate,

@@ -411,10 +411,11 @@ class PaymentServiceSelection(StateEVCC):
 
                 try:
                     signature = create_signature(
+                        self.comm_session,
                         [
                             (
                                 cert_install_req.id,
-                                EXI().to_exi(
+                                self.comm_session.to_exi(
                                     cert_install_req, Namespace.ISO_V2_MSG_DEF
                                 ),
                             )
@@ -494,29 +495,30 @@ class CertificateInstallation(StateEVCC):
         )
 
         if not verify_signature(
+            comm_session=self.comm_session,
             signature=msg.header.signature,
             elements_to_sign=[
                 (
                     cert_install_res.contract_cert_chain.id,
-                    EXI().to_exi(
+                    self.comm_session.to_exi(
                         cert_install_res.contract_cert_chain, Namespace.ISO_V2_MSG_DEF
                     ),
                 ),
                 (
                     cert_install_res.encrypted_private_key.id,
-                    EXI().to_exi(
+                    self.comm_session.to_exi(
                         cert_install_res.encrypted_private_key, Namespace.ISO_V2_MSG_DEF
                     ),
                 ),
                 (
                     cert_install_res.dh_public_key.id,
-                    EXI().to_exi(
+                    self.comm_session.to_exi(
                         cert_install_res.dh_public_key, Namespace.ISO_V2_MSG_DEF
                     ),
                 ),
                 (
                     cert_install_res.emaid.id,
-                    EXI().to_exi(cert_install_res.emaid, Namespace.ISO_V2_MSG_DEF),
+                    self.comm_session.to_exi(cert_install_res.emaid, Namespace.ISO_V2_MSG_DEF),
                 ),
             ],
             leaf_cert=cert_install_res.cps_cert_chain.certificate,
@@ -599,10 +601,11 @@ class PaymentDetails(StateEVCC):
 
         try:
             signature = create_signature(
+                self.comm_session,
                 [
                     (
                         authorization_req.id,
-                        EXI().to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
+                        self.comm_session.to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
                     )
                 ],
                 load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
@@ -1027,10 +1030,11 @@ class ChargingStatus(StateEVCC):
 
             try:
                 signature = create_signature(
+                    self.comm_session,
                     [
                         (
                             metering_receipt_req.id,
-                            EXI().to_exi(
+                            self.comm_session.to_exi(
                                 metering_receipt_req, Namespace.ISO_V2_MSG_DEF
                             ),
                         )

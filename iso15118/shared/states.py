@@ -258,7 +258,7 @@ class State(ABC):
             # Step 3
             exi_payload: bytes = bytes(0)
             try:
-                exi_payload = EXI().to_exi(to_be_exi_encoded, namespace)
+                exi_payload = self.comm_session.to_exi(to_be_exi_encoded, namespace)
             except EXIEncodingError as exc:
                 logger.error(f"{exc}")
                 self.next_state = Terminate
