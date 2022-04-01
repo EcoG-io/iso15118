@@ -8,36 +8,18 @@ import logging
 from time import time
 from typing import Union, List
 
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
-    DCEVChargeParams,
-    DCEVSEStatus,
-    DCEVSEStatusCode,
-)
-from iso15118.shared.notifications import StopNotification
-
-from iso15118.shared.states import Terminate
-
-from iso15118.shared.messages.enums import (
-    EnergyTransferModeEnum,
-    Protocol,
-    EVSEProcessing,
-    IsolationLevel,
-)
 from iso15118.evcc import evcc_settings
-from iso15118.shared.messages.din_spec.datatypes import (
-    ChargeService,
-    SelectedService,
-    SelectedServiceList,
-    ResponseCode,
-    DCEVChargeParameter,
-    DCEVStatus,
-)
-
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.states.evcc_state import StateEVCC
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
+)
+from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
+    DCEVChargeParams,
+    DCEVSEStatus,
+    DCEVSEStatusCode,
+    EVSENotification,
 )
 from iso15118.shared.messages.din_spec.body import (
     SessionSetupRes,
@@ -62,15 +44,29 @@ from iso15118.shared.messages.din_spec.body import (
     WeldingDetectionRes,
     SessionStopReq,
 )
-from iso15118.shared.messages.enums import Namespace, AuthEnum
+from iso15118.shared.messages.din_spec.datatypes import (
+    ChargeService,
+    SelectedService,
+    SelectedServiceList,
+    DCEVChargeParameter,
+    DCEVStatus,
+)
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.din_spec.timeouts import Timeouts
-
+from iso15118.shared.messages.enums import (
+    EnergyTransferModeEnum,
+    Protocol,
+    EVSEProcessing,
+    IsolationLevel,
+)
+from iso15118.shared.messages.enums import Namespace, AuthEnum
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
 from iso15118.shared.messages.timeouts import Timeouts as TimeoutsShared
+from iso15118.shared.notifications import StopNotification
+from iso15118.shared.states import Terminate
 
 logger = logging.getLogger(__name__)
 
@@ -92,14 +88,14 @@ class SessionSetup(StateEVCC):
         super().__init__(comm_session, Timeouts.SESSION_SETUP_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, SessionSetupRes)
         if not msg:
@@ -131,14 +127,14 @@ class ServiceDiscovery(StateEVCC):
         super().__init__(comm_session, Timeouts.SERVICE_DISCOVERY_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, ServiceDiscoveryRes)
         if not msg:
@@ -251,25 +247,17 @@ class ServicePaymentSelection(StateEVCC):
         super().__init__(comm_session, Timeouts.SERVICE_PAYMENT_SELECTION_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, ServicePaymentSelectionRes)
         if not msg:
-            return
-
-        service_payment_selection_res: ServicePaymentSelectionRes = (
-            msg.body.service_payment_selection_res
-        )
-
-        if service_payment_selection_res.response_code != ResponseCode.OK:
-            self.stop_state_machine("Service payment selection not accepted by SECC")
             return
 
         contract_authentication_req: ContractAuthenticationReq = (
@@ -288,14 +276,14 @@ class ContractAuthentication(StateEVCC):
         super().__init__(comm_session, Timeouts.CONTRACT_AUTHENTICATION_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, ContractAuthenticationRes)
         if not msg:
@@ -304,10 +292,6 @@ class ContractAuthentication(StateEVCC):
         contract_authentication_res: ContractAuthenticationRes = (
             msg.body.contract_authentication_res
         )
-
-        if contract_authentication_res.response_code != ResponseCode.OK:
-            self.stop_state_machine("Contract authentication failed.")
-            return
 
         # There are two transitions possible in ContractAuthentication state:
         # 1. We stay in the same state until EVSE processing is complete.
@@ -345,7 +329,11 @@ class ContractAuthentication(StateEVCC):
             ev_maximum_voltage_limit=max_voltage_limit,
         )
         return ChargeParameterDiscoveryReq(
-            requested_energy_mode=self.comm_session.ev_controller.get_energy_transfer_mode(Protocol.DIN_SPEC_70121),
+            requested_energy_mode=(
+                self.comm_session.ev_controller.get_energy_transfer_mode(
+                    Protocol.DIN_SPEC_70121
+                )
+            ),
             dc_ev_charge_parameter=dc_charge_parameter,
         )
 
@@ -355,14 +343,14 @@ class ChargeParameterDiscovery(StateEVCC):
         super().__init__(comm_session, Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, ChargeParameterDiscoveryRes)
         if not msg:
@@ -421,7 +409,11 @@ class ChargeParameterDiscovery(StateEVCC):
             )
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
-                requested_energy_mode=self.comm_session.ev_controller.get_energy_transfer_mode(Protocol.DIN_SPEC_70121),
+                requested_energy_mode=(
+                    self.comm_session.ev_controller.get_energy_transfer_mode(
+                        Protocol.DIN_SPEC_70121
+                    )
+                ),
                 ac_ev_charge_parameter=None,
                 dc_ev_charge_parameter=dc_charge_parameter,
             )
@@ -442,24 +434,20 @@ class CableCheck(StateEVCC):
         super().__init__(comm_session, Timeouts.CABLE_CHECK_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, CableCheckRes)
         if not msg:
             return
 
         cable_check_res: CableCheckRes = msg.body.cable_check_res
-        if cable_check_res.response_code != ResponseCode.OK:
-            self.stop_state_machine("Cable check response from EVSE failed.")
-            return
-
         dc_evse_status: DCEVSEStatus = cable_check_res.dc_evse_status
         evse_status_code: DCEVSEStatusCode = dc_evse_status.evse_status_code
         isolation_status: IsolationLevel = dc_evse_status.evse_isolation_status
@@ -469,8 +457,8 @@ class CableCheck(StateEVCC):
             self.comm_session.ongoing_timer = -1
             pre_charge_req: PreChargeReq = self.build_pre_charge_req()
             if (
-                    evse_status_code == DCEVSEStatusCode.EVSE_READY
-                    and isolation_status == IsolationLevel.VALID
+                evse_status_code == DCEVSEStatusCode.EVSE_READY
+                and isolation_status == IsolationLevel.VALID
             ):
                 self.create_next_message(
                     PreCharge,
@@ -489,8 +477,9 @@ class CableCheck(StateEVCC):
                 if elapsed_time > Timeouts.V2G_EVCC_CABLE_CHECK_TIMEOUT:
                     self.stop_state_machine("Ongoing timer timed out for CableCheck")
                     return
+            elif self.comm_session.ongoing_timer == -1:
+                self.comm_session.ongoing_timer = time()
 
-            self.comm_session.ongoing_timer = time()
             self.create_next_message(
                 None,
                 self.build_cable_check_req(),
@@ -519,25 +508,24 @@ class PreCharge(StateEVCC):
         super().__init__(comm_session, Timeouts.PRE_CHARGE_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, PreChargeRes)
         if not msg:
             return
 
         pre_charge_res: PreChargeRes = msg.body.pre_charge_res
-        # TODO: USE THE RETURNED PARAMETERS.
-        if pre_charge_res.response_code != ResponseCode.OK:
-            return
 
-        if self.comm_session.ev_controller.is_precharge_complete():
+        if self.comm_session.ev_controller.is_precharged(
+            pre_charge_res.evse_present_voltage
+        ):
             self.comm_session.ongoing_timer = -1
             power_delivery_req: PowerDeliveryReq = self.build_power_delivery_req()
             self.create_next_message(
@@ -576,7 +564,8 @@ class PreCharge(StateEVCC):
 
     def build_power_delivery_req(self) -> PowerDeliveryReq:
         power_delivery_req = PowerDeliveryReq(
-            ready_to_charge=self.comm_session.ev_controller.ready_to_charge(),
+            ready_to_charge=True,
+            charging_profile=None,
             dc_ev_power_delivery_parameter=(
                 self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
             ),
@@ -589,22 +578,17 @@ class PowerDelivery(StateEVCC):
         super().__init__(comm_session, Timeouts.POWER_DELIVERY_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, PowerDeliveryRes)
         if not msg:
-            return
-
-        power_delivery_res: PowerDeliveryRes = msg.body.power_delivery_res
-        # TODO: USE THE RETURNED PARAMETERS.
-        if power_delivery_res.response_code != ResponseCode.OK:
             return
 
         if self.comm_session.ev_controller.continue_charging():
@@ -627,9 +611,19 @@ class PowerDelivery(StateEVCC):
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_current=dc_charge_params.dc_target_current,
-            charging_complete=False
-            if self.comm_session.ev_controller.continue_charging()
-            else True,
+            ev_max_voltage_limit=dc_charge_params.dc_max_voltage_limit,
+            ev_max_current_limit=dc_charge_params.dc_max_current_limit,
+            ev_max_power_limit=dc_charge_params.dc_max_power_limit,
+            bulk_charging_complete=(
+                self.comm_session.ev_controller.get_bulk_charging_complete()
+            ),
+            charging_complete=self.comm_session.ev_controller.is_charging_complete(),
+            remaining_time_to_full_soc=(
+                self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+            ),
+            remaining_time_to_bulk_soc=(
+                self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+            ),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
         )
         return current_demand_req
@@ -646,47 +640,52 @@ class CurrentDemand(StateEVCC):
         super().__init__(comm_session, Timeouts.CURRENT_DEMAND_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, CurrentDemandRes)
         if not msg:
             return
 
         current_demand_res: CurrentDemandRes = msg.body.current_demand_res
-        # TODO: USE THE RETURNED PARAMETERS.
-        if current_demand_res.response_code != ResponseCode.OK:
-            return
+        dc_evse_status: DCEVSEStatus = current_demand_res.dc_evse_status
 
-        if current_demand_res.evse_current_limit_achieved:
-            self.create_next_message(
-                PowerDelivery,
-                self.build_power_delivery_req(),
-                Timeouts.POWER_DELIVERY_REQ,
-                Namespace.DIN_MSG_DEF,
-            )
-        else:
+        # Hi André...my understanding here is that a "charging stop" can be
+        # initiated by either party - by EVSE via EVSENotification or
+        # by EV itself where it sets ready_to_charge to False.
+        if dc_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
+            self.stop_charging()
+        elif self.comm_session.ev_controller.continue_charging():
             self.create_next_message(
                 None,
                 self.build_current_demand_req(),
                 Timeouts.CURRENT_DEMAND_REQ,
                 Namespace.DIN_MSG_DEF,
             )
+        else:
+            self.stop_charging()
 
-    def build_power_delivery_req(self) -> PowerDeliveryReq:
+    def stop_charging(self):
         power_delivery_req = PowerDeliveryReq(
             ready_to_charge=self.comm_session.ev_controller.ready_to_charge(),
             dc_ev_power_delivery_parameter=(
                 self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
             ),
         )
-        return power_delivery_req
+        self.create_next_message(
+            PowerDelivery,
+            power_delivery_req,
+            Timeouts.POWER_DELIVERY_REQ,
+            Namespace.DIN_MSG_DEF,
+        )
+
+        logger.debug("Stopping charging.")
 
     def build_current_demand_req(self):
         dc_charge_params: DCEVChargeParams = (
@@ -695,9 +694,19 @@ class CurrentDemand(StateEVCC):
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_current=dc_charge_params.dc_target_current,
-            charging_complete=False
-            if self.comm_session.ev_controller.continue_charging()
-            else True,
+            ev_max_voltage_limit=dc_charge_params.dc_max_voltage_limit,
+            ev_max_current_limit=dc_charge_params.dc_max_current_limit,
+            ev_max_power_limit=dc_charge_params.dc_max_power_limit,
+            bulk_charging_complete=(
+                self.comm_session.ev_controller.get_bulk_charging_complete()
+            ),
+            charging_complete=self.comm_session.ev_controller.is_charging_complete(),
+            remaining_time_to_full_soc=(
+                self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+            ),
+            remaining_time_to_bulk_soc=(
+                self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+            ),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
         )
         return current_demand_req
@@ -708,35 +717,34 @@ class WeldingDetection(StateEVCC):
         super().__init__(comm_session, Timeouts.WELDING_DETECTION_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, WeldingDetectionRes)
         if not msg:
             return
 
-        welding_detection_res: WeldingDetectionRes = msg.body.welding_detection_res
-        if welding_detection_res.response_code != ResponseCode.OK:
+        if self.comm_session.ev_controller.welding_detection_has_finished():
+            self.create_next_message(
+                SessionStop,
+                SessionStopReq(),
+                Timeouts.SESSION_STOP_REQ,
+                Namespace.DIN_MSG_DEF,
+            )
+        else:
             welding_detection_req = WeldingDetectionReq(
                 dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
             )
             self.create_next_message(
                 None,
                 welding_detection_req,
-                Timeouts.SESSION_STOP_REQ,
-                Namespace.DIN_MSG_DEF,
-            )
-        else:
-            self.create_next_message(
-                SessionStop,
-                SessionStopReq(),
-                Timeouts.SESSION_STOP_REQ,
+                Timeouts.WELDING_DETECTION_REQ,
                 Namespace.DIN_MSG_DEF,
             )
 
@@ -746,23 +754,18 @@ class SessionStop(StateEVCC):
         super().__init__(comm_session, Timeouts.SESSION_STOP_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, SessionStopRes)
         if not msg:
             return
-
-        # if self.comm_session.charging_session_stop == ChargingSession.TERMINATE:
-        #     stopped = "terminated"
-        # else:
-        #     stopped = "paused"
 
         self.comm_session.stop_reason = StopNotification(
             True,

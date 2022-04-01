@@ -8,6 +8,9 @@ from typing import List, Optional, Tuple
 
 from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
     DCEVChargeParams,
+    PVRemainingTimeToFullSOC,
+    PVRemainingTimeToBulkSOC,
+    PVEVSEPresentVoltage,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     DCEVStatus as DCEVStatusDINSPEC,
@@ -15,7 +18,6 @@ from iso15118.shared.messages.din_spec.datatypes import (
     DCEVPowerDeliveryParameter,
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
-
 from iso15118.shared.messages.enums import Protocol, EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
@@ -271,22 +273,104 @@ class EVControllerInterface(ABC):
     @abstractmethod
     def get_dc_ev_status(self) -> DCEVStatusDINSPEC:
         """
-        Returns current DC EV status.
+        Gets the DC-specific EV Status information.
+
+        Relevant for:
+        - DIN SPEC 70121
+        - ISO 15118-2
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
+        """
+        Return True if the output voltage of the EVSE has reached
+        the requested precharge voltage. Otherwise return False.
+        According 61851-23
+
+        Relevant for:
+        - DIN SPEC 70121
+        - ISO 15118-2
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
+        """
+        gets the Power Delivery Parameter of the EV
+
+        Relevant for:
+        - DIN SPEC 70121
+        - ISO 15118-2
+        - ISO 15118-20
         """
         raise NotImplementedError
 
     @abstractmethod
     def ready_to_charge(self) -> bool:
-        raise NotImplementedError
 
-    @abstractmethod
-    def is_precharge_complete(self) -> bool:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
         raise NotImplementedError
 
     @abstractmethod
     def is_charging_complete(self) -> bool:
+        """
+        If set to True, the EV indicates that full charge (100% SOC) is complete.
+
+        Relevant for:
+        - DIN SPEC 70121
+        - ISO 15118-2
+        - ISO 15118-20
+
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_bulk_charging_complete(self) -> bool:
+        """
+        Returns True if the soc for bulk charging is reached
+
+        Relevant for:
+        - DIN SPEC 70121 ??
+        - ISO 15118-2
+        - ISO 15118-20 ??
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_remaining_time_to_full_soc(self) -> PVRemainingTimeToFullSOC:
+        """
+        Gets the remaining time until full soc is reached.
+
+        Relevant for:
+        - DIN SPEC 70121 ??
+        - ISO 15118-2
+        - ISO 15118-20 ??
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_remaining_time_to_bulk_soc(self) -> PVRemainingTimeToBulkSOC:
+        """
+        Gets the remaining time until bulk soc is reached.
+
+        Relevant for:
+        - DIN SPEC 70121 ??
+        - ISO 15118-2
+        - ISO 15118-20 ??
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def welding_detection_has_finished(self):
+        """
+        Returns true as soon as the process of welding
+        detection has finished successfully.
+
+        Relevant for:
+        - DIN SPEC 70121
+        - ISO 15118-2
+        - ISO 15118-20 ??
+        """
         raise NotImplementedError
