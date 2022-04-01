@@ -29,7 +29,7 @@ class TestEvScenarios:
         current_demand.process_message(message=get_v2g_message_current_demand_res())
         assert current_demand.next_state == CurrentDemand
 
-    async def test_current_demand_power_delivery_when_evse_notification_is_stop_charging(
+    async def test_current_demand_power_delivery_when_notification_is_stop_charging(
         self,
     ):
         # according V2G2-679 (EVSENotification = EVSENotification)
