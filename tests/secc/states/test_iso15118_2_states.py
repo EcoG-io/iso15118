@@ -1,11 +1,6 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
-from secc.states.test_messages import (
-    get_dummy_v2g_message_welding_detection_req,
-    get_sa_schedule_list,
-    get_v2g_message_power_delivery_req,
-)
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.simulator import SimEVSEController
@@ -17,6 +12,11 @@ from iso15118.secc.states.iso15118_2_states import (
 from iso15118.shared.messages.enums import Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.notifications import StopNotification
+from tests.secc.states.test_messages import (
+    get_dummy_v2g_message_welding_detection_req,
+    get_sa_schedule_list,
+    get_v2g_message_power_delivery_req,
+)
 
 
 @pytest.fixture
@@ -25,13 +25,14 @@ def comm_session_mock():
     comm_session_mock.session_id = "F9F9EE8505F55838"
     comm_session_mock.offered_schedules = get_sa_schedule_list()
     comm_session_mock.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
-
+    comm_session_mock.selected_charging_type_is_ac = False
     comm_session_mock.stop_reason = StopNotification(False, "pytest")
     comm_session_mock.evse_controller = SimEVSEController()
     comm_session_mock.protocol = Protocol.UNKNOWN
     return comm_session_mock
 
 
+@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value="\x01"))
 def test_current_demand_to_power_delivery__when__power_delivery_received(
     comm_session_mock,
 ):
@@ -41,6 +42,7 @@ def test_current_demand_to_power_delivery__when__power_delivery_received(
     assert isinstance(comm_session_mock.current_state, PowerDelivery)
 
 
+@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value="\x01"))
 def test_power_delivery_to_welding_detection__when__welding_detection_received(
     comm_session_mock,
 ):

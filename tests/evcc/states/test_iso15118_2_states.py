@@ -1,11 +1,6 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
-from evcc.states.test_messages import (
-    get_v2g_message_current_demand_res,
-    get_v2g_message_current_demand_res_with_stop_charging,
-    get_v2g_message_power_delivery_res,
-)
 
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.controller.simulator import SimEVController
@@ -20,7 +15,11 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     EnergyTransferModeEnum,
 )
 from iso15118.shared.notifications import StopNotification
-
+from tests.evcc.states.test_messages import (
+    get_v2g_message_current_demand_res,
+    get_v2g_message_current_demand_res_with_stop_charging,
+    get_v2g_message_power_delivery_res,
+)
 
 
 @pytest.fixture
@@ -36,6 +35,7 @@ def comm_session_mock():
     return comm_session_mock
 
 
+@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value="\x01"))
 def test_current_demand_to_current_demand(comm_session_mock):
     #  according V2G2-531
     current_demand = CurrentDemand(comm_session_mock)
@@ -43,6 +43,7 @@ def test_current_demand_to_current_demand(comm_session_mock):
     assert current_demand.next_state == CurrentDemand
 
 
+@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value="\x01"))
 def test_current_demand_to_power_delivery_when_evse_notification_is_stop_charging(
     comm_session_mock,
 ):
@@ -61,6 +62,7 @@ def test_current_demand_to_power_delivery__when__stopped_by_ev(comm_session_mock
     pass
 
 
+@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value="\x01"))
 def test_power_delivery_to_welding_detection__when__charge_progress_is_stop(
     comm_session_mock,
 ):
