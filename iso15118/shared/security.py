@@ -26,7 +26,6 @@ from cryptography.x509 import (
     NameOID,
     load_der_x509_certificate,
 )
-from typing_extensions import TYPE_CHECKING
 
 from iso15118.shared.exceptions import (
     CertAttributeError,
