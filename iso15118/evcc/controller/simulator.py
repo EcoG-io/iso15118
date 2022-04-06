@@ -26,7 +26,7 @@ from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     DCEVStatus as DCEVStatusDINSPEC,
-    DCEVPowerDeliveryParameter,
+    DCEVPowerDeliveryParameter as DCEVPowerDeliveryParameterDINSPEC,
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
     ProfileEntryDetails as ProfileEntryDetailsDINSPEC,
 )
@@ -50,6 +50,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ProfileEntryDetails,
     SAScheduleTupleEntry,
     DCEVChargeParameter,
+    DCEVPowerDeliveryParameter,
+    DCEVStatus,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -97,7 +99,7 @@ class SimEVController(EVControllerInterface):
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
 
-        if protocol == Protocol.ISO_15118_2 or protocol == Protocol.DIN_SPEC_70121:
+        if protocol in (Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121):
             try:
                 hex_str = get_nic_mac_address(iface)
                 return hex_str.replace(":", "").upper()
@@ -119,19 +121,14 @@ class SimEVController(EVControllerInterface):
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
         if protocol == Protocol.DIN_SPEC_70121:
             return EnergyTransferModeEnum.DC_EXTENDED
-        return EnergyTransferModeEnum.AC_THREE_PHASE_CORE
-
-    def is_energy_transfer_mode_ac(self, protocol: Protocol) -> bool:
-        if self.get_energy_transfer_mode(protocol).startswith("AC_"):
-            return True
-        return False
+        return EnergyTransferModeEnum.DC_EXTENDED
 
     def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
         """Overrides EVControllerInterface.get_charge_params_v2()."""
         ac_charge_params = None
         dc_charge_params = None
 
-        if self.is_energy_transfer_mode_ac(protocol):
+        if self.get_energy_transfer_mode(protocol).startswith("AC"):
             e_amount = PVEAmount(multiplier=0, value=60, unit=UnitSymbol.WATT_HOURS)
             ev_max_voltage = PVEVMaxVoltage(
                 multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
@@ -294,8 +291,15 @@ class SimEVController(EVControllerInterface):
     def get_dc_charge_params(self) -> DCEVChargeParams:
         return self.dc_ev_charge_params
 
-    def get_dc_ev_status(self) -> DCEVStatusDINSPEC:
+    def get_dc_ev_status_dinspec(self) -> DCEVStatusDINSPEC:
         return DCEVStatusDINSPEC(
+            ev_ready=True,
+            ev_error_code=DCEVErrorCode.NO_ERROR,
+            ev_ress_soc=60,
+        )
+
+    def get_dc_ev_status(self) -> DCEVStatus:
+        return DCEVStatus(
             ev_ready=True,
             ev_error_code=DCEVErrorCode.NO_ERROR,
             ev_ress_soc=60,
@@ -307,6 +311,15 @@ class SimEVController(EVControllerInterface):
     def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
         return True
 
+    def get_dc_ev_power_delivery_parameter_dinspec(
+        self,
+    ) -> DCEVPowerDeliveryParameterDINSPEC:
+        return DCEVPowerDeliveryParameterDINSPEC(
+            dc_ev_status=self.get_dc_ev_status_dinspec(),
+            bulk_charging_complete=False,
+            charging_complete=self.continue_charging(),
+        )
+
     def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
         return DCEVPowerDeliveryParameter(
             dc_ev_status=self.get_dc_ev_status(),
@@ -314,7 +327,7 @@ class SimEVController(EVControllerInterface):
             charging_complete=self.continue_charging(),
         )
 
-    def get_bulk_charging_complete(self) -> bool:
+    def is_bulk_charging_complete(self) -> bool:
         return False
 
     def is_charging_complete(self) -> bool:

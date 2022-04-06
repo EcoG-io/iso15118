@@ -430,8 +430,9 @@ class DCEVChargeParameter(EVChargeParameter):
 
 
 class DCEVPowerDeliveryParameter(BaseModel):
-    """See section 8.5.4.5 in ISO 15118-2"""
-
+    """
+    See section 9.5.3.5 in DIN SPEC 70121
+    """
     dc_ev_status: DCEVStatus = Field(..., alias="DC_EVStatus")
     bulk_charging_complete: bool = Field(None, alis="BulkChargingComplete")
     charging_complete: bool = Field(..., alias="ChargingComplete")

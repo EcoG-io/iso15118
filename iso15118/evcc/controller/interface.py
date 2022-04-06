@@ -14,8 +14,7 @@ from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     DCEVStatus as DCEVStatusDINSPEC,
-    DCEVChargeParameter as DCEVChargeParameterDINSPEC,
-    DCEVPowerDeliveryParameter,
+    DCEVPowerDeliveryParameter as DCEVPowerDeliveryParameterDINSPEC,
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.enums import Protocol, EnergyTransferModeEnum
@@ -25,6 +24,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargingProfile,
     DCEVChargeParameter,
     SAScheduleTupleEntry,
+    DCEVStatus, DCEVPowerDeliveryParameter,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -38,12 +38,6 @@ class ChargeParamsV2:
     energy_mode: EnergyTransferModeEnum
     ac_parameters: Optional[ACEVChargeParameter]
     dc_parameters: Optional[DCEVChargeParameter]
-
-
-@dataclass
-class ChargeParamsDINSPEC:
-    energy_mode: EnergyTransferModeEnum
-    dc_parameters: Optional[DCEVChargeParameterDINSPEC]
 
 
 class EVControllerInterface(ABC):
@@ -79,14 +73,6 @@ class EVControllerInterface(ABC):
         Relevant for:
         - DIN SPEC 70121
         - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def is_energy_transfer_mode_ac(self, protocol: Protocol) -> bool:
-        """
-        Helper method to check if current energy transfer mode is AC
-        Returns True if energy transfer mode is AC
         """
         raise NotImplementedError
 
@@ -271,7 +257,17 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_ev_status(self) -> DCEVStatusDINSPEC:
+    def get_dc_ev_status_dinspec(self) -> DCEVStatusDINSPEC:
+        """
+        Gets the DC-specific EV Status information.
+
+        Relevant for:
+        - DIN SPEC 70121
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_ev_status(self) -> DCEVStatus:
         """
         Gets the DC-specific EV Status information.
 
@@ -297,12 +293,21 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
+    def get_dc_ev_power_delivery_parameter_dinspec(self) -> DCEVPowerDeliveryParameterDINSPEC:
         """
         gets the Power Delivery Parameter of the EV
 
         Relevant for:
         - DIN SPEC 70121
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
+        """
+        gets the Power Delivery Parameter of the EV
+
+        Relevant for:
         - ISO 15118-2
         - ISO 15118-20
         """
@@ -327,7 +332,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_bulk_charging_complete(self) -> bool:
+    def is_bulk_charging_complete(self) -> bool:
         """
         Returns True if the soc for bulk charging is reached
 

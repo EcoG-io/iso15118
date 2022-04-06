@@ -91,6 +91,10 @@ class SupportedAppProtocol(StateSECC):
                     and protocol.major_version == 2
                 ):
                     selected_protocol = Protocol.get_by_ns(protocol.protocol_ns)
+
+                    # This is the earliest point where we realize
+                    # that we are dealing with DINSPEC.
+                    self.comm_session.selected_charging_type_is_ac = False
                     next_state = SessionSetupDINSPEC
 
                     if protocol.minor_version == 0:
