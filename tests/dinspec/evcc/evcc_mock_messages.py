@@ -20,13 +20,22 @@ from iso15118.shared.messages.din_spec.datatypes import ResponseCode, \
     RelativeTimeInterval, PMaxScheduleEntry
 
 from iso15118.shared.messages.din_spec.body import CurrentDemandRes, Body, \
-    ServiceDiscoveryRes, ServicePaymentSelectionRes, ContractAuthenticationRes,\
-    ChargeParameterDiscoveryRes
+    ServiceDiscoveryRes, ServicePaymentSelectionRes, ContractAuthenticationRes, \
+    ChargeParameterDiscoveryRes, PowerDeliveryRes
 
 
 def get_dc_evse_status():
     return DCEVSEStatus(
         evse_notification=EVSENotification.NONE,
+        notification_max_delay=0,
+        evse_isolation_status=IsolationLevel.VALID,
+        evse_status_code=DCEVSEStatusCode.EVSE_READY,
+    )
+
+
+def get_dc_evse_status_stop_charging():
+    return DCEVSEStatus(
+        evse_notification=EVSENotification.STOP_CHARGING,
         notification_max_delay=0,
         evse_isolation_status=IsolationLevel.VALID,
         evse_status_code=DCEVSEStatusCode.EVSE_READY,
@@ -165,7 +174,7 @@ def get_service_discovery_message():
 def get_current_demand_acheived():
     current_demand_res: CurrentDemandRes = CurrentDemandRes(
         response_code=ResponseCode.OK,
-        dc_evse_status=get_dc_evse_status(),
+        dc_evse_status=get_dc_evse_status_stop_charging(),
         evse_present_voltage=get_evse_present_voltage(),
         evse_present_current=get_evse_present_current(),
         evse_current_limit_achieved=True,
@@ -284,4 +293,15 @@ def get_charge_parameter_discovery_message():
     return V2GMessage(
         header=MessageHeader(session_id="F9F9EE8505F55838"),
         body=Body(charge_parameter_discovery_res=charge_parameter_discovery_res),
+    )
+
+
+def get_power_delivery_res_message():
+    power_delivery_res: PowerDeliveryRes = PowerDeliveryRes(
+        response_code=ResponseCode.OK,
+        dc_evse_status=get_dc_evse_status(),
+    )
+    return V2GMessage(
+        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        body=Body(power_delivery_res=power_delivery_res),
     )
