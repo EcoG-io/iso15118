@@ -331,7 +331,7 @@ class SimEVController(EVControllerInterface):
         return False
 
     def is_charging_complete(self) -> bool:
-        if self._soc == 100:
+        if self._soc == 100 or self._charging_is_completed:
             return True
         else:
             return False
@@ -344,3 +344,6 @@ class SimEVController(EVControllerInterface):
 
     def welding_detection_has_finished(self):
         return True
+
+    def stop_charging(self) -> None:
+        self._charging_is_completed = True

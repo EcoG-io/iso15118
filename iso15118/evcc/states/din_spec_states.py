@@ -211,27 +211,9 @@ class ServiceDiscovery(StateEVCC):
             )
 
     def select_auth_mode(self, auth_option_list: List[AuthEnum]):
-        """
-        Check if an authorization mode (aka payment option) was
-        saved from a previously paused communication session and reuse for
-        resumed session, otherwise request from EV controller.
-        """
-        if evcc_settings.RESUME_SELECTED_AUTH_OPTION:
-            logger.debug(
-                "Reusing authorization option "
-                f"{evcc_settings.RESUME_SELECTED_AUTH_OPTION} "
-                "from previously paused session"
-            )
-            self.comm_session.selected_auth_option = (
-                evcc_settings.RESUME_SELECTED_AUTH_OPTION
-            )
-            evcc_settings.RESUME_SELECTED_AUTH_OPTION = None
-        else:
-            # Choose External Identification Means (eim)
-            # as the selected authorization option.
-            self.comm_session.selected_auth_option = None
-            if AuthEnum.EIM_V2 in auth_option_list:
-                self.comm_session.selected_auth_option = AuthEnum.EIM_V2
+        self.comm_session.selected_auth_option = None
+        if AuthEnum.EIM_V2 in auth_option_list:
+            self.comm_session.selected_auth_option = AuthEnum.EIM_V2
 
     def select_services(self, service_discovery_res: ServiceDiscoveryRes):
         # Add the ChargeService as a selected service
@@ -297,24 +279,21 @@ class ContractAuthentication(StateEVCC):
         # 1. We stay in the same state until EVSE processing is complete.
         # ie, EVSE returns EVSEProcessing.ONGOING response
         # 2. Move on to next state: ChargeParameterDiscoveryReq
-        if contract_authentication_res.evse_processing == EVSEProcessing.ONGOING:
-            self.create_next_message(
-                None,
-                ContractAuthenticationReq(),
-                Timeouts.CONTRACT_AUTHENTICATION_REQ,
-                Namespace.DIN_MSG_DEF,
-            )
-        elif contract_authentication_res.evse_processing == EVSEProcessing.FINISHED:
-            charge_parameter_discovery_req: ChargeParameterDiscoveryReq = (
-                self.build_charge_parameter_discovery_req()
-            )
+        next_state = None
+        next_message = ContractAuthenticationReq()
+        timeout = Timeouts.CONTRACT_AUTHENTICATION_REQ
 
-            self.create_next_message(
-                ChargeParameterDiscovery,
-                charge_parameter_discovery_req,
-                Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ,
-                Namespace.DIN_MSG_DEF,
-            )
+        if contract_authentication_res.evse_processing == EVSEProcessing.FINISHED:
+            next_state = ChargeParameterDiscovery
+            next_message = self.build_charge_parameter_discovery_req()
+            timeout = Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ
+
+        self.create_next_message(
+            next_state,
+            next_message,
+            timeout,
+            Namespace.DIN_MSG_DEF,
+        )
 
     def build_charge_parameter_discovery_req(self) -> ChargeParameterDiscoveryReq:
         dc_ev_status: DCEVStatus = (
@@ -662,6 +641,7 @@ class CurrentDemand(StateEVCC):
         # initiated by either party - by EVSE via EVSENotification or
         # by EV itself where it sets ready_to_charge to False.
         if dc_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
+            logger.debug("EVSE Notification received requesting to stop charging.")
             self.stop_charging()
         elif self.comm_session.ev_controller.continue_charging():
             self.create_next_message(
@@ -671,11 +651,13 @@ class CurrentDemand(StateEVCC):
                 Namespace.DIN_MSG_DEF,
             )
         else:
+            logger.debug("EV initiated stop charging.")
             self.stop_charging()
 
     def stop_charging(self):
+        self.comm_session.ev_controller.stop_charging()
         power_delivery_req = PowerDeliveryReq(
-            ready_to_charge=self.comm_session.ev_controller.ready_to_charge(),
+            ready_to_charge=False,
             dc_ev_power_delivery_parameter=(
                 self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
             ),

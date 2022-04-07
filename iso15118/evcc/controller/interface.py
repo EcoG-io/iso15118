@@ -24,7 +24,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargingProfile,
     DCEVChargeParameter,
     SAScheduleTupleEntry,
-    DCEVStatus, DCEVPowerDeliveryParameter,
+    DCEVStatus,
+    DCEVPowerDeliveryParameter,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -293,7 +294,9 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_ev_power_delivery_parameter_dinspec(self) -> DCEVPowerDeliveryParameterDINSPEC:
+    def get_dc_ev_power_delivery_parameter_dinspec(
+        self,
+    ) -> DCEVPowerDeliveryParameterDINSPEC:
         """
         gets the Power Delivery Parameter of the EV
 
@@ -315,7 +318,10 @@ class EVControllerInterface(ABC):
 
     @abstractmethod
     def ready_to_charge(self) -> bool:
-
+        """
+        Used by PowerDeliveryReq message (DIN SPEC) to indicate if we are
+        ready to start/stop charging.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -377,5 +383,12 @@ class EVControllerInterface(ABC):
         - DIN SPEC 70121
         - ISO 15118-2
         - ISO 15118-20 ??
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def stop_charging(self) -> None:
+        """
+        Used by CurrentDemand to indicate to EV to stop charging.
         """
         raise NotImplementedError
