@@ -275,6 +275,16 @@ class ContractAuthentication(StateEVCC):
             msg.body.contract_authentication_res
         )
 
+        if self.comm_session.ongoing_timer > 0:
+            elapsed_time = time() - self.comm_session.ongoing_timer
+            if elapsed_time > TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT:
+                self.stop_state_machine(
+                    "Ongoing timer timed out for " "ContractAuthenticationRes"
+                )
+                return
+        elif self.comm_session.ongoing_timer == -1:
+            self.comm_session.ongoing_timer = time()
+
         # There are two transitions possible in ContractAuthentication state:
         # 1. We stay in the same state until EVSE processing is complete.
         # ie, EVSE returns EVSEProcessing.ONGOING response
@@ -451,7 +461,6 @@ class CableCheck(StateEVCC):
                 self.stop_state_machine("Isolation-Level of EVSE is not Valid")
                 return
         else:
-            logger.debug(f"{evse_status_code}")
             elapsed_time: float = 0
             if self.comm_session.ongoing_timer >= 0:
                 elapsed_time = time() - self.comm_session.ongoing_timer
@@ -637,9 +646,9 @@ class CurrentDemand(StateEVCC):
         current_demand_res: CurrentDemandRes = msg.body.current_demand_res
         dc_evse_status: DCEVSEStatus = current_demand_res.dc_evse_status
 
-        # Hi André...my understanding here is that a "charging stop" can be
-        # initiated by either party - by EVSE via EVSENotification or
-        # by EV itself where it sets ready_to_charge to False.
+        # "Charging stop" can be initiated by either party
+        # - by EVSE via EVSENotification
+        # - by EV itself where it sets ready_to_charge to False.
         if dc_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
             logger.debug("EVSE Notification received requesting to stop charging.")
             self.stop_charging()
@@ -714,23 +723,32 @@ class WeldingDetection(StateEVCC):
         if not msg:
             return
 
+        if self.comm_session.ongoing_timer > 0:
+            elapsed_time = time() - self.comm_session.ongoing_timer
+            if elapsed_time > TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT:
+                self.stop_state_machine(
+                    "Ongoing timer timed out for " "WeldingDetectionRes"
+                )
+                return
+        elif self.comm_session.ongoing_timer == -1:
+            self.comm_session.ongoing_timer = time()
+
+        next_state = None
+        next_request = WeldingDetectionReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec()
+        )
+        next_timeout = Timeouts.WELDING_DETECTION_REQ
         if self.comm_session.ev_controller.welding_detection_has_finished():
-            self.create_next_message(
-                SessionStop,
-                SessionStopReq(),
-                Timeouts.SESSION_STOP_REQ,
-                Namespace.DIN_MSG_DEF,
-            )
-        else:
-            welding_detection_req = WeldingDetectionReq(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec()
-            )
-            self.create_next_message(
-                None,
-                welding_detection_req,
-                Timeouts.WELDING_DETECTION_REQ,
-                Namespace.DIN_MSG_DEF,
-            )
+            next_state = SessionStop
+            next_request = SessionStopReq()
+            next_timeout = Timeouts.SESSION_STOP_REQ
+
+        self.create_next_message(
+            next_state,
+            next_request,
+            next_timeout,
+            Namespace.DIN_MSG_DEF,
+        )
 
 
 class SessionStop(StateEVCC):

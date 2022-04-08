@@ -908,9 +908,7 @@ class PowerDelivery(StateEVCC):
             bulk_charging_complete=(
                 self.comm_session.ev_controller.is_bulk_charging_complete()
             ),
-            charging_complete=(
-                self.comm_session.ev_controller.is_charging_complete()
-            ),
+            charging_complete=(self.comm_session.ev_controller.is_charging_complete()),
             remaining_time_to_full_soc=(
                 self.comm_session.ev_controller.get_remaining_time_to_full_soc()
             ),
@@ -1342,10 +1340,16 @@ class CurrentDemand(StateEVCC):
             ev_target_current=dc_ev_charge_params.dc_target_current,
             ev_max_current_limit=dc_ev_charge_params.dc_max_current_limit,
             ev_max_power_limit=dc_ev_charge_params.dc_max_power_limit,
-            bulk_charging_complete=self.comm_session.ev_controller.is_bulk_charging_complete(),
+            bulk_charging_complete=(
+                self.comm_session.ev_controller.is_bulk_charging_complete()
+            ),
             charging_complete=self.comm_session.ev_controller.is_charging_complete(),
-            remaining_time_to_full_soc=self.comm_session.ev_controller.get_remaining_time_to_full_soc(),
-            remaining_time_to_bulk_soc=self.comm_session.ev_controller.get_remaining_time_to_bulk_soc(),
+            remaining_time_to_full_soc=(
+                self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+            ),
+            remaining_time_to_bulk_soc=(
+                self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+            ),
             ev_target_voltage=dc_ev_charge_params.dc_target_voltage,
         )
         return current_demand_req
@@ -1388,24 +1392,33 @@ class WeldingDetection(StateEVCC):
         if not msg:
             return
 
-        if self.comm_session.ev_controller.welding_detection_has_finished():
+        if self.comm_session.ongoing_timer > 0:
+            elapsed_time = time() - self.comm_session.ongoing_timer
+            logger.debug(f"EVCC timeout : {TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT}")
+            if elapsed_time > TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT:
+                self.stop_state_machine(
+                    "Ongoing timer timed out for " "WeldingDetectionRes"
+                )
+                return
+        elif self.comm_session.ongoing_timer == -1:
+            self.comm_session.ongoing_timer = time()
 
+        next_state = None
+        next_request = WeldingDetectionReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
+        )
+        next_timeout = Timeouts.WELDING_DETECTION_REQ
+        if self.comm_session.ev_controller.welding_detection_has_finished():
             session_stop_req = SessionStopReq(
                 charging_session=self.comm_session.charging_session_stop
             )
-            self.create_next_message(
-                SessionStop,
-                session_stop_req,
-                Timeouts.SESSION_STOP_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
-        else:
-            welding_detection_req = WeldingDetectionReq(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
-            )
-            self.create_next_message(
-                WeldingDetection,
-                welding_detection_req,
-                Timeouts.WELDING_DETECTION_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
+            next_state = SessionStop
+            next_request = session_stop_req
+            next_timeout = Timeouts.SESSION_STOP_REQ
+
+        self.create_next_message(
+            next_state,
+            next_request,
+            next_timeout,
+            Namespace.ISO_V2_MSG_DEF,
+        )

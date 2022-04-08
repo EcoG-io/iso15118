@@ -1,27 +1,54 @@
 from typing import Optional, List
 
-from iso15118.shared.messages.enums import AuthEnum, EnergyTransferModeEnum,\
-    EVSEProcessing
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    EnergyTransferModeEnum,
+    EVSEProcessing,
+)
 
 from iso15118.shared.messages.din_spec.header import MessageHeader
 
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage
 
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import \
-    DCEVSEStatus, EVSENotification, DCEVSEStatusCode, \
-    PVEVSEPresentVoltage, PVEVSEPresentCurrent, PVEVSEMaxVoltageLimit, \
-    PVEVSEMaxCurrentLimit, PVEVSEMaxPowerLimit, \
-    DCEVSEChargeParameter, PVEVSEMinCurrentLimit, PVEVSEMinVoltageLimit, \
-    PVEVSEPeakCurrentRipple
-from iso15118.shared.messages.din_spec.datatypes import ResponseCode, \
-    IsolationLevel, AuthOptionList, ServiceDetails, \
-    ChargeService, ServiceID, ServiceCategory, SAScheduleList, \
-    SAScheduleTupleEntry, PMaxScheduleEntryDetails, \
-    RelativeTimeInterval, PMaxScheduleEntry
+from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
+    DCEVSEStatus,
+    EVSENotification,
+    DCEVSEStatusCode,
+    PVEVSEPresentVoltage,
+    PVEVSEPresentCurrent,
+    PVEVSEMaxVoltageLimit,
+    PVEVSEMaxCurrentLimit,
+    PVEVSEMaxPowerLimit,
+    DCEVSEChargeParameter,
+    PVEVSEMinCurrentLimit,
+    PVEVSEMinVoltageLimit,
+    PVEVSEPeakCurrentRipple,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    ResponseCode,
+    IsolationLevel,
+    AuthOptionList,
+    ServiceDetails,
+    ChargeService,
+    ServiceID,
+    ServiceCategory,
+    SAScheduleList,
+    SAScheduleTupleEntry,
+    PMaxScheduleEntryDetails,
+    RelativeTimeInterval,
+    PMaxScheduleEntry,
+)
 
-from iso15118.shared.messages.din_spec.body import CurrentDemandRes, Body, \
-    ServiceDiscoveryRes, ServicePaymentSelectionRes, ContractAuthenticationRes, \
-    ChargeParameterDiscoveryRes, PowerDeliveryRes
+from iso15118.shared.messages.din_spec.body import (
+    CurrentDemandRes,
+    Body,
+    ServiceDiscoveryRes,
+    ServicePaymentSelectionRes,
+    ContractAuthenticationRes,
+    ChargeParameterDiscoveryRes,
+    PowerDeliveryRes,
+    WeldingDetectionRes,
+)
 
 
 def get_dc_evse_status():
@@ -71,9 +98,7 @@ def get_dc_evse_charge_parameter() -> DCEVSEChargeParameter:
             evse_isolation_status=IsolationLevel.VALID,
             evse_status_code=DCEVSEStatusCode.EVSE_READY,
         ),
-        evse_maximum_power_limit=PVEVSEMaxPowerLimit(
-            multiplier=1, value=230, unit="W"
-        ),
+        evse_maximum_power_limit=PVEVSEMaxPowerLimit(multiplier=1, value=230, unit="W"),
         evse_maximum_current_limit=PVEVSEMaxCurrentLimit(
             multiplier=1, value=4, unit="A"
         ),
@@ -123,7 +148,7 @@ def get_service_discovery_message_payment_service_not_offered():
     service_discovery_res = ServiceDiscoveryRes(
         response_code=ResponseCode.OK,
         auth_option_list=AuthOptionList(auth_options=[AuthEnum.PNC_V2]),
-        charge_service=charge_service
+        charge_service=charge_service,
     )
     return V2GMessage(
         header=MessageHeader(session_id="F9F9EE8505F55838"),
@@ -143,7 +168,7 @@ def get_service_discovery_message_charge_service_not_offered():
     service_discovery_res = ServiceDiscoveryRes(
         response_code=ResponseCode.OK,
         auth_option_list=AuthOptionList(auth_options=[AuthEnum.EIM_V2]),
-        charge_service=charge_service
+        charge_service=charge_service,
     )
     return V2GMessage(
         header=MessageHeader(session_id="F9F9EE8505F55838"),
@@ -163,7 +188,7 @@ def get_service_discovery_message():
     service_discovery_res = ServiceDiscoveryRes(
         response_code=ResponseCode.OK,
         auth_option_list=AuthOptionList(auth_options=[AuthEnum.EIM_V2]),
-        charge_service=charge_service
+        charge_service=charge_service,
     )
     return V2GMessage(
         header=MessageHeader(session_id="F9F9EE8505F55838"),
@@ -178,12 +203,8 @@ def get_current_demand_acheived():
         evse_present_voltage=get_evse_present_voltage(),
         evse_present_current=get_evse_present_current(),
         evse_current_limit_achieved=True,
-        evse_voltage_limit_achieved=(
-            is_evse_voltage_limit_achieved()
-        ),
-        evse_power_limit_achieved=(
-            is_evse_power_limit_achieved()
-        ),
+        evse_voltage_limit_achieved=(is_evse_voltage_limit_achieved()),
+        evse_power_limit_achieved=(is_evse_power_limit_achieved()),
     )
     return V2GMessage(
         header=MessageHeader(session_id="F9F9EE8505F55838"),
@@ -251,13 +272,9 @@ def get_contract_authentication_ongoing_message():
 
 
 def get_charge_parameter_discovery_on_going_message():
-    dc_evse_charge_params = (
-        get_dc_evse_charge_parameter()  # noqa
-    )
+    dc_evse_charge_params = get_dc_evse_charge_parameter()  # noqa
 
-    sa_schedule_list = (
-        get_sa_schedule_list_dinspec()
-    )
+    sa_schedule_list = get_sa_schedule_list_dinspec()
 
     charge_parameter_discovery_res: ChargeParameterDiscoveryRes = (
         ChargeParameterDiscoveryRes(
@@ -274,13 +291,9 @@ def get_charge_parameter_discovery_on_going_message():
 
 
 def get_charge_parameter_discovery_message():
-    dc_evse_charge_params = (
-        get_dc_evse_charge_parameter()  # noqa
-    )
+    dc_evse_charge_params = get_dc_evse_charge_parameter()  # noqa
 
-    sa_schedule_list = (
-        get_sa_schedule_list_dinspec()
-    )
+    sa_schedule_list = get_sa_schedule_list_dinspec()
 
     charge_parameter_discovery_res: ChargeParameterDiscoveryRes = (
         ChargeParameterDiscoveryRes(
@@ -304,4 +317,16 @@ def get_power_delivery_res_message():
     return V2GMessage(
         header=MessageHeader(session_id="F9F9EE8505F55838"),
         body=Body(power_delivery_res=power_delivery_res),
+    )
+
+
+def get_welding_detection_on_going_message():
+    welding_detection: WeldingDetectionRes = WeldingDetectionRes(
+        response_code=ResponseCode.OK,
+        dc_evse_status=get_dc_evse_status(),
+        evse_present_voltage=get_evse_present_voltage(),
+    )
+    return V2GMessage(
+        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        body=Body(welding_detection_res=welding_detection),
     )

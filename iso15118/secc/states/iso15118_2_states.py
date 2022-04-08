@@ -82,7 +82,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain,
     ChargeProgress,
     ChargeService,
-    ChargingSession,
     DHPublicKey,
     EncryptedPrivateKey,
     EnergyTransferModeList,
@@ -960,12 +959,11 @@ class ChargeParameterDiscovery(StateSECC):
             msg.body.charge_parameter_discovery_req
         )
 
-        if (
-            charge_params_req.requested_energy_mode
-            not in self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+        if charge_params_req.requested_energy_mode not in (
+            self.comm_session.evse_controller.get_supported_energy_transfer_modes(
                 Protocol.ISO_15118_2
-            )  # noqa: E501
-        ):
+            )
+        ):  # noqa: E501
             self.stop_state_machine(
                 f"{charge_params_req.requested_energy_mode} not "
                 f"offered as energy transfer mode",
