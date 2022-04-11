@@ -300,16 +300,19 @@ class RelativeTimeInterval(BaseModel):
 class PMaxScheduleEntryDetails(BaseModel):
     """See section 9.5.2.10 in DIN SPEC 70121"""
 
-    p_max: int = Field(..., ge=0, le=255, alias="PMax")
+    p_max: int = Field(..., ge=0, le=32767, alias="PMax")
     time_interval: RelativeTimeInterval = Field(..., alias="RelativeTimeInterval")
 
 
 class PMaxScheduleEntry(BaseModel):
-    """See section 9.5.2.10 in DIN SPEC 70121"""
+    """See section 9.5.2.10 in DIN SPEC 70121
+    [V2G-DC-329] The number of PMaxScheduleEntry elements in the
+    PMaxScheduleType shall be limited to twelve (12)
+    """
 
-    p_max_schedule_id: int = Field(..., ge=0, le=255, alias="PMaxScheduleID")
+    p_max_schedule_id: int = Field(..., ge=0, le=32767, alias="PMaxScheduleID")
     entry_details: List[PMaxScheduleEntryDetails] = Field(
-        ..., max_items=1024, alias="PMaxScheduleEntry"
+        ..., max_items=12, alias="PMaxScheduleEntry"
     )
 
 

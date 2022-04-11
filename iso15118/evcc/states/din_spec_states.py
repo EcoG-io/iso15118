@@ -225,6 +225,12 @@ class ServiceDiscovery(StateEVCC):
 
 
 class ServicePaymentSelection(StateEVCC):
+    """
+    DIN SPEC state in which ServicePaymentSelectionRes message from EV is handled.
+    The incoming message contains response code indicating if options set in
+    ServicePaymentSelectionReq was accepted
+    """
+
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.SERVICE_PAYMENT_SELECTION_REQ)
 
@@ -254,6 +260,13 @@ class ServicePaymentSelection(StateEVCC):
 
 
 class ContractAuthentication(StateEVCC):
+    """
+    DIN SPEC state in which ContractAuthenticationRes message is processed.
+    Response indicates if authorization is complete.
+    EV would resend the request until the timeout is reached/processing
+    is completed - whichever is earlier
+    """
+
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.CONTRACT_AUTHENTICATION_REQ)
 
@@ -277,7 +290,7 @@ class ContractAuthentication(StateEVCC):
 
         if self.comm_session.ongoing_timer > 0:
             elapsed_time = time() - self.comm_session.ongoing_timer
-            if elapsed_time > TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT:
+            if elapsed_time > TimeoutsShared.V2G_SECC_SEQUENCE_TIMEOUT:
                 self.stop_state_machine(
                     "Ongoing timer timed out for " "ContractAuthenticationRes"
                 )
@@ -330,6 +343,12 @@ class ContractAuthentication(StateEVCC):
 
 
 class ChargeParameterDiscovery(StateEVCC):
+    """
+    DIN SPEC state in which ChargeParameterDiscoveryRes message from EVSE is handled.
+    The response received from EVSE would indicate the applicable power output levels
+     from the EVSE.
+    """
+
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ)
 
@@ -380,7 +399,7 @@ class ChargeParameterDiscovery(StateEVCC):
             elapsed_time: float = 0
             if self.comm_session.ongoing_timer > 0:
                 elapsed_time = time() - self.comm_session.ongoing_timer
-                if elapsed_time > TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT:
+                if elapsed_time > TimeoutsShared.V2G_SECC_SEQUENCE_TIMEOUT:
                     self.stop_state_machine(
                         "Ongoing timer timed out for " "ChargeParameterDiscoveryRes"
                     )
@@ -388,39 +407,50 @@ class ChargeParameterDiscovery(StateEVCC):
             elif self.comm_session.ongoing_timer == -1:
                 self.comm_session.ongoing_timer = time()
 
-            dc_charge_params: DCEVChargeParams = (
-                self.comm_session.ev_controller.get_dc_charge_params()
-            )
-            max_current_limit = dc_charge_params.dc_max_current_limit
-            max_voltage_limit = dc_charge_params.dc_max_voltage_limit
-            dc_charge_parameter: DCEVChargeParameter = DCEVChargeParameter(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
-                ev_maximum_current_limit=max_current_limit,
-                ev_maximum_voltage_limit=max_voltage_limit,
-            )
-
-            charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
-                requested_energy_mode=(
-                    self.comm_session.ev_controller.get_energy_transfer_mode(
-                        Protocol.DIN_SPEC_70121
-                    )
-                ),
-                ac_ev_charge_parameter=None,
-                dc_ev_charge_parameter=dc_charge_parameter,
+            charge_parameter_discovery_req: ChargeParameterDiscoveryRes = (
+                self.build_charge_parameter_discovery_req()
             )
 
             self.create_next_message(
                 None,
                 charge_parameter_discovery_req,
-                min(
-                    Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ,
-                    TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT - elapsed_time,
-                ),
+                TimeoutsShared.V2G_SECC_SEQUENCE_TIMEOUT,
                 Namespace.DIN_MSG_DEF,
             )
 
+    def build_charge_parameter_discovery_req(self) -> ChargeParameterDiscoveryReq:
+        dc_charge_params: DCEVChargeParams = (
+            self.comm_session.ev_controller.get_dc_charge_params()
+        )
+        max_current_limit = dc_charge_params.dc_max_current_limit
+        max_voltage_limit = dc_charge_params.dc_max_voltage_limit
+        dc_charge_parameter: DCEVChargeParameter = DCEVChargeParameter(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            ev_maximum_current_limit=max_current_limit,
+            ev_maximum_voltage_limit=max_voltage_limit,
+        )
+
+        charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
+            requested_energy_mode=(
+                self.comm_session.ev_controller.get_energy_transfer_mode(
+                    Protocol.DIN_SPEC_70121
+                )
+            ),
+            ac_ev_charge_parameter=None,
+            dc_ev_charge_parameter=dc_charge_parameter,
+        )
+
+        return charge_parameter_discovery_req
+
 
 class CableCheck(StateEVCC):
+    """
+    DIN SPEC state in which CableCheckRes message from DIN SPEC is handled.
+    An isolation test is performed before charging. The first CableCheckReq send
+    would start the isolation test and consecutive tests would indicate if the
+    test is ongoing or completed.
+    """
+
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.CABLE_CHECK_REQ)
 
@@ -461,7 +491,6 @@ class CableCheck(StateEVCC):
                 self.stop_state_machine("Isolation-Level of EVSE is not Valid")
                 return
         else:
-            elapsed_time: float = 0
             if self.comm_session.ongoing_timer >= 0:
                 elapsed_time = time() - self.comm_session.ongoing_timer
                 if elapsed_time > Timeouts.V2G_EVCC_CABLE_CHECK_TIMEOUT:
@@ -473,7 +502,7 @@ class CableCheck(StateEVCC):
             self.create_next_message(
                 None,
                 self.build_cable_check_req(),
-                Timeouts.PRE_CHARGE_REQ,
+                Timeouts.CABLE_CHECK_REQ,
                 Namespace.DIN_MSG_DEF,
             )
 
@@ -494,6 +523,17 @@ class CableCheck(StateEVCC):
 
 
 class PreCharge(StateEVCC):
+    """
+    DIN SPEC state in which PreChargeRes from EVSE is handled. The intention of this
+     message is to help EVSE rampup it's output voltage so that when the contractors
+      are closed, there would be minimal inrush of current. The response received
+      contains the output voltage of the EVSE that could be used to measure
+      satisfactory "prerecharged" voltage after which power delivery can commence.
+
+    The PowerDeliveryReq message that is sent would indicate if the EV is now
+     ready to start charging.
+    """
+
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.PRE_CHARGE_REQ)
 
@@ -564,6 +604,11 @@ class PreCharge(StateEVCC):
 
 
 class PowerDelivery(StateEVCC):
+    """
+    DIN SPEC state in which PowerDeliveryRes message is handled.
+    The response contains information including information if power will be available.
+    """
+
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.POWER_DELIVERY_REQ)
 
@@ -626,6 +671,12 @@ class PowerDelivery(StateEVCC):
 
 
 class CurrentDemand(StateEVCC):
+    """
+    DIN SPEC state in which CurrentDemandRes message is handled.
+    EV uses this message to request certain current from the EVSE.
+    The target voltage and current are also indicated.
+    """
+
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.CURRENT_DEMAND_REQ)
 
@@ -706,6 +757,16 @@ class CurrentDemand(StateEVCC):
 
 
 class WeldingDetection(StateEVCC):
+    """
+    DIN SPEC state is which WeldingDetectionRes message from EVSE is handled.
+    This is an optional state for EV. A welding detection test is performed
+    prior to unlocking the connector. A sequence of independent opening and
+    closing of conductors is performed while evaluating the voltage on the
+     inlet side. Voltage measurement could be done either on the EV side
+     or the EVSE side.
+
+    """
+
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.WELDING_DETECTION_REQ)
 
@@ -725,7 +786,7 @@ class WeldingDetection(StateEVCC):
 
         if self.comm_session.ongoing_timer > 0:
             elapsed_time = time() - self.comm_session.ongoing_timer
-            if elapsed_time > TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT:
+            if elapsed_time > TimeoutsShared.V2G_SECC_SEQUENCE_TIMEOUT:
                 self.stop_state_machine(
                     "Ongoing timer timed out for " "WeldingDetectionRes"
                 )
@@ -752,6 +813,11 @@ class WeldingDetection(StateEVCC):
 
 
 class SessionStop(StateEVCC):
+    """
+    DIN SPEC state in which SessionStopRes message from EVSE is handled.
+    SessionStopRes message from EVSE marks the end of the charging session.
+    """
+
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.SESSION_STOP_REQ)
 

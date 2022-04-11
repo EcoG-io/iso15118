@@ -88,13 +88,17 @@ class SimEVSEController(EVSEControllerInterface):
     ) -> List[EnergyTransferModeEnum]:
         """Overrides EVSEControllerInterface.get_supported_energy_transfer_modes()."""
         if protocol == Protocol.DIN_SPEC_70121:
-            dc_core = EnergyTransferModeEnum.DC_CORE
+            """
+            For DIN SPEC, only DC_CORE and DC_EXTENDED are supported.
+            The other DC modes DC_COMBO_CORE and DC_DUAL are out of scope for DIN SPEC
+            """
             dc_extended = EnergyTransferModeEnum.DC_EXTENDED
-            return [dc_extended, dc_core]
+            return [dc_extended]
 
-        ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
-        ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
-        return [ac_single_phase, ac_three_phase]
+        # ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
+        # ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
+        dc_extended = EnergyTransferModeEnum.DC_EXTENDED
+        return [dc_extended]
 
     def is_authorised(self) -> bool:
         """Overrides EVSEControllerInterface.is_authorised()."""

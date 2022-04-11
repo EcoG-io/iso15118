@@ -22,7 +22,6 @@ class Config:
     allow_cert_install_service: bool = True
     supported_protocols: Optional[List[Protocol]] = None
     supported_auth_options: Optional[List[AuthEnum]] = None
-    supported_auth_options_din_spec: Optional[List[AuthEnum]] = None
 
     def load_envs(self, env_path: Optional[str] = None) -> None:
         """
@@ -81,8 +80,5 @@ class Config:
         # Must be a list containing either AuthEnum members EIM (for External
         # Identification Means), PNC (for Plug & Charge) or both
         self.supported_auth_options = [AuthEnum.EIM, AuthEnum.PNC]
-
-        # Supported authentication options (named payment options in DIN SPEC 70121).
-        self.supported_auth_options_din_spec = [AuthEnum.EIM_V2]
 
         env.seal()  # raise all errors at once, if any

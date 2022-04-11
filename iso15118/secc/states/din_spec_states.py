@@ -6,11 +6,7 @@ SessionStopReq.
 
 import logging
 import time
-from typing import List, Union, Type
-
-from iso15118.shared.states import Terminate, State
-
-from iso15118.shared.notifications import StopNotification
+from typing import Union, Type
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.states.secc_state import StateSECC
@@ -18,15 +14,8 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import (
-    AuthEnum,
-    Namespace,
-    Protocol,
-    EVSEProcessing,
-    DCEVErrorCode,
-    IsolationLevel,
-)
 from iso15118.shared.messages.din_spec.body import (
+    ResponseCode,
     SessionSetupReq,
     SessionSetupRes,
     ServiceDiscoveryReq,
@@ -50,16 +39,6 @@ from iso15118.shared.messages.din_spec.body import (
     WeldingDetectionReq,
     WeldingDetectionRes,
 )
-from iso15118.shared.messages.iso15118_2.body import (
-    ResponseCode,
-)
-from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
-from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
-from iso15118.shared.messages.iso15118_20.common_types import (
-    V2GMessage as V2GMessageV20,
-)
-from iso15118.shared.messages.din_spec.timeouts import Timeouts
-from iso15118.shared.security import get_random_bytes
 from iso15118.shared.messages.din_spec.datatypes import (
     ServiceCategory,
     ServiceDetails,
@@ -68,6 +47,23 @@ from iso15118.shared.messages.din_spec.datatypes import (
     ServiceID,
     SAScheduleList,
 )
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
+from iso15118.shared.messages.din_spec.timeouts import Timeouts
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    Namespace,
+    Protocol,
+    EVSEProcessing,
+    DCEVErrorCode,
+    IsolationLevel,
+)
+from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
+from iso15118.shared.messages.iso15118_20.common_types import (
+    V2GMessage as V2GMessageV20,
+)
+from iso15118.shared.notifications import StopNotification
+from iso15118.shared.security import get_random_bytes
+from iso15118.shared.states import Terminate, State
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +165,7 @@ class ServiceDiscovery(StateSECC):
             return
 
         service_discovery_req: ServiceDiscoveryReq = msg.body.service_discovery_req
-        service_discovery_res = self.get_services(
+        service_discovery_res = self.build_service_discovery_res(
             service_discovery_req.service_category
         )
 
@@ -180,7 +176,9 @@ class ServiceDiscovery(StateSECC):
             Namespace.DIN_MSG_DEF,
         )
 
-    def get_services(self, category_filter: ServiceCategory) -> ServiceDiscoveryRes:
+    def build_service_discovery_res(
+        self, category_filter: ServiceCategory
+    ) -> ServiceDiscoveryRes:
         """
         Provides the ServiceDiscoveryRes message with all its services.
 
@@ -190,21 +188,8 @@ class ServiceDiscovery(StateSECC):
 
         For payment options in DIN SPEC, only ExternalPayment is allowed.
         """
-        auth_options: List[AuthEnum] = []
-        if self.comm_session.selected_auth_option:
-            # In case the EVCC resumes a paused charging session, the SECC
-            # must only offer the auth option the EVCC selected previously
-            if self.comm_session.selected_auth_option == AuthEnum.EIM_V2:
-                auth_options.append(AuthEnum.EIM_V2)
-        else:
-            supported_auth_options = (
-                self.comm_session.config.supported_auth_options_din_spec
-            )
-            if AuthEnum.EIM_V2 in supported_auth_options:
-                auth_options.append(AuthEnum.EIM_V2)
 
-        self.comm_session.offered_auth_options = auth_options
-
+        self.comm_session.offered_auth_options = [AuthEnum.EIM_V2]
         energy_mode = (
             self.comm_session.evse_controller.get_supported_energy_transfer_modes(
                 Protocol.DIN_SPEC_70121
@@ -222,7 +207,9 @@ class ServiceDiscovery(StateSECC):
 
         service_discovery_res = ServiceDiscoveryRes(
             response_code=ResponseCode.OK,
-            auth_option_list=AuthOptionList(auth_options=auth_options),
+            auth_option_list=AuthOptionList(
+                auth_options=self.comm_session.offered_auth_options
+            ),
             charge_service=charge_service,
         )
 
@@ -230,6 +217,13 @@ class ServiceDiscovery(StateSECC):
 
 
 class ServicePaymentSelection(StateSECC):
+    """
+    State in which ServicePaymentSelectionReq message is handled.
+    The request contains information for selected services and how
+    the services will be paid for.
+    DIN SPEC only supports one payment option - ExternalPayment
+    """
+
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
@@ -277,6 +271,13 @@ class ServicePaymentSelection(StateSECC):
 
 
 class ContractAuthentication(StateSECC):
+    """
+    State in which ContractAuthenticationReq message from EV is handled.
+    The intention of the message is for the EV to understand if the processing
+     of the ContractAuthenticationReq has been completed. The EV shall continue
+      to resend this this request until EVSE completes authorisation.
+    """
+
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
@@ -294,18 +295,16 @@ class ContractAuthentication(StateSECC):
         if not msg:
             return
 
-        evse_processing = self.comm_session.evse_controller.get_evse_processing_state()
+        evse_processing = EVSEProcessing.ONGOING
+        next_state: Type["State"] = None
+        if self.comm_session.evse_controller.is_authorised():
+            evse_processing = EVSEProcessing.FINISHED
+            next_state = ChargeParameterDiscovery
+
         contract_authentication_res: ContractAuthenticationRes = (
             ContractAuthenticationRes(
                 response_code=ResponseCode.OK, evse_processing=evse_processing
             )
-        )
-
-        # Stay in ContractAuthenticationState as long as EVSE processing is ONGOING.
-        next_state = (
-            None
-            if evse_processing == EVSEProcessing.ONGOING
-            else ChargeParameterDiscovery
         )
 
         self.create_next_message(
@@ -317,6 +316,13 @@ class ContractAuthentication(StateSECC):
 
 
 class ChargeParameterDiscovery(StateSECC):
+    """
+    State in which ChargeParamterDiscoveryReq request from EV is handled.
+    The incoming request contains the charging parameters for the EV.
+    The response message contains EVSE's status information and current
+     power output limits.
+    """
+
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
@@ -363,19 +369,23 @@ class ChargeParameterDiscovery(StateSECC):
             self.comm_session.evse_controller.get_sa_schedule_list_dinspec(None, 0)
         )
 
+        evse_processing: EVSEProcessing = EVSEProcessing.ONGOING
+        next_state: Type["State"] = None
+        if sa_schedule_list:
+            evse_processing = EVSEProcessing.FINISHED
+            next_state = CableCheck
+
         charge_parameter_discovery_res: ChargeParameterDiscoveryRes = (
             ChargeParameterDiscoveryRes(
                 response_code=ResponseCode.OK,
-                evse_processing=EVSEProcessing.FINISHED
-                if sa_schedule_list
-                else EVSEProcessing.ONGOING,
+                evse_processing=evse_processing,
                 sa_schedule_list=SAScheduleList(values=sa_schedule_list),
                 dc_charge_parameter=dc_evse_charge_params,
             )
         )
 
         self.create_next_message(
-            CableCheck,
+            next_state,
             charge_parameter_discovery_res,
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.DIN_MSG_DEF,
@@ -383,6 +393,12 @@ class ChargeParameterDiscovery(StateSECC):
 
 
 class CableCheck(StateSECC):
+    """
+    State is which CableCheckReq from EV is handled.
+    In this state, an isolation test is performed - which is
+    required before DC charging.
+    """
+
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.cable_check_req_was_received = False
@@ -422,7 +438,13 @@ class CableCheck(StateSECC):
 
         dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
 
-        evse_processing = EVSEProcessing.ONGOING
+        # [V2G-DC-418] Stay in CableCheck state until EVSEProcessing is complete.
+        # Until EVSEProcessing is completed, EV will send identical
+        # CableCheckReq message.
+
+        evse_processing: EVSEProcessing = EVSEProcessing.ONGOING
+        response_code: ResponseCode = ResponseCode.OK
+        next_state: Type["State"] = None
         if dc_charger_state.evse_isolation_status in [
             IsolationLevel.VALID,
             IsolationLevel.WARNING,
@@ -431,32 +453,22 @@ class CableCheck(StateSECC):
                 logger.warning(
                     "Isolation resistance measured by EVSE is in Warning-Range"
                 )
+            next_state = PreCharge
             evse_processing = EVSEProcessing.FINISHED
         elif dc_charger_state.evse_isolation_status in [
             IsolationLevel.FAULT,
             IsolationLevel.NO_IMD,
         ]:
-            self.stop_state_machine(
-                f"Isolation Failure: {dc_charger_state.evse_isolation_status}",
-                message,
-                ResponseCode.FAILED,
-            )
-            return
+            response_code = ResponseCode.FAILED
+            next_state = Terminate
+            evse_processing = EVSEProcessing.FINISHED
 
         cable_check_res: CableCheckRes = CableCheckRes(
-            response_code=ResponseCode.OK,
-            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
+            response_code=response_code,
+            dc_evse_status=dc_charger_state,
             evse_processing=evse_processing,
         )
 
-        # [V2G-DC-418] Stay in CableCheck state until EVSEProcessing is complete.
-        # Until EVSEProcessing is completed, EV will send identical
-        # CableCheckReq message.
-        next_state = (
-            PreCharge
-            if cable_check_res.evse_processing == EVSEProcessing.FINISHED
-            else None
-        )
         self.create_next_message(
             next_state,
             cable_check_res,
@@ -466,6 +478,13 @@ class CableCheck(StateSECC):
 
 
 class PreCharge(StateSECC):
+    """
+    State in which PreChargeReq message from EV is handled.
+    The message is to help EVSE ramp up EVSE output voltage to EV RESS voltage.
+    This helps minimize the inrush current when the contactors of the EV are closed.
+    We stay in this state after PreCharge; expecting a PowerDeliveryReq
+    """
+
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expect_pre_charge_req = True
@@ -547,6 +566,18 @@ class PreCharge(StateSECC):
 
 
 class PowerDelivery(StateSECC):
+    """
+    PowerDelivery state where SECC processes a PowerDeliveryReq
+    Three possible requests in this state:
+    1. PowerDeliveryReq
+    2. SessionStop
+    3. WeldingDetection
+    Ready_to_charge field in the PowerDeliveryReq indicates if the EVCC is
+    ready to start charging. Once this field is set to false, the next expected state
+     is either WeldingDetection/SessionStop.
+    WeldingDetectionReq is an optional message from the EVCC.
+    """
+
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_power_delivery_req = True
@@ -593,6 +624,11 @@ class PowerDelivery(StateSECC):
             next_state = CurrentDemand
             self.comm_session.charge_progress_started = True
         else:
+            logger.debug(
+                "PowerDeliveryReq ready_to_charge field set to false. "
+                "Stay in this state and expect "
+                "WeldingDetectionReq/SessionStopReq"
+            )
             next_state = None
             self.comm_session.evse_controller.stop_charger()
 
@@ -613,6 +649,12 @@ class PowerDelivery(StateSECC):
 
 
 class CurrentDemand(StateSECC):
+    """
+    DINSPEC state in which CurrentDemandReq message from EV is handled.
+    The incoming request contains certain current from EVSE.
+    Target current and voltage are also specified in the incoming request.
+    """
+
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_current_demand_req = True
@@ -677,6 +719,13 @@ class CurrentDemand(StateSECC):
 
 
 class WeldingDetection(StateSECC):
+    """
+    The DIN SPEC state in which the SECC processes an WeldingDetectionReq message
+     from the EV. The EV sends the Welding Detection Request to obtain from the
+      EVSE the voltage value measured by the EVSE at its output. This state is
+      optional for EV side but mandatory for EVSE.
+    """
+
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expect_welding_detection = True
@@ -722,6 +771,10 @@ class WeldingDetection(StateSECC):
 
 
 class SessionStop(StateSECC):
+    """
+    DIN SPEC state in which SessionStopReq message from EV is handled.
+    """
+
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
