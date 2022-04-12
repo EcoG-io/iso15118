@@ -1,0 +1,13 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:din:70121:2012:MsgHeader" xmlns="urn:din:70121:2012:MsgHeader" xmlns:v2gci_d="urn:din:70121:2012:MsgDef" xmlns:v2gci_t="urn:din:70121:2012:MsgDataTypes" xmlns:xmlsig="http://www.w3.org/2000/09/xmldsig#" elementFormDefault="qualified" attributeFormDefault="unqualified">
+  <xs:import namespace="urn:din:70121:2012:MsgDef" schemaLocation="V2G_CI_MsgDef.xsd"/>
+  <xs:import namespace="urn:din:70121:2012:MsgDataTypes" schemaLocation="V2G_CI_MsgDataTypes.xsd"/>
+  <xs:import namespace="http://www.w3.org/2000/09/xmldsig#" schemaLocation="xmldsig-core-schema.xsd"/>
+  <!-- Message Header -->
+  <xs:complexType name="MessageHeaderType">
+    <xs:sequence>
+      <xs:element name="SessionID" type="v2gci_t:sessionIDType"/>
+      <xs:element name="Notification" type="v2gci_t:NotificationType" minOccurs="0"/>
+      <xs:element ref="xmlsig:Signature" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

@@ -25,7 +25,20 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import AuthEnum, Namespace
+from iso15118.shared.messages.datatypes import (
+    DCEVSEChargeParameter,
+    DCEVSEStatus,
+    EVSENotification,
+)
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    DCEVErrorCode,
+    EVSEProcessing,
+    IsolationLevel,
+    Namespace,
+    Protocol,
+)
 from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
     AuthorizationReq,
@@ -70,15 +83,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain,
     ChargeProgress,
     ChargeService,
-    DCEVErrorCode,
-    DCEVSEChargeParameter,
-    DCEVSEStatus,
     DHPublicKey,
     EncryptedPrivateKey,
     EnergyTransferModeList,
-    EVSENotification,
-    EVSEProcessing,
-    IsolationLevel,
     Parameter,
     ParameterSet,
     SAScheduleList,
@@ -137,6 +144,7 @@ class SessionSetup(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, [SessionSetupReq])
@@ -165,7 +173,7 @@ class SessionSetup(StateSECC):
 
         session_setup_res = SessionSetupRes(
             response_code=self.response_code,
-            evse_id=self.comm_session.evse_controller.get_evse_id(),
+            evse_id=self.comm_session.evse_controller.get_evse_id(Protocol.ISO_15118_2),
             evse_timestamp=time.time(),
         )
 
@@ -212,6 +220,7 @@ class ServiceDiscovery(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -271,7 +280,9 @@ class ServiceDiscovery(StateSECC):
         self.comm_session.offered_auth_options = auth_options
 
         energy_modes = (
-            self.comm_session.evse_controller.get_supported_energy_transfer_modes()
+            self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+                Protocol.ISO_15118_2
+            )
         )
 
         charge_service = ChargeService(
@@ -355,6 +366,7 @@ class ServiceDetail(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -439,6 +451,7 @@ class PaymentServiceSelection(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -554,6 +567,7 @@ class CertificateInstallation(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, [CertificateInstallationReq])
@@ -721,6 +735,7 @@ class PaymentDetails(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, [PaymentDetailsReq])
@@ -830,6 +845,7 @@ class Authorization(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, [AuthorizationReq])
@@ -920,6 +936,7 @@ class ChargeParameterDiscovery(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -942,10 +959,11 @@ class ChargeParameterDiscovery(StateSECC):
             msg.body.charge_parameter_discovery_req
         )
 
-        if (
-            charge_params_req.requested_energy_mode
-            not in self.comm_session.evse_controller.get_supported_energy_transfer_modes()  # noqa: E501
-        ):
+        if charge_params_req.requested_energy_mode not in (
+            self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+                Protocol.ISO_15118_2
+            )
+        ):  # noqa: E501
             self.stop_state_machine(
                 f"{charge_params_req.requested_energy_mode} not "
                 f"offered as energy transfer mode",
@@ -1085,6 +1103,7 @@ class PowerDelivery(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -1237,6 +1256,7 @@ class MeteringReceipt(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -1336,6 +1356,7 @@ class SessionStop(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, [SessionStopReq])
@@ -1396,6 +1417,7 @@ class ChargingStatus(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -1418,7 +1440,7 @@ class ChargingStatus(StateSECC):
         # do, then set receipt_required to True and set the field meter_info
         charging_status_res = ChargingStatusRes(
             response_code=ResponseCode.OK,
-            evse_id=self.comm_session.evse_controller.get_evse_id(),
+            evse_id=self.comm_session.evse_controller.get_evse_id(Protocol.ISO_15118_2),
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             ac_evse_status=ACEVSEStatus(
                 notification_max_delay=0,
@@ -1484,6 +1506,7 @@ class CableCheck(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, [CableCheckReq])
@@ -1568,6 +1591,7 @@ class PreCharge(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -1656,6 +1680,7 @@ class CurrentDemand(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(
@@ -1688,16 +1713,16 @@ class CurrentDemand(StateSECC):
             evse_present_voltage=evse_controller.get_evse_present_voltage(),
             evse_present_current=evse_controller.get_evse_present_current(),
             evse_current_limit_achieved=(
-                evse_controller.get_evse_current_limit_achieved()
+                evse_controller.is_evse_current_limit_achieved()
             ),
             evse_voltage_limit_achieved=(
-                evse_controller.get_evse_voltage_limit_achieved()
+                evse_controller.is_evse_voltage_limit_achieved()
             ),
-            evse_power_limit_achieved=evse_controller.get_evse_power_limit_achieved(),
+            evse_power_limit_achieved=evse_controller.is_evse_power_limit_achieved(),
             evse_max_voltage_limit=evse_controller.get_evse_max_voltage_limit(),
             evse_max_current_limit=evse_controller.get_evse_max_current_limit(),
             evse_max_power_limit=evse_controller.get_evse_max_power_limit(),
-            evse_id=evse_controller.get_evse_id(),
+            evse_id=evse_controller.get_evse_id(Protocol.ISO_15118_2),
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             # TODO Could maybe request an OCPP setting that determines
             #      whether or not a receipt is required and when
@@ -1753,6 +1778,7 @@ class WeldingDetection(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(

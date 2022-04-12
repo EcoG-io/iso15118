@@ -11,6 +11,7 @@ from typing import Type, Union
 
 from iso15118.evcc import evcc_settings
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
+from iso15118.evcc.states.din_spec_states import SessionSetup as SessionSetupDINSPEC
 from iso15118.evcc.states.evcc_state import StateEVCC
 from iso15118.evcc.states.iso15118_2_states import SessionSetup as SessionSetupV2
 from iso15118.evcc.states.iso15118_20_states import SessionSetup as SessionSetupV20
@@ -19,6 +20,11 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
+from iso15118.shared.messages.din_spec.body import BodyBase as BodyBaseDINSPEC
+from iso15118.shared.messages.din_spec.body import (
+    SessionSetupReq as SessionSetupReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.body import BodyBase
 from iso15118.shared.messages.iso15118_2.body import (
@@ -60,6 +66,7 @@ class SupportedAppProtocol(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg(message, SupportedAppProtocolRes, SupportedAppProtocolRes)
@@ -69,7 +76,11 @@ class SupportedAppProtocol(StateEVCC):
         sap_res: SupportedAppProtocolRes = msg
 
         next_msg: Union[
-            SupportedAppProtocolReq, SupportedAppProtocolRes, BodyBase, V2GRequest
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            BodyBase,
+            V2GRequest,
+            BodyBaseDINSPEC,
         ] = SessionSetupReqV2(
             evcc_id=self.comm_session.ev_controller.get_evcc_id(
                 Protocol.ISO_15118_2, self.comm_session.config.iface
@@ -87,6 +98,18 @@ class SupportedAppProtocol(StateEVCC):
                     self.comm_session.session_id = self.get_session_id()
                     # next_msg is already set to SessionSetupReqV2 as default
                     next_state = SessionSetupV2
+                elif protocol.protocol_ns == Protocol.DIN_SPEC_70121.ns.value:
+                    self.comm_session.protocol = Protocol.DIN_SPEC_70121
+                    self.comm_session.session_id = self.get_session_id()
+
+                    next_msg = SessionSetupReqDINSPEC(
+                        evcc_id=self.comm_session.ev_controller.get_evcc_id(
+                            Protocol.DIN_SPEC_70121, self.comm_session.config.iface
+                        )
+                    )
+
+                    next_ns = Namespace.DIN_MSG_DEF
+                    next_state = SessionSetupDINSPEC
                 elif protocol.protocol_ns.startswith(Namespace.ISO_V20_BASE):
                     self.comm_session.protocol = Protocol.get_by_ns(
                         protocol.protocol_ns

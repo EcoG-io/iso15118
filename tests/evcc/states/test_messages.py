@@ -1,20 +1,20 @@
-from iso15118.shared.messages.iso15118_2.body import (
-    Body,
-    CurrentDemandRes,
-    PowerDeliveryRes,
-)
-from iso15118.shared.messages.iso15118_2.datatypes import (
+from iso15118.shared.messages.datatypes import (
     DCEVSEStatus,
     DCEVSEStatusCode,
     EVSENotification,
-    IsolationLevel,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
     PVEVSEMaxVoltageLimit,
     PVEVSEPresentCurrent,
     PVEVSEPresentVoltage,
-    ResponseCode,
 )
+from iso15118.shared.messages.enums import IsolationLevel
+from iso15118.shared.messages.iso15118_2.body import (
+    Body,
+    CurrentDemandRes,
+    PowerDeliveryRes,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode
 from iso15118.shared.messages.iso15118_2.header import MessageHeader
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage
 

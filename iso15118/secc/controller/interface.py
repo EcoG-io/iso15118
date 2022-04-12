@@ -7,16 +7,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
-from iso15118.shared.messages.enums import Protocol
-from iso15118.shared.messages.iso15118_2.datatypes import (
-    ACEVSEChargeParameter,
-    ACEVSEStatus,
+from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
-    EnergyTransferModeEnum,
-)
-from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
-from iso15118.shared.messages.iso15118_2.datatypes import (
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
     PVEVSEMaxVoltageLimit,
@@ -24,8 +17,17 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     PVEVSEPresentVoltage,
     PVEVTargetCurrent,
     PVEVTargetVoltage,
-    SAScheduleTupleEntry,
 )
+from iso15118.shared.messages.din_spec.datatypes import (
+    SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
+)
+from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    ACEVSEChargeParameter,
+    ACEVSEStatus,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
+from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTupleEntry
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
 
@@ -51,7 +53,7 @@ class EVSEControllerInterface(ABC):
     # ============================================================================
 
     @abstractmethod
-    def get_evse_id(self) -> str:
+    def get_evse_id(self, protocol: Protocol) -> str:
         """
         Gets the ID of the EVSE (Electric Vehicle Supply Equipment), which is
         controlling the energy flow to the connector the EV is plugged into.
@@ -64,7 +66,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_supported_energy_transfer_modes(self) -> List[EnergyTransferModeEnum]:
+    def get_supported_energy_transfer_modes(
+        self, protocol: Protocol
+    ) -> List[EnergyTransferModeEnum]:
         """
         The MQTT interface needs to provide the information on the available energy
         transfer modes, which depends on the socket the EV is connected to
@@ -101,6 +105,37 @@ class EVSEControllerInterface(ABC):
         and the ampacity of the charging cable.
 
         Args:
+            protocol: Specifies the protocol currently being used.
+            max_schedule_entries: The maximum amount of schedule entries the EVCC
+                                  can handle, or None if not provided
+            departure_time: The departure time given in seconds from the time of
+                            sending the ChargeParameterDiscoveryReq. If the
+                            request doesn't provide a departure time, then this
+                            implies the need to start charging immediately.
+
+        Returns:
+            A list of SAScheduleTupleEntry values to influence the EV's charging profile
+            if the backend/charger can provide the information already, or None if
+            the calculation is still ongoing.
+
+        Relevant for:
+        - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_sa_schedule_list_dinspec(
+        self, max_schedule_entries: Optional[int], departure_time: int = 0
+    ) -> Optional[List[SAScheduleTupleEntryDINSPEC]]:
+        """
+        Requests the charging schedule from a secondary actor (SA) like a
+        charge point operator, if available. If no backend information is given
+        regarding the restrictions imposed on an EV charging profile, then the
+        charging schedule is solely influenced by the max rating of the charger
+        and the ampacity of the charging cable.
+
+        Args:
+            protocol: Specifies the protocol currently being used.
             max_schedule_entries: The maximum amount of schedule entries the EVCC
                                   can handle, or None if not provided
             departure_time: The departure time given in seconds from the time of
@@ -243,6 +278,7 @@ class EVSEControllerInterface(ABC):
         The current may not exceed 2A (according 61851-23)
 
         Relevant for:
+        - DIN SPEC 70121
         - ISO 15118-2
         """
         raise NotImplementedError
@@ -254,6 +290,7 @@ class EVSEControllerInterface(ABC):
         It requests the charger to perform a CableCheck
 
         Relevant for:
+        - DIN SPEC 70121
         - ISO 15118-2
         """
         #
@@ -269,12 +306,13 @@ class EVSEControllerInterface(ABC):
         These information must be provided for the charger's power electronics.
 
         Relevant for:
+        - DIN SPEC 70121
         - ISO 15118-2
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_evse_current_limit_achieved(self) -> bool:
+    def is_evse_current_limit_achieved(self) -> bool:
         """
         Returns true if the current limit of the charger has achieved
 
@@ -284,9 +322,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_evse_voltage_limit_achieved(self) -> bool:
+    def is_evse_voltage_limit_achieved(self) -> bool:
         """
-        Returns true if the voltage limit of the charger has achieved
+        Returns true if the current limit of the charger has achieved
 
         Relevant for:
         - ISO 15118-2
@@ -294,9 +332,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_evse_power_limit_achieved(self) -> bool:
+    def is_evse_power_limit_achieved(self) -> bool:
         """
-        Returns true if the power limit of the charger has achieved
+        Returns true if the current limit of the charger has achieved
 
         Relevant for:
         - ISO 15118-2

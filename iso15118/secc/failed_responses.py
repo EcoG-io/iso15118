@@ -1,4 +1,107 @@
-from iso15118.shared.messages.enums import AuthEnum, Namespace
+from iso15118.shared.messages.datatypes import (
+    DCEVSEChargeParameter,
+    DCEVSEStatus,
+    DCEVSEStatusCode,
+    EVSENotification,
+    PVEVSECurrentRegulationTolerance,
+    PVEVSEEnergyToBeDelivered,
+    PVEVSEMaxCurrentLimit,
+    PVEVSEMaxPowerLimit,
+    PVEVSEMaxVoltageLimit,
+    PVEVSEMinCurrentLimit,
+    PVEVSEMinVoltageLimit,
+    PVEVSEPeakCurrentRipple,
+    PVEVSEPresentCurrent,
+    PVEVSEPresentVoltage,
+)
+from iso15118.shared.messages.din_spec.body import CableCheckReq as CableCheckReqDINSPEC
+from iso15118.shared.messages.din_spec.body import CableCheckRes as CableCheckResDINSPEC
+from iso15118.shared.messages.din_spec.body import (
+    ChargeParameterDiscoveryReq as ChargeParameterDiscoveryReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    ChargeParameterDiscoveryRes as ChargeParameterDiscoveryResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    ContractAuthenticationReq as ContractAuthenticationReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    ContractAuthenticationRes as ContractAuthenticationResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    CurrentDemandReq as CurrentDemandReqDINPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    CurrentDemandRes as CurrentDemandResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    PowerDeliveryReq as PowerDeliveryReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    PowerDeliveryRes as PowerDeliveryResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import PreChargeReq as PreChargeReqDINSPEC
+from iso15118.shared.messages.din_spec.body import PreChargeRes as PreChargeResDINSPEC
+from iso15118.shared.messages.din_spec.body import (
+    ServiceDiscoveryReq as ServiceDiscoveryReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    ServiceDiscoveryRes as ServiceDiscoveryResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    ServicePaymentSelectionReq as ServicePaymentSelectionReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    ServicePaymentSelectionRes as ServicePaymentSelectionResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    SessionSetupReq as SessionSetupReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    SessionSetupRes as SessionSetupResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    SessionStopReq as SessionStopReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    SessionStopRes as SessionStopResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    WeldingDetectionReq as WeldingDetectionReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    WeldingDetectionRes as WeldingDetectionResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    AuthOptionList as AuthOptionListDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    ChargeService as ChargeServiceDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    DCEVSEStatusCode as DCEVSEStatusCodeDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    EVSENotification as EVSENotificationDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    ResponseCode as ResponseCodeDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    ServiceCategory as ServiceCategoryDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    ServiceDetails as ServiceDetailsDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import ServiceID as ServiceIDDINSPEC
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    EnergyTransferModeEnum,
+    EVSEProcessing,
+    IsolationLevel,
+    Namespace,
+    UnitSymbol,
+)
 from iso15118.shared.messages.iso15118_2.body import EMAID
 from iso15118.shared.messages.iso15118_2.body import (
     AuthorizationReq as AuthorizationReqV2,
@@ -68,17 +171,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargeService,
-    DCEVSEStatus,
-    DCEVSEStatusCode,
     DHPublicKey,
     EncryptedPrivateKey,
-    EnergyTransferModeEnum,
     EnergyTransferModeList,
-    EVSENotification,
-    EVSEProcessing,
-    IsolationLevel,
-    PVEVSEPresentCurrent,
-    PVEVSEPresentVoltage,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode as ResponseCodeV2
 from iso15118.shared.messages.iso15118_2.datatypes import ServiceCategory, ServiceID
@@ -172,7 +267,150 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     ResponseCode as ResponseCodeV20,
 )
 
-# TODO: Implement DIN SPEC 70121 case (failed_response_din = {})
+
+def init_failed_responses_din_spec_70121() -> dict:
+    """
+    Initiates a dictionary containing the XSD compliant failed responses with
+    minimal payload (e.g. only mandatory fields set, bytes objects only 1 byte
+    big) for DIN SPEC 70121 messages.
+
+    Note: When sending the actual response, you must override the preset
+          response code with the failure response code that is most fitting.
+    """
+    failed_response_iso_dinspec = {
+        SessionSetupReqDINSPEC: SessionSetupResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED, evse_id="1234567"
+        ),
+        ServiceDiscoveryReqDINSPEC: ServiceDiscoveryResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            auth_option_list=AuthOptionListDINSPEC(auth_options=[AuthEnum.EIM_V2]),
+            charge_service=ChargeServiceDINSPEC(
+                service_tag=ServiceDetailsDINSPEC(
+                    service_id=ServiceIDDINSPEC.CHARGING,
+                    service_category=ServiceCategoryDINSPEC.CHARGING,
+                ),
+                free_service=False,
+                energy_transfer_type=EnergyTransferModeEnum.DC_EXTENDED,
+            ),
+        ),
+        ServicePaymentSelectionReqDINSPEC: ServicePaymentSelectionResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED
+        ),
+        ContractAuthenticationReqDINSPEC: ContractAuthenticationResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            evse_processing=EVSEProcessing.FINISHED,
+        ),
+        ChargeParameterDiscoveryReqDINSPEC: ChargeParameterDiscoveryResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            evse_processing=EVSEProcessing.FINISHED,
+            dc_charge_parameter=DCEVSEChargeParameter(
+                dc_evse_status=DCEVSEStatus(
+                    notification_max_delay=1000,
+                    evse_notification=EVSENotificationDINSPEC.STOP_CHARGING,
+                    evse_isolation_status=IsolationLevel.INVALID,
+                    evse_status_code=DCEVSEStatusCodeDINSPEC.EVSE_NOT_READY,
+                ),
+                evse_maximum_power_limit=PVEVSEMaxPowerLimit(
+                    multiplier=0, value=0, unit=UnitSymbol.WATT
+                ),
+                evse_maximum_current_limit=PVEVSEMaxCurrentLimit(
+                    multiplier=0, value=0, unit=UnitSymbol.AMPERE
+                ),
+                evse_maximum_voltage_limit=PVEVSEMaxVoltageLimit(
+                    multiplier=0, value=0, unit=UnitSymbol.VOLTAGE
+                ),
+                evse_minimum_current_limit=PVEVSEMinCurrentLimit(
+                    multiplier=0, value=0, unit=UnitSymbol.AMPERE
+                ),
+                evse_minimum_voltage_limit=PVEVSEMinVoltageLimit(
+                    multiplier=0, value=0, unit=UnitSymbol.VOLTAGE
+                ),
+                evse_current_regulation_tolerance=PVEVSECurrentRegulationTolerance(
+                    multiplier=0, value=0, unit=UnitSymbol.AMPERE
+                ),
+                evse_peak_current_ripple=PVEVSEPeakCurrentRipple(
+                    multiplier=0, value=0, unit=UnitSymbol.AMPERE
+                ),
+                evse_energy_to_be_delivered=PVEVSEEnergyToBeDelivered(
+                    multiplier=0, value=0, unit=UnitSymbol.WATT_HOURS
+                ),
+            ),
+        ),
+        CableCheckReqDINSPEC: CableCheckResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            dc_evse_status=DCEVSEStatus(
+                notification_max_delay=1000,
+                evse_notification=EVSENotificationDINSPEC.STOP_CHARGING,
+                evse_isolation_status=IsolationLevel.INVALID,
+                evse_status_code=DCEVSEStatusCodeDINSPEC.EVSE_NOT_READY,
+            ),
+            evse_processing=EVSEProcessing.FINISHED,
+        ),
+        PreChargeReqDINSPEC: PreChargeResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            dc_evse_status=DCEVSEStatus(
+                notification_max_delay=1000,
+                evse_notification=EVSENotificationDINSPEC.STOP_CHARGING,
+                evse_isolation_status=IsolationLevel.INVALID,
+                evse_status_code=DCEVSEStatusCodeDINSPEC.EVSE_NOT_READY,
+            ),
+            evse_present_voltage=PVEVSEPresentVoltage(
+                multiplier=0, value=0, unit=UnitSymbol.VOLTAGE
+            ),
+        ),
+        PowerDeliveryReqDINSPEC: PowerDeliveryResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            dc_evse_status=DCEVSEStatus(
+                notification_max_delay=1000,
+                evse_notification=EVSENotificationDINSPEC.STOP_CHARGING,
+                evse_isolation_status=IsolationLevel.INVALID,
+                evse_status_code=DCEVSEStatusCodeDINSPEC.EVSE_NOT_READY,
+            ),
+        ),
+        CurrentDemandReqDINPEC: CurrentDemandResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            dc_evse_status=DCEVSEStatus(
+                notification_max_delay=1000,
+                evse_notification=EVSENotificationDINSPEC.STOP_CHARGING,
+                evse_isolation_status=IsolationLevel.INVALID,
+                evse_status_code=DCEVSEStatusCodeDINSPEC.EVSE_NOT_READY,
+            ),
+            evse_present_voltage=PVEVSEPresentVoltage(
+                multiplier=0, value=0, unit=UnitSymbol.VOLTAGE
+            ),
+            evse_present_current=PVEVSEPresentCurrent(
+                multiplier=0, value=0, unit=UnitSymbol.AMPERE
+            ),
+            evse_current_limit_achieved=False,
+            evse_voltage_limit_achieved=False,
+            evse_power_limit_achieved=False,
+            evse_max_voltage_limit=PVEVSEMaxVoltageLimit(
+                multiplier=0, value=0, unit=UnitSymbol.VOLTAGE
+            ),
+            evse_max_current_limit=PVEVSEMaxCurrentLimit(
+                multiplier=0, value=0, unit=UnitSymbol.AMPERE
+            ),
+            evse_max_power_limit=PVEVSEMaxPowerLimit(
+                multiplier=0, value=0, unit=UnitSymbol.WATT
+            ),
+        ),
+        WeldingDetectionReqDINSPEC: WeldingDetectionResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED,
+            dc_evse_status=DCEVSEStatus(
+                notification_max_delay=1000,
+                evse_notification=EVSENotificationDINSPEC.STOP_CHARGING,
+                evse_isolation_status=IsolationLevel.INVALID,
+                evse_status_code=DCEVSEStatusCodeDINSPEC.EVSE_NOT_READY,
+            ),
+            evse_present_voltage=PVEVSEPresentVoltage(
+                multiplier=0, value=0, unit=UnitSymbol.VOLTAGE
+            ),
+        ),
+        SessionStopReqDINSPEC: SessionStopResDINSPEC(
+            response_code=ResponseCodeDINSPEC.FAILED
+        ),
+    }
+    return failed_response_iso_dinspec
 
 
 def init_failed_responses_iso_v2() -> dict:

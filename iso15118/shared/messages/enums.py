@@ -13,8 +13,8 @@ INT_8_MIN = -(2**7)
 
 class AuthEnum(str, Enum):
     """
-    The enum values for the authorisation options differ between ISO 15118-2 and
-    ISO 15118-20. This enumeration helps to unify different values.
+    The enum values for the authorisation options differ between DIN SPEC 70121,
+    ISO 15118-2 and ISO 15118-20. This enumeration helps to unify different values.
 
     The default value for the enum members (EIM and PNC) are the ones from
     ISO 15118-20. They are used in the session variables and evcc/secc settings.
@@ -28,6 +28,82 @@ class AuthEnum(str, Enum):
     PNC = "PnC"
     EIM_V2 = "ExternalPayment"
     PNC_V2 = "Contract"
+
+
+class EnergyTransferModeEnum(str, Enum):
+    """
+    This enum is shared between DIN SPEC 70121 and ISO 15118-2
+    For DIN SPEC see table 38 in section 9.4.1.6.2
+    [V2G-DC-625] In the scope of DIN SPEC 70121, the EVCC shall not transmit other
+     values than “DC_extended” and “DC_core” in EVRequestedEnergyTransferType.
+    For ISO 15118-2 see sections 8.5.2.4 and 8.4.3.8.2 in ISO 15118-2
+    """
+
+    AC_SINGLE_PHASE_CORE = "AC_single_phase_core"
+    AC_THREE_PHASE_CORE = "AC_three_phase_core"
+    DC_CORE = "DC_core"
+    DC_EXTENDED = "DC_extended"
+    DC_COMBO_CORE = "DC_combo_core"
+    DC_UNIQUE = "DC_unique"
+
+
+class UnitSymbol(str, Enum):
+    """
+    These are the physical units used in the PhysicalValue subclasses.
+    See Table 68 in section 8.5.2.7 in ISO 15118-2.
+    Page 202-203 in DIN SPEC 70121. - MULTIPLIER AND UNIT TYPES
+    """
+
+    HOURS = "h"
+    MINUTES = "m"
+    SECONDS = "s"
+    AMPERE = "A"
+    VOLTAGE = "V"
+    WATT = "W"
+    WATT_HOURS = "Wh"
+    AMPERE_HOUR = "Ah"
+    VOLT_AMPERE = "VA"
+    WATT_PER_SECOND = "W/s"
+
+
+class EVSEProcessing(str, Enum):
+    """See sections 8.4.3.8.3, 8.4.3.7.2, and 8.4.5.2.3 in ISO 15118-2"""
+
+    """See A 1.1.5 in DIN SPEC 70121"""
+    FINISHED = "Finished"
+    ONGOING = "Ongoing"
+    ONGOING_WAITING_FOR_CUSTOMER = (
+        "Ongoing_WaitingForCustomerInteraction"  # State not valid for DIN SPEC 70121
+    )
+
+
+class IsolationLevel(str, Enum):
+    """See section 8.5.4.1 in ISO 15118-2"""
+
+    """See Table 97 in 8.5.4.1 in DIN SPEC 70121"""
+    INVALID = "Invalid"
+    VALID = "Valid"
+    WARNING = "Warning"
+    FAULT = "Fault"
+    NO_IMD = "No_IMD"
+
+
+class DCEVErrorCode(str, Enum):
+    """See section 8.5.4.2 in ISO 15118-2"""
+
+    """See C.6 V2G_CI_MsgDataTypes.xsd (Page 272) in DIN SPEC 70121"""
+    NO_ERROR = "NO_ERROR"
+    FAILED_RESS_TEMPERATURE_INHIBIT = "FAILED_RESSTemperatureInhibit"
+    FAILED_EV_SHIFT_POSITION = "FAILED_EVShiftPosition"
+    FAILED_CHARGER_CONNECTOR_LOCK_FAULT = "FAILED_ChargerConnectorLockFault"
+    FAILED_EV_RESS_MALFUNCTION = "FAILED_EVRESSMalfunction"
+    FAILED_CHARGING_CURRENT_DIFFERENTIAL = "FAILED_ChargingCurrentdifferential"
+    FAILED_CHARGING_VOLTAGE_OUT_OF_RANGE = "FAILED_ChargingVoltageOutOfRange"
+    FAILED_CHARGING_SYSTEM_INCOMPATIBILITY = "FAILED_ChargingSystemIncompatibility"
+    NO_DATA = "NoData"
+    RESERVED_A = "Reserved_A"
+    RESERVED_B = "Reserved_B"
+    RESERVED_C = "Reserved_C"
 
 
 class V2GTPVersion(IntEnum):
@@ -143,6 +219,7 @@ class Protocol(Enum):
     UNKNOWN = ("", ISOV2PayloadTypes)
     DIN_SPEC_70121 = (Namespace.DIN_MSG_DEF, DINPayloadTypes)
     ISO_15118_2 = (Namespace.ISO_V2_MSG_DEF, ISOV2PayloadTypes)
+    ISO_15118_20_COMMON_MESSAGES = (Namespace.ISO_V20_COMMON_MSG, ISOV20PayloadTypes)
     ISO_15118_20_AC = (Namespace.ISO_V20_AC, ISOV20PayloadTypes)
     ISO_15118_20_DC = (Namespace.ISO_V20_DC, ISOV20PayloadTypes)
     ISO_15118_20_WPT = (Namespace.ISO_V20_WPT, ISOV20PayloadTypes)

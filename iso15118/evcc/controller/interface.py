@@ -6,8 +6,20 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-from iso15118.shared.messages.enums import Protocol
-from iso15118.shared.messages.iso15118_2.body import CurrentDemandReq, PreChargeReq
+from iso15118.shared.messages.datatypes import (
+    DCEVChargeParams,
+    PVEVSEPresentVoltage,
+    PVRemainingTimeToBulkSOC,
+    PVRemainingTimeToFullSOC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    DCEVPowerDeliveryParameter as DCEVPowerDeliveryParameterDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import DCEVStatus as DCEVStatusDINSPEC
+from iso15118.shared.messages.din_spec.datatypes import (
+    SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
+)
+from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
@@ -15,13 +27,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVChargeParameter,
     DCEVPowerDeliveryParameter,
     DCEVStatus,
-    EnergyTransferModeEnum,
-    PVEVMaxCurrentLimit,
-    PVEVMaxPowerLimit,
-    PVEVMaxVoltageLimit,
-    PVEVSEPresentVoltage,
-    PVRemainingTimeToBulkSOC,
-    PVRemainingTimeToFullSOC,
     SAScheduleTupleEntry,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
@@ -62,7 +67,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_energy_transfer_mode(self) -> EnergyTransferModeEnum:
+    def get_energy_transfer_mode(self, protocol: Protocol) -> EnergyTransferModeEnum:
         """
         Gets the energy transfer mode requested for the current charging session.
         This depends on the charging cable being plugged in, which could be a
@@ -75,7 +80,21 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_charge_params_v2(self) -> ChargeParamsV2:
+    def get_dc_charge_params(self) -> DCEVChargeParams:
+        """
+        This would return an encapsulation of the following parameters:
+        DC Max Current Limit
+        DC Max Voltage Limit
+        DC Target Current
+        DC Target Voltage
+
+        Relevant for
+        - DIN SPEC 70121
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
         """
         Gets the charge parameter needed for ChargeParameterDiscoveryReq (ISO 15118-2),
         including the energy transfer mode and the energy mode-specific parameters,
@@ -130,6 +149,29 @@ class EVControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def process_sa_schedules_dinspec(
+        self, sa_schedules: List[SAScheduleTupleEntryDINSPEC]
+    ) -> int:
+        """
+        Processes the SAScheduleList provided with the ChargeParameterDiscoveryRes
+        to decide which of the offered schedules to choose and whether or not to
+        start charging instantly (ChargeProgress=Start) or to delay the charging
+        process (ChargeProgress=Stop), including information on how the EV's
+        charging profile will look like.
+
+        Args:
+            sa_schedules: The list of offered charging profiles (SAScheduleTuple
+                          elements), each of which contains a mandatory PMaxSchedule
+                          and an optional SalesTariff
+
+        Returns the ID of the chosen charging schedule
+
+        Relevant for:
+        - DIN SPEC 70121
         """
         raise NotImplementedError
 
@@ -211,6 +253,16 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_dc_ev_status_dinspec(self) -> DCEVStatusDINSPEC:
+        """
+        Gets the DC-specific EV Status information.
+
+        Relevant for:
+        - DIN SPEC 70121
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def get_dc_ev_status(self) -> DCEVStatus:
         """
         Gets the DC-specific EV Status information.
@@ -218,7 +270,7 @@ class EVControllerInterface(ABC):
         Relevant for:
         - DIN SPEC 70121
         - ISO 15118-2
-        - ISO 15118-20 ??
+        - ISO 15118-20
         """
         raise NotImplementedError
 
@@ -237,70 +289,53 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_dc_ev_power_delivery_parameter_dinspec(
+        self,
+    ) -> DCEVPowerDeliveryParameterDINSPEC:
+        """
+        gets the Power Delivery Parameter of the EV
+
+        Relevant for:
+        - DIN SPEC 70121
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
         """
         gets the Power Delivery Parameter of the EV
 
         Relevant for:
-        - DIN SPEC 70121 ??
         - ISO 15118-2
-        - ISO 15118-20 ??
+        - ISO 15118-20
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_ev_max_voltage_limit(self) -> PVEVMaxVoltageLimit:
+    def ready_to_charge(self) -> bool:
         """
-        gets the Maximum Voltage Limit of the EV battery
+        Used by PowerDeliveryReq message (DIN SPEC) to indicate if we are
+        ready to start/stop charging.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_charging_complete(self) -> bool:
+        """
+        If set to True, the EV indicates that full charge (100% SOC) is complete.
 
         Relevant for:
-        - DIN SPEC 70121 ??
+        - DIN SPEC 70121
         - ISO 15118-2
-        - ISO 15118-20 ??
+        - ISO 15118-20
+
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_ev_max_current_limit(self) -> PVEVMaxCurrentLimit:
-        """
-        gets the Maximum current Limit of the EV battery
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_ev_max_power_limit(self) -> PVEVMaxPowerLimit:
-        """
-        gets the Maximum Power Limit of the EV battery
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_bulk_charging_complete(self) -> bool:
+    def is_bulk_charging_complete(self) -> bool:
         """
         Returns True if the soc for bulk charging is reached
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_charging_complete(self) -> bool:
-        """
-        According ISO15118-2 8.4.5.4.2:
-        If set to TRUE, the EV indicates that full charge (100% SOC) is complete.
 
         Relevant for:
         - DIN SPEC 70121 ??
@@ -347,26 +382,8 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_pre_charge_data(self) -> PreChargeReq:
+    def stop_charging(self) -> None:
         """
-        Gets the data needed for the PrechargeReq.
-        For the PreCharge phase, the requested current
-        must be < 2 A (maximum inrush current according to CC.5.2 in IEC61851 -23)
-
-        Relevant for:
-        - DIN SPEC 70121 ??
-        - ISO 15118-2
-        - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    def get_current_demand_data(self) -> CurrentDemandReq:
-        """
-        Gets all the data needed for the CurrentDemandReq.
-
-        Relevant for:
-        - DIN SPEC 70121
-        - ISO 15118-2
-        - ISO 15118-20 ??
+        Used by CurrentDemand to indicate to EV to stop charging.
         """
         raise NotImplementedError

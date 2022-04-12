@@ -10,6 +10,12 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
+from iso15118.shared.messages.din_spec.body import BodyBase as BodyBaseDINSPEC
+from iso15118.shared.messages.din_spec.body import Response as ResponseDINSPEC
+from iso15118.shared.messages.din_spec.body import (
+    SessionSetupRes as SessionSetupResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.body import BodyBase, Response
 from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupRes as SessionSetupResV2,
@@ -66,6 +72,24 @@ class StateEVCC(State, ABC):
 
     T = TypeVar("T")
 
+    def check_msg_din_spec(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
+        expected_msg_type: Union[
+            Type[SupportedAppProtocolRes],
+            Type[Response],
+            Type[V2GResponse],
+            Type[ResponseDINSPEC],
+        ],
+    ) -> Optional[V2GMessageDINSPEC]:
+        return self.check_msg(message, V2GMessageDINSPEC, expected_msg_type)
+
     def check_msg_v2(
         self,
         message: Union[
@@ -73,9 +97,13 @@ class StateEVCC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
         expected_msg_type: Union[
-            Type[SupportedAppProtocolRes], Type[Response], Type[V2GResponse]
+            Type[SupportedAppProtocolRes],
+            Type[Response],
+            Type[V2GResponse],
+            Type[ResponseDINSPEC],
         ],
     ) -> Optional[V2GMessageV2]:
         return self.check_msg(message, V2GMessageV2, expected_msg_type)
@@ -87,6 +115,7 @@ class StateEVCC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
         expected_msg_type: Type[T],
     ) -> Optional[T]:
@@ -99,10 +128,14 @@ class StateEVCC(State, ABC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
         expected_return_type: Type[T],
         expected_msg_type: Union[
-            Type[SupportedAppProtocolRes], Type[Response], Type[V2GResponse]
+            Type[SupportedAppProtocolRes],
+            Type[Response],
+            Type[V2GResponse],
+            Type[ResponseDINSPEC],
         ],
     ) -> Optional[T]:
         """
@@ -130,16 +163,15 @@ class StateEVCC(State, ABC):
             In the False case, the state machine is stopped, setting the communication
             session's StopNotification and setting the next state to Terminate
         """
-        # TODO Add support for DIN SPEC 70121
         if not isinstance(message, expected_return_type):
             self.stop_state_machine(
                 f"{type(message)}' not a valid message type " f"in state {str(self)}"
             )
             return None
 
-        msg_body: Union[SupportedAppProtocolRes, BodyBase, V2GResponse]
-        if isinstance(message, V2GMessageV2):
-            # ISO 15118-2
+        msg_body: Union[SupportedAppProtocolRes, BodyBase, V2GResponse, BodyBaseDINSPEC]
+        if isinstance(message, V2GMessageV2) or isinstance(message, V2GMessageDINSPEC):
+            # ISO 15118-2 or DIN SPEC 72101
             msg_body = message.body.get_message()
         else:
             # SupportedAppProtocolReq, V2GRequest (ISO 15118-20)
@@ -161,7 +193,12 @@ class StateEVCC(State, ABC):
         if (
             not isinstance(
                 msg_body,
-                (SupportedAppProtocolRes, SessionSetupResV2, SessionSetupResV20),
+                (
+                    SupportedAppProtocolRes,
+                    SessionSetupResV2,
+                    SessionSetupResV20,
+                    SessionSetupResDINSPEC,
+                ),
             )
             and not message.header.session_id == self.comm_session.session_id
         ):

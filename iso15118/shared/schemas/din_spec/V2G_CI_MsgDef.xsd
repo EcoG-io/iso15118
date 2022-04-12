@@ -1,0 +1,20 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:din:70121:2012:MsgDef" xmlns="urn:din:70121:2012:MsgDef" xmlns:v2gci_h="urn:din:70121:2012:MsgHeader" elementFormDefault="qualified" attributeFormDefault="unqualified">
+  <xs:import namespace="urn:din:70121:2012:MsgHeader" schemaLocation="V2G_CI_MsgHeader.xsd"/>
+  <!-- Message Structure -->
+  <xs:element name="V2G_Message">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Header" type="v2gci_h:MessageHeaderType"/>
+        <xs:element name="Body" type="BodyType"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- Body -->
+  <xs:complexType name="BodyType">
+    <xs:sequence>
+      <xs:element ref="BodyElement" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="BodyElement" type="BodyBaseType"/>
+  <xs:complexType name="BodyBaseType" abstract="true"/>
+</xs:schema>

@@ -8,41 +8,56 @@ from typing import List, Optional, Union
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError
-from iso15118.shared.messages.enums import Namespace, Protocol
-from iso15118.shared.messages.iso15118_2.datatypes import (
-    ACEVSEChargeParameter,
-    ACEVSEStatus,
+from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
     DCEVSEStatusCode,
-    EnergyTransferModeEnum,
     EVSENotification,
-    IsolationLevel,
-)
-from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
-from iso15118.shared.messages.iso15118_2.datatypes import (
-    PMaxScheduleEntry,
-    PMaxScheduleEntryDetails,
-    PVEVSECurrentRegulationTolerance,
-    PVEVSEEnergyToBeDelivered,
-    PVEVSEMaxCurrent,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
     PVEVSEMaxVoltageLimit,
     PVEVSEMinCurrentLimit,
     PVEVSEMinVoltageLimit,
-    PVEVSENominalVoltage,
     PVEVSEPeakCurrentRipple,
     PVEVSEPresentCurrent,
     PVEVSEPresentVoltage,
     PVEVTargetCurrent,
     PVEVTargetVoltage,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    PMaxScheduleEntry as PMaxScheduleEntryDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    PMaxScheduleEntryDetails as PMaxScheduleEntryDetailsDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    RelativeTimeInterval as RelativeTimeIntervalDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
+)
+from iso15118.shared.messages.enums import (
+    EnergyTransferModeEnum,
+    IsolationLevel,
+    Namespace,
+    Protocol,
+    UnitSymbol,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    ACEVSEChargeParameter,
+    ACEVSEStatus,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    PMaxScheduleEntry,
+    PMaxScheduleEntryDetails,
+    PVEVSEMaxCurrent,
+    PVEVSENominalVoltage,
     PVPMax,
     RelativeTimeInterval,
     SalesTariff,
     SalesTariffEntry,
     SAScheduleTupleEntry,
-    UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
@@ -59,12 +74,32 @@ class SimEVSEController(EVSEControllerInterface):
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
 
-    def get_evse_id(self) -> str:
+    def get_evse_id(self, protocol: Protocol) -> str:
+        if protocol == Protocol.DIN_SPEC_70121:
+            #  To transform a string-based DIN SPEC 91286 EVSE ID to hexBinary
+            #  representation and vice versa, the following conversion rules shall
+            #  be used for each character and hex digit: '0' <--> 0x0, '1' <--> 0x1,
+            #  '2' <--> 0x2, '3' <--> 0x3, '4' <--> 0x4, '5' <--> 0x5, '6' <--> 0x6,
+            #  '7' <--> 0x7, '8' <--> 0x8, '9' <--> 0x9, '*' <--> 0xA,
+            #  Unused <--> 0xB .. 0xF.
+            # Example: The DIN SPEC 91286 EVSE ID “49*89*6360” is represented
+            # as “0x49 0xA8 0x9A 0x63 0x60”.
+            return "49A89A6360"
         """Overrides EVSEControllerInterface.get_evse_id()."""
         return "UK123E1234"
 
-    def get_supported_energy_transfer_modes(self) -> List[EnergyTransferModeEnum]:
+    def get_supported_energy_transfer_modes(
+        self, protocol: Protocol
+    ) -> List[EnergyTransferModeEnum]:
         """Overrides EVSEControllerInterface.get_supported_energy_transfer_modes()."""
+        if protocol == Protocol.DIN_SPEC_70121:
+            """
+            For DIN SPEC, only DC_CORE and DC_EXTENDED are supported.
+            The other DC modes DC_COMBO_CORE and DC_DUAL are out of scope for DIN SPEC
+            """
+            dc_extended = EnergyTransferModeEnum.DC_EXTENDED
+            return [dc_extended]
+
         # ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
         # ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
         dc_extended = EnergyTransferModeEnum.DC_EXTENDED
@@ -73,6 +108,27 @@ class SimEVSEController(EVSEControllerInterface):
     def is_authorised(self) -> bool:
         """Overrides EVSEControllerInterface.is_authorised()."""
         return True
+
+    def get_sa_schedule_list_dinspec(
+        self, max_schedule_entries: Optional[int], departure_time: int = 0
+    ) -> Optional[List[SAScheduleTupleEntryDINSPEC]]:
+        """Overrides EVSEControllerInterface.get_sa_schedule_list_dinspec()."""
+        sa_schedule_list: List[SAScheduleTupleEntryDINSPEC] = []
+        entry_details = PMaxScheduleEntryDetailsDINSPEC(
+            p_max=200, time_interval=RelativeTimeIntervalDINSPEC(start=0, duration=3600)
+        )
+        p_max_schedule_entries = [entry_details]
+        pmax_schedule_entry = PMaxScheduleEntryDINSPEC(
+            p_max_schedule_id=0, entry_details=p_max_schedule_entries
+        )
+
+        sa_schedule_tuple_entry = SAScheduleTupleEntryDINSPEC(
+            sa_schedule_tuple_id=1,
+            p_max_schedule=pmax_schedule_entry,
+            sales_tariff=None,
+        )
+        sa_schedule_list.append(sa_schedule_tuple_entry)
+        return sa_schedule_list
 
     def get_sa_schedule_list(
         self, max_schedule_entries: Optional[int], departure_time: int = 0
@@ -193,33 +249,31 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_dc_evse_charge_parameter()."""
-
-        evse_minimum_curren_limit = PVEVSEMinCurrentLimit(
-            multiplier=0, value=5, unit=UnitSymbol.AMPERE
-        )
-        evse_minimum_voltage_limit = PVEVSEMinVoltageLimit(
-            multiplier=0, value=250, unit=UnitSymbol.VOLTAGE
-        )
-        evse_peak_current_ripple = PVEVSEPeakCurrentRipple(
-            multiplier=0, value=5, unit=UnitSymbol.AMPERE
-        )
-        evse_current_regulation_tolerance = PVEVSECurrentRegulationTolerance(
-            multiplier=0, value=50, unit=UnitSymbol.AMPERE
-        )
-        evse_energy_to_be_delivered = PVEVSEEnergyToBeDelivered(
-            multiplier=0, value=10000, unit=UnitSymbol.WATT_HOURS
-        )
-
         return DCEVSEChargeParameter(
-            dc_evse_status=self.get_dc_evse_status(),
-            evse_maximum_current_limit=self.get_evse_max_current_limit(),
-            evse_maximum_power_limit=self.get_evse_max_power_limit(),
-            evse_maximum_voltage_limit=self.get_evse_max_voltage_limit(),
-            evse_minimum_current_limit=evse_minimum_curren_limit,
-            evse_minimum_voltage_limit=evse_minimum_voltage_limit,
-            evse_current_regulation_tolerance=evse_current_regulation_tolerance,  # opt
-            evse_peak_current_ripple=evse_peak_current_ripple,
-            evse_energy_to_be_delivered=evse_energy_to_be_delivered,  # opt
+            dc_evse_status=DCEVSEStatus(
+                notification_max_delay=100,
+                evse_notification=EVSENotification.NONE,
+                evse_isolation_status=IsolationLevel.VALID,
+                evse_status_code=DCEVSEStatusCode.EVSE_READY,
+            ),
+            evse_maximum_power_limit=PVEVSEMaxPowerLimit(
+                multiplier=1, value=230, unit="W"
+            ),
+            evse_maximum_current_limit=PVEVSEMaxCurrentLimit(
+                multiplier=1, value=4, unit="A"
+            ),
+            evse_maximum_voltage_limit=PVEVSEMaxVoltageLimit(
+                multiplier=1, value=4, unit="V"
+            ),
+            evse_minimum_current_limit=PVEVSEMinCurrentLimit(
+                multiplier=1, value=2, unit="A"
+            ),
+            evse_minimum_voltage_limit=PVEVSEMinVoltageLimit(
+                multiplier=1, value=4, unit="V"
+            ),
+            evse_peak_current_ripple=PVEVSEPeakCurrentRipple(
+                multiplier=1, value=4, unit="A"
+            ),
         )
 
     def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
@@ -241,14 +295,14 @@ class SimEVSEController(EVSEControllerInterface):
     ):
         pass
 
-    def get_evse_current_limit_achieved(self) -> bool:
-        return False
+    def is_evse_current_limit_achieved(self) -> bool:
+        return True
 
-    def get_evse_voltage_limit_achieved(self) -> bool:
-        return False
+    def is_evse_voltage_limit_achieved(self) -> bool:
+        return True
 
-    def get_evse_power_limit_achieved(self) -> bool:
-        return False
+    def is_evse_power_limit_achieved(self) -> bool:
+        return True
 
     def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
         return PVEVSEMaxVoltageLimit(multiplier=0, value=600, unit="V")

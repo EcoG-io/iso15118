@@ -8,18 +8,8 @@ from typing import List, Optional, Tuple
 
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
-from iso15118.shared.messages.enums import Namespace, Protocol
-from iso15118.shared.messages.iso15118_2.body import CurrentDemandReq, PreChargeReq
-from iso15118.shared.messages.iso15118_2.datatypes import (
-    ACEVChargeParameter,
-    ChargeProgress,
-    ChargingProfile,
-    DCEVChargeParameter,
-    DCEVErrorCode,
-    DCEVPowerDeliveryParameter,
-    DCEVStatus,
-    EnergyTransferModeEnum,
-    ProfileEntryDetails,
+from iso15118.shared.messages.datatypes import (
+    DCEVChargeParams,
     PVEAmount,
     PVEVEnergyCapacity,
     PVEVEnergyRequest,
@@ -35,8 +25,33 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     PVPMax,
     PVRemainingTimeToBulkSOC,
     PVRemainingTimeToFullSOC,
-    SAScheduleTupleEntry,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    DCEVPowerDeliveryParameter as DCEVPowerDeliveryParameterDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import DCEVStatus as DCEVStatusDINSPEC
+from iso15118.shared.messages.din_spec.datatypes import (
+    ProfileEntryDetails as ProfileEntryDetailsDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
+)
+from iso15118.shared.messages.enums import (
+    DCEVErrorCode,
+    EnergyTransferModeEnum,
+    Namespace,
+    Protocol,
     UnitSymbol,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    ACEVChargeParameter,
+    ChargeProgress,
+    ChargingProfile,
+    DCEVChargeParameter,
+    DCEVPowerDeliveryParameter,
+    DCEVStatus,
+    ProfileEntryDetails,
+    SAScheduleTupleEntry,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -60,6 +75,27 @@ class SimEVController(EVControllerInterface):
         self._charging_is_completed = False
         self._soc = 10
 
+        self.dc_ev_charge_params: DCEVChargeParams = DCEVChargeParams(
+            dc_max_current_limit=PVEVMaxCurrentLimit(
+                multiplier=-3, value=32000, unit=UnitSymbol.AMPERE
+            ),
+            dc_max_power_limit=PVEVMaxPowerLimit(
+                multiplier=1, value=8000, unit=UnitSymbol.WATT
+            ),
+            dc_max_voltage_limit=PVEVMaxVoltageLimit(
+                multiplier=1, value=40, unit=UnitSymbol.VOLTAGE
+            ),
+            dc_energy_capacity=PVEVEnergyCapacity(
+                multiplier=1, value=7000, unit=UnitSymbol.WATT_HOURS
+            ),
+            dc_target_current=PVEVTargetCurrent(
+                multiplier=0, value=1, unit=UnitSymbol.AMPERE
+            ),
+            dc_target_voltage=PVEVTargetVoltage(
+                multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
+            ),
+        )
+
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
 
@@ -81,60 +117,53 @@ class SimEVController(EVControllerInterface):
             logger.error(f"Invalid protocol '{protocol}', can't determine EVCCID")
             raise InvalidProtocolError
 
-    def get_energy_transfer_mode(self) -> EnergyTransferModeEnum:
+    def get_energy_transfer_mode(self, protocol: Protocol) -> EnergyTransferModeEnum:
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
+        if protocol == Protocol.DIN_SPEC_70121:
+            return EnergyTransferModeEnum.DC_EXTENDED
         return EnergyTransferModeEnum.DC_EXTENDED
 
-    def get_charge_params_v2(self) -> ChargeParamsV2:
+    def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
         """Overrides EVControllerInterface.get_charge_params_v2()."""
-        # This is for simulating AC only. You can modify to simulate DC charging
-        e_amount = PVEAmount(multiplier=0, value=60, unit=UnitSymbol.WATT_HOURS)
-        ev_max_voltage = PVEVMaxVoltage(
-            multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
-        )
-        ev_max_current = PVEVMaxCurrent(
-            multiplier=-3, value=32000, unit=UnitSymbol.AMPERE
-        )
-        ev_min_current = PVEVMinCurrent(multiplier=0, value=10, unit=UnitSymbol.AMPERE)
-        ac_charge_params = ACEVChargeParameter(
-            departure_time=0,
-            e_amount=e_amount,
-            ev_max_voltage=ev_max_voltage,
-            ev_max_current=ev_max_current,
-            ev_min_current=ev_min_current,
-        )
-        ev_maximum_current_limit = PVEVMaxCurrentLimit(
-            multiplier=0, value=200, unit=UnitSymbol.AMPERE
-        )
-        ev_maximum_power_limit = PVEVMaxPowerLimit(
-            multiplier=1, value=8000, unit=UnitSymbol.WATT
-        )
-        ev_maximum_voltage_limit = PVEVMaxVoltageLimit(
-            multiplier=0, value=500, unit=UnitSymbol.VOLTAGE
-        )
-        ev_energy_capacity = PVEVEnergyCapacity(
-            multiplier=1, value=7000, unit=UnitSymbol.WATT_HOURS
-        )
-        ev_energy_request = PVEVEnergyRequest(
-            multiplier=1, value=6000, unit=UnitSymbol.WATT_HOURS
-        )
+        ac_charge_params = None
+        dc_charge_params = None
 
-        dc_charge_params = DCEVChargeParameter(
-            departure_time=0,
-            dc_ev_status=self.get_dc_ev_status(),
-            ev_maximum_current_limit=ev_maximum_current_limit,
-            ev_maximum_power_limit=ev_maximum_power_limit,
-            ev_maximum_voltage_limit=ev_maximum_voltage_limit,
-            ev_energy_capacity=ev_energy_capacity,
-            ev_energy_request=ev_energy_request,
-            full_soc=90,
-            bulk_soc=80,
-        )
-        if self.get_energy_transfer_mode().value.startswith("AC"):
-            return ChargeParamsV2(
-                self.get_energy_transfer_mode(), ac_charge_params, None
+        if self.get_energy_transfer_mode(protocol).startswith("AC"):
+            e_amount = PVEAmount(multiplier=0, value=60, unit=UnitSymbol.WATT_HOURS)
+            ev_max_voltage = PVEVMaxVoltage(
+                multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
             )
-        return ChargeParamsV2(self.get_energy_transfer_mode(), None, dc_charge_params)
+            ev_max_current = PVEVMaxCurrent(
+                multiplier=-3, value=32000, unit=UnitSymbol.AMPERE
+            )
+            ev_min_current = PVEVMinCurrent(
+                multiplier=0, value=10, unit=UnitSymbol.AMPERE
+            )
+            ac_charge_params = ACEVChargeParameter(
+                departure_time=0,
+                e_amount=e_amount,
+                ev_max_voltage=ev_max_voltage,
+                ev_max_current=ev_max_current,
+                ev_min_current=ev_min_current,
+            )
+        else:
+            ev_energy_request = PVEVEnergyRequest(
+                multiplier=1, value=6000, unit=UnitSymbol.WATT_HOURS
+            )
+            dc_charge_params = DCEVChargeParameter(
+                departure_time=0,
+                dc_ev_status=self.get_dc_ev_status(),
+                ev_maximum_current_limit=self.dc_ev_charge_params.dc_max_current_limit,
+                ev_maximum_power_limit=self.dc_ev_charge_params.dc_max_power_limit,
+                ev_maximum_voltage_limit=self.dc_ev_charge_params.dc_max_voltage_limit,
+                ev_energy_capacity=self.dc_ev_charge_params.dc_energy_capacity,
+                ev_energy_request=ev_energy_request,
+                full_soc=90,
+                bulk_soc=80,
+            )
+        return ChargeParamsV2(
+            self.get_energy_transfer_mode(protocol), ac_charge_params, dc_charge_params
+        )
 
     def get_charge_params_v20(
         self,
@@ -162,23 +191,58 @@ class SimEVController(EVControllerInterface):
         """Overrides EVControllerInterface.is_cert_install_needed()."""
         return True
 
-    def process_sa_schedules(
-        self, sa_schedules: List[SAScheduleTupleEntry]
-    ) -> Tuple[ChargeProgress, int, ChargingProfile]:
-        """Overrides EVControllerInterface.process_sa_schedules()."""
+    def process_sa_schedules_dinspec(
+        self, sa_schedules: List[SAScheduleTupleEntryDINSPEC]
+    ) -> int:
+        """Overrides EVControllerInterface.process_sa_schedules_dinspec()."""
         schedule = sa_schedules.pop()
-        profile_entry_list: List[ProfileEntryDetails] = []
+        profile_entry_list: List[ProfileEntryDetailsDINSPEC] = []
 
         # The charging schedule coming from the SECC is called 'schedule', the
         # pendant coming from the EVCC (after having processed the offered
         # schedule(s)) is called 'profile'. Therefore, we use the prefix
         # 'schedule_' for data from the SECC, and 'profile_' for data from the EVCC.
         for schedule_entry_details in schedule.p_max_schedule.entry_details:
-            profile_entry_details = ProfileEntryDetails(
+            profile_entry_details = ProfileEntryDetailsDINSPEC(
                 start=schedule_entry_details.time_interval.start,
                 max_power=schedule_entry_details.p_max,
             )
             profile_entry_list.append(profile_entry_details)
+
+            # The last PMaxSchedule element has an optional 'duration' field. if
+            # 'duration' is present, then there'll be no more PMaxSchedule element
+            # with p_max set to 0 kW. Instead, the 'duration' informs how long the
+            # current power level applies before the offered charging schedule ends.
+            if schedule_entry_details.time_interval.duration:
+                zero_power = 1
+                last_profile_entry_details = ProfileEntryDetailsDINSPEC(
+                    start=(
+                        schedule_entry_details.time_interval.start
+                        + schedule_entry_details.time_interval.duration
+                    ),
+                    max_power=zero_power,
+                )
+                profile_entry_list.append(last_profile_entry_details)
+
+        return schedule.sa_schedule_tuple_id
+
+    def process_sa_schedules(
+        self, sa_schedules: List[SAScheduleTupleEntry]
+    ) -> Tuple[ChargeProgress, int, ChargingProfile]:
+        """Overrides EVControllerInterface.process_sa_schedules()."""
+        secc_schedule = sa_schedules.pop()
+        evcc_profile_entry_list: List[ProfileEntryDetails] = []
+
+        # The charging schedule coming from the SECC is called 'schedule', the
+        # pendant coming from the EVCC (after having processed the offered
+        # schedule(s)) is called 'profile'. Therefore, we use the prefix
+        # 'schedule_' for data from the SECC, and 'profile_' for data from the EVCC.
+        for schedule_entry_details in secc_schedule.p_max_schedule.entry_details:
+            profile_entry_details = ProfileEntryDetails(
+                start=schedule_entry_details.time_interval.start,
+                max_power=schedule_entry_details.p_max,
+            )
+            evcc_profile_entry_list.append(profile_entry_details)
 
             # The last PMaxSchedule element has an optional 'duration' field. if
             # 'duration' is present, then there'll be no more PMaxSchedule element
@@ -193,20 +257,20 @@ class SimEVController(EVControllerInterface):
                     ),
                     max_power=zero_power,
                 )
-                profile_entry_list.append(last_profile_entry_details)
+                evcc_profile_entry_list.append(last_profile_entry_details)
 
         # TODO If a SalesTariff is present and digitally signed (and TLS is used),
         #      verify each sales tariff with the mobility operator sub 2 certificate
 
         return (
             ChargeProgress.START,
-            schedule.sa_schedule_tuple_id,
-            ChargingProfile(profile_entries=profile_entry_list),
+            secc_schedule.sa_schedule_tuple_id,
+            ChargingProfile(profile_entries=evcc_profile_entry_list),
         )
 
     def continue_charging(self) -> bool:
         """Overrides EVControllerInterface.continue_charging()."""
-        if self.charging_loop_cycles == 10 or self.get_charging_complete():
+        if self.charging_loop_cycles == 10 or self.is_charging_complete():
             # To simulate a bit of a charging loop, we'll let it run 10 times
             return False
         else:
@@ -224,47 +288,50 @@ class SimEVController(EVControllerInterface):
     def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         return None
 
-    def get_dc_ev_status(self) -> DCEVStatus:
-        """Overrides EVCCControllerInterface.get_dc_ev_status()."""
-        return DCEVStatus(
-            ev_ready=True, ev_error_code=DCEVErrorCode.NO_ERROR, ev_ress_soc=self._soc
+    def get_dc_charge_params(self) -> DCEVChargeParams:
+        return self.dc_ev_charge_params
+
+    def get_dc_ev_status_dinspec(self) -> DCEVStatusDINSPEC:
+        return DCEVStatusDINSPEC(
+            ev_ready=True,
+            ev_error_code=DCEVErrorCode.NO_ERROR,
+            ev_ress_soc=60,
         )
 
-    def get_ev_target_voltage(self) -> PVEVTargetVoltage:
-        return PVEVTargetVoltage(multiplier=0, value=450, unit="V")
+    def get_dc_ev_status(self) -> DCEVStatus:
+        return DCEVStatus(
+            ev_ready=True,
+            ev_error_code=DCEVErrorCode.NO_ERROR,
+            ev_ress_soc=60,
+        )
 
-    def get_ev_target_current(self) -> PVEVTargetCurrent:
-        return PVEVTargetCurrent(multiplier=0, value=10, unit="A")
+    def ready_to_charge(self) -> bool:
+        return self.continue_charging()
+
+    def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
+        return True
+
+    def get_dc_ev_power_delivery_parameter_dinspec(
+        self,
+    ) -> DCEVPowerDeliveryParameterDINSPEC:
+        return DCEVPowerDeliveryParameterDINSPEC(
+            dc_ev_status=self.get_dc_ev_status_dinspec(),
+            bulk_charging_complete=False,
+            charging_complete=self.continue_charging(),
+        )
 
     def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
         return DCEVPowerDeliveryParameter(
             dc_ev_status=self.get_dc_ev_status(),
             bulk_charging_complete=False,
-            charging_complete=False,
+            charging_complete=self.continue_charging(),
         )
 
-    def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
-        # deviation shall have a max deviation of 20A, according CC.5.1 of IEC61851-23
-        self.precharge_loop_cycles += 1
-        if self.precharge_loop_cycles == 10:
-            # To simulate a bit of a precharge loop, we'll let it run 50 times
-            return True
+    def is_bulk_charging_complete(self) -> bool:
         return False
 
-    def get_ev_max_voltage_limit(self) -> PVEVMaxVoltageLimit:
-        return PVEVMaxVoltageLimit(multiplier=0, value=500, unit="V")
-
-    def get_ev_max_current_limit(self) -> PVEVMaxCurrentLimit:
-        return PVEVMaxCurrentLimit(multiplier=0, value=300, unit="A")
-
-    def get_ev_max_power_limit(self) -> PVEVMaxPowerLimit:
-        return PVEVMaxPowerLimit(multiplier=1, value=10000, unit="W")
-
-    def get_bulk_charging_complete(self) -> bool:
-        return False
-
-    def get_charging_complete(self) -> bool:
-        if self._soc == 100:
+    def is_charging_complete(self) -> bool:
+        if self._soc == 100 or self._charging_is_completed:
             return True
         else:
             return False
@@ -278,24 +345,5 @@ class SimEVController(EVControllerInterface):
     def welding_detection_has_finished(self):
         return True
 
-    def get_pre_charge_data(self) -> PreChargeReq:
-        pre_charge_req = PreChargeReq(
-            dc_ev_status=self.get_dc_ev_status(),
-            ev_target_voltage=PVEVTargetVoltage(multiplier=0, value=450, unit="V"),
-            ev_target_current=PVEVTargetCurrent(multiplier=0, value=1, unit="A"),
-        )
-        return pre_charge_req
-
-    def get_current_demand_data(self) -> CurrentDemandReq:
-        current_demand_req = CurrentDemandReq(
-            dc_ev_status=self.get_dc_ev_status(),
-            ev_target_current=PVEVTargetCurrent(multiplier=0, value=10, unit="A"),
-            ev_max_current_limit=self.get_ev_max_current_limit(),
-            ev_max_power_limit=self.get_ev_max_power_limit(),
-            bulk_charging_complete=self.get_bulk_charging_complete(),
-            charging_complete=self.get_charging_complete(),
-            remaining_time_to_full_soc=self.get_remaining_time_to_full_soc(),
-            remaining_time_to_bulk_soc=self.get_remaining_time_to_bulk_soc(),
-            ev_target_voltage=PVEVTargetVoltage(multiplier=0, value=450, unit="V"),
-        )
-        return current_demand_req
+    def stop_charging(self) -> None:
+        self._charging_is_completed = True

@@ -17,7 +17,23 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import AuthEnum, Namespace, Protocol
+from iso15118.shared.messages.datatypes import (
+    DCEVChargeParams,
+    DCEVSEStatus,
+    DCEVSEStatusCode,
+    EVSENotification,
+    SelectedService,
+    SelectedServiceList,
+)
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    EnergyTransferModeEnum,
+    EVSEProcessing,
+    IsolationLevel,
+    Namespace,
+    Protocol,
+)
 from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
     AuthorizationReq,
@@ -40,6 +56,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     PaymentServiceSelectionRes,
     PowerDeliveryReq,
     PowerDeliveryRes,
+    PreChargeReq,
     PreChargeRes,
     ServiceDetailReq,
     ServiceDetailRes,
@@ -56,15 +73,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargeProgress,
     ChargeService,
     ChargingSession,
-    DCEVSEStatus,
-    DCEVSEStatusCode,
-    EnergyTransferModeEnum,
-    EVSENotification,
-    EVSEProcessing,
-    IsolationLevel,
     RootCertificateIDList,
-    SelectedService,
-    SelectedServiceList,
     ServiceCategory,
     ServiceID,
 )
@@ -120,6 +129,7 @@ class SessionSetup(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, SessionSetupRes)
@@ -155,6 +165,7 @@ class ServiceDiscovery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, ServiceDiscoveryRes)
@@ -228,7 +239,9 @@ class ServiceDiscovery(StateEVCC):
             evcc_settings.RESUME_REQUESTED_ENERGY_MODE = None
         else:
             self.comm_session.selected_energy_mode = (
-                self.comm_session.ev_controller.get_energy_transfer_mode()
+                self.comm_session.ev_controller.get_energy_transfer_mode(
+                    Protocol.ISO_15118_2
+                )
             )
             self.comm_session.selected_charging_type_is_ac = (
                 self.comm_session.selected_energy_mode.value.startswith("AC")
@@ -327,6 +340,7 @@ class ServiceDetail(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, ServiceDetailRes)
@@ -383,6 +397,7 @@ class PaymentServiceSelection(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, PaymentServiceSelectionRes)
@@ -483,6 +498,7 @@ class CertificateInstallation(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, CertificateInstallationRes)
@@ -585,6 +601,7 @@ class PaymentDetails(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, PaymentDetailsRes)
@@ -638,6 +655,7 @@ class Authorization(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, AuthorizationRes)
@@ -650,7 +668,9 @@ class Authorization(StateEVCC):
             # Reset the Ongoing timer
             self.comm_session.ongoing_timer = -1
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2()
+            charge_params = self.comm_session.ev_controller.get_charge_params_v2(
+                Protocol.ISO_15118_2
+            )
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,
@@ -704,6 +724,7 @@ class ChargeParameterDiscovery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, ChargeParameterDiscoveryRes)
@@ -775,7 +796,9 @@ class ChargeParameterDiscovery(StateEVCC):
             else:
                 self.comm_session.ongoing_timer = time()
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2()
+            charge_params = self.comm_session.ev_controller.get_charge_params_v2(
+                Protocol.ISO_15118_2
+            )
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,
@@ -810,6 +833,7 @@ class PowerDelivery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, PowerDeliveryRes)
@@ -842,7 +866,9 @@ class PowerDelivery(StateEVCC):
         elif self.comm_session.renegotiation_requested:
             self.comm_session.renegotiation_requested = False
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2()
+            charge_params = self.comm_session.ev_controller.get_charge_params_v2(
+                Protocol.ISO_15118_2
+            )
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,
@@ -867,9 +893,7 @@ class PowerDelivery(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
         else:
-            current_demand_req = (
-                self.comm_session.ev_controller.get_current_demand_data()
-            )
+            current_demand_req = self.build_current_demand_data()
 
             self.create_next_message(
                 CurrentDemand,
@@ -877,6 +901,27 @@ class PowerDelivery(StateEVCC):
                 Timeouts.CHARGING_STATUS_REQ,
                 Namespace.ISO_V2_MSG_DEF,
             )
+
+    def build_current_demand_data(self) -> CurrentDemandReq:
+        dc_ev_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
+        current_demand_req = CurrentDemandReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            ev_target_current=dc_ev_charge_params.dc_target_current,
+            ev_max_current_limit=dc_ev_charge_params.dc_max_current_limit,
+            ev_max_power_limit=dc_ev_charge_params.dc_max_power_limit,
+            bulk_charging_complete=(
+                self.comm_session.ev_controller.is_bulk_charging_complete()
+            ),
+            charging_complete=(self.comm_session.ev_controller.is_charging_complete()),
+            remaining_time_to_full_soc=(
+                self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+            ),
+            remaining_time_to_bulk_soc=(
+                self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+            ),
+            ev_target_voltage=dc_ev_charge_params.dc_target_voltage,
+        )
+        return current_demand_req
 
 
 class MeteringReceipt(StateEVCC):
@@ -895,6 +940,7 @@ class MeteringReceipt(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, MeteringReceiptRes)
@@ -968,6 +1014,7 @@ class SessionStop(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, SessionStopRes)
@@ -1006,6 +1053,7 @@ class ChargingStatus(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, ChargingStatusRes)
@@ -1114,6 +1162,7 @@ class CableCheck(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, CableCheckRes)
@@ -1131,7 +1180,7 @@ class CableCheck(StateEVCC):
                 evse_status_code == DCEVSEStatusCode.EVSE_READY
                 and isolation_status == IsolationLevel.VALID
             ):
-                precharge_req = self.comm_session.ev_controller.get_pre_charge_data()
+                precharge_req = self.build_pre_charge_message()
                 self.create_next_message(
                     PreCharge,
                     precharge_req,
@@ -1161,6 +1210,17 @@ class CableCheck(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
 
+    def build_pre_charge_message(self):
+        charge_params: DCEVChargeParams = (
+            self.comm_session.ev_controller.get_dc_charge_params()
+        )
+        pre_charge_req = PreChargeReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            ev_target_voltage=charge_params.dc_target_voltage,
+            ev_target_current=charge_params.dc_target_current,
+        )
+        return pre_charge_req
+
 
 class PreCharge(StateEVCC):
     """
@@ -1178,6 +1238,7 @@ class PreCharge(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, PreChargeRes)
@@ -1215,13 +1276,24 @@ class PreCharge(StateEVCC):
             else:
                 self.comm_session.ongoing_timer = time()
 
-            precharge_req = self.comm_session.ev_controller.get_pre_charge_data()
+            precharge_req = self.build_pre_charge_message()
             self.create_next_message(
                 PreCharge,
                 precharge_req,
                 Timeouts.PRE_CHARGE_REQ,
                 Namespace.ISO_V2_MSG_DEF,
             )
+
+    def build_pre_charge_message(self):
+        charge_params: DCEVChargeParams = (
+            self.comm_session.ev_controller.get_dc_charge_params()
+        )
+        pre_charge_req = PreChargeReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            ev_target_voltage=charge_params.dc_target_voltage,
+            ev_target_current=charge_params.dc_target_current,
+        )
+        return pre_charge_req
 
 
 class CurrentDemand(StateEVCC):
@@ -1240,6 +1312,7 @@ class CurrentDemand(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, CurrentDemandRes)
@@ -1253,9 +1326,7 @@ class CurrentDemand(StateEVCC):
             self.stop_charging()
 
         elif self.comm_session.ev_controller.continue_charging():
-            current_demand_req = (
-                self.comm_session.ev_controller.get_current_demand_data()
-            )
+            current_demand_req = self.build_current_demand_data()
 
             self.create_next_message(
                 CurrentDemand,
@@ -1265,6 +1336,27 @@ class CurrentDemand(StateEVCC):
             )
         else:
             self.stop_charging()
+
+    def build_current_demand_data(self) -> CurrentDemandReq:
+        dc_ev_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
+        current_demand_req = CurrentDemandReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            ev_target_current=dc_ev_charge_params.dc_target_current,
+            ev_max_current_limit=dc_ev_charge_params.dc_max_current_limit,
+            ev_max_power_limit=dc_ev_charge_params.dc_max_power_limit,
+            bulk_charging_complete=(
+                self.comm_session.ev_controller.is_bulk_charging_complete()
+            ),
+            charging_complete=self.comm_session.ev_controller.is_charging_complete(),
+            remaining_time_to_full_soc=(
+                self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+            ),
+            remaining_time_to_bulk_soc=(
+                self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+            ),
+            ev_target_voltage=dc_ev_charge_params.dc_target_voltage,
+        )
+        return current_demand_req
 
     def stop_charging(self):
         power_delivery_req = PowerDeliveryReq(
@@ -1297,30 +1389,40 @@ class WeldingDetection(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v2(message, WeldingDetectionRes)
         if not msg:
             return
 
-        if self.comm_session.ev_controller.welding_detection_has_finished():
+        if self.comm_session.ongoing_timer > 0:
+            elapsed_time = time() - self.comm_session.ongoing_timer
+            logger.debug(f"EVCC timeout : {TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT}")
+            if elapsed_time > TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT:
+                self.stop_state_machine(
+                    "Ongoing timer timed out for " "WeldingDetectionRes"
+                )
+                return
+        elif self.comm_session.ongoing_timer == -1:
+            self.comm_session.ongoing_timer = time()
 
+        next_state = None
+        next_request = WeldingDetectionReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
+        )
+        next_timeout = Timeouts.WELDING_DETECTION_REQ
+        if self.comm_session.ev_controller.welding_detection_has_finished():
             session_stop_req = SessionStopReq(
                 charging_session=self.comm_session.charging_session_stop
             )
-            self.create_next_message(
-                SessionStop,
-                session_stop_req,
-                Timeouts.SESSION_STOP_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
-        else:
-            welding_detection_req = WeldingDetectionReq(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
-            )
-            self.create_next_message(
-                WeldingDetection,
-                welding_detection_req,
-                Timeouts.WELDING_DETECTION_REQ,
-                Namespace.ISO_V2_MSG_DEF,
-            )
+            next_state = SessionStop
+            next_request = session_stop_req
+            next_timeout = Timeouts.SESSION_STOP_REQ
+
+        self.create_next_message(
+            next_state,
+            next_request,
+            next_timeout,
+            Namespace.ISO_V2_MSG_DEF,
+        )

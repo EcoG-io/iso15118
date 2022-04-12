@@ -9,6 +9,7 @@ import logging
 from typing import Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.secc.states.din_spec_states import SessionSetup as SessionSetupDINSPEC
 from iso15118.secc.states.iso15118_2_states import SessionSetup as SessionSetupV2
 from iso15118.secc.states.iso15118_20_states import SessionSetup as SessionSetupV20
 from iso15118.secc.states.secc_state import StateSECC
@@ -17,6 +18,7 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -45,6 +47,7 @@ class SupportedAppProtocol(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg(
@@ -72,6 +75,27 @@ class SupportedAppProtocol(StateSECC):
                 ):
                     selected_protocol = Protocol.get_by_ns(protocol.protocol_ns)
                     next_state = SessionSetupV2
+
+                    if protocol.minor_version == 0:
+                        res = ResponseCodeSAP.NEGOTIATION_OK
+                    else:
+                        res = ResponseCodeSAP.MINOR_DEVIATION
+
+                    sap_res = SupportedAppProtocolRes(
+                        response_code=res, schema_id=protocol.schema_id
+                    )
+                    break
+
+                if (
+                    protocol.protocol_ns == Protocol.DIN_SPEC_70121.ns.value
+                    and protocol.major_version == 2
+                ):
+                    selected_protocol = Protocol.get_by_ns(protocol.protocol_ns)
+
+                    # This is the earliest point where we realize
+                    # that we are dealing with DINSPEC.
+                    self.comm_session.selected_charging_type_is_ac = False
+                    next_state = SessionSetupDINSPEC
 
                     if protocol.minor_version == 0:
                         res = ResponseCodeSAP.NEGOTIATION_OK
