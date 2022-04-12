@@ -13,36 +13,26 @@ element names by using the 'alias' attribute.
 
 from enum import Enum, IntEnum
 from typing import List
-from pydantic import Field, conbytes, root_validator
 
+from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
     PhysicalValue,
-    PVEVSENominalVoltage,
-    PVEAmount,
-    PVEVMaxVoltage,
-    PVEVMaxCurrent,
-    PVEVMinCurrent,
     PVEVMaxPowerLimit,
     PVEVMaxVoltageLimit,
     PVEVEnergyCapacity,
     PVEVEnergyRequest,
-    PVStartValue,
     PVEVMaxCurrentLimit,
-    PVEVSEMaxCurrent,
 )
-from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
     INT_8_MAX,
     INT_8_MIN,
     INT_16_MAX,
     INT_16_MIN,
-    UINT_32_MAX,
     EnergyTransferModeEnum,
     DCEVErrorCode,
 )
-
 from iso15118.shared.validators import one_field_must_be_set
-
+from pydantic import Field, conbytes, root_validator
 
 # https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
 # constrained types
@@ -50,16 +40,8 @@ from iso15118.shared.validators import one_field_must_be_set
 Certificate = conbytes(max_length=800)
 
 
-class EnergyTransferModeList(BaseModel):
-    """See section 8.5.2.4 in ISO 15118-2"""
-
-    energy_modes: List[EnergyTransferModeEnum] = Field(
-        ..., max_items=6, alias="EnergyTransferMode"
-    )
-
-
 class ServiceID(IntEnum):
-    """See section 8.4.3.3.2 in ISO 15118-2"""
+    """Annex A.1.1.6 in DIN SPEC 70121"""
 
     CHARGING = 1
     CERTIFICATE = 2
@@ -127,7 +109,7 @@ class ContractID(BaseModel):
 
 
 class EVSENotification(str, Enum):
-    """See sections 8.5.3.1 and 8.5.4.1 in ISO 15118-2"""
+    """Annex A.1.1.6 in DIN SPEC 70121"""
 
     NONE = "None"
     STOP_CHARGING = "StopCharging"
@@ -135,7 +117,7 @@ class EVSENotification(str, Enum):
 
 
 class EVSEStatus(BaseModel):
-    """See sections 8.5.3.1 and 8.5.4.1 in ISO 15118-2"""
+    """Annex A.1.1.6 in DIN SPEC 70121"""
 
     # XSD type unsignedShort (16 bit integer) with value range [0..65535]
     notification_max_delay: int = Field(
@@ -145,38 +127,23 @@ class EVSEStatus(BaseModel):
 
 
 class ACEVSEStatus(EVSEStatus):
-    """See section 8.5.3.1 in ISO 15118-2"""
-
-    rcd: bool = Field(..., alias="RCD")
+    """Not used in DIN SPEC 70121"""
 
 
 class ACEVSEChargeParameter(BaseModel):
-    """See section 8.5.3.3 in ISO 15118-2"""
-
-    ac_evse_status: ACEVSEStatus = Field(..., alias="AC_EVSEStatus")
-    evse_nominal_voltage: PVEVSENominalVoltage = Field(..., alias="EVSENominalVoltage")
-    evse_max_current: PVEVSEMaxCurrent = Field(..., alias="EVSEMaxCurrent")
+    """Not used in DIN SPEC 70121"""
 
 
 class EVChargeParameter(BaseModel):
-    """See section 8.4.3.8.2 in ISO 15118-2"""
+    """Base class for ACEVChargeParameter and DCEVChargeParameter"""
 
 
 class ACEVChargeParameter(EVChargeParameter):
-    """See section 8.5.3.2 in ISO 15118-2"""
-
-    # XSD type unsignedInt (32-bit unsigned integer) with value range
-    departure_time: int = Field(None, ge=0, le=UINT_32_MAX, alias="DepartureTime")
-    e_amount: PVEAmount = Field(..., alias="EAmount")
-    ev_max_voltage: PVEVMaxVoltage = Field(..., alias="EVMaxVoltage")
-    ev_max_current: PVEVMaxCurrent = Field(..., alias="EVMaxCurrent")
-    ev_min_current: PVEVMinCurrent = Field(..., alias="EVMinCurrent")
+    """Not used in DIN SPEC 70121"""
 
 
 class ServiceList(BaseModel):
-    """See section 8.5.2.2 in ISO 15118-2"""
-
-    services: List[ServiceDetails] = Field(..., max_items=8, alias="Service")
+    """Not used in DIN SPEC - member value must be None"""
 
 
 class ValueType(str, Enum):
@@ -189,7 +156,7 @@ class ValueType(str, Enum):
 
 
 class Parameter(BaseModel):
-    """See section 8.5.2.23 in ISO 15118-2"""
+    """Annex A.1.1.6 in DIN SPEC 70121"""
 
     # 'Name' is actually an XML attribute, but JSON (our serialisation method)
     # doesn't have attributes. The EXI codec has to en-/decode accordingly.
@@ -267,27 +234,15 @@ class SelectedServiceList(BaseModel):
 
 
 class CostKind(str, Enum):
-    """See section 8.5.2.20 in ISO 15118-2"""
-
-    RELATIVE_PRICE_PERCENTAGE = "relativePricePercentage"
-    RENEWABLE_GENERATION_PERCENTAGE = "RenewableGenerationPercentage"
-    CARBON_DIOXIDE_EMISSION = "CarbonDioxideEmission"
+    """Not used in DIN SPEC 70121"""
 
 
 class Cost(BaseModel):
-    """See section 8.5.2.20 in ISO 15118-2"""
-
-    cost_kind: CostKind = Field(..., alias="costKind")
-    amount: int = Field(..., alias="amount")
-    # XSD type byte with value range [-3..3]
-    amount_multiplier: int = Field(None, ge=-3, le=3, alias="amountMultiplier")
+    """Not used in DIN SPEC 70121"""
 
 
 class ConsumptionCost(BaseModel):
-    """See section 8.5.2.19 in ISO 15118-2"""
-
-    start_value: PVStartValue = Field(..., alias="startValue")
-    cost: List[Cost] = Field(..., max_items=3, alias="Cost")
+    """Not used in DIN SPEC 70121"""
 
 
 class RelativeTimeInterval(BaseModel):

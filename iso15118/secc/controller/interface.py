@@ -18,13 +18,12 @@ from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
 )
+from iso15118.shared.messages.din_spec.datatypes import (
+    SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
+)
 from iso15118.shared.messages.enums import (
     Protocol,
     EnergyTransferModeEnum,
-    EVSEProcessing,
-)
-from iso15118.shared.messages.din_spec.datatypes import (
-    SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
@@ -345,10 +344,6 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_evse_processing_state(self) -> EVSEProcessing:
         raise NotImplementedError
 
     @abstractmethod

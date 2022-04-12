@@ -455,10 +455,7 @@ class CableCheck(StateSECC):
                 )
             next_state = PreCharge
             evse_processing = EVSEProcessing.FINISHED
-        elif dc_charger_state.evse_isolation_status in [
-            IsolationLevel.FAULT,
-            IsolationLevel.NO_IMD,
-        ]:
+        elif dc_charger_state.evse_isolation_status is IsolationLevel.FAULT:
             response_code = ResponseCode.FAILED
             next_state = Terminate
             evse_processing = EVSEProcessing.FINISHED

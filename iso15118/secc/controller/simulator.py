@@ -24,19 +24,18 @@ from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
     PVEVTargetVoltage,
     PVEVTargetCurrent,
 )
-from iso15118.shared.messages.enums import (
-    Namespace,
-    Protocol,
-    EnergyTransferModeEnum,
-    UnitSymbol,
-    EVSEProcessing,
-    IsolationLevel,
-)
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
     PMaxScheduleEntry as PMaxScheduleEntryDINSPEC,
     RelativeTimeInterval as RelativeTimeIntervalDINSPEC,
     PMaxScheduleEntryDetails as PMaxScheduleEntryDetailsDINSPEC,
+)
+from iso15118.shared.messages.enums import (
+    Namespace,
+    Protocol,
+    EnergyTransferModeEnum,
+    UnitSymbol,
+    IsolationLevel,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
@@ -298,9 +297,6 @@ class SimEVSEController(EVSEControllerInterface):
 
     def is_evse_power_limit_achieved(self) -> bool:
         return True
-
-    def get_evse_processing_state(self) -> EVSEProcessing:
-        return EVSEProcessing.FINISHED
 
     def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
         return PVEVSEMaxVoltageLimit(multiplier=0, value=600, unit="V")
