@@ -248,7 +248,8 @@ class ServicePaymentSelection(StateSECC):
         if service_payment_selection_req.selected_payment_option != AuthEnum.EIM_V2:
             self.stop_state_machine(
                 f"Offered payment option  "
-                f"{service_payment_selection_req.selected_payment_option} not accepted.",
+                f"{service_payment_selection_req.selected_payment_option} "
+                f"not accepted.",
                 message,
                 ResponseCode.FAILED_PAYMENT_SELECTION_INVALID,
             )

@@ -6,7 +6,7 @@ SessionStopRes.
 
 import logging
 from time import time
-from typing import Any, List, Optional, Type, Union
+from typing import Any, List, Union
 
 from iso15118.evcc import evcc_settings
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
@@ -67,7 +67,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.timeouts import Timeouts as TimeoutsShared
 from iso15118.shared.notifications import StopNotification
-from iso15118.shared.states import State, Terminate
+from iso15118.shared.states import Terminate
 
 logger = logging.getLogger(__name__)
 
