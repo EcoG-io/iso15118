@@ -1,7 +1,6 @@
 from typing import List
 
 from iso15118.shared.messages.enums import UnitSymbol
-
 from iso15118.shared.messages.iso15118_2.body import (
     Body,
     PowerDeliveryReq,

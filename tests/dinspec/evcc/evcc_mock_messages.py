@@ -1,53 +1,49 @@
-from typing import Optional, List
+from typing import List, Optional
 
+from iso15118.shared.messages.datatypes import (
+    DCEVSEChargeParameter,
+    DCEVSEStatus,
+    DCEVSEStatusCode,
+    EVSENotification,
+    PVEVSEMaxCurrentLimit,
+    PVEVSEMaxPowerLimit,
+    PVEVSEMaxVoltageLimit,
+    PVEVSEMinCurrentLimit,
+    PVEVSEMinVoltageLimit,
+    PVEVSEPeakCurrentRipple,
+    PVEVSEPresentCurrent,
+    PVEVSEPresentVoltage,
+)
+from iso15118.shared.messages.din_spec.body import (
+    Body,
+    ChargeParameterDiscoveryRes,
+    ContractAuthenticationRes,
+    CurrentDemandRes,
+    PowerDeliveryRes,
+    ServiceDiscoveryRes,
+    ServicePaymentSelectionRes,
+    WeldingDetectionRes,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    AuthOptionList,
+    ChargeService,
+    IsolationLevel,
+    PMaxScheduleEntry,
+    PMaxScheduleEntryDetails,
+    RelativeTimeInterval,
+    ResponseCode,
+    SAScheduleList,
+    SAScheduleTupleEntry,
+    ServiceCategory,
+    ServiceDetails,
+    ServiceID,
+)
+from iso15118.shared.messages.din_spec.header import MessageHeader
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage
 from iso15118.shared.messages.enums import (
     AuthEnum,
     EnergyTransferModeEnum,
     EVSEProcessing,
-)
-
-from iso15118.shared.messages.din_spec.header import MessageHeader
-
-from iso15118.shared.messages.din_spec.msgdef import V2GMessage
-
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
-    DCEVSEStatus,
-    EVSENotification,
-    DCEVSEStatusCode,
-    PVEVSEPresentVoltage,
-    PVEVSEPresentCurrent,
-    PVEVSEMaxVoltageLimit,
-    PVEVSEMaxCurrentLimit,
-    PVEVSEMaxPowerLimit,
-    DCEVSEChargeParameter,
-    PVEVSEMinCurrentLimit,
-    PVEVSEMinVoltageLimit,
-    PVEVSEPeakCurrentRipple,
-)
-from iso15118.shared.messages.din_spec.datatypes import (
-    ResponseCode,
-    IsolationLevel,
-    AuthOptionList,
-    ServiceDetails,
-    ChargeService,
-    ServiceID,
-    ServiceCategory,
-    SAScheduleList,
-    SAScheduleTupleEntry,
-    PMaxScheduleEntryDetails,
-    RelativeTimeInterval,
-    PMaxScheduleEntry,
-)
-
-from iso15118.shared.messages.din_spec.body import (
-    CurrentDemandRes,
-    Body,
-    ServiceDiscoveryRes,
-    ServicePaymentSelectionRes,
-    ContractAuthenticationRes,
-    ChargeParameterDiscoveryRes,
-    PowerDeliveryRes,
-    WeldingDetectionRes,
 )
 
 
@@ -134,6 +130,22 @@ def get_sa_schedule_list_dinspec() -> Optional[List[SAScheduleTupleEntry]]:
     )
     sa_schedule_list.append(sa_schedule_tuple_entry)
     return sa_schedule_list
+
+
+def get_failed_current_demand_acheived():
+    current_demand_res: CurrentDemandRes = CurrentDemandRes(
+        response_code=ResponseCode.FAILED_UNKNOWN_SESSION,
+        dc_evse_status=get_dc_evse_status_stop_charging(),
+        evse_present_voltage=get_evse_present_voltage(),
+        evse_present_current=get_evse_present_current(),
+        evse_current_limit_achieved=True,
+        evse_voltage_limit_achieved=(is_evse_voltage_limit_achieved()),
+        evse_power_limit_achieved=(is_evse_power_limit_achieved()),
+    )
+    return V2GMessage(
+        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        body=Body(current_demand_res=current_demand_res),
+    )
 
 
 def get_service_discovery_message_payment_service_not_offered():

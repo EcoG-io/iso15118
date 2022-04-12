@@ -1,42 +1,40 @@
 import time
+from enum import Enum
 from unittest.mock import Mock, patch
 
 import pytest as pytest
-from iso15118.shared.states import Terminate
-
-from iso15118.evcc.controller.simulator import SimEVController
-from iso15118.evcc.states.din_spec_states import (
-    CurrentDemand,
-    ServiceDiscovery,
-    ServicePaymentSelection,
-    PowerDelivery,
-    ContractAuthentication,
-    ChargeParameterDiscovery,
-    CableCheck,
-    WeldingDetection,
-)
-
-from iso15118.shared.messages.enums import Protocol, EnergyTransferModeEnum, AuthEnum
-from iso15118.shared.notifications import StopNotification
 
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
+from iso15118.evcc.controller.simulator import SimEVController
+from iso15118.evcc.states.din_spec_states import (
+    CableCheck,
+    ChargeParameterDiscovery,
+    ContractAuthentication,
+    CurrentDemand,
+    PowerDelivery,
+    ServiceDiscovery,
+    ServicePaymentSelection,
+    WeldingDetection,
+)
+from iso15118.shared.messages.enums import AuthEnum, EnergyTransferModeEnum, Protocol
+from iso15118.shared.notifications import StopNotification
+from iso15118.shared.states import Terminate
 
 from tests.dinspec.evcc.evcc_mock_messages import (
-    get_v2g_message_current_demand_current_limit_not_achieved,
-    get_service_discovery_message_payment_service_not_offered,
-    get_service_discovery_message_charge_service_not_offered,
-    get_service_discovery_message,
-    get_current_demand_acheived,
-    get_contract_authentication_message,
-    get_service_payment_selection_message,
-    get_service_payment_selection_fail_message,
-    get_contract_authentication_ongoing_message,
     get_charge_parameter_discovery_message,
     get_charge_parameter_discovery_on_going_message,
+    get_contract_authentication_message,
+    get_contract_authentication_ongoing_message,
+    get_current_demand_acheived,
     get_power_delivery_res_message,
+    get_service_discovery_message,
+    get_service_discovery_message_charge_service_not_offered,
+    get_service_discovery_message_payment_service_not_offered,
+    get_service_payment_selection_fail_message,
+    get_service_payment_selection_message,
+    get_v2g_message_current_demand_current_limit_not_achieved,
+    get_welding_detection_on_going_message,
 )
-
-from tests.dinspec.evcc.evcc_mock_messages import get_welding_detection_on_going_message
 
 
 class MockWriter:
@@ -199,13 +197,26 @@ class TestEvScenarios:
     async def test_welding_detection_to_session_stop(self):
         pass
 
+    class Timeouts(float, Enum):
+        """
+        Timeout restrictions for request/response message pairs and
+        message sequences according to both ISO 15118-2 and ISO 15118-20.
+        Given in seconds
+        """
+
+        SDP_REQ = 0.25
+        SUPPORTED_APP_PROTOCOL_REQ = 1
+        V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT = 1
+        V2G_SECC_SEQUENCE_TIMEOUT = 1
+        V2G_EVCC_ONGOING_TIMEOUT = 1
+
     @pytest.mark.skip(reason="Takes too long. Need to patch timeout")
     async def test_welding_detection_timeout(self, _is_welding_detection_complete):
         welding_detection = WeldingDetection(self.comm_session_mock)
         welding_detection.process_message(
             message=get_welding_detection_on_going_message()
         )
-        time.sleep(61)
+        time.sleep(2)
         welding_detection.process_message(
             message=get_welding_detection_on_going_message()
         )
