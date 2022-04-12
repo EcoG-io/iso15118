@@ -11,8 +11,8 @@ from typing import Type, Union
 
 from iso15118.evcc import evcc_settings
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
-from iso15118.evcc.states.evcc_state import StateEVCC
 from iso15118.evcc.states.din_spec_states import SessionSetup as SessionSetupDINSPEC
+from iso15118.evcc.states.evcc_state import StateEVCC
 from iso15118.evcc.states.iso15118_2_states import SessionSetup as SessionSetupV2
 from iso15118.evcc.states.iso15118_20_states import SessionSetup as SessionSetupV20
 from iso15118.shared.exceptions import MessageProcessingError
@@ -20,16 +20,16 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.din_spec.body import BodyBase as BodyBaseDINSPEC
 from iso15118.shared.messages.din_spec.body import (
     SessionSetupReq as SessionSetupReqDINSPEC,
 )
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
+from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.body import BodyBase
 from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupReq as SessionSetupReqV2,
 )
-from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_2.timeouts import Timeouts
 from iso15118.shared.messages.iso15118_20.common_messages import (

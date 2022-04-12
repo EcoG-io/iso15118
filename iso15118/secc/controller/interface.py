@@ -7,32 +7,27 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
-    PVEVSEPresentVoltage,
-    PVEVSEPresentCurrent,
+from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
-    PVEVTargetVoltage,
-    PVEVTargetCurrent,
-    PVEVSEMaxVoltageLimit,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
+    PVEVSEMaxVoltageLimit,
+    PVEVSEPresentCurrent,
+    PVEVSEPresentVoltage,
+    PVEVTargetCurrent,
+    PVEVTargetVoltage,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
-from iso15118.shared.messages.enums import (
-    Protocol,
-    EnergyTransferModeEnum,
-)
+from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
-from iso15118.shared.messages.iso15118_2.datatypes import (
-    SAScheduleTupleEntry,
-)
+from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTupleEntry
 from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
 

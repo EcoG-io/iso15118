@@ -14,24 +14,22 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import (
-    DINPayloadTypes,
-    ISOV2PayloadTypes,
-    ISOV20PayloadTypes,
-    Namespace,
-)
-from iso15118.shared.messages.din_spec.body import (
-    Body as BodyDINSPEC,
-    BodyBase as BodyBaseDINSPEC,
-)
+from iso15118.shared.messages.din_spec.body import Body as BodyDINSPEC
+from iso15118.shared.messages.din_spec.body import BodyBase as BodyBaseDINSPEC
+from iso15118.shared.messages.din_spec.datatypes import FaultCode as FaultCodeDINSPEC
 from iso15118.shared.messages.din_spec.datatypes import (
-    FaultCode as FaultCodeDINSPEC,
     Notification as NotificationDINSPEC,
 )
 from iso15118.shared.messages.din_spec.header import (
     MessageHeader as MessageHeaderDINSPEC,
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
+from iso15118.shared.messages.enums import (
+    DINPayloadTypes,
+    ISOV2PayloadTypes,
+    ISOV20PayloadTypes,
+    Namespace,
+)
 from iso15118.shared.messages.iso15118_2.body import Body, BodyBase
 from iso15118.shared.messages.iso15118_2.datatypes import FaultCode, Notification
 from iso15118.shared.messages.iso15118_2.header import MessageHeader as MessageHeaderV2

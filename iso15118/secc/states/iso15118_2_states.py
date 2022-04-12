@@ -25,18 +25,19 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
-    EVSENotification,
+from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
+    EVSENotification,
 )
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
+    DCEVErrorCode,
+    EVSEProcessing,
+    IsolationLevel,
     Namespace,
     Protocol,
-    EVSEProcessing,
-    DCEVErrorCode,
-    IsolationLevel,
 )
 from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
@@ -44,6 +45,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     AuthorizationRes,
     BodyBase,
     CableCheckReq,
+    CableCheckRes,
     CertificateInstallationReq,
     CertificateInstallationRes,
     ChargeParameterDiscoveryReq,
@@ -51,6 +53,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     ChargingStatusReq,
     ChargingStatusRes,
     CurrentDemandReq,
+    CurrentDemandRes,
     MeteringReceiptReq,
     MeteringReceiptRes,
     PaymentDetailsReq,
@@ -60,6 +63,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     PowerDeliveryReq,
     PowerDeliveryRes,
     PreChargeReq,
+    PreChargeRes,
     ResponseCode,
     ServiceDetailReq,
     ServiceDetailRes,
@@ -71,9 +75,6 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionStopRes,
     WeldingDetectionReq,
     WeldingDetectionRes,
-    CurrentDemandRes,
-    PreChargeRes,
-    CableCheckRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
@@ -96,7 +97,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ServiceParameterList,
     SubCertificates,
 )
-from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,

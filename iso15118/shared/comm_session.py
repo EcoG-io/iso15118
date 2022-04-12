@@ -25,12 +25,10 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
+from iso15118.shared.messages.datatypes import SelectedService as SelectedServiceV2_DIN
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import Namespace, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
-from iso15118.shared.messages.iso15118_2.datatypes import (
-    SelectedService as SelectedServiceV2,
-)
-from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
@@ -278,7 +276,7 @@ class V2GCommunicationSession(SessionStateMachine):
         # Mutually agreed-upon ISO 15118 application protocol as result of SAP
         self.chosen_protocol: str = ""
         # The services offered by the SECC and selected by the EVCC
-        self.selected_services: List[SelectedServiceV2] = []
+        self.selected_services: List[SelectedServiceV2_DIN] = []
         # Selected energy modes helps to choose AC or DC specific parameters
         self.selected_energy_mode: Optional[EnergyTransferModeEnum] = None
         # Variable selected_charging_type_is_ac set if one of the AC modes is selected

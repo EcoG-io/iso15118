@@ -17,24 +17,29 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
-    EVSENotification,
+from iso15118.shared.messages.datatypes import (
+    DCEVChargeParams,
     DCEVSEStatus,
     DCEVSEStatusCode,
-    DCEVChargeParams,
+    EVSENotification,
+    SelectedService,
+    SelectedServiceList,
 )
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
-    Namespace,
-    Protocol,
     EnergyTransferModeEnum,
     EVSEProcessing,
     IsolationLevel,
+    Namespace,
+    Protocol,
 )
 from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
     AuthorizationReq,
     AuthorizationRes,
+    CableCheckReq,
+    CableCheckRes,
     CertificateInstallationReq,
     CertificateInstallationRes,
     ChargeParameterDiscoveryReq,
@@ -42,6 +47,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     ChargingStatusReq,
     ChargingStatusRes,
     CurrentDemandReq,
+    CurrentDemandRes,
     MeteringReceiptReq,
     MeteringReceiptRes,
     PaymentDetailsReq,
@@ -50,6 +56,8 @@ from iso15118.shared.messages.iso15118_2.body import (
     PaymentServiceSelectionRes,
     PowerDeliveryReq,
     PowerDeliveryRes,
+    PreChargeReq,
+    PreChargeRes,
     ServiceDetailReq,
     ServiceDetailRes,
     ServiceDiscoveryReq,
@@ -57,13 +65,8 @@ from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupRes,
     SessionStopReq,
     SessionStopRes,
-    WeldingDetectionRes,
     WeldingDetectionReq,
-    CurrentDemandRes,
-    PreChargeRes,
-    CableCheckReq,
-    CableCheckRes,
-    PreChargeReq,
+    WeldingDetectionRes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
@@ -71,12 +74,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargeService,
     ChargingSession,
     RootCertificateIDList,
-    SelectedService,
-    SelectedServiceList,
     ServiceCategory,
     ServiceID,
 )
-from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_2.timeouts import Timeouts
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -796,7 +796,9 @@ class ChargeParameterDiscovery(StateEVCC):
             else:
                 self.comm_session.ongoing_timer = time()
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2()
+            charge_params = self.comm_session.ev_controller.get_charge_params_v2(
+                Protocol.ISO_15118_2
+            )
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,
@@ -864,7 +866,9 @@ class PowerDelivery(StateEVCC):
         elif self.comm_session.renegotiation_requested:
             self.comm_session.renegotiation_requested = False
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2()
+            charge_params = self.comm_session.ev_controller.get_charge_params_v2(
+                Protocol.ISO_15118_2
+            )
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,

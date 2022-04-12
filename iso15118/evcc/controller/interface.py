@@ -6,26 +6,28 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
+from iso15118.shared.messages.datatypes import (
     DCEVChargeParams,
-    PVRemainingTimeToFullSOC,
-    PVRemainingTimeToBulkSOC,
     PVEVSEPresentVoltage,
+    PVRemainingTimeToBulkSOC,
+    PVRemainingTimeToFullSOC,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
-    DCEVStatus as DCEVStatusDINSPEC,
     DCEVPowerDeliveryParameter as DCEVPowerDeliveryParameterDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import DCEVStatus as DCEVStatusDINSPEC
+from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
-from iso15118.shared.messages.enums import Protocol, EnergyTransferModeEnum
+from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
     ChargingProfile,
     DCEVChargeParameter,
-    SAScheduleTupleEntry,
-    DCEVStatus,
     DCEVPowerDeliveryParameter,
+    DCEVStatus,
+    SAScheduleTupleEntry,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -153,7 +155,7 @@ class EVControllerInterface(ABC):
     @abstractmethod
     def process_sa_schedules_dinspec(
         self, sa_schedules: List[SAScheduleTupleEntryDINSPEC]
-    ) -> Tuple[ChargeProgress, int, ChargingProfile]:
+    ) -> int:
         """
         Processes the SAScheduleList provided with the ChargeParameterDiscoveryRes
         to decide which of the offered schedules to choose and whether or not to
@@ -166,14 +168,7 @@ class EVControllerInterface(ABC):
                           elements), each of which contains a mandatory PMaxSchedule
                           and an optional SalesTariff
 
-        Returns:
-            A tuple consisting of
-            1. the ChargeProgress status,
-            2. the ID of the chosen charging schedule (SAScheduleTuple), and
-            3. the resulting charging profile of the EV, which may follow the
-               suggestion of the offered charging schedule exactly or deviate
-               (consume less power, but never more than the max limit provided by
-               the SECC).
+        Returns the ID of the chosen charging schedule
 
         Relevant for:
         - DIN SPEC 70121

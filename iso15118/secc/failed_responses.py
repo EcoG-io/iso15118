@@ -1,26 +1,106 @@
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
-    PVEVSEEnergyToBeDelivered,
-    PVEVSEPeakCurrentRipple,
-    PVEVSECurrentRegulationTolerance,
-    PVEVSEMinVoltageLimit,
-    PVEVSEMinCurrentLimit,
-    PVEVSEMaxVoltageLimit,
-    PVEVSEMaxCurrentLimit,
-    PVEVSEMaxPowerLimit,
-    PVEVSEPresentVoltage,
-    PVEVSEPresentCurrent,
-    EVSENotification,
-    DCEVSEStatusCode,
+from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
+    DCEVSEStatusCode,
+    EVSENotification,
+    PVEVSECurrentRegulationTolerance,
+    PVEVSEEnergyToBeDelivered,
+    PVEVSEMaxCurrentLimit,
+    PVEVSEMaxPowerLimit,
+    PVEVSEMaxVoltageLimit,
+    PVEVSEMinCurrentLimit,
+    PVEVSEMinVoltageLimit,
+    PVEVSEPeakCurrentRipple,
+    PVEVSEPresentCurrent,
+    PVEVSEPresentVoltage,
 )
+from iso15118.shared.messages.din_spec.body import CableCheckReq as CableCheckReqDINSPEC
+from iso15118.shared.messages.din_spec.body import CableCheckRes as CableCheckResDINSPEC
+from iso15118.shared.messages.din_spec.body import (
+    ChargeParameterDiscoveryReq as ChargeParameterDiscoveryReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    ChargeParameterDiscoveryRes as ChargeParameterDiscoveryResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    ContractAuthenticationReq as ContractAuthenticationReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    ContractAuthenticationRes as ContractAuthenticationResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    CurrentDemandReq as CurrentDemandReqDINPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    CurrentDemandRes as CurrentDemandResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    PowerDeliveryReq as PowerDeliveryReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    PowerDeliveryRes as PowerDeliveryResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import PreChargeReq as PreChargeReqDINSPEC
+from iso15118.shared.messages.din_spec.body import PreChargeRes as PreChargeResDINSPEC
+from iso15118.shared.messages.din_spec.body import (
+    ServiceDiscoveryReq as ServiceDiscoveryReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    ServiceDiscoveryRes as ServiceDiscoveryResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    ServicePaymentSelectionReq as ServicePaymentSelectionReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    ServicePaymentSelectionRes as ServicePaymentSelectionResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    SessionSetupReq as SessionSetupReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    SessionSetupRes as SessionSetupResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    SessionStopReq as SessionStopReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    SessionStopRes as SessionStopResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    WeldingDetectionReq as WeldingDetectionReqDINSPEC,
+)
+from iso15118.shared.messages.din_spec.body import (
+    WeldingDetectionRes as WeldingDetectionResDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    AuthOptionList as AuthOptionListDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    ChargeService as ChargeServiceDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    DCEVSEStatusCode as DCEVSEStatusCodeDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    EVSENotification as EVSENotificationDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    ResponseCode as ResponseCodeDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    ServiceCategory as ServiceCategoryDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    ServiceDetails as ServiceDetailsDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import ServiceID as ServiceIDDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
-    Namespace,
     EnergyTransferModeEnum,
     EVSEProcessing,
-    UnitSymbol,
     IsolationLevel,
+    Namespace,
+    UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_2.body import EMAID
 from iso15118.shared.messages.iso15118_2.body import (
@@ -185,40 +265,6 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 from iso15118.shared.messages.iso15118_20.common_types import Processing, RationalNumber
 from iso15118.shared.messages.iso15118_20.common_types import (
     ResponseCode as ResponseCodeV20,
-)
-from iso15118.shared.messages.din_spec.body import (
-    SessionSetupReq as SessionSetupReqDINSPEC,
-    SessionSetupRes as SessionSetupResDINSPEC,
-    ServiceDiscoveryReq as ServiceDiscoveryReqDINSPEC,
-    ServiceDiscoveryRes as ServiceDiscoveryResDINSPEC,
-    ServicePaymentSelectionReq as ServicePaymentSelectionReqDINSPEC,
-    ServicePaymentSelectionRes as ServicePaymentSelectionResDINSPEC,
-    ContractAuthenticationReq as ContractAuthenticationReqDINSPEC,
-    ContractAuthenticationRes as ContractAuthenticationResDINSPEC,
-    ChargeParameterDiscoveryReq as ChargeParameterDiscoveryReqDINSPEC,
-    ChargeParameterDiscoveryRes as ChargeParameterDiscoveryResDINSPEC,
-    CableCheckReq as CableCheckReqDINSPEC,
-    CableCheckRes as CableCheckResDINSPEC,
-    PreChargeReq as PreChargeReqDINSPEC,
-    PreChargeRes as PreChargeResDINSPEC,
-    PowerDeliveryReq as PowerDeliveryReqDINSPEC,
-    PowerDeliveryRes as PowerDeliveryResDINSPEC,
-    CurrentDemandReq as CurrentDemandReqDINPEC,
-    CurrentDemandRes as CurrentDemandResDINSPEC,
-    WeldingDetectionReq as WeldingDetectionReqDINSPEC,
-    WeldingDetectionRes as WeldingDetectionResDINSPEC,
-    SessionStopReq as SessionStopReqDINSPEC,
-    SessionStopRes as SessionStopResDINSPEC,
-)
-from iso15118.shared.messages.din_spec.datatypes import (
-    AuthOptionList as AuthOptionListDINSPEC,
-    DCEVSEStatusCode as DCEVSEStatusCodeDINSPEC,
-    ChargeService as ChargeServiceDINSPEC,
-    EVSENotification as EVSENotificationDINSPEC,
-    ResponseCode as ResponseCodeDINSPEC,
-    ServiceDetails as ServiceDetailsDINSPEC,
-    ServiceID as ServiceIDDINSPEC,
-    ServiceCategory as ServiceCategoryDINSPEC,
 )
 
 

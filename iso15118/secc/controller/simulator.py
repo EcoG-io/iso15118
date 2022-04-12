@@ -8,34 +8,40 @@ from typing import List, Optional, Union
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
-    PVEVSEPresentVoltage,
-    PVEVSEPresentCurrent,
-    EVSENotification,
-    DCEVSEStatusCode,
+from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
-    PVEVSEMaxPowerLimit,
+    DCEVSEStatusCode,
+    EVSENotification,
     PVEVSEMaxCurrentLimit,
+    PVEVSEMaxPowerLimit,
     PVEVSEMaxVoltageLimit,
     PVEVSEMinCurrentLimit,
     PVEVSEMinVoltageLimit,
     PVEVSEPeakCurrentRipple,
-    PVEVTargetVoltage,
+    PVEVSEPresentCurrent,
+    PVEVSEPresentVoltage,
     PVEVTargetCurrent,
+    PVEVTargetVoltage,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    PMaxScheduleEntry as PMaxScheduleEntryDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    PMaxScheduleEntryDetails as PMaxScheduleEntryDetailsDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    RelativeTimeInterval as RelativeTimeIntervalDINSPEC,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
-    PMaxScheduleEntry as PMaxScheduleEntryDINSPEC,
-    RelativeTimeInterval as RelativeTimeIntervalDINSPEC,
-    PMaxScheduleEntryDetails as PMaxScheduleEntryDetailsDINSPEC,
 )
 from iso15118.shared.messages.enums import (
+    EnergyTransferModeEnum,
+    IsolationLevel,
     Namespace,
     Protocol,
-    EnergyTransferModeEnum,
     UnitSymbol,
-    IsolationLevel,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,

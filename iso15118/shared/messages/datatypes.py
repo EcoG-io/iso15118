@@ -1,12 +1,14 @@
 from enum import Enum
-from typing import Literal
+from typing import List, Literal
+
 from pydantic import Field, root_validator
+
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
     INT_16_MAX,
     INT_16_MIN,
-    UnitSymbol,
     IsolationLevel,
+    UnitSymbol,
 )
 
 
@@ -402,4 +404,27 @@ class DCEVSEChargeParameter(BaseModel):
     )
     evse_energy_to_be_delivered: PVEVSEEnergyToBeDelivered = Field(
         None, alias="EVSEEnergyToBeDelivered"
+    )
+
+
+class SelectedService(BaseModel):
+    """See section 9.5.2.14 in DIN SPEC 70121"""
+
+    """See section 8.5.2.25 in ISO 15118-2"""
+
+    # XSD type unsignedShort (16 bit integer) with value range [0..65535]
+    service_id: int = Field(..., ge=0, le=65535, alias="ServiceID")
+    # XSD type unsignedShort (16 bit integer) with value range [0..65535]
+    # Table 87 says short, Table 106 says unsignedShort. We go with
+    # unsignedShort as it makes more sense (no negative values).
+    parameter_set_id: int = Field(None, ge=0, le=65535, alias="ParameterSetID")
+
+
+class SelectedServiceList(BaseModel):
+    """See section 9.5.2.13 in DIN SPEC 70121"""
+
+    """See section 8.5.2.24 in ISO 15118-2"""
+
+    selected_service: List[SelectedService] = Field(
+        ..., max_items=16, alias="SelectedService"
     )

@@ -6,7 +6,7 @@ SessionStopRes.
 
 import logging
 from time import time
-from typing import Union, List
+from typing import Any, List, Optional, Type, Union
 
 from iso15118.evcc import evcc_settings
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
@@ -15,58 +15,59 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
+from iso15118.shared.messages.datatypes import (
     DCEVChargeParams,
     DCEVSEStatus,
     DCEVSEStatusCode,
     EVSENotification,
+    SelectedService,
+    SelectedServiceList,
 )
 from iso15118.shared.messages.din_spec.body import (
-    SessionSetupRes,
+    CableCheckReq,
+    CableCheckRes,
+    ChargeParameterDiscoveryReq,
+    ChargeParameterDiscoveryRes,
+    ContractAuthenticationReq,
+    ContractAuthenticationRes,
+    CurrentDemandReq,
+    CurrentDemandRes,
+    PowerDeliveryReq,
+    PowerDeliveryRes,
+    PreChargeReq,
+    PreChargeRes,
     ServiceDiscoveryReq,
     ServiceDiscoveryRes,
     ServicePaymentSelectionReq,
     ServicePaymentSelectionRes,
-    ContractAuthenticationReq,
-    ContractAuthenticationRes,
-    ChargeParameterDiscoveryReq,
-    SessionStopRes,
-    CableCheckReq,
-    ChargeParameterDiscoveryRes,
-    CableCheckRes,
-    PreChargeReq,
-    PreChargeRes,
-    PowerDeliveryReq,
-    PowerDeliveryRes,
-    CurrentDemandReq,
-    WeldingDetectionReq,
-    CurrentDemandRes,
-    WeldingDetectionRes,
+    SessionSetupRes,
     SessionStopReq,
+    SessionStopRes,
+    WeldingDetectionReq,
+    WeldingDetectionRes,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     ChargeService,
-    SelectedService,
-    SelectedServiceList,
     DCEVChargeParameter,
     DCEVStatus,
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.din_spec.timeouts import Timeouts
 from iso15118.shared.messages.enums import (
+    AuthEnum,
     EnergyTransferModeEnum,
-    Protocol,
     EVSEProcessing,
     IsolationLevel,
+    Namespace,
+    Protocol,
 )
-from iso15118.shared.messages.enums import Namespace, AuthEnum
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
 from iso15118.shared.messages.timeouts import Timeouts as TimeoutsShared
 from iso15118.shared.notifications import StopNotification
-from iso15118.shared.states import Terminate
+from iso15118.shared.states import State, Terminate
 
 logger = logging.getLogger(__name__)
 
@@ -303,7 +304,7 @@ class ContractAuthentication(StateEVCC):
         # ie, EVSE returns EVSEProcessing.ONGOING response
         # 2. Move on to next state: ChargeParameterDiscoveryReq
         next_state = None
-        next_message = ContractAuthenticationReq()
+        next_message: Any = ContractAuthenticationReq()
         timeout = Timeouts.CONTRACT_AUTHENTICATION_REQ
 
         if contract_authentication_res.evse_processing == EVSEProcessing.FINISHED:
@@ -407,7 +408,7 @@ class ChargeParameterDiscovery(StateEVCC):
             elif self.comm_session.ongoing_timer == -1:
                 self.comm_session.ongoing_timer = time()
 
-            charge_parameter_discovery_req: ChargeParameterDiscoveryRes = (
+            charge_parameter_discovery_req: ChargeParameterDiscoveryReq = (
                 self.build_charge_parameter_discovery_req()
             )
 
@@ -566,7 +567,6 @@ class PreCharge(StateEVCC):
             )
         else:
             logger.debug("EVSE still precharging")
-            elapsed_time: float = 0
             if self.comm_session.ongoing_timer >= 0:
                 elapsed_time = time() - self.comm_session.ongoing_timer
                 if elapsed_time > Timeouts.V2G_EVCC_PRE_CHARGE_TIMEOUT:
@@ -795,7 +795,7 @@ class WeldingDetection(StateEVCC):
             self.comm_session.ongoing_timer = time()
 
         next_state = None
-        next_request = WeldingDetectionReq(
+        next_request: Any = WeldingDetectionReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec()
         )
         next_timeout = Timeouts.WELDING_DETECTION_REQ

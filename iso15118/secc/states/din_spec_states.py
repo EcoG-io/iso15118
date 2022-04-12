@@ -6,7 +6,7 @@ SessionStopReq.
 
 import logging
 import time
-from typing import Union, Type
+from typing import Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.states.secc_state import StateSECC
@@ -15,47 +15,47 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolRes,
 )
 from iso15118.shared.messages.din_spec.body import (
+    CableCheckReq,
+    CableCheckRes,
+    ChargeParameterDiscoveryReq,
+    ChargeParameterDiscoveryRes,
+    ContractAuthenticationReq,
+    ContractAuthenticationRes,
+    CurrentDemandReq,
+    CurrentDemandRes,
+    PowerDeliveryReq,
+    PowerDeliveryRes,
+    PreChargeReq,
+    PreChargeRes,
     ResponseCode,
-    SessionSetupReq,
-    SessionSetupRes,
     ServiceDiscoveryReq,
     ServiceDiscoveryRes,
     ServicePaymentSelectionReq,
     ServicePaymentSelectionRes,
-    ContractAuthenticationReq,
-    ContractAuthenticationRes,
+    SessionSetupReq,
+    SessionSetupRes,
     SessionStopReq,
     SessionStopRes,
-    ChargeParameterDiscoveryRes,
-    ChargeParameterDiscoveryReq,
-    CableCheckReq,
-    CableCheckRes,
-    PreChargeReq,
-    PreChargeRes,
-    PowerDeliveryRes,
-    PowerDeliveryReq,
-    CurrentDemandRes,
-    CurrentDemandReq,
     WeldingDetectionReq,
     WeldingDetectionRes,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
+    AuthOptionList,
+    ChargeService,
+    SAScheduleList,
     ServiceCategory,
     ServiceDetails,
-    ChargeService,
-    AuthOptionList,
     ServiceID,
-    SAScheduleList,
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.din_spec.timeouts import Timeouts
 from iso15118.shared.messages.enums import (
     AuthEnum,
+    DCEVErrorCode,
+    EVSEProcessing,
+    IsolationLevel,
     Namespace,
     Protocol,
-    EVSEProcessing,
-    DCEVErrorCode,
-    IsolationLevel,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -63,7 +63,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.security import get_random_bytes
-from iso15118.shared.states import Terminate, State
+from iso15118.shared.states import State, Terminate
 
 logger = logging.getLogger(__name__)
 
@@ -248,7 +248,9 @@ class ServicePaymentSelection(StateSECC):
         if service_payment_selection_req.selected_payment_option != AuthEnum.EIM_V2:
             self.stop_state_machine(
                 f"Offered payment option  "
-                f"{service_payment_selection_req.selected_payment_option} not accepted."
+                f"{service_payment_selection_req.selected_payment_option} not accepted.",
+                message,
+                ResponseCode.FAILED_PAYMENT_SELECTION_INVALID,
             )
             return
 
@@ -256,7 +258,11 @@ class ServicePaymentSelection(StateSECC):
             len(service_payment_selection_req.selected_service_list.selected_service)
             == 0
         ):
-            self.stop_state_machine("No service was selected")
+            self.stop_state_machine(
+                "No service was selected",
+                message,
+                ResponseCode.FAILED_SERVICE_SELECTION_INVALID,
+            )
             return
 
         service_payment_selection_res: ServicePaymentSelectionRes = (
@@ -586,6 +592,7 @@ class PowerDelivery(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_dinspec(
@@ -615,7 +622,7 @@ class PowerDelivery(StateSECC):
             f"{'Ready' if power_delivery_req.ready_to_charge else 'Stopping'}"
         )
 
-        next_state: Type[State]
+        next_state: Optional[Type[State]] = None
         if power_delivery_req.ready_to_charge:
             self.comm_session.evse_controller.set_hlc_charging(True)
             next_state = CurrentDemand

@@ -32,11 +32,11 @@ from iso15118.shared.iexi_codec import IEXICodec
 from iso15118.shared.messages.app_protocol import AppProtocol, SupportedAppProtocolReq
 from iso15118.shared.messages.enums import (
     AuthEnum,
+    DINPayloadTypes,
     ISOV2PayloadTypes,
     ISOV20PayloadTypes,
     Namespace,
     Protocol,
-    DINPayloadTypes,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import ChargingSession
 from iso15118.shared.messages.sdp import SDPRequest, SDPResponse, Security, Transport

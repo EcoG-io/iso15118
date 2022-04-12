@@ -13,7 +13,6 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.enums import Namespace
 from iso15118.shared.messages.din_spec.body import BodyBase as BodyBaseDINSPEC
 from iso15118.shared.messages.din_spec.body import (
     SessionSetupReq as SessionSetupReqDINSPEC,
@@ -23,6 +22,7 @@ from iso15118.shared.messages.din_spec.datatypes import (
     ResponseCode as ResponseCodeDINSPEC,
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
+from iso15118.shared.messages.enums import Namespace
 from iso15118.shared.messages.iso15118_2.body import BodyBase
 from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupReq as SessionSetupReqV2,
@@ -104,7 +104,10 @@ class StateSECC(State, ABC):
         ],
         expected_msg_types: List[
             Union[
-                Type[SupportedAppProtocolReq], Type[BodyBaseDINSPEC], Type[V2GRequest]
+                Type[SupportedAppProtocolReq],
+                Type[BodyBaseDINSPEC],
+                Type[V2GRequest],
+                Type[BodyBase],
             ]
         ],
         expect_first: bool = True,
@@ -123,7 +126,12 @@ class StateSECC(State, ABC):
             V2GMessageDINSPEC,
         ],
         expected_msg_types: List[
-            Union[Type[SupportedAppProtocolReq], Type[BodyBase], Type[V2GRequest]]
+            Union[
+                Type[SupportedAppProtocolReq],
+                Type[BodyBase],
+                Type[V2GRequest],
+                Type[BodyBaseDINSPEC],
+            ]
         ],
         expect_first: bool = True,
     ) -> V2GMessageV2:
@@ -139,7 +147,12 @@ class StateSECC(State, ABC):
             V2GMessageDINSPEC,
         ],
         expected_msg_types: List[
-            Union[Type[SupportedAppProtocolReq], Type[BodyBase], Type[V2GRequest]]
+            Union[
+                Type[SupportedAppProtocolReq],
+                Type[BodyBase],
+                Type[V2GRequest],
+                Type[BodyBaseDINSPEC],
+            ]
         ],
         expect_first: bool = True,
     ) -> V2GMessageV20:

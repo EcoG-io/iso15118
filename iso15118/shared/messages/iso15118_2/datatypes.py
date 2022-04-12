@@ -16,24 +16,24 @@ from typing import List
 
 from pydantic import Field, conbytes, constr, root_validator, validator
 
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
+from iso15118.shared.messages import BaseModel
+from iso15118.shared.messages.datatypes import (
+    EVSEStatus,
+    PhysicalValue,
     PVEAmount,
-    PVEVMaxVoltage,
-    PVEVMaxCurrent,
-    PVEVMinCurrent,
-    PVEVSENominalVoltage,
-    PVEVSEMaxCurrent,
-    PVPMax,
-    PVStartValue,
-    PVEVMaxCurrentLimit,
-    PVEVMaxPowerLimit,
-    PVEVMaxVoltageLimit,
     PVEVEnergyCapacity,
     PVEVEnergyRequest,
-    PhysicalValue,
-    EVSEStatus,
+    PVEVMaxCurrent,
+    PVEVMaxCurrentLimit,
+    PVEVMaxPowerLimit,
+    PVEVMaxVoltage,
+    PVEVMaxVoltageLimit,
+    PVEVMinCurrent,
+    PVEVSEMaxCurrent,
+    PVEVSENominalVoltage,
+    PVPMax,
+    PVStartValue,
 )
-from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
     INT_8_MAX,
     INT_8_MIN,
@@ -41,8 +41,8 @@ from iso15118.shared.messages.enums import (
     INT_16_MIN,
     UINT_32_MAX,
     AuthEnum,
-    EnergyTransferModeEnum,
     DCEVErrorCode,
+    EnergyTransferModeEnum,
 )
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
 from iso15118.shared.validators import one_field_must_be_set
@@ -465,26 +465,9 @@ class ResponseCode(str, Enum):
     FAILED_CERTIFICATE_REVOKED = "FAILED_CertificateRevoked"
 
 
-class SelectedService(BaseModel):
-    """See section 8.5.2.25 in ISO 15118-2"""
-
-    # XSD type unsignedShort (16 bit integer) with value range [0..65535]
-    service_id: int = Field(..., ge=0, le=65535, alias="ServiceID")
-    # XSD type unsignedShort (16 bit integer) with value range [0..65535]
-    # Table 87 says short, Table 106 says unsignedShort. We go with
-    # unsignedShort as it makes more sense (no negative values).
-    parameter_set_id: int = Field(None, ge=0, le=65535, alias="ParameterSetID")
-
-
-class SelectedServiceList(BaseModel):
-    """See section 8.5.2.24 in ISO 15118-2"""
-
-    selected_service: List[SelectedService] = Field(
-        ..., max_items=16, alias="SelectedService"
-    )
-
-
 class ServiceList(BaseModel):
+    """See section 9.5.2.13 in DIN SPEC 70121"""
+
     """See section 8.5.2.2 in ISO 15118-2"""
 
     services: List[ServiceDetails] = Field(..., max_items=8, alias="Service")

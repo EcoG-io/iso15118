@@ -14,25 +14,27 @@ element names by using the 'alias' attribute.
 from enum import Enum, IntEnum
 from typing import List
 
+from pydantic import Field, conbytes, root_validator
+
 from iso15118.shared.messages import BaseModel
-from iso15118.shared.messages.datatypes_iso15118_2_dinspec import (
+from iso15118.shared.messages.datatypes import (
     PhysicalValue,
-    PVEVMaxPowerLimit,
-    PVEVMaxVoltageLimit,
     PVEVEnergyCapacity,
     PVEVEnergyRequest,
     PVEVMaxCurrentLimit,
+    PVEVMaxPowerLimit,
+    PVEVMaxVoltageLimit,
 )
 from iso15118.shared.messages.enums import (
     INT_8_MAX,
     INT_8_MIN,
     INT_16_MAX,
     INT_16_MIN,
-    EnergyTransferModeEnum,
+    AuthEnum,
     DCEVErrorCode,
+    EnergyTransferModeEnum,
 )
 from iso15118.shared.validators import one_field_must_be_set
-from pydantic import Field, conbytes, root_validator
 
 # https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
 # constrained types
@@ -216,23 +218,6 @@ class ServiceParameterList(BaseModel):
     parameter_set: List[ParameterSet] = Field(..., max_items=255, alias="ParameterSet")
 
 
-class SelectedService(BaseModel):
-    """See section 9.5.2.14 in DIN SPEC 70121"""
-
-    # XSD type unsignedShort (16 bit integer) with value range [0..65535]
-    service_id: int = Field(..., ge=0, le=65535, alias="ServiceID")
-    # XSD type unsignedShort (16 bit integer) with value range [0..65535]
-    parameter_set_id: int = Field(None, ge=0, le=65535, alias="ParameterSetID")
-
-
-class SelectedServiceList(BaseModel):
-    """See section 9.5.2.13 in DIN SPEC 70121"""
-
-    selected_service: List[SelectedService] = Field(
-        ..., max_items=16, alias="SelectedService"
-    )
-
-
 class CostKind(str, Enum):
     """Not used in DIN SPEC 70121"""
 
@@ -397,18 +382,13 @@ class DCEVPowerDeliveryParameter(BaseModel):
     charging_complete: bool = Field(..., alias="ChargingComplete")
 
 
-class PaymentOption(str, Enum):
-    CONTRACT = "Contract"
-    EXTERNAL_PAYMENT = "ExternalPayment"
-
-
 class AuthOptionList(BaseModel):
     """
     See section 9.5.2.5 in DIN SPEC 70121
     For DIN SPEC, this list will only contain one item - External Payment
     """
 
-    auth_options: List[PaymentOption] = Field(
+    auth_options: List[AuthEnum] = Field(
         ..., min_items=1, max_items=2, alias="PaymentOption"
     )
 
