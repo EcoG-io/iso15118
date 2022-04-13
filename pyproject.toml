@@ -4,7 +4,9 @@ version = "0.3.0"
 description = "Implementation of DIN SPEC 70121, ISO 15118-2 and -20 specs for SECC"
 authors = ["André Duarte <andre@switch-ev.com>",
            "Dr. Marc Mültin <marc@switch-ev.com>",
-           "Shalin Nijel <shalin@switch-ev.com"]
+           "Shalin Nijel <shalin@switch-ev.com>",
+           "Milton Eduardo Sosa <milton@switch-ev.com>",
+           "Lukas Lombirser <lukas.lombriser@designwerk.com"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
