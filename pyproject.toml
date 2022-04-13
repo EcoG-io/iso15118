@@ -6,7 +6,7 @@ authors = ["André Duarte <andre@switch-ev.com>",
            "Dr. Marc Mültin <marc@switch-ev.com>",
            "Shalin Nijel <shalin@switch-ev.com>",
            "Milton Eduardo Sosa <milton@switch-ev.com>",
-           "Lukas Lombirser <lukas.lombriser@designwerk.com"]
+           "Lukas Lombriser <lukas.lombriser@designwerk.com"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
