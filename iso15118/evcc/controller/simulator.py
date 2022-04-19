@@ -5,7 +5,7 @@ EVControllerInterface.
 """
 import logging
 import random
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
@@ -41,61 +41,60 @@ from iso15118.shared.messages.enums import (
     DCEVErrorCode,
     EnergyTransferModeEnum,
     Namespace,
+    PriceAlgorithm,
     Protocol,
+    ServiceV20,
     UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
-    ChargeProgress,
+    ChargeProgress as ChargeProgressV2,
     ChargingProfile,
     DCEVChargeParameter,
     DCEVPowerDeliveryParameter,
     DCEVStatus,
     ProfileEntryDetails,
-    SAScheduleTupleEntry,
+    SAScheduleTuple,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
     BPTACChargeParameterDiscoveryReqParams,
-)
-from iso15118.shared.messages.iso15118_20.common_messages import EMAIDList
-from iso15118.shared.messages.enums import (
-    Namespace,
-    Protocol,
-    ServiceV20,
-    PriceAlgorithm,
-)
-from iso15118.shared.messages.iso15118_20.ac import (
-    ACChargeParameterDiscoveryReqParams,
-    BPTACChargeParameterDiscoveryReqParams, ScheduledACChargeLoopReqParams,
-    BPTScheduledACChargeLoopReqParams, DynamicACChargeLoopReqParams,
     BPTDynamicACChargeLoopReqParams,
+    BPTScheduledACChargeLoopReqParams,
+    DynamicACChargeLoopReqParams,
+    ScheduledACChargeLoopReqParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
-    EMAIDList,
-    ParameterSet as ParameterSetV20,
-    ScheduledScheduleExchangeReqParams,
+    ChargeProgress as ChargeProgressV20,
+    DynamicEVPowerProfile,
     DynamicScheduleExchangeReqParams,
-    EVEnergyOffer,
-    EVPowerSchedule,
-    EVPowerScheduleEntryList,
+    DynamicScheduleExchangeResParams,
+    EMAIDList,
     EVAbsolutePriceSchedule,
+    EVEnergyOffer,
+    EVPowerProfile,
+    EVPowerSchedule,
     EVPowerScheduleEntry,
-    EVPriceRuleStackList,
-    EVPriceRuleStack,
+    EVPowerScheduleEntryList,
     EVPriceRule,
+    EVPriceRuleStack,
+    EVPriceRuleStackList,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    ParameterSet as ParameterSetV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    PowerToleranceAcceptance,
+    ScheduledEVPowerProfile,
+    ScheduledScheduleExchangeReqParams,
+    ScheduledScheduleExchangeResParams,
     SelectedEnergyService,
     SelectedVAS,
-    ScheduledScheduleExchangeResParams,
-    DynamicScheduleExchangeResParams,
-    EVPowerProfile,
-    ChargeProgress, ScheduledEVPowerProfile, PowerToleranceAcceptance,
-    DynamicEVPowerProfile,
 )
 from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
 from iso15118.shared.messages.iso15118_20.dc import (
-    DCChargeParameterDiscoveryReqParams,
     BPTDCChargeParameterDiscoveryReqParams,
+    DCChargeParameterDiscoveryReqParams,
 )
 from iso15118.shared.network import get_nic_mac_address
 
@@ -191,7 +190,7 @@ class SimEVController(EVControllerInterface):
         )
         return selected_service
 
-    def get_charge_params_v2(self) -> ChargeParamsV2:
+    def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
         """Overrides EVControllerInterface.get_charge_params_v2()."""
         ac_charge_params = None
         dc_charge_params = None
@@ -351,10 +350,8 @@ class SimEVController(EVControllerInterface):
         return dynamic_params
 
     def process_scheduled_se_params(
-            self,
-            scheduled_params: ScheduledScheduleExchangeResParams,
-            pause: bool
-    ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
+        self, scheduled_params: ScheduledScheduleExchangeResParams, pause: bool
+    ) -> Tuple[Optional[EVPowerProfile], ChargeProgressV20]:
         """Overrides EVControllerInterface.process_scheduled_se_params()."""
         is_ready = bool(random.getrandbits(1))
         if not is_ready:
@@ -362,12 +359,12 @@ class SimEVController(EVControllerInterface):
             # TODO The standard doesn't clearly define what the ChargeProgress should
             #      be if EVProcessing is set to ONGOING. Will assume
             #      ChargeProgress.START but check with standardisation community
-            return None, ChargeProgress.START
+            return None, ChargeProgressV20.START
 
-        charge_progress = ChargeProgress.START
+        charge_progress = ChargeProgressV20.START
 
         if pause:
-            charge_progress = ChargeProgress.STOP
+            charge_progress = ChargeProgressV20.STOP
 
         # Let's just select the first schedule offered
         selected_schedule = scheduled_params.schedule_tuples.pop()
@@ -378,8 +375,7 @@ class SimEVController(EVControllerInterface):
         ev_power_schedule_entries: List[EVPowerScheduleEntry] = []
         for entry in charging_schedule_entries:
             ev_power_schedule_entry = EVPowerScheduleEntry(
-                duration=entry.duration,
-                power=entry.power
+                duration=entry.duration, power=entry.power
             )
             ev_power_schedule_entries.append(ev_power_schedule_entry)
 
@@ -389,22 +385,20 @@ class SimEVController(EVControllerInterface):
 
         scheduled_profile = ScheduledEVPowerProfile(
             selected_schedule_tuple_id=selected_schedule.schedule_tuple_id,
-            power_tolerance_acceptance=PowerToleranceAcceptance.CONFIRMED
+            power_tolerance_acceptance=PowerToleranceAcceptance.CONFIRMED,
         )
 
         ev_power_profile = EVPowerProfile(
             time_anchor=0,
             entry_list=ev_power_profile_entry_list,
-            scheduled_profile=scheduled_profile
+            scheduled_profile=scheduled_profile,
         )
 
         return ev_power_profile, charge_progress
 
     def process_dynamic_se_params(
-            self,
-            dynamic_params: DynamicScheduleExchangeResParams,
-            pause: bool
-    ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
+        self, dynamic_params: DynamicScheduleExchangeResParams, pause: bool
+    ) -> Tuple[Optional[EVPowerProfile], ChargeProgressV20]:
         """Overrides EVControllerInterface.process_dynamic_se_params()."""
         is_ready = bool(random.getrandbits(1))
         if not is_ready:
@@ -412,16 +406,15 @@ class SimEVController(EVControllerInterface):
             # TODO The standard doesn't clearly define what the ChargeProgress should
             #      be if EVProcessing is set to ONGOING. Will assume
             #      ChargeProgress.START but check with standardisation community
-            return None, ChargeProgress.START
+            return None, ChargeProgressV20.START
 
-        charge_progress = ChargeProgress.START
+        charge_progress = ChargeProgressV20.START
 
         if pause:
-            charge_progress = ChargeProgress.STOP
+            charge_progress = ChargeProgressV20.STOP
 
         ev_power_schedule_entry = EVPowerScheduleEntry(
-            duration=3600,
-            power=RationalNumber(exponent=0, value=11000)
+            duration=3600, power=RationalNumber(exponent=0, value=11000)
         )
 
         ev_power_profile_entry_list = EVPowerScheduleEntryList(
@@ -431,7 +424,7 @@ class SimEVController(EVControllerInterface):
         ev_power_profile = EVPowerProfile(
             time_anchor=0,
             entry_list=ev_power_profile_entry_list,
-            dynamic_profile=DynamicEVPowerProfile()
+            dynamic_profile=DynamicEVPowerProfile(),
         )
 
         return ev_power_profile, charge_progress
@@ -477,7 +470,7 @@ class SimEVController(EVControllerInterface):
 
     def process_sa_schedules_v2(
         self, sa_schedules: List[SAScheduleTuple]
-    ) -> Tuple[ChargeProgress, int, ChargingProfile]:
+    ) -> Tuple[ChargeProgressV2, int, ChargingProfile]:
         """Overrides EVControllerInterface.process_sa_schedules()."""
         secc_schedule = sa_schedules.pop()
         evcc_profile_entry_list: List[ProfileEntryDetails] = []
@@ -486,7 +479,7 @@ class SimEVController(EVControllerInterface):
         # pendant coming from the EVCC (after having processed the offered
         # schedule(s)) is called 'profile'. Therefore, we use the prefix
         # 'schedule_' for data from the SECC, and 'profile_' for data from the EVCC.
-        for schedule_entry_details in secc_schedule.p_max_schedule.entry_details:
+        for schedule_entry_details in secc_schedule.p_max_schedule.schedule_entries:
             profile_entry_details = ProfileEntryDetails(
                 start=schedule_entry_details.time_interval.start,
                 max_power=schedule_entry_details.p_max,
@@ -512,7 +505,7 @@ class SimEVController(EVControllerInterface):
         #      verify each sales tariff with the mobility operator sub 2 certificate
 
         return (
-            ChargeProgress.START,
+            ChargeProgressV2.START,
             secc_schedule.sa_schedule_tuple_id,
             ChargingProfile(profile_entries=evcc_profile_entry_list),
         )
@@ -536,23 +529,6 @@ class SimEVController(EVControllerInterface):
 
     def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         return None
-
-    def get_dc_charge_params(self) -> DCEVChargeParams:
-        return self.dc_ev_charge_params
-
-    def get_dc_ev_status_dinspec(self) -> DCEVStatusDINSPEC:
-        return DCEVStatusDINSPEC(
-            ev_ready=True,
-            ev_error_code=DCEVErrorCode.NO_ERROR,
-            ev_ress_soc=60,
-        )
-
-    def get_dc_ev_status(self) -> DCEVStatus:
-        return DCEVStatus(
-            ev_ready=True,
-            ev_error_code=DCEVErrorCode.NO_ERROR,
-            ev_ress_soc=60,
-        )
 
     def ready_to_charge(self) -> bool:
         return self.continue_charging()
@@ -619,13 +595,13 @@ class SimEVController(EVControllerInterface):
     def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
         """Overrides EVControllerInterface.get_ac_charge_params_v20()."""
         return ACChargeParameterDiscoveryReqParams(
-                ev_max_charge_power=RationalNumber(exponent=3, value=3),
-                ev_max_charge_power_l2=RationalNumber(exponent=3, value=3),
-                ev_max_charge_power_l3=RationalNumber(exponent=3, value=3),
-                ev_min_charge_power=RationalNumber(exponent=0, value=100),
-                ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
-                ev_min_charge_power_l3=RationalNumber(exponent=0, value=100)
-            )
+            ev_max_charge_power=RationalNumber(exponent=3, value=3),
+            ev_max_charge_power_l2=RationalNumber(exponent=3, value=3),
+            ev_max_charge_power_l3=RationalNumber(exponent=3, value=3),
+            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+            ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+        )
 
     def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryReqParams:
         """Overrides EVControllerInterface.get_bpt_ac_charge_params_v20()."""
@@ -644,7 +620,7 @@ class SimEVController(EVControllerInterface):
         )
 
     def get_bpt_scheduled_ac_charge_loop_params(
-            self
+        self,
     ) -> BPTScheduledACChargeLoopReqParams:
         """Overrides EVControllerInterface.get_bpt_scheduled_ac_charge_loop_params()."""
         return BPTScheduledACChargeLoopReqParams(
@@ -684,10 +660,22 @@ class SimEVController(EVControllerInterface):
     # |                          DC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
 
-    def get_dc_charge_params_v2(self) -> ChargeParamsV2:
-        """Overrides EVControllerInterface.get_dc_charge_params_v2()."""
-        raise NotImplementedError(
-            "DC charge parameters for ISO 15118-2 not yet impmlemented"
+    def get_dc_charge_params(self) -> DCEVChargeParams:
+        """Applies to both DIN SPEC and 15118-2"""
+        return self.dc_ev_charge_params
+
+    def get_dc_ev_status_dinspec(self) -> DCEVStatusDINSPEC:
+        return DCEVStatusDINSPEC(
+            ev_ready=True,
+            ev_error_code=DCEVErrorCode.NO_ERROR,
+            ev_ress_soc=60,
+        )
+
+    def get_dc_ev_status(self) -> DCEVStatus:
+        return DCEVStatus(
+            ev_ready=True,
+            ev_error_code=DCEVErrorCode.NO_ERROR,
+            ev_ress_soc=60,
         )
 
     def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryReqParams:

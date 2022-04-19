@@ -51,6 +51,6 @@ class TestEvScenarios:
         # V2G2-533
         self.comm_session.stop_reason = StopNotification(True, "pytest")
         power_delivery = PowerDelivery(self.comm_session)
-        self.comm_session.charging_session_stop = ChargingSession.TERMINATE
+        self.comm_session.charging_session_stop_v2 = ChargingSession.TERMINATE
         power_delivery.process_message(message=get_v2g_message_power_delivery_res())
         assert power_delivery.next_state == WeldingDetection

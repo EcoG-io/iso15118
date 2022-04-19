@@ -5,15 +5,17 @@ This module contains the code to retrieve (hardware-related) data from the EVSE
 import logging
 import random
 import time
-from typing import List, Optional, Union
+from dataclasses import dataclass
+from typing import List, Optional
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
-from iso15118.shared.exceptions import InvalidProtocolError
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
     DCEVSEStatusCode,
-    EVSENotification,
+)
+from iso15118.shared.messages.datatypes import EVSENotification as EVSENotificationV2
+from iso15118.shared.messages.datatypes import (
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
     PVEVSEMaxVoltageLimit,
@@ -38,21 +40,31 @@ from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.enums import (
+    ACConnector,
+    BPTChannel,
+    Contactor,
+    ControlMode,
+    DCConnector,
     EnergyTransferModeEnum,
-    EVSENotification as EVSENotificationV2,
+    GeneratorMode,
+    GridCodeIslandingDetectionMode,
     IsolationLevel,
+    MobilityNeedsMode,
     Namespace,
+    ParameterName,
+    PriceAlgorithm,
+    Pricing,
     Protocol,
+    ServiceV20,
     UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
 )
+from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import (
-    MeterInfo as MeterInfoV2,
     PMaxSchedule,
-)
     PMaxScheduleEntry,
     PVEVSEMaxCurrent,
     PVEVSENominalVoltage,
@@ -62,66 +74,65 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     SalesTariffEntry,
     SAScheduleTuple,
 )
-from iso15118.shared.messages.enums import (
-    Namespace,
-    Protocol,
-    ServiceV20,
-    ParameterName,
-    ControlMode,
-    DCConnector,
-    MobilityNeedsMode,
-    Pricing,
-    PriceAlgorithm, ACConnector, GeneratorMode, BPTChannel,
-    GridCodeIslandingDetectionMode, Contactor,
-)
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryResParams,
-    BPTACChargeParameterDiscoveryResParams, ScheduledACChargeLoopResParams,
-    BPTScheduledACChargeLoopResParams, DynamicACChargeLoopResParams,
+    BPTACChargeParameterDiscoveryResParams,
     BPTDynamicACChargeLoopResParams,
+    BPTScheduledACChargeLoopResParams,
+    DynamicACChargeLoopResParams,
+    ScheduledACChargeLoopResParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
+    AbsolutePriceSchedule,
+    AdditionalService,
+    AdditionalServiceList,
+    ChargingSchedule,
+    DynamicScheduleExchangeResParams,
+    OverstayRule,
+    OverstayRuleList,
+    Parameter,
+    ParameterSet,
+    PowerSchedule,
+    PowerScheduleEntry,
+    PowerScheduleEntryList,
+    PriceLevelSchedule,
+    PriceLevelScheduleEntry,
+    PriceLevelScheduleEntryList,
+    PriceRule,
+    PriceRuleStack,
+    PriceRuleStackList,
     ProviderID,
+    ScheduledScheduleExchangeResParams,
+    ScheduleExchangeReq,
+    ScheduleTuple,
+    SelectedEnergyService,
     Service,
     ServiceList,
     ServiceParameterList,
-    ParameterSet,
-    Parameter,
-    SelectedEnergyService,
-    ScheduledScheduleExchangeResParams,
-    DynamicScheduleExchangeResParams,
-    ScheduleTuple,
-    ChargingSchedule,
-    PowerSchedule,
-    AbsolutePriceSchedule,
-    PowerScheduleEntryList,
-    PowerScheduleEntry,
-    TaxRuleList,
-    PriceRuleStackList,
-    OverstayRuleList,
-    AdditionalServiceList,
     TaxRule,
-    PriceRuleStack,
-    PriceRule,
-    OverstayRule,
-    AdditionalService,
-    PriceLevelSchedule,
-    PriceLevelScheduleEntryList,
-    PriceLevelScheduleEntry,
-    ScheduleExchangeReq,
+    TaxRuleList,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
-    MeterInfo as MeterInfoV20,
-    RationalNumber,
-    EVSEStatus,
-    EVSENotification as EVSENotificationV20
+    EVSENotification as EVSENotificationV20,
 )
+from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
+from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
+from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
 from iso15118.shared.messages.iso15118_20.dc import (
-    DCChargeParameterDiscoveryResParams,
     BPTDCChargeParameterDiscoveryResParams,
+    DCChargeParameterDiscoveryResParams,
 )
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class EVDataContext:
+    dc_current: Optional[int] = None
+    dc_voltage: Optional[int] = None
+    ac_current: Optional[dict] = None  # {"l1": 10, "l2": 10, "l3": 10}
+    ac_voltage: Optional[dict] = None  # {"l1": 230, "l2": 230, "l3": 230}
+    soc: Optional[int] = None  # 0-100
 
 
 class SimEVSEController(EVSEControllerInterface):
@@ -131,6 +142,10 @@ class SimEVSEController(EVSEControllerInterface):
 
     def __init__(self):
         self.contactor = Contactor.OPENED
+        self.ev_data_context = EVDataContext()
+
+    def reset_ev_data_context(self):
+        self.ev_data_context = EVDataContext()
 
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
@@ -335,7 +350,7 @@ class SimEVSEController(EVSEControllerInterface):
         return service_list
 
     def get_service_parameter_list(
-            self, service_id: int
+        self, service_id: int
     ) -> Optional[ServiceParameterList]:
         """Overrides EVSEControllerInterface.get_service_parameter_list()."""
         if service_id == ServiceV20.AC.service_id:
@@ -499,7 +514,7 @@ class SimEVSEController(EVSEControllerInterface):
 
         # Putting the list of SAScheduleTuple entries together
         sa_schedule_tuple = SAScheduleTuple(
-            tuple_id=1,
+            sa_schedule_tuple_id=1,
             p_max_schedule=p_max_schedule,
             sales_tariff=sales_tariff,
         )
@@ -561,8 +576,7 @@ class SimEVSEController(EVSEControllerInterface):
     def get_evse_status(self) -> EVSEStatus:
         """Overrides EVSEControllerInterface.get_evse_status()."""
         return EVSEStatus(
-            notification_max_delay=0,
-            evse_notification=EVSENotificationV20.TERMINATE
+            notification_max_delay=0, evse_notification=EVSENotificationV20.TERMINATE
         )
 
     # ============================================================================
@@ -574,7 +588,7 @@ class SimEVSEController(EVSEControllerInterface):
         return ACEVSEStatus(
             notification_max_delay=0,
             evse_notification=EVSENotificationV2.NONE,
-            rcd=False
+            rcd=False,
         )
 
     def get_ac_charge_params_v2(self) -> ACEVSEChargeParameter:
@@ -641,7 +655,7 @@ class SimEVSEController(EVSEControllerInterface):
         )
 
     def get_bpt_scheduled_ac_charge_loop_params(
-            self
+        self,
     ) -> BPTScheduledACChargeLoopResParams:
         """Overrides EVControllerInterface.get_bpt_scheduled_ac_charge_loop_params()."""
         return BPTScheduledACChargeLoopResParams(
@@ -682,12 +696,12 @@ class SimEVSEController(EVSEControllerInterface):
             evse_status_code=DCEVSEStatusCode.EVSE_READY,
         )
 
-    def get_dc_charge_params_v2(self) -> DCEVSEChargeParameter:
+    def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_dc_evse_charge_parameter()."""
         return DCEVSEChargeParameter(
             dc_evse_status=DCEVSEStatus(
                 notification_max_delay=100,
-                evse_notification=EVSENotification.NONE,
+                evse_notification=EVSENotificationV2.NONE,
                 evse_isolation_status=IsolationLevel.VALID,
                 evse_status_code=DCEVSEStatusCode.EVSE_READY,
             ),
@@ -757,7 +771,7 @@ class SimEVSEController(EVSEControllerInterface):
             evse_min_charge_current=RationalNumber(exponent=0, value=10),
             evse_max_voltage=RationalNumber(exponent=0, value=1000),
             evse_min_voltage=RationalNumber(exponent=0, value=10),
-            evse_power_ramp_limit=RationalNumber(pyexpat=0, value=10)
+            evse_power_ramp_limit=RationalNumber(pyexpat=0, value=10),
         )
 
     def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryResParams:

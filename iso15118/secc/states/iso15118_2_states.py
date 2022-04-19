@@ -33,13 +33,12 @@ from iso15118.shared.messages.datatypes import (
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
+    Contactor,
     DCEVErrorCode,
     EVSEProcessing,
     IsolationLevel,
     Namespace,
     Protocol,
-    Namespace,
-    Contactor,
 )
 from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
@@ -992,7 +991,7 @@ class ChargeParameterDiscovery(StateSECC):
             departure_time = charge_params_req.ac_ev_charge_parameter.departure_time
         else:
             dc_evse_charge_params = (
-                self.comm_session.evse_controller.get_dc_charge_params_v2()
+                self.comm_session.evse_controller.get_dc_evse_charge_parameter()
             )
             departure_time = charge_params_req.dc_ev_charge_parameter.departure_time
 
@@ -1046,7 +1045,7 @@ class ChargeParameterDiscovery(StateSECC):
             evse_processing=EVSEProcessing.FINISHED
             if sa_schedule_list
             else EVSEProcessing.ONGOING,
-            sa_schedule_list=SAScheduleList(values=sa_schedule_list),
+            sa_schedule_list=SAScheduleList(schedule_tuples=sa_schedule_list),
             ac_charge_parameter=ac_evse_charge_params,
             dc_charge_parameter=dc_evse_charge_params,
         )
@@ -1131,7 +1130,8 @@ class PowerDelivery(StateSECC):
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
 
         if power_delivery_req.sa_schedule_tuple_id not in [
-            schedule.tuple_id for schedule in self.comm_session.offered_schedules
+            schedule.sa_schedule_tuple_id
+            for schedule in self.comm_session.offered_schedules
         ]:
             self.stop_state_machine(
                 f"{power_delivery_req.sa_schedule_tuple_id} "

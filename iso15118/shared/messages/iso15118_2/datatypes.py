@@ -588,7 +588,7 @@ class SAScheduleTuple(BaseModel):
     """See section 8.5.2.13 in ISO 15118-2"""
 
     # XSD type unsignedByte with value range [1..255]
-    tuple_id: int = Field(..., ge=1, le=255, alias="SAScheduleTupleID")
+    sa_schedule_tuple_id: int = Field(..., ge=1, le=255, alias="SAScheduleTupleID")
     p_max_schedule: PMaxSchedule = Field(..., alias="PMaxSchedule")
     sales_tariff: SalesTariff = Field(None, alias="SalesTariff")
 

@@ -6,7 +6,7 @@ SessionStopRes.
 
 import logging
 import time
-from typing import Union, List
+from typing import Any, List, Union
 
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.states.evcc_state import StateEVCC
@@ -19,48 +19,57 @@ from iso15118.shared.messages.app_protocol import (
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
-    Namespace,
-    ServiceV20,
-    ISOV20PayloadTypes,
-    ParameterName,
     ControlMode,
+    ISOV20PayloadTypes,
+    Namespace,
+    ParameterName,
+    ServiceV20,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
-from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReq, \
-    ACChargeParameterDiscoveryRes, ACChargeLoopReq, ACChargeLoopRes
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeLoopReq,
+    ACChargeLoopRes,
+    ACChargeParameterDiscoveryReq,
+    ACChargeParameterDiscoveryRes,
+)
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
+    AuthorizationRes,
     AuthorizationSetupReq,
     AuthorizationSetupRes,
     CertificateInstallationReq,
+    ChannelSelection,
+    ChargeProgress,
+    ChargingSession,
     EIMAuthReqParams,
+    OfferedService,
     PnCAuthReqParams,
-    SessionSetupRes,
-    AuthorizationRes,
+    PowerDeliveryReq,
+    PowerDeliveryRes,
+    ScheduleExchangeReq,
+    ScheduleExchangeRes,
+    SelectedService,
+    ServiceDetailReq,
+    ServiceDetailRes,
     ServiceDiscoveryReq,
     ServiceDiscoveryRes,
-    ServiceDetailReq,
-    SessionStopReq,
-    ChargingSession,
-    ServiceDetailRes,
     ServiceSelectionReq,
-    SelectedService,
     ServiceSelectionRes,
-    ScheduleExchangeReq,
-    OfferedService, PowerDeliveryReq, ScheduleExchangeRes,
-    ScheduledScheduleExchangeResParams, DynamicScheduleExchangeResParams,
-    ChannelSelection, PowerDeliveryRes, ChargeProgress, SessionStopRes,
+    SessionSetupRes,
+    SessionStopReq,
+    SessionStopRes,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader,
-    RootCertificateIDList, Processing,
+    Processing,
+    RootCertificateIDList,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
 from iso15118.shared.messages.iso15118_20.dc import (
     DCChargeParameterDiscoveryReq,
-    DCChargeParameterDiscoveryRes, DCChargeLoopReq,
+    DCChargeParameterDiscoveryRes,
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
@@ -240,7 +249,7 @@ class AuthorizationSetup(StateEVCC):
                     [
                         (
                             pnc_params.id,
-                            to_exi(pnc_params, Namespace.ISO_V20_COMMON_MSG),
+                            EXI().to_exi(pnc_params, Namespace.ISO_V20_COMMON_MSG),
                         )
                     ],
                     load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
@@ -292,6 +301,7 @@ class CertificateInstallation(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("CertificateInstallation not yet implemented")
@@ -313,6 +323,7 @@ class Authorization(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(message, AuthorizationRes)
@@ -357,6 +368,7 @@ class ServiceDiscovery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(message, ServiceDiscoveryRes)
@@ -467,6 +479,7 @@ class ServiceDetail(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(message, ServiceDetailRes)
@@ -619,14 +632,18 @@ class ServiceSelection(StateEVCC):
         # TODO Act upon the possible negative response codes in service_selection_res
         #      (and delete the # noqa: F841)
 
+        next_req: Any = None
         if self.comm_session.selected_energy_service.service in (
-                ServiceV20.AC, ServiceV20.AC_BPT
+            ServiceV20.AC,
+            ServiceV20.AC_BPT,
         ):
             ac_params, bpt_ac_params = None, None
             if self.comm_session.selected_energy_service.service == ServiceV20.AC:
                 ac_params = self.comm_session.ev_controller.get_ac_charge_params_v20()
             else:
-                bpt_ac_params = self.comm_session.ev_controller.get_ac_bpt_charge_params_v20()
+                bpt_ac_params = (
+                    self.comm_session.ev_controller.get_ac_bpt_charge_params_v20()
+                )
 
             next_req = ACChargeParameterDiscoveryReq(
                 header=MessageHeader(
@@ -634,7 +651,7 @@ class ServiceSelection(StateEVCC):
                     timestamp=time.time(),
                 ),
                 ac_params=ac_params,
-                bpt_ac_params=bpt_ac_params
+                bpt_ac_params=bpt_ac_params,
             )
 
             self.create_next_message(
@@ -645,13 +662,16 @@ class ServiceSelection(StateEVCC):
                 ISOV20PayloadTypes.AC_MAINSTREAM,
             )
         elif self.comm_session.selected_energy_service.service in (
-                ServiceV20.DC, ServiceV20.DC_BPT
+            ServiceV20.DC,
+            ServiceV20.DC_BPT,
         ):
             dc_params, bpt_dc_params = None, None
             if self.comm_session.selected_energy_service.service == ServiceV20.DC:
                 dc_params = self.comm_session.ev_controller.get_dc_charge_params_v20()
             else:
-                bpt_dc_params = self.comm_session.ev_controller.get_dc_bpt_charge_params_v20()
+                bpt_dc_params = (
+                    self.comm_session.ev_controller.get_dc_bpt_charge_params_v20()
+                )
 
             next_req = DCChargeParameterDiscoveryReq(
                 header=MessageHeader(
@@ -659,7 +679,7 @@ class ServiceSelection(StateEVCC):
                     timestamp=time.time(),
                 ),
                 dc_params=dc_params,
-                bpt_dc_params=bpt_dc_params
+                bpt_dc_params=bpt_dc_params,
             )
 
             self.create_next_message(
@@ -713,17 +733,21 @@ class ScheduleExchange(StateEVCC):
             )
         else:
             if self.comm_session.control_mode == ControlMode.SCHEDULED:
-                ev_power_profile, charge_progress = \
-                    self.comm_session.ev_controller.process_scheduled_se_params(
-                        schedule_exchange_res.scheduled_params,
-                        schedule_exchange_res.go_to_pause
-                    )
+                (
+                    ev_power_profile,
+                    charge_progress,
+                ) = self.comm_session.ev_controller.process_scheduled_se_params(
+                    schedule_exchange_res.scheduled_params,
+                    schedule_exchange_res.go_to_pause,
+                )
             else:
-                ev_power_profile, charge_progress = \
-                    self.comm_session.ev_controller.process_dynamic_se_params(
-                        schedule_exchange_res.dynamic_params,
-                        schedule_exchange_res.go_to_pause
-                    )
+                (
+                    ev_power_profile,
+                    charge_progress,
+                ) = self.comm_session.ev_controller.process_dynamic_se_params(
+                    schedule_exchange_res.dynamic_params,
+                    schedule_exchange_res.go_to_pause,
+                )
 
             ev_processing = Processing.FINISHED
             if not ev_power_profile:
@@ -733,8 +757,10 @@ class ScheduleExchange(StateEVCC):
 
             # Information from EV to show if charging or discharging is planned
             bpt_channel_selection = None
-            if self.comm_session.selected_energy_service in \
-                    (ServiceV20.AC_BPT, ServiceV20.DC_BPT):
+            if self.comm_session.selected_energy_service in (
+                ServiceV20.AC_BPT,
+                ServiceV20.DC_BPT,
+            ):
                 power_value = ev_power_profile.entry_list.entries.pop().power.value
                 if power_value < 0:
                     bpt_channel_selection = ChannelSelection.DISCHARGE
@@ -749,7 +775,7 @@ class ScheduleExchange(StateEVCC):
                 ev_processing=ev_processing,
                 charge_progress=charge_progress,
                 ev_power_profile=ev_power_profile,
-                bpt_channel_selection=bpt_channel_selection
+                bpt_channel_selection=bpt_channel_selection,
             )
 
             self.create_next_message(
@@ -777,6 +803,7 @@ class PowerDelivery(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(message, PowerDeliveryRes)
@@ -795,7 +822,7 @@ class PowerDelivery(StateEVCC):
                     session_id=self.comm_session.session_id,
                     timestamp=time.time(),
                 ),
-                charging_session=self.comm_session.charging_session_stop_v20
+                charging_session=self.comm_session.charging_session_stop_v20,
             )
             self.create_next_message(
                 SessionStop,
@@ -812,21 +839,31 @@ class PowerDelivery(StateEVCC):
         control_mode = self.comm_session.control_mode
 
         if selected_energy_service.service in (ServiceV20.AC, ServiceV20.AC_BPT):
-            if selected_energy_service == ServiceV20.AC \
-                    and control_mode == ControlMode.SCHEDULED:
-                scheduled_params = \
+            if (
+                selected_energy_service == ServiceV20.AC
+                and control_mode == ControlMode.SCHEDULED
+            ):
+                scheduled_params = (
                     self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()
-            elif selected_energy_service == ServiceV20.AC \
-                    and control_mode == ControlMode.DYNAMIC:
-                dynamic_params = \
+                )
+            elif (
+                selected_energy_service == ServiceV20.AC
+                and control_mode == ControlMode.DYNAMIC
+            ):
+                dynamic_params = (
                     self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()
-            elif selected_energy_service == ServiceV20.AC_BPT \
-                    and control_mode == ControlMode.SCHEDULED:
-                bpt_scheduled_params = \
+                )
+            elif (
+                selected_energy_service == ServiceV20.AC_BPT
+                and control_mode == ControlMode.SCHEDULED
+            ):
+                bpt_scheduled_params = (
                     self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()
+                )
             else:
-                bpt_dynamic_params = \
+                bpt_dynamic_params = (
                     self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()
+                )
 
             ac_charge_loop_req = ACChargeLoopReq(
                 header=MessageHeader(
@@ -837,7 +874,7 @@ class PowerDelivery(StateEVCC):
                 dynamic_params=dynamic_params,
                 bpt_scheduled_params=bpt_scheduled_params,
                 bpt_dynamic_params=bpt_dynamic_params,
-                meter_info_requested=False
+                meter_info_requested=False,
             )
 
             self.create_next_message(
@@ -854,17 +891,20 @@ class PowerDelivery(StateEVCC):
 
     def create_new_power_delivery_req(self, schedule_exchange_res: ScheduleExchangeRes):
         if self.comm_session.control_mode == ControlMode.SCHEDULED:
-            ev_power_profile, charge_progress = \
-                self.comm_session.ev_controller.process_scheduled_se_params(
-                    schedule_exchange_res.scheduled_params,
-                    schedule_exchange_res.go_to_pause
-                )
+            (
+                ev_power_profile,
+                charge_progress,
+            ) = self.comm_session.ev_controller.process_scheduled_se_params(
+                schedule_exchange_res.scheduled_params,
+                schedule_exchange_res.go_to_pause,
+            )
         else:
-            ev_power_profile, charge_progress = \
-                self.comm_session.ev_controller.process_dynamic_se_params(
-                    schedule_exchange_res.dynamic_params,
-                    schedule_exchange_res.go_to_pause
-                )
+            (
+                ev_power_profile,
+                charge_progress,
+            ) = self.comm_session.ev_controller.process_dynamic_se_params(
+                schedule_exchange_res.dynamic_params, schedule_exchange_res.go_to_pause
+            )
 
         ev_processing = Processing.FINISHED
         self.comm_session.ev_processing = Processing.FINISHED
@@ -874,8 +914,10 @@ class PowerDelivery(StateEVCC):
 
         # Information from EV to show if charging or discharging is planned
         bpt_channel_selection = None
-        if self.comm_session.selected_energy_service in \
-                (ServiceV20.AC_BPT, ServiceV20.DC_BPT):
+        if self.comm_session.selected_energy_service in (
+            ServiceV20.AC_BPT,
+            ServiceV20.DC_BPT,
+        ):
             power_value = ev_power_profile.entry_list.entries.pop().power.value
             if power_value < 0:
                 bpt_channel_selection = ChannelSelection.DISCHARGE
@@ -890,7 +932,7 @@ class PowerDelivery(StateEVCC):
             ev_processing=ev_processing,
             charge_progress=charge_progress,
             ev_power_profile=ev_power_profile,
-            bpt_channel_selection=bpt_channel_selection
+            bpt_channel_selection=bpt_channel_selection,
         )
 
         self.create_next_message(
@@ -918,6 +960,7 @@ class SessionStop(StateEVCC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(message, SessionStopRes)
@@ -1038,21 +1081,31 @@ class ACChargeLoop(StateEVCC):
             # TODO You might want to change certain request params based on the values
             #      in the response
             if selected_energy_service.service in (ServiceV20.AC, ServiceV20.AC_BPT):
-                if selected_energy_service == ServiceV20.AC \
-                        and control_mode == ControlMode.SCHEDULED:
-                    scheduled_params = \
+                if (
+                    selected_energy_service == ServiceV20.AC
+                    and control_mode == ControlMode.SCHEDULED
+                ):
+                    scheduled_params = (
                         self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()
-                elif selected_energy_service == ServiceV20.AC \
-                        and control_mode == ControlMode.DYNAMIC:
-                    dynamic_params = \
+                    )
+                elif (
+                    selected_energy_service == ServiceV20.AC
+                    and control_mode == ControlMode.DYNAMIC
+                ):
+                    dynamic_params = (
                         self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()
-                elif selected_energy_service == ServiceV20.AC_BPT \
-                        and control_mode == ControlMode.SCHEDULED:
-                    bpt_scheduled_params = \
+                    )
+                elif (
+                    selected_energy_service == ServiceV20.AC_BPT
+                    and control_mode == ControlMode.SCHEDULED
+                ):
+                    bpt_scheduled_params = (
                         self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()
+                    )
                 else:
-                    bpt_dynamic_params = \
+                    bpt_dynamic_params = (
                         self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()
+                    )
 
                 ac_charge_loop_req = ACChargeLoopReq(
                     header=MessageHeader(
@@ -1063,7 +1116,7 @@ class ACChargeLoop(StateEVCC):
                     dynamic_params=dynamic_params,
                     bpt_scheduled_params=bpt_scheduled_params,
                     bpt_dynamic_params=bpt_dynamic_params,
-                    meter_info_requested=False
+                    meter_info_requested=False,
                 )
 
                 self.create_next_message(
@@ -1091,7 +1144,7 @@ class ACChargeLoop(StateEVCC):
             power_delivery_req,
             Timeouts.POWER_DELIVERY_REQ,
             Namespace.ISO_V20_COMMON_MSG,
-            ISOV20PayloadTypes.MAINSTREAM
+            ISOV20PayloadTypes.MAINSTREAM,
         )
 
         self.comm_session.charging_session_stop_v20 = ChargingSession.TERMINATE

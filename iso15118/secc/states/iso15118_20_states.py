@@ -6,7 +6,7 @@ SessionStopReq.
 
 import logging
 import time
-from typing import List, Union, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.states.secc_state import StateSECC
@@ -18,45 +18,54 @@ from iso15118.shared.messages.app_protocol import (
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
-    Namespace,
-    ISOV20PayloadTypes,
-    ServiceV20,
-    ParameterName,
-    ControlMode,
-    Protocol,
     Contactor,
+    ControlMode,
+    ISOV20PayloadTypes,
+    Namespace,
+    ParameterName,
+    Protocol,
+    ServiceV20,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
-from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReqParams, \
-    BPTACChargeParameterDiscoveryReqParams, ACChargeParameterDiscoveryRes, \
-    ACChargeParameterDiscoveryReq, ACChargeLoopReq, ACChargeLoopRes
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeLoopReq,
+    ACChargeLoopRes,
+    ACChargeParameterDiscoveryReq,
+    ACChargeParameterDiscoveryReqParams,
+    ACChargeParameterDiscoveryRes,
+    BPTACChargeParameterDiscoveryReqParams,
+)
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
     AuthorizationRes,
     AuthorizationSetupReq,
     AuthorizationSetupRes,
     CertificateInstallationReq,
+    ChargeProgress,
+    ChargingSession,
     EIMAuthSetupResParams,
+    EVPowerProfile,
+    OfferedService,
     PnCAuthSetupResParams,
+    PowerDeliveryReq,
+    PowerDeliveryRes,
+    ScheduleExchangeReq,
+    ScheduleExchangeRes,
+    SelectedEnergyService,
+    SelectedService,
+    SelectedServiceList,
+    SelectedVAS,
+    ServiceDetailReq,
+    ServiceDetailRes,
     ServiceDiscoveryReq,
+    ServiceDiscoveryRes,
+    ServiceIDList,
+    ServiceList,
+    ServiceSelectionReq,
+    ServiceSelectionRes,
     SessionSetupReq,
     SessionSetupRes,
     SessionStopReq,
-    ServiceDetailReq,
-    ServiceDiscoveryRes,
-    ServiceIDList,
-    ServiceSelectionReq,
-    ServiceList,
-    ServiceDetailRes,
-    ServiceSelectionRes,
-    OfferedService,
-    SelectedEnergyService,
-    SelectedService,
-    SelectedVAS,
-    SelectedServiceList,
-    ScheduleExchangeReq,
-    ScheduleExchangeRes,
-    PowerDeliveryReq, PowerDeliveryRes, ChargeProgress, EVPowerProfile, ChargingSession,
     SessionStopRes,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -68,11 +77,12 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
 from iso15118.shared.messages.iso15118_20.dc import (
-    DCChargeParameterDiscoveryReq,
-    DCChargeParameterDiscoveryRes,
-    DCChargeParameterDiscoveryReqParams,
     BPTDCChargeParameterDiscoveryReqParams,
-    DCCableCheckReq, DCChargeLoopReq,
+    DCCableCheckReq,
+    DCChargeLoopReq,
+    DCChargeParameterDiscoveryReq,
+    DCChargeParameterDiscoveryReqParams,
+    DCChargeParameterDiscoveryRes,
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.notifications import StopNotification
@@ -425,6 +435,7 @@ class ServiceDiscovery(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(
@@ -540,6 +551,7 @@ class ServiceDetail(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(
@@ -563,10 +575,11 @@ class ServiceDetail(StateSECC):
 
         service_detail_req: ServiceDetailReq = msg
 
-        service_parameter_list = \
+        service_parameter_list = (
             self.comm_session.evse_controller.get_service_parameter_list(
                 service_detail_req.service_id
             )
+        )
 
         for offered_service in self.comm_session.offered_services_v20:
             if offered_service.service.id == service_detail_req.service_id:
@@ -608,6 +621,7 @@ class ServiceSelection(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(message, [ServiceSelectionReq, SessionStopReq], False)
@@ -783,6 +797,7 @@ class ScheduleExchange(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(
@@ -817,7 +832,9 @@ class ScheduleExchange(StateSECC):
             )
             if scheduled_params:
                 evse_processing = Processing.FINISHED
-                self.comm_session.offered_schedules_V20 = scheduled_params.schedule_tuples
+                self.comm_session.offered_schedules_V20 = (
+                    scheduled_params.schedule_tuples
+                )
 
         if self.comm_session.control_mode == ControlMode.DYNAMIC:
             dynamic_params = self.comm_session.evse_controller.get_dynamic_se_params(
@@ -876,9 +893,7 @@ class PowerDelivery(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_v20(
-            message, [PowerDeliveryReq, SessionStopReq], False
-        )
+        msg = self.check_msg_v20(message, [PowerDeliveryReq, SessionStopReq], False)
         if not msg:
             return
 
@@ -899,10 +914,12 @@ class PowerDelivery(StateSECC):
             # another PowerDeliveryReq
             logger.debug("EV is still processing the EVPowerProfile")
         else:
-            response_code = self.check_power_profile(power_delivery_req.ev_power_profile)
+            response_code = self.check_power_profile(
+                power_delivery_req.ev_power_profile
+            )
             if response_code in (
                 ResponseCode.FAILED_EV_POWER_PROFILE_INVALID,
-                ResponseCode.FAILED_EV_POWER_PROFILE_VIOLATION
+                ResponseCode.FAILED_EV_POWER_PROFILE_VIOLATION,
             ):
                 self.stop_state_machine(
                     f"EVPowerProfile invalid/violation",
@@ -911,8 +928,10 @@ class PowerDelivery(StateSECC):
                 )
                 return
 
-            if power_delivery_req.charge_progress == ChargeProgress.STANDBY \
-                    and not self.comm_session.config.standby_allowed:
+            if (
+                power_delivery_req.charge_progress == ChargeProgress.STANDBY
+                and not self.comm_session.config.standby_allowed
+            ):
                 self.stop_state_machine(
                     f"Standby not allowed",
                     message,
@@ -922,7 +941,9 @@ class PowerDelivery(StateSECC):
 
             if self.comm_session.control_mode == ControlMode.SCHEDULED:
                 offered_schedules = self.comm_session.offered_schedules_V20
-                selected_schedule = power_delivery_req.ev_power_profile.scheduled_profile
+                selected_schedule = (
+                    power_delivery_req.ev_power_profile.scheduled_profile
+                )
 
                 if selected_schedule.selected_schedule_tuple_id not in [
                     schedule.schedule_tuple_id for schedule in offered_schedules
@@ -944,7 +965,9 @@ class PowerDelivery(StateSECC):
                 # entered the charge loop
                 # TODO Check how to handle a misplaced SCHEDULE_RENEGOTIATION
                 self.comm_session.evse_controller.close_contactor()
-                contactor_state = self.comm_session.evse_controller.get_contactor_state()
+                contactor_state = (
+                    self.comm_session.evse_controller.get_contactor_state()
+                )
                 if contactor_state == Contactor.OPENED:
                     self.stop_state_machine(
                         "Contactor is still open when about to send PowerDeliveryRes",
@@ -954,11 +977,13 @@ class PowerDelivery(StateSECC):
                     return
 
                 if self.comm_session.selected_energy_service.service in (
-                        ServiceV20.AC, ServiceV20.AC_BPT
+                    ServiceV20.AC,
+                    ServiceV20.AC_BPT,
                 ):
                     next_state = ACChargeLoop
                 elif self.comm_session.selected_energy_service.service in (
-                        ServiceV20.DC, ServiceV20.DC_BPT
+                    ServiceV20.DC,
+                    ServiceV20.DC_BPT,
                 ):
                     next_state = DCChargeLoop
                 else:
@@ -973,8 +998,7 @@ class PowerDelivery(StateSECC):
                 #       and FAILED_PowerDeliveryNotApplied
 
         power_delivery_res = PowerDeliveryRes(
-            header=header,
-            response_code=response_code
+            header=header, response_code=response_code
         )
 
         self.create_next_message(
@@ -1009,9 +1033,7 @@ class SessionStop(StateSECC):
             V2GMessageDINSPEC,
         ],
     ):
-        msg = self.check_msg_v20(
-            message, [SessionStopReq], False
-        )
+        msg = self.check_msg_v20(message, [SessionStopReq], False)
         if not msg:
             return
 
@@ -1024,8 +1046,8 @@ class SessionStop(StateSECC):
 
         termination_info = ""
         if (
-                session_stop_req.ev_termination_code or
-                session_stop_req.ev_termination_explanation
+            session_stop_req.ev_termination_code
+            or session_stop_req.ev_termination_explanation
         ):
             termination_info = (
                 f"\nEV termination code: '{session_stop_req.ev_termination_code}'"
@@ -1043,7 +1065,7 @@ class SessionStop(StateSECC):
             header=MessageHeader(
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
-            response_code=ResponseCode.OK
+            response_code=ResponseCode.OK,
         )
 
         self.create_next_message(
@@ -1076,6 +1098,7 @@ class ACChargeParameterDiscovery(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(
@@ -1094,13 +1117,15 @@ class ACChargeParameterDiscovery(StateSECC):
         ac_params, bpt_ac_params = None, None
 
         if energy_service == ServiceV20.AC and self.charge_parameter_valid(
-                ac_cpd_req.ac_params
+            ac_cpd_req.ac_params
         ):
             ac_params = self.comm_session.evse_controller.get_ac_charge_params_v20()
         elif energy_service == ServiceV20.AC_BPT and self.charge_parameter_valid(
-                ac_cpd_req.bpt_ac_params
+            ac_cpd_req.bpt_ac_params
         ):
-            bpt_ac_params = self.comm_session.evse_controller.get_ac_bpt_charge_params_v20()
+            bpt_ac_params = (
+                self.comm_session.evse_controller.get_ac_bpt_charge_params_v20()
+            )
         else:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
@@ -1152,12 +1177,15 @@ class ACChargeLoop(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(
             # TODO A MeteringConfirmationReq can come in using the multiplexed side
             #      stream. Need to figure out how to enable multiplexed communication
-            message, [ACChargeLoopReq, PowerDeliveryReq, SessionStopReq], False
+            message,
+            [ACChargeLoopReq, PowerDeliveryReq, SessionStopReq],
+            False,
         )
         if not msg:
             return
@@ -1178,21 +1206,31 @@ class ACChargeLoop(StateSECC):
         control_mode = self.comm_session.control_mode
 
         if selected_energy_service.service in (ServiceV20.AC, ServiceV20.AC_BPT):
-            if selected_energy_service == ServiceV20.AC \
-                    and control_mode == ControlMode.SCHEDULED:
-                scheduled_params = \
+            if (
+                selected_energy_service == ServiceV20.AC
+                and control_mode == ControlMode.SCHEDULED
+            ):
+                scheduled_params = (
                     self.comm_session.evse_controller.get_scheduled_ac_charge_loop_params()
-            elif selected_energy_service == ServiceV20.AC \
-                    and control_mode == ControlMode.DYNAMIC:
-                dynamic_params = \
+                )
+            elif (
+                selected_energy_service == ServiceV20.AC
+                and control_mode == ControlMode.DYNAMIC
+            ):
+                dynamic_params = (
                     self.comm_session.evse_controller.get_dynamic_ac_charge_loop_params()
-            elif selected_energy_service == ServiceV20.AC_BPT \
-                    and control_mode == ControlMode.SCHEDULED:
-                bpt_scheduled_params = \
+                )
+            elif (
+                selected_energy_service == ServiceV20.AC_BPT
+                and control_mode == ControlMode.SCHEDULED
+            ):
+                bpt_scheduled_params = (
                     self.comm_session.evse_controller.get_bpt_scheduled_ac_charge_loop_params()
+                )
             else:
-                bpt_dynamic_params = \
+                bpt_dynamic_params = (
                     self.comm_session.evse_controller.get_bpt_dynamic_ac_charge_loop_params()
+                )
 
             meter_info = None
             if ac_charge_loop_req.meter_info_requested:
@@ -1209,7 +1247,7 @@ class ACChargeLoop(StateSECC):
                 dynamic_params=dynamic_params,
                 bpt_scheduled_params=bpt_scheduled_params,
                 bpt_dynamic_params=bpt_dynamic_params,
-                meter_info=meter_info
+                meter_info=meter_info,
             )
 
             self.create_next_message(
@@ -1250,6 +1288,7 @@ class DCChargeParameterDiscovery(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         msg = self.check_msg_v20(
@@ -1274,7 +1313,9 @@ class DCChargeParameterDiscovery(StateSECC):
         elif energy_service == ServiceV20.DC_BPT and self.charge_parameter_valid(
             dc_cpd_req.bpt_dc_params
         ):
-            bpt_dc_params = self.comm_session.evse_controller.get_dc_bpt_charge_params_v20()
+            bpt_dc_params = (
+                self.comm_session.evse_controller.get_dc_bpt_charge_params_v20()
+            )
         else:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
@@ -1326,6 +1367,7 @@ class DCCableCheck(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("DCCableCheck not yet implemented")
@@ -1347,6 +1389,7 @@ class DCPreCharge(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("DCPreCharge not yet implemented")
@@ -1368,6 +1411,7 @@ class DCChargeLoop(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("DCChargeLoop not yet implemented")
@@ -1389,6 +1433,7 @@ class DCWeldingDetection(StateSECC):
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
+            V2GMessageDINSPEC,
         ],
     ):
         raise NotImplementedError("DCWeldingDetection not yet implemented")

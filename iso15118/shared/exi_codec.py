@@ -1,8 +1,9 @@
+import base64
 import json
 import logging
-
-from typing import Union
 from base64 import b64decode, b64encode
+from typing import Union
+
 from pydantic import ValidationError
 
 from iso15118.shared.exceptions import EXIDecodingError, EXIEncodingError
@@ -17,21 +18,13 @@ from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDIN
 from iso15118.shared.messages.enums import Namespace
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeLoopReq,
+    ACChargeLoopRes,
     ACChargeParameterDiscoveryReq,
-    ACChargeParameterDiscoveryRes, ACChargeLoopReq, ACChargeLoopRes,
+    ACChargeParameterDiscoveryRes,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq as AuthorizationReqV20,
-    ServiceDetailReq,
-    ServiceDetailRes,
-    ServiceSelectionReq,
-    ServiceSelectionRes,
-    ScheduleExchangeReq,
-    ScheduleExchangeRes,
-    PowerDeliveryReq,
-    PowerDeliveryRes,
-    SessionStopReq,
-    SessionStopRes,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationRes,
@@ -39,27 +32,36 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationSetupRes,
     CertificateInstallationReq,
     CertificateInstallationRes,
+    PowerDeliveryReq,
+    PowerDeliveryRes,
+    ScheduleExchangeReq,
+    ScheduleExchangeRes,
+    ServiceDetailReq,
+    ServiceDetailRes,
     ServiceDiscoveryReq,
     ServiceDiscoveryRes,
+    ServiceSelectionReq,
+    ServiceSelectionRes,
     SessionSetupReq,
     SessionSetupRes,
+    SessionStopReq,
+    SessionStopRes,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
 from iso15118.shared.messages.iso15118_20.dc import (
-    DCChargeParameterDiscoveryReq,
-    DCChargeParameterDiscoveryRes,
-    DCChargeLoopReq,
-    DCChargeLoopRes,
     DCCableCheckReq,
     DCCableCheckRes,
+    DCChargeLoopReq,
+    DCChargeLoopRes,
+    DCChargeParameterDiscoveryReq,
+    DCChargeParameterDiscoveryRes,
     DCPreChargeReq,
     DCPreChargeRes,
     DCWeldingDetectionReq,
     DCWeldingDetectionRes,
 )
-from iso15118.shared.messages.xmldsig import SignedInfo
 from iso15118.shared.settings import MESSAGE_LOG_EXI, MESSAGE_LOG_JSON
 
 logger = logging.getLogger(__name__)
@@ -329,40 +331,40 @@ class EXI:
                 # the message name itself (e.g. SessionSetupReq)
                 msg_dict = decoded_dict[msg_name]
                 msg_classes_dict = {
-                "SessionSetupReq": SessionSetupReq,
-                "SessionSetupRes": SessionSetupRes,
-                "AuthorizationSetupReq": AuthorizationSetupReq,
-                "AuthorizationSetupRes": AuthorizationSetupRes,
-                "CertificateInstallationReq": CertificateInstallationReq,
-                "CertificateInstallationRes": CertificateInstallationRes,
-                "AuthorizationReq": AuthorizationReqV20,
-                "AuthorizationRes": AuthorizationRes,
-                "ServiceDiscoveryReq": ServiceDiscoveryReq,
-                "ServiceDiscoveryRes": ServiceDiscoveryRes,
-                "ServiceDetailReq": ServiceDetailReq,
-                "ServiceDetailRes": ServiceDetailRes,
-                "ServiceSelectionReq": ServiceSelectionReq,
-                "ServiceSelectionRes": ServiceSelectionRes,
-                "AC_ChargeParameterDiscoveryReq": ACChargeParameterDiscoveryReq,
-                "AC_ChargeParameterDiscoveryRes": ACChargeParameterDiscoveryRes,
-                "DC_ChargeParameterDiscoveryReq": DCChargeParameterDiscoveryReq,
-                "DC_ChargeParameterDiscoveryRes": DCChargeParameterDiscoveryRes,
-                "ScheduleExchangeReq": ScheduleExchangeReq,
-                "ScheduleExchangeRes": ScheduleExchangeRes,
-                "DC_CableCheckReq": DCCableCheckReq,
-                "DC_CableCheckRes": DCCableCheckRes,
-                "DC_PreChargeReq": DCPreChargeReq,
-                "DC_PreChargeRes": DCPreChargeRes,
-                "PowerDeliveryReq": PowerDeliveryReq,
-                "PowerDeliveryRes": PowerDeliveryRes,
-                "AC_ChargeLoopReq": ACChargeLoopReq,
-                "AC_ChargeLoopRes": ACChargeLoopRes,
-                "DC_ChargeLoopReq": DCChargeLoopReq,
-                "DC_ChargeLoopRes": DCChargeLoopRes,
-                "DC_WeldingDetectionReq": DCWeldingDetectionReq,
-                "DC_WeldingDetectionRes": DCWeldingDetectionRes,
-                "SessionStopReq": SessionStopReq,
-                "SessionStopRes": SessionStopRes,
+                    "SessionSetupReq": SessionSetupReq,
+                    "SessionSetupRes": SessionSetupRes,
+                    "AuthorizationSetupReq": AuthorizationSetupReq,
+                    "AuthorizationSetupRes": AuthorizationSetupRes,
+                    "CertificateInstallationReq": CertificateInstallationReq,
+                    "CertificateInstallationRes": CertificateInstallationRes,
+                    "AuthorizationReq": AuthorizationReqV20,
+                    "AuthorizationRes": AuthorizationRes,
+                    "ServiceDiscoveryReq": ServiceDiscoveryReq,
+                    "ServiceDiscoveryRes": ServiceDiscoveryRes,
+                    "ServiceDetailReq": ServiceDetailReq,
+                    "ServiceDetailRes": ServiceDetailRes,
+                    "ServiceSelectionReq": ServiceSelectionReq,
+                    "ServiceSelectionRes": ServiceSelectionRes,
+                    "AC_ChargeParameterDiscoveryReq": ACChargeParameterDiscoveryReq,
+                    "AC_ChargeParameterDiscoveryRes": ACChargeParameterDiscoveryRes,
+                    "DC_ChargeParameterDiscoveryReq": DCChargeParameterDiscoveryReq,
+                    "DC_ChargeParameterDiscoveryRes": DCChargeParameterDiscoveryRes,
+                    "ScheduleExchangeReq": ScheduleExchangeReq,
+                    "ScheduleExchangeRes": ScheduleExchangeRes,
+                    "DC_CableCheckReq": DCCableCheckReq,
+                    "DC_CableCheckRes": DCCableCheckRes,
+                    "DC_PreChargeReq": DCPreChargeReq,
+                    "DC_PreChargeRes": DCPreChargeRes,
+                    "PowerDeliveryReq": PowerDeliveryReq,
+                    "PowerDeliveryRes": PowerDeliveryRes,
+                    "AC_ChargeLoopReq": ACChargeLoopReq,
+                    "AC_ChargeLoopRes": ACChargeLoopRes,
+                    "DC_ChargeLoopReq": DCChargeLoopReq,
+                    "DC_ChargeLoopRes": DCChargeLoopRes,
+                    "DC_WeldingDetectionReq": DCWeldingDetectionReq,
+                    "DC_WeldingDetectionRes": DCWeldingDetectionRes,
+                    "SessionStopReq": SessionStopReq,
+                    "SessionStopRes": SessionStopRes,
                     # TODO add all the other message types and states
                 }
                 msg_class = msg_classes_dict.get(msg_name)

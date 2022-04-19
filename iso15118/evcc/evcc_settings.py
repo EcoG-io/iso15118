@@ -6,10 +6,9 @@ from typing import List, Optional
 import environs
 from marshmallow.validate import Range
 
-from iso15118.shared.messages.enums import Protocol
 from iso15118.evcc.controller.interface import EVControllerInterface
 from iso15118.evcc.controller.simulator import SimEVController
-from iso15118.shared.messages.enums import Protocol, INT_16_MAX
+from iso15118.shared.messages.enums import INT_16_MAX, Protocol
 from iso15118.shared.network import validate_nic
 
 logger = logging.getLogger(__name__)

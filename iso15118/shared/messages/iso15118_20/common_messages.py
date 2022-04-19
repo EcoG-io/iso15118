@@ -18,30 +18,30 @@ from pydantic import Field, root_validator, validator
 
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
-    AuthEnum,
-    INT_8_MIN,
     INT_8_MAX,
+    INT_8_MIN,
     INT_16_MAX,
     INT_16_MIN,
-    ServiceV20,
-    UINT_16_MAX,
     UINT_8_MAX,
+    UINT_16_MAX,
+    AuthEnum,
+    ServiceV20,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     UINT_32_MAX,
+    Certificate,
+    Description,
     EVSEStatus,
+    Identifier,
     MeterInfo,
+    Name,
+    NumericID,
     Processing,
     RationalNumber,
     Receipt,
+    RootCertificateIDList,
     V2GRequest,
     V2GResponse,
-    RootCertificateIDList,
-    NumericID,
-    Name,
-    Description,
-    Identifier,
-    Certificate,
 )
 from iso15118.shared.validators import one_field_must_be_set
 
@@ -1002,7 +1002,10 @@ class PowerDeliveryReq(V2GRequest):
         if charge_progress is None:
             # When decoding from EXI to JSON dict
             charge_progress = values.get("ChargeProgress")
-        if ev_processing == Processing.ONGOING or charge_progress == ChargeProgress.STOP:
+        if (
+            ev_processing == Processing.ONGOING
+            or charge_progress == ChargeProgress.STOP
+        ):
             return values
 
         ev_power_profile = values.get("ev_power_profile")

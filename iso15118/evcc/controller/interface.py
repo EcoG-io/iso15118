@@ -4,7 +4,7 @@ This module contains the abstract class for an EVCC to retrieve data from the EV
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 from iso15118.shared.messages.datatypes import (
     DCEVChargeParams,
@@ -19,7 +19,7 @@ from iso15118.shared.messages.din_spec.datatypes import DCEVStatus as DCEVStatus
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
-from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol
+from iso15118.shared.messages.enums import Protocol, ServiceV20
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
@@ -29,29 +29,33 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVStatus,
     EnergyTransferModeEnum,
     SAScheduleTuple,
-    ProfileEntry,
 )
-from iso15118.shared.messages.enums import Protocol, ServiceV20
-
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
-    BPTACChargeParameterDiscoveryReqParams, ScheduledACChargeLoopReqParams,
-    BPTScheduledACChargeLoopReqParams, DynamicACChargeLoopReqParams,
+    BPTACChargeParameterDiscoveryReqParams,
     BPTDynamicACChargeLoopReqParams,
+    BPTScheduledACChargeLoopReqParams,
+    DynamicACChargeLoopReqParams,
+    ScheduledACChargeLoopReqParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
-    EMAIDList,
-    ParameterSet as ParameterSetV20,
-    ScheduledScheduleExchangeReqParams,
     DynamicScheduleExchangeReqParams,
-    SelectedEnergyService,
-    SelectedVAS, EVPowerProfile, ChannelSelection, ScheduledScheduleExchangeResParams,
     DynamicScheduleExchangeResParams,
+    EMAIDList,
+    EVPowerProfile,
 )
-from iso15118.shared.messages.iso15118_20.common_types import Processing
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    ParameterSet as ParameterSetV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    ScheduledScheduleExchangeReqParams,
+    ScheduledScheduleExchangeResParams,
+    SelectedEnergyService,
+    SelectedVAS,
+)
 from iso15118.shared.messages.iso15118_20.dc import (
-    DCChargeParameterDiscoveryReqParams,
     BPTDCChargeParameterDiscoveryReqParams,
+    DCChargeParameterDiscoveryReqParams,
 )
 
 
@@ -100,20 +104,6 @@ class EVControllerInterface(ABC):
         Relevant for:
         - DIN SPEC 70121
         - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_dc_charge_params(self) -> DCEVChargeParams:
-        """
-        This would return an encapsulation of the following parameters:
-        DC Max Current Limit
-        DC Max Voltage Limit
-        DC Target Current
-        DC Target Voltage
-
-        Relevant for
-        - DIN SPEC 70121
         """
         raise NotImplementedError
 
@@ -217,9 +207,7 @@ class EVControllerInterface(ABC):
 
     @abstractmethod
     def process_scheduled_se_params(
-            self,
-            scheduled_params: ScheduledScheduleExchangeResParams,
-            pause: bool
+        self, scheduled_params: ScheduledScheduleExchangeResParams, pause: bool
     ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
         """
         Processes the ScheduleExchangeRes parameters for the Scheduled mode.
@@ -242,9 +230,7 @@ class EVControllerInterface(ABC):
 
     @abstractmethod
     def process_dynamic_se_params(
-            self,
-            dynamic_params: DynamicScheduleExchangeResParams,
-            pause: bool
+        self, dynamic_params: DynamicScheduleExchangeResParams, pause: bool
     ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
         """
         Processes the ScheduleExchangeRes parameters for the Dynamic mode.
@@ -421,7 +407,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_ac_charge_params_v2(self) -> ChargeParamsV2:
+    def get_ac_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
         """
         Gets the charge parameter needed for ChargeParameterDiscoveryReq (ISO 15118-2),
         including the energy transfer mode and the energy mode-specific parameters,
@@ -433,29 +419,6 @@ class EVControllerInterface(ABC):
 
         Relevant for:
         - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_dc_ev_power_delivery_parameter_dinspec(
-        self,
-    ) -> DCEVPowerDeliveryParameterDINSPEC:
-        """
-        gets the Power Delivery Parameter of the EV
-
-        Relevant for:
-        - DIN SPEC 70121
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
-        """
-        gets the Power Delivery Parameter of the EV
-
-        Relevant for:
-        - ISO 15118-2
-        - ISO 15118-20
         """
         raise NotImplementedError
 
@@ -538,7 +501,7 @@ class EVControllerInterface(ABC):
 
     @abstractmethod
     def get_bpt_scheduled_ac_charge_loop_params(
-            self
+        self,
     ) -> BPTScheduledACChargeLoopReqParams:
         """
         Gets the parameters for the ACChargeLoopReq in the Scheduled control mode for
@@ -573,22 +536,6 @@ class EVControllerInterface(ABC):
     # ============================================================================
     # |                          DC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
-
-    @abstractmethod
-    def get_dc_charge_params_v2(self) -> ChargeParamsV2:
-        """
-        Gets the charge parameter needed for ChargeParameterDiscoveryReq (ISO 15118-2),
-        including the energy transfer mode and the energy mode-specific parameters,
-        which is an instance of either DCEVChargeParameter.
-
-        Returns:
-            A tuple of ChargeParamsV2, including EnergyTransferMode and
-            DCEVChargeParameter
-
-        Relevant for:
-        - ISO 15118-2
-        """
-        raise NotImplementedError
 
     @abstractmethod
     def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryReqParams:
@@ -637,5 +584,42 @@ class EVControllerInterface(ABC):
 
         Relevant for:
         - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_ev_power_delivery_parameter_dinspec(
+        self,
+    ) -> DCEVPowerDeliveryParameterDINSPEC:
+        """
+        gets the Power Delivery Parameter of the EV
+
+        Relevant for:
+        - DIN SPEC 70121
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
+        """
+        gets the Power Delivery Parameter of the EV
+
+        Relevant for:
+        - ISO 15118-2
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_charge_params(self) -> DCEVChargeParams:
+        """
+        This would return an encapsulation of the following parameters:
+        DC Max Current Limit
+        DC Max Voltage Limit
+        DC Target Current
+        DC Target Voltage
+
+        Relevant for
+        - DIN SPEC 70121
         """
         raise NotImplementedError

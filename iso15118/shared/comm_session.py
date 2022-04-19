@@ -28,17 +28,19 @@ from iso15118.shared.messages.app_protocol import (
 from iso15118.shared.messages.datatypes import SelectedService as SelectedServiceV2_DIN
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
-    Namespace,
-    Protocol,
+    ControlMode,
     DINPayloadTypes,
     ISOV2PayloadTypes,
     ISOV20PayloadTypes,
-    ControlMode,
+    Namespace,
+    Protocol,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_messages import (
     OfferedService as OfferedServiceV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     SelectedEnergyService,
     SelectedVAS,
 )
@@ -203,7 +205,9 @@ class SessionStateMachine(ABC):
             None,
         ] = None
         try:
-            decoded_message = EXI().from_exi(v2gtp_msg.payload, self.get_exi_ns())
+            decoded_message = EXI().from_exi(
+                v2gtp_msg.payload, self.get_exi_ns(v2gtp_msg.payload_type)
+            )
         except EXIDecodingError as exc:
             logger.exception(f"{exc}")
             raise exc

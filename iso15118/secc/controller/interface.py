@@ -5,9 +5,8 @@ This module contains the abstract class for an SECC to retrieve data from the EV
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import List, Optional
 
-from iso15118.shared.messages.enums import Protocol, Contactor
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
@@ -22,35 +21,34 @@ from iso15118.shared.messages.datatypes import (
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
-from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol
+from iso15118.shared.messages.enums import Contactor, EnergyTransferModeEnum, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
-    SAScheduleTuple,
-    MeterInfo as MeterInfoV2,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
-from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTupleEntry
+from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTuple
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryResParams,
-    BPTACChargeParameterDiscoveryResParams, ScheduledACChargeLoopResParams,
-    BPTScheduledACChargeLoopResParams, BPTDynamicACChargeLoopResParams,
+    BPTACChargeParameterDiscoveryResParams,
+    BPTDynamicACChargeLoopResParams,
+    BPTScheduledACChargeLoopResParams,
     DynamicACChargeLoopResParams,
+    ScheduledACChargeLoopResParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
+    DynamicScheduleExchangeResParams,
     ProviderID,
+    ScheduledScheduleExchangeResParams,
+    ScheduleExchangeReq,
+    SelectedEnergyService,
     ServiceList,
     ServiceParameterList,
-    SelectedEnergyService,
-    ScheduledScheduleExchangeResParams,
-    DynamicScheduleExchangeResParams,
-    ScheduleExchangeReq,
 )
-from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20, \
-    EVSEStatus
+from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
 from iso15118.shared.messages.iso15118_20.dc import (
-    DCChargeParameterDiscoveryResParams,
     BPTDCChargeParameterDiscoveryResParams,
+    DCChargeParameterDiscoveryResParams,
 )
 
 
@@ -191,7 +189,6 @@ class EVSEControllerInterface(ABC):
         and the ampacity of the charging cable.
 
         Args:
-            protocol: Specifies the protocol currently being used.
             max_schedule_entries: The maximum amount of schedule entries the EVCC
                                   can handle, or None if not provided
             departure_time: The departure time given in seconds from the time of
@@ -221,7 +218,6 @@ class EVSEControllerInterface(ABC):
         and the ampacity of the charging cable.
 
         Args:
-            protocol: Specifies the protocol currently being used.
             max_schedule_entries: The maximum amount of schedule entries the EVCC
                                   can handle, or None if not provided
             departure_time: The departure time given in seconds from the time of
@@ -285,6 +281,8 @@ class EVSEControllerInterface(ABC):
             is_ongoing (bool): whether hlc charging is ongoing or not.
         Relevant for:
         - ISO 15118-2
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def service_renegotiation_supported(self) -> bool:
@@ -298,7 +296,7 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     def get_service_parameter_list(
-            self, service_id: int
+        self, service_id: int
     ) -> Optional[ServiceParameterList]:
         """
         Provides a list of parameters for a specific service ID for which the EVCC
@@ -417,7 +415,7 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     def get_bpt_scheduled_ac_charge_loop_params(
-            self
+        self,
     ) -> BPTScheduledACChargeLoopResParams:
         """
         Gets the parameters for the ACChargeLoopRes in the Scheduled control mode for
@@ -464,7 +462,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_charge_params_v2(self) -> DCEVSEChargeParameter:
+    def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         """
         Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
 
@@ -581,95 +579,6 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         """
-        raise NotImplementedError
-
-    def set_precharge(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
-        """
-        Sets the precharge information coming from the EV.
-        The charger must adapt it's output voltage to the requested voltage from the EV.
-        The current may not exceed 2A (according 61851-23)
-
-        Relevant for:
-        - DIN SPEC 70121
-        - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def start_cable_check(self):
-        """
-        This method is called at the beginning of the state CableCheck.
-        It requests the charger to perform a CableCheck
-
-        Relevant for:
-        - DIN SPEC 70121
-        - ISO 15118-2
-        """
-        #
-        raise NotImplementedError
-
-    @abstractmethod
-    def send_charging_command(
-        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
-    ):
-        """
-        This method is called in the state CurrentDemand. The values target current
-        and target voltage from the EV are passed.
-        These information must be provided for the charger's power electronics.
-
-        Relevant for:
-        - DIN SPEC 70121
-        - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def is_evse_current_limit_achieved(self) -> bool:
-        """
-        Returns true if the current limit of the charger has achieved
-
-        Relevant for:
-        - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def is_evse_voltage_limit_achieved(self) -> bool:
-        """
-        Returns true if the current limit of the charger has achieved
-
-        Relevant for:
-        - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def is_evse_power_limit_achieved(self) -> bool:
-        """
-        Returns true if the current limit of the charger has achieved
-
-        Relevant for:
-        - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
-        """
-        Gets the max voltage that can be provided by the charger
-
-        Relevant for:
-        - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
-        """
-        Gets the max current that can be provided by the charger
-
-        Relevant for:
-        - ISO 15118-2
         raise NotImplementedError
 
     @abstractmethod
