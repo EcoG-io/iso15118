@@ -17,7 +17,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     RelativeTimeInterval,
     SalesTariff,
     SalesTariffEntry,
-    SAScheduleTuple,
+    SAScheduleTuple, PMaxSchedule,
 )
 from iso15118.shared.messages.iso15118_2.header import MessageHeader
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage
@@ -33,7 +33,7 @@ def get_sa_schedule_list():
         p_max=p_max, time_interval=RelativeTimeInterval(start=0, duration=3600)
     )
     p_max_schedule_entries = [entry_details]
-    p_max_schedule_entry = PMaxScheduleEntry(entry_details=p_max_schedule_entries)
+    p_max_schedule_entry = PMaxSchedule(schedule_entries=p_max_schedule_entries)
 
     # SalesTariff
     sales_tariff_entries: List[SalesTariffEntry] = []
