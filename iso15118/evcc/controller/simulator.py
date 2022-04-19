@@ -137,6 +137,10 @@ class SimEVController(EVControllerInterface):
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
 
+    # ============================================================================
+    # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
+    # ============================================================================
+
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
 

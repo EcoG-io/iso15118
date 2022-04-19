@@ -462,7 +462,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
+    def get_dc_charge_params_v2(self) -> DCEVSEChargeParameter:
         """
         Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
 

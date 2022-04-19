@@ -4,7 +4,7 @@ This module contains the abstract class for an EVCC to retrieve data from the EV
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from iso15118.shared.messages.datatypes import (
     DCEVChargeParams,
@@ -30,6 +30,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     EnergyTransferModeEnum,
     SAScheduleTuple,
 )
+from iso15118.shared.messages.enums import Protocol, ServiceV20
+
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
     BPTACChargeParameterDiscoveryReqParams,

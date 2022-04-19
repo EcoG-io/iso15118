@@ -402,6 +402,34 @@ class ServiceDiscovery(StateEVCC):
                 self.comm_session.service_details_to_request.append(
                     energy_service.service_id
                 )
+            )
+
+        selected_energy_service = SelectedService(
+            service_id=self.comm_session.selected_energy_service.service.id,
+            parameter_set_id=self.comm_session.selected_energy_service.parameter_set.id,
+        )
+
+        service_selection_req = ServiceSelectionReq(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id,
+                timestamp=time.time(),
+            ),
+            selected_energy_service=selected_energy_service,
+            selected_vas_list=selected_vas_list if len(selected_vas_list) > 0 else None,
+        )
+
+        self.create_next_message(
+            ServiceSelection,
+            service_selection_req,
+            Timeouts.SERVICE_SELECTION_REQ,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
+        )
+
+    def select_services(self, service_detail_res: ServiceDetailRes):
+        requested_energy_service: ServiceV20 = (
+            self.comm_session.ev_controller.get_energy_service()
+        )
 
         if not matched_energy_service:
             session_stop_req = SessionStopReq(
