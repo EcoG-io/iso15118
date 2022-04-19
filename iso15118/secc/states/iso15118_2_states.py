@@ -991,7 +991,7 @@ class ChargeParameterDiscovery(StateSECC):
             departure_time = charge_params_req.ac_ev_charge_parameter.departure_time
         else:
             dc_evse_charge_params = (
-                self.comm_session.evse_controller.get_dc_charge_params_v2()
+                self.comm_session.evse_controller.get_dc_evse_charge_parameter()
             )
             departure_time = charge_params_req.dc_ev_charge_parameter.departure_time
 
@@ -1130,7 +1130,7 @@ class PowerDelivery(StateSECC):
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
 
         if power_delivery_req.sa_schedule_tuple_id not in [
-            schedule.tuple_id for schedule in self.comm_session.offered_schedules
+            schedule.sa_schedule_tuple_id for schedule in self.comm_session.offered_schedules
         ]:
             self.stop_state_machine(
                 f"{power_delivery_req.sa_schedule_tuple_id} "

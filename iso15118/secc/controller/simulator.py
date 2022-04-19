@@ -970,7 +970,7 @@ class SimEVSEController(EVSEControllerInterface):
             evse_status_code=DCEVSEStatusCode.EVSE_READY,
         )
 
-    def get_dc_charge_params_v2(self) -> DCEVSEChargeParameter:
+    def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_dc_evse_charge_parameter()."""
         return DCEVSEChargeParameter(
             dc_evse_status=DCEVSEStatus(
