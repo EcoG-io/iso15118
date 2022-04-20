@@ -1004,10 +1004,13 @@ class MeteringReceipt(StateEVCC):
             ev_max_voltage_limit=dc_charge_params.dc_max_voltage_limit,
             ev_max_current_limit=dc_charge_params.dc_max_current_limit,
             ev_max_power_limit=dc_charge_params.dc_max_power_limit,
-            bulk_charging_complete=self.comm_session.ev_controller.is_bulk_charging_complete(),
+            bulk_charging_complete=self.comm_session.ev_controller
+                                       .is_bulk_charging_complete(),
             charging_complete=self.comm_session.ev_controller.is_charging_complete(),
-            remaining_time_to_full_soc=self.comm_session.ev_controller.get_remaining_time_to_full_soc(),
-            remaining_time_to_bulk_soc=self.comm_session.ev_controller.get_remaining_time_to_bulk_soc(),
+            remaining_time_to_full_soc=self.comm_session.ev_controller
+                                           .get_remaining_time_to_full_soc(),
+            remaining_time_to_bulk_soc=self.comm_session.ev_controller
+                                          .get_remaining_time_to_bulk_soc(),
         )
         return current_demand_req
 
@@ -1037,7 +1040,8 @@ class SessionStop(StateEVCC):
 
         self.comm_session.stop_reason = StopNotification(
             True,
-            f"Communication session {self.comm_session.charging_session_stop_v2.lower()}d",
+            f"Communication session "
+            f"{self.comm_session.charging_session_stop_v2.lower()}d",
             self.comm_session.writer.get_extra_info("peername"),
         )
 

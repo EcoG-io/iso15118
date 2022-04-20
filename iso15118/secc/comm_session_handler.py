@@ -44,7 +44,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ServiceDetails,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
-    ScheduledScheduleExchangeResParams,
     ScheduleTuple,
 )
 from iso15118.shared.messages.sdp import SDPRequest, Security, create_sdp_response

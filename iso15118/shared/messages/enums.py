@@ -302,65 +302,23 @@ class ServiceV20(Enum):
     See Table 204 in section 8.4.3.1 of ISO 15118-20
     """
 
-    AC = (1, "AC")
-    DC = (2, "DC")
-    WPT = (3, "WPT")
-    DC_ACDP = (4, "DC_ACDP")
-    AC_BPT = (5, "AC_BPT")
-    DC_BPT = (6, "DC_BPT")
-    DC_ACDP_BPT = (7, "DC_ACDP_BPT")
-    INTERNET = (65, "Internet")
-    PARKING_STATUS = (66, "ParkingStatus")
-
-    def __init__(
-        self,
-        service_id: int,
-        service_name: str,
-    ):
-        """
-        The value of each enum member is a tuple, where the first tuple entry
-        is the associated protocol namespace (ns) and the second tuple entry are
-        the associated payload types, given as an enum itself.
-        """
-        self.service_id = service_id
-        self.service_name = service_name
+    AC = 1
+    DC = 2
+    WPT = 3
+    DC_ACDP = 4
+    AC_BPT = 5
+    DC_BPT = 6
+    DC_ACDP_BPT = 7
+    INTERNET = 65
+    PARKING_STATUS = 66
 
     @classmethod
-    def get_by_id(cls, service_id: int) -> "ServiceV20":
-        """
-        Returns the ServiceV20 enum member given a service ID.
-
-        Raises:
-            ValueError if an invalid service ID is provided.
-        """
-        if service_id == 1:
-            return cls.AC
-        elif service_id == 2:
-            return cls.DC
-        elif service_id == 3:
-            return cls.WPT
-        elif service_id == 4:
-            return cls.DC_ACDP
-        elif service_id == 5:
-            return cls.AC_BPT
-        elif service_id == 6:
-            return cls.DC_BPT
-        elif service_id == 7:
-            return cls.DC_ACDP_BPT
-        elif service_id == 65:
-            return cls.INTERNET
-        elif service_id == 66:
-            return cls.PARKING_STATUS
-        else:
-            raise ValueError(f"Invalid service ID {service_id}")
+    def get_by_id(cls, service_id):
+        return cls(service_id)
 
     @property
     def id(self) -> int:
-        return self.service_id
-
-    @property
-    def name(self) -> str:
-        return self.service_name
+        return self.value
 
 
 class ParameterName(str, Enum):

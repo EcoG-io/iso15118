@@ -31,8 +31,6 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     UINT_32_MAX,
     EVSEStatus,
     MeterInfo,
-    Name,
-    NumericID,
     Processing,
     RationalNumber,
     Receipt,
@@ -1296,6 +1294,12 @@ class OfferedService:
     is_energy_service: bool
     is_free: bool
     parameter_sets: List[ParameterSet]
+
+    def service_parameter_set_ids(self) -> [(int, int)]:
+        service_param_set_ids: List[(int, int)] = []
+        for parameter_set in self.parameter_sets:
+            service_param_set_ids.append((self.service.id, parameter_set.id))
+        return service_param_set_ids
 
 
 @dataclass

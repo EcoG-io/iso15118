@@ -103,7 +103,6 @@ from iso15118.shared.messages.enums import (
     Namespace,
     UnitSymbol,
 )
-from iso15118.shared.messages.iso15118_2.body import EMAID
 from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
     AuthorizationReq as AuthorizationReqV2,
@@ -148,7 +147,10 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargeService,
     DHPublicKey,
     EncryptedPrivateKey,
-    EnergyTransferModeList, AuthOptionList, ServiceID, ServiceCategory,
+    EnergyTransferModeList,
+    AuthOptionList,
+    ServiceID,
+    ServiceCategory,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeLoopReq,

@@ -8,7 +8,7 @@ from marshmallow.validate import Range
 
 from iso15118.evcc.controller.interface import EVControllerInterface
 from iso15118.evcc.controller.simulator import SimEVController
-from iso15118.shared.messages.enums import INT_16_MAX, Protocol
+from iso15118.shared.messages.enums import Protocol, UINT_16_MAX
 from iso15118.shared.network import validate_nic
 
 logger = logging.getLogger(__name__)
@@ -62,7 +62,7 @@ class Config:
         # the EV can store. That value is used in the CertificateInstallationReq.
         # Must be an integer between 0 and 65535, should be bigger than 0.
         self.max_contract_certs = env.int(
-            "MAX_CONTRACT_CERTS", default=3, validate=Range(min=1, max=INT_16_MAX)
+            "MAX_CONTRACT_CERTS", default=3, validate=Range(min=1, max=UINT_16_MAX)
         )
 
         # Indicates the security level (either TCP (unencrypted) or TLS (encrypted))
@@ -83,9 +83,9 @@ class Config:
         # has higher priority than second list entry). A list entry must be a member
         # of the Protocol enum
         self.supported_protocols = [
-            Protocol.DIN_SPEC_70121,
-            Protocol.ISO_15118_2,
             Protocol.ISO_15118_20_AC,
+            Protocol.ISO_15118_2,
+            Protocol.DIN_SPEC_70121,
         ]
 
         # Indicates the maximum number of entries the EVCC supports within the

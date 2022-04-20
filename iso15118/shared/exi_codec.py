@@ -25,18 +25,6 @@ from iso15118.shared.messages.iso15118_20.ac import (
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq as AuthorizationReqV20,
-    ServiceDetailReq,
-    ServiceDetailRes,
-    ServiceSelectionReq,
-    ServiceSelectionRes,
-    ScheduleExchangeReq,
-    ScheduleExchangeRes,
-    PowerDeliveryReq,
-    PowerDeliveryRes,
-    SessionStopReq,
-    SessionStopRes,
-)
-from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationRes,
     AuthorizationSetupReq,
     AuthorizationSetupRes,

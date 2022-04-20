@@ -39,11 +39,12 @@ from iso15118.shared.messages.enums import (
     Protocol,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
-    ChargingSession as ChargingSessionV2
+    ChargingSession as ChargingSessionV2,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     ScheduleExchangeReq,
-    ChargingSession as ChargingSessionV20, ScheduleExchangeRes,
+    ChargingSession as ChargingSessionV20,
+    ScheduleExchangeRes,
 )
 from iso15118.shared.messages.iso15118_20.common_types import Processing
 from iso15118.shared.messages.sdp import SDPRequest, SDPResponse, Security, Transport

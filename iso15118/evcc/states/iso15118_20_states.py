@@ -229,7 +229,7 @@ class AuthorizationSetup(StateEVCC):
 
         eim_params, pnc_params = None, None
         if AuthEnum.PNC in auth_setup_res.auth_services:
-            # TODO Check if several contract certificates are in place and
+            # TODO: Check if several contract certificates are in place and
             #      if the SECC sent a list of supported providers to pre-
             #      select the contract certificate(s) that work at this SECC
             pnc_params = PnCAuthReqParams(
@@ -243,17 +243,18 @@ class AuthorizationSetup(StateEVCC):
                 id="id1",
             )
 
-            # TODO Need a signature for ISO 15118-20, not ISO 15118-2
+            # TODO: Need a signature for ISO 15118-20, not ISO 15118-2
+            pnc_params_tuple = (
+                pnc_params.id,
+                EXI().to_exi(pnc_params, Namespace.ISO_V20_COMMON_MSG),
+            )
+            elements_to_sign = [pnc_params_tuple]
             try:
-                signature = create_signature(
-                    [
-                        (
-                            pnc_params.id,
-                            EXI().to_exi(pnc_params, Namespace.ISO_V20_COMMON_MSG),
-                        )
-                    ],
-                    load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
+                # The private key to be used for the signature
+                signature_key = load_priv_key(
+                    KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM
                 )
+                signature = create_signature(elements_to_sign, signature_key)
             except PrivateKeyReadError as exc:
                 logger.warning(
                     "PrivateKeyReadError occurred while trying to create "
@@ -509,7 +510,7 @@ class ServiceDetail(StateEVCC):
             )
             return
 
-        if len(self.comm_session.service_details_to_request) > 0:
+        if self.comm_session.service_details_to_request:
             service_detail_req = ServiceDetailReq(
                 header=MessageHeader(
                     session_id=self.comm_session.session_id,
@@ -547,7 +548,7 @@ class ServiceDetail(StateEVCC):
                 timestamp=time.time(),
             ),
             selected_energy_service=selected_energy_service,
-            selected_vas_list=selected_vas_list if len(selected_vas_list) > 0 else None,
+            selected_vas_list=selected_vas_list if selected_vas_list else None,
         )
 
         self.create_next_message(
@@ -564,7 +565,7 @@ class ServiceDetail(StateEVCC):
         )
 
         for offered_service in self.comm_session.offered_services_v20:
-            # Safe the parameter sets for a particular service
+            # Save the parameter sets for a particular service
             if offered_service.service.id == service_detail_res.service_id:
                 offered_service.parameter_sets = (
                     service_detail_res.service_parameter_list.parameter_sets
@@ -810,7 +811,7 @@ class PowerDelivery(StateEVCC):
         if not msg:
             return
 
-        power_delivery_res: PowerDeliveryRes = msg
+        power_delivery_res: PowerDeliveryRes = msg  # noqa
 
         if self.comm_session.ev_processing == Processing.ONGOING:
             self.create_new_power_delivery_req(self.comm_session.schedule_exchange_res)
@@ -844,25 +845,29 @@ class PowerDelivery(StateEVCC):
                 and control_mode == ControlMode.SCHEDULED
             ):
                 scheduled_params = (
-                    self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()
+                    self.comm_session.ev_controller
+                        .get_scheduled_ac_charge_loop_params()
                 )
             elif (
                 selected_energy_service == ServiceV20.AC
                 and control_mode == ControlMode.DYNAMIC
             ):
                 dynamic_params = (
-                    self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()
+                    self.comm_session.ev_controller
+                        .get_dynamic_ac_charge_loop_params()
                 )
             elif (
                 selected_energy_service == ServiceV20.AC_BPT
                 and control_mode == ControlMode.SCHEDULED
             ):
                 bpt_scheduled_params = (
-                    self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()
+                    self.comm_session.ev_controller
+                        .get_bpt_scheduled_ac_charge_loop_params()
                 )
             else:
                 bpt_dynamic_params = (
-                    self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()
+                    self.comm_session.ev_controller
+                        .get_bpt_dynamic_ac_charge_loop_params()
                 )
 
             ac_charge_loop_req = ACChargeLoopReq(
@@ -967,14 +972,10 @@ class SessionStop(StateEVCC):
         if not msg:
             return
 
-        if self.comm_session.charging_session_stop_v20 == ChargingSession.TERMINATE:
-            stopped = "terminated"
-        else:
-            stopped = "paused"
-
         self.comm_session.stop_reason = StopNotification(
             True,
-            f"Communication session {stopped}",
+            f"Communication session "
+            f"{self.comm_session.charging_session_stop_v20.lower()}d",
             self.comm_session.writer.get_extra_info("peername"),
         )
 
@@ -1070,7 +1071,7 @@ class ACChargeLoop(StateEVCC):
         if not msg:
             return
 
-        ac_charge_loop_res: ACChargeLoopRes = msg
+        ac_charge_loop_res: ACChargeLoopRes = msg  # noqa
 
         if self.comm_session.ev_controller.continue_charging():
             scheduled_params, dynamic_params = None, None
@@ -1086,25 +1087,29 @@ class ACChargeLoop(StateEVCC):
                     and control_mode == ControlMode.SCHEDULED
                 ):
                     scheduled_params = (
-                        self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()
+                        self.comm_session.ev_controller
+                            .get_scheduled_ac_charge_loop_params()
                     )
                 elif (
                     selected_energy_service == ServiceV20.AC
                     and control_mode == ControlMode.DYNAMIC
                 ):
                     dynamic_params = (
-                        self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()
+                        self.comm_session.ev_controller
+                            .get_dynamic_ac_charge_loop_params()
                     )
                 elif (
                     selected_energy_service == ServiceV20.AC_BPT
                     and control_mode == ControlMode.SCHEDULED
                 ):
                     bpt_scheduled_params = (
-                        self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()
+                        self.comm_session.ev_controller
+                            .get_bpt_scheduled_ac_charge_loop_params()
                     )
                 else:
                     bpt_dynamic_params = (
-                        self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()
+                        self.comm_session.ev_controller
+                            .get_bpt_dynamic_ac_charge_loop_params()
                     )
 
                 ac_charge_loop_req = ACChargeLoopReq(

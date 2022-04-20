@@ -177,7 +177,7 @@ class SimEVController(EVControllerInterface):
     ) -> SelectedEnergyService:
         """Overrides EVControllerInterface.select_energy_service_v20()."""
         selected_service = SelectedEnergyService(
-            service=ServiceV20.get_by_id(service.service_id),
+            service=service,
             is_free=is_free,
             parameter_set=parameter_sets.pop(),
         )
@@ -188,7 +188,7 @@ class SimEVController(EVControllerInterface):
     ) -> Optional[SelectedVAS]:
         """Overrides EVControllerInterface.select_vas_v20()."""
         selected_service = SelectedVAS(
-            service=ServiceV20.get_by_id(service.service_id),
+            service=service,
             is_free=is_free,
             parameter_set=parameter_sets.pop(),
         )
@@ -273,7 +273,7 @@ class SimEVController(EVControllerInterface):
                 ev_max_charge_current=RationalNumber(exponent=0, value=300),
                 ev_min_charge_current=RationalNumber(exponent=0, value=10),
                 ev_max_voltage=RationalNumber(exponent=0, value=1000),
-                ev_min_oltage=RationalNumber(exponent=0, value=10),
+                ev_min_voltage=RationalNumber(exponent=0, value=10),
                 ev_max_discharge_power=RationalNumber(exponent=3, value=11),
                 ev_min_discharge_power=RationalNumber(exponent=3, value=1),
                 ev_max_discharge_current=RationalNumber(exponent=0, value=11),

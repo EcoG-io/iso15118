@@ -79,7 +79,6 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
     DCCableCheckReq,
-    DCChargeLoopReq,
     DCChargeParameterDiscoveryReq,
     DCChargeParameterDiscoveryReqParams,
     DCChargeParameterDiscoveryRes,
@@ -455,7 +454,8 @@ class ServiceDiscovery(StateSECC):
             return
 
         service_discovery_req: ServiceDiscoveryReq = msg
-
+        # TODO: Filter services based on
+        #  SupportedServiceIDs field in ServiceDiscoveryReq
         offered_energy_services = (
             self.comm_session.evse_controller.get_energy_service_list()
         )
@@ -692,10 +692,9 @@ class ServiceSelection(StateSECC):
 
         # Create a list of tuples, with each tuple containing the service ID and the
         # associated parameter set IDs of an offered service.
-        offered_id_pairs: List[(int, int)] = []
+        offered_id_pairs = []
         for offered_service in self.comm_session.offered_services_v20:
-            for parameter_set in offered_service.parameter_sets:
-                offered_id_pairs.append((offered_service.service.id, parameter_set.id))
+            offered_id_pairs.extend(offered_service.service_parameter_set_ids())
 
         # Let's first check if the (service ID, parameter set ID)-pair of the selected
         # energy service is valid
@@ -922,7 +921,7 @@ class PowerDelivery(StateSECC):
                 ResponseCode.FAILED_EV_POWER_PROFILE_VIOLATION,
             ):
                 self.stop_state_machine(
-                    f"EVPowerProfile invalid/violation",
+                    "EVPowerProfile invalid/violation",
                     message,
                     response_code,
                 )
@@ -933,7 +932,7 @@ class PowerDelivery(StateSECC):
                 and not self.comm_session.config.standby_allowed
             ):
                 self.stop_state_machine(
-                    f"Standby not allowed",
+                    "Standby not allowed",
                     message,
                     ResponseCode.WARN_STANDBY_NOT_ALLOWED,
                 )
@@ -1211,25 +1210,29 @@ class ACChargeLoop(StateSECC):
                 and control_mode == ControlMode.SCHEDULED
             ):
                 scheduled_params = (
-                    self.comm_session.evse_controller.get_scheduled_ac_charge_loop_params()
+                    self.comm_session.evse_controller
+                        .get_scheduled_ac_charge_loop_params()
                 )
             elif (
                 selected_energy_service == ServiceV20.AC
                 and control_mode == ControlMode.DYNAMIC
             ):
                 dynamic_params = (
-                    self.comm_session.evse_controller.get_dynamic_ac_charge_loop_params()
+                    self.comm_session.evse_controller
+                        .get_dynamic_ac_charge_loop_params()
                 )
             elif (
                 selected_energy_service == ServiceV20.AC_BPT
                 and control_mode == ControlMode.SCHEDULED
             ):
                 bpt_scheduled_params = (
-                    self.comm_session.evse_controller.get_bpt_scheduled_ac_charge_loop_params()
+                    self.comm_session.evse_controller
+                        .get_bpt_scheduled_ac_charge_loop_params()
                 )
             else:
                 bpt_dynamic_params = (
-                    self.comm_session.evse_controller.get_bpt_dynamic_ac_charge_loop_params()
+                    self.comm_session.evse_controller
+                        .get_bpt_dynamic_ac_charge_loop_params()
                 )
 
             meter_info = None
