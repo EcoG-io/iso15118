@@ -43,6 +43,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     DynamicScheduleExchangeResParams,
     EMAIDList,
     EVPowerProfile,
+    MatchedService,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     ParameterSet as ParameterSetV20,
@@ -107,7 +108,7 @@ class EVControllerInterface(ABC):
         """
         raise NotImplementedError
 
-    def get_energy_service(self) -> ServiceV20:
+    def get_supported_energy_services(self) -> List[ServiceV20]:
         """
         Gets the energy transfer service requested for the current charging session.
         This must be one of the energy related services (services with ID 1 through 7)
@@ -119,17 +120,14 @@ class EVControllerInterface(ABC):
 
     @abstractmethod
     def select_energy_service_v20(
-        self, service: ServiceV20, is_free: bool, parameter_sets: List[ParameterSetV20]
+        self, services: List[MatchedService]
     ) -> SelectedEnergyService:
         """
         Selects the energy service and associated parameter set from a given set of
         parameters per energy service ID.
 
         Args:
-            service: The service given as an enum member of ServiceV20
-            is_free: Whether this is a free or paid service
-            parameter_sets: The parameter sets, which the SECC offers for that energy
-                            service
+            services: List of compatible energy services offered by EVSE
 
         Returns:
             An instance of SelectedEnergyService, containing the service, whether it's
@@ -407,7 +405,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_ac_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
+    def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
         """
         Gets the charge parameter needed for ChargeParameterDiscoveryReq (ISO 15118-2),
         including the energy transfer mode and the energy mode-specific parameters,

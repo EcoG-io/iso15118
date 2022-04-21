@@ -18,30 +18,30 @@ from pydantic import Field, root_validator, validator
 
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
-    AuthEnum,
-    INT_8_MIN,
     INT_8_MAX,
+    INT_8_MIN,
     INT_16_MAX,
     INT_16_MIN,
-    ServiceV20,
-    UINT_16_MAX,
     UINT_8_MAX,
+    UINT_16_MAX,
+    AuthEnum,
+    ServiceV20,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     UINT_32_MAX,
+    Certificate,
+    Description,
     EVSEStatus,
+    Identifier,
     MeterInfo,
+    Name,
+    NumericID,
     Processing,
     RationalNumber,
     Receipt,
+    RootCertificateIDList,
     V2GRequest,
     V2GResponse,
-    RootCertificateIDList,
-    NumericID,
-    Name,
-    Description,
-    Identifier,
-    Certificate,
 )
 from iso15118.shared.validators import one_field_must_be_set
 
@@ -1280,7 +1280,7 @@ class VehicleCheckOutRes(V2GResponse):
 
 
 @dataclass
-class OfferedService:
+class MatchedService:
     """
     This class puts all service-related information into one place. ISO 15118-20
     messages and data types scatter information about service ID, typeo of service
@@ -1316,6 +1316,14 @@ class SelectedEnergyService:
     service: ServiceV20
     is_free: bool
     parameter_set: ParameterSet
+
+    @property
+    def service_id(self) -> int:
+        return self.service.id
+
+    @property
+    def parameter_set_id(self) -> int:
+        return self.parameter_set.id
 
 
 @dataclass

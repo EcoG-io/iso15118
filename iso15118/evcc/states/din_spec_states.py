@@ -597,8 +597,7 @@ class PreCharge(StateEVCC):
             ready_to_charge=True,
             charging_profile=None,
             dc_ev_power_delivery_parameter=(
-                self.comm_session.ev_controller
-                    .get_dc_ev_power_delivery_parameter_dinspec()
+                self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter_dinspec()
             ),
         )
         return power_delivery_req
@@ -720,8 +719,7 @@ class CurrentDemand(StateEVCC):
         power_delivery_req = PowerDeliveryReq(
             ready_to_charge=False,
             dc_ev_power_delivery_parameter=(
-                self.comm_session.ev_controller
-                    .get_dc_ev_power_delivery_parameter_dinspec()
+                self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter_dinspec()
             ),
         )
         self.create_next_message(

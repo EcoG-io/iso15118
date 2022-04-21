@@ -42,8 +42,10 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargingSession as ChargingSessionV2,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
-    ScheduleExchangeReq,
     ChargingSession as ChargingSessionV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    ScheduleExchangeReq,
     ScheduleExchangeRes,
 )
 from iso15118.shared.messages.iso15118_20.common_types import Processing

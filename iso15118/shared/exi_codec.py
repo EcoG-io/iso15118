@@ -1,9 +1,9 @@
 import base64
 import json
 import logging
-
-from typing import Union
 from base64 import b64decode, b64encode
+from typing import Union
+
 from pydantic import ValidationError
 
 from iso15118.shared.exceptions import EXIDecodingError, EXIEncodingError
@@ -25,6 +25,8 @@ from iso15118.shared.messages.iso15118_20.ac import (
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq as AuthorizationReqV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationRes,
     AuthorizationSetupReq,
     AuthorizationSetupRes,

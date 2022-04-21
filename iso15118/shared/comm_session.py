@@ -38,7 +38,7 @@ from iso15118.shared.messages.enums import (
 from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_messages import (
-    OfferedService as OfferedServiceV20,
+    MatchedService as OfferedServiceV20,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     SelectedEnergyService,
@@ -309,7 +309,7 @@ class V2GCommunicationSession(SessionStateMachine):
         # Whether the SECC supports service renegotiation (ISO 15118-20)
         self.service_renegotiation_supported: bool = False
         # The services which the SECC offers (ISO 15118-20)
-        self.offered_services_v20: List[OfferedServiceV20] = []
+        self.matched_services_v20: List[OfferedServiceV20] = []
         # The value-added services the EVCC selected (ISO 15118-20)
         self.selected_vas_list_v20: List[SelectedVAS] = []
         # The charge service and value-added services the EVCC selected (ISO 15118-2)

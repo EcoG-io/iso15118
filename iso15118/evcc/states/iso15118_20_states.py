@@ -42,7 +42,8 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ChargeProgress,
     ChargingSession,
     EIMAuthReqParams,
-    OfferedService,
+    MatchedService,
+    ParameterSet,
     PnCAuthReqParams,
     PowerDeliveryReq,
     PowerDeliveryRes,
@@ -382,29 +383,27 @@ class ServiceDiscovery(StateEVCC):
             service_discovery_res.service_renegotiation_supported
         )
 
-        req_energy_service: ServiceV20 = (
-            self.comm_session.ev_controller.get_energy_service()
-        )
+        req_energy_services: List[
+            ServiceV20
+        ] = self.comm_session.ev_controller.get_supported_energy_services()
 
-        matched_energy_service: bool = False
         for energy_service in service_discovery_res.energy_service_list.services:
-            self.comm_session.offered_services_v20.append(
-                OfferedService(
-                    service=ServiceV20.get_by_id(energy_service.service_id),
-                    is_energy_service=True,
-                    is_free=energy_service.free_service,
-                    # Parameter sets are available with ServiceDetailRes
-                    parameter_sets=[],
-                )
-            )
+            for requested_energy_service in req_energy_services:
+                if requested_energy_service.id == energy_service.service_id:
+                    self.comm_session.matched_services_v20.append(
+                        MatchedService(
+                            service=ServiceV20.get_by_id(energy_service.service_id),
+                            is_energy_service=True,
+                            is_free=energy_service.free_service,
+                            # Parameter sets are available with ServiceDetailRes
+                            parameter_sets=[],
+                        )
+                    )
+                    self.comm_session.service_details_to_request.append(
+                        energy_service.service_id
+                    )
 
-            if req_energy_service == ServiceV20.get_by_id(energy_service.service_id):
-                matched_energy_service = True
-                self.comm_session.service_details_to_request.append(
-                    energy_service.service_id
-                )
-
-        if not matched_energy_service:
+        if not self.comm_session.matched_services_v20:
             session_stop_req = SessionStopReq(
                 header=MessageHeader(
                     session_id=self.comm_session.session_id,
@@ -427,8 +426,8 @@ class ServiceDiscovery(StateEVCC):
 
         if service_discovery_res.vas_list:
             for vas_service in service_discovery_res.vas_list.services:
-                self.comm_session.offered_services_v20.append(
-                    OfferedService(
+                self.comm_session.matched_services_v20.append(
+                    MatchedService(
                         service=ServiceV20.get_by_id(vas_service.service_id),
                         is_energy_service=False,
                         is_free=vas_service.free_service,
@@ -468,10 +467,6 @@ class ServiceDetail(StateEVCC):
 
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.SERVICE_DETAIL_REQ)
-        # Checks whether a control mode for the selected energy service was provided.
-        # Should always be the case and is needed to distinguish between Scheduled and
-        # Dynamic mode for the further messages.
-        self.control_mode_found = False
 
     def process_message(
         self,
@@ -489,9 +484,33 @@ class ServiceDetail(StateEVCC):
 
         service_detail_res: ServiceDetailRes = msg
 
-        self.select_services(service_detail_res)
+        self.store_service_details(service_detail_res)
 
-        if not self.control_mode_found:
+        if self.comm_session.service_details_to_request:
+            service_detail_req = ServiceDetailReq(
+                header=MessageHeader(
+                    session_id=self.comm_session.session_id,
+                    timestamp=time.time(),
+                ),
+                service_id=self.comm_session.service_details_to_request.pop(),
+            )
+
+            self.create_next_message(
+                ServiceDetail,
+                service_detail_req,
+                Timeouts.SERVICE_DETAIL_REQ,
+                Namespace.ISO_V20_COMMON_MSG,
+                ISOV20PayloadTypes.MAINSTREAM,
+            )
+            return
+
+        self.comm_session.selected_energy_service = (
+            self.comm_session.ev_controller.select_energy_service_v20(
+                self.comm_session.matched_services_v20
+            )
+        )
+
+        if not self.set_control_mode():
             session_stop_req = SessionStopReq(
                 header=MessageHeader(
                     session_id=self.comm_session.session_id,
@@ -510,25 +529,17 @@ class ServiceDetail(StateEVCC):
             )
             return
 
-        if self.comm_session.service_details_to_request:
-            service_detail_req = ServiceDetailReq(
-                header=MessageHeader(
-                    session_id=self.comm_session.session_id,
-                    timestamp=time.time(),
-                ),
-                service_id=self.comm_session.service_details_to_request.pop(),
-            )
+        service_selection_req: ServiceSelectionReq = self.build_service_selection_req()
 
-            self.create_next_message(
-                ServiceDetail,
-                service_detail_req,
-                Timeouts.SERVICE_DETAIL_REQ,
-                Namespace.ISO_V20_COMMON_MSG,
-                ISOV20PayloadTypes.MAINSTREAM,
-            )
+        self.create_next_message(
+            ServiceSelection,
+            service_selection_req,
+            Timeouts.SERVICE_SELECTION_REQ,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
+        )
 
-            return
-
+    def build_service_selection_req(self) -> ServiceSelectionReq:
         selected_vas_list: List[SelectedService] = []
         for vas in self.comm_session.selected_vas_list_v20:
             selected_vas_list.append(
@@ -538,8 +549,8 @@ class ServiceDetail(StateEVCC):
             )
 
         selected_energy_service = SelectedService(
-            service_id=self.comm_session.selected_energy_service.service.id,
-            parameter_set_id=self.comm_session.selected_energy_service.parameter_set.id,
+            service_id=self.comm_session.selected_energy_service.service_id,
+            parameter_set_id=self.comm_session.selected_energy_service.parameter_set_id,
         )
 
         service_selection_req = ServiceSelectionReq(
@@ -551,59 +562,25 @@ class ServiceDetail(StateEVCC):
             selected_vas_list=selected_vas_list if selected_vas_list else None,
         )
 
-        self.create_next_message(
-            ServiceSelection,
-            service_selection_req,
-            Timeouts.SERVICE_SELECTION_REQ,
-            Namespace.ISO_V20_COMMON_MSG,
-            ISOV20PayloadTypes.MAINSTREAM,
-        )
+        return service_selection_req
 
-    def select_services(self, service_detail_res: ServiceDetailRes):
-        requested_energy_service: ServiceV20 = (
-            self.comm_session.ev_controller.get_energy_service()
-        )
+    def set_control_mode(self) -> bool:
+        control_mode_set = False
+        if self.comm_session.selected_energy_service:
+            parameter_set = self.comm_session.selected_energy_service.parameter_set
+            for param in parameter_set.parameters:
+                if param.name == ParameterName.CONTROL_MODE:
+                    self.comm_session.control_mode = ControlMode(param.int_value)
+                    control_mode_set = True
+        return control_mode_set
 
-        for offered_service in self.comm_session.offered_services_v20:
+    def store_service_details(self, service_detail_res: ServiceDetailRes):
+        for service in self.comm_session.matched_services_v20:
             # Save the parameter sets for a particular service
-            if offered_service.service.id == service_detail_res.service_id:
-                offered_service.parameter_sets = (
+            if service.service.id == service_detail_res.service_id:
+                service.parameter_sets = (
                     service_detail_res.service_parameter_list.parameter_sets
                 )
-
-                # Select the energy service and the corresponding parameter set if the
-                # offered energy service is the one the EVCC requested
-                if (
-                    offered_service.is_energy_service
-                    and offered_service.service == requested_energy_service
-                ):
-                    self.comm_session.selected_energy_service = (
-                        self.comm_session.ev_controller.select_energy_service_v20(
-                            offered_service.service,
-                            offered_service.is_free,
-                            offered_service.parameter_sets,
-                        )
-                    )
-
-                    param_set = self.comm_session.selected_energy_service.parameter_set
-                    for param in param_set.parameters:
-                        if param.name == ParameterName.CONTROL_MODE:
-                            self.comm_session.control_mode = ControlMode(
-                                param.int_value
-                            )
-                            self.control_mode_found = True
-
-                # Select the value-added service (VAS) and corresponding parameter set
-                # if you want to use that service
-                if not offered_service.is_energy_service:
-                    selected_vas = self.comm_session.ev_controller.select_vas_v20(
-                        offered_service.service,
-                        offered_service.is_free,
-                        offered_service.parameter_sets,
-                    )
-
-                    if selected_vas:
-                        self.comm_session.selected_vas_list_v20.append(selected_vas)
 
 
 class ServiceSelection(StateEVCC):
@@ -845,29 +822,25 @@ class PowerDelivery(StateEVCC):
                 and control_mode == ControlMode.SCHEDULED
             ):
                 scheduled_params = (
-                    self.comm_session.ev_controller
-                        .get_scheduled_ac_charge_loop_params()
+                    self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()
                 )
             elif (
                 selected_energy_service == ServiceV20.AC
                 and control_mode == ControlMode.DYNAMIC
             ):
                 dynamic_params = (
-                    self.comm_session.ev_controller
-                        .get_dynamic_ac_charge_loop_params()
+                    self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()
                 )
             elif (
                 selected_energy_service == ServiceV20.AC_BPT
                 and control_mode == ControlMode.SCHEDULED
             ):
                 bpt_scheduled_params = (
-                    self.comm_session.ev_controller
-                        .get_bpt_scheduled_ac_charge_loop_params()
+                    self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()
                 )
             else:
                 bpt_dynamic_params = (
-                    self.comm_session.ev_controller
-                        .get_bpt_dynamic_ac_charge_loop_params()
+                    self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()
                 )
 
             ac_charge_loop_req = ACChargeLoopReq(
@@ -1087,29 +1060,25 @@ class ACChargeLoop(StateEVCC):
                     and control_mode == ControlMode.SCHEDULED
                 ):
                     scheduled_params = (
-                        self.comm_session.ev_controller
-                            .get_scheduled_ac_charge_loop_params()
+                        self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()
                     )
                 elif (
                     selected_energy_service == ServiceV20.AC
                     and control_mode == ControlMode.DYNAMIC
                 ):
                     dynamic_params = (
-                        self.comm_session.ev_controller
-                            .get_dynamic_ac_charge_loop_params()
+                        self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()
                     )
                 elif (
                     selected_energy_service == ServiceV20.AC_BPT
                     and control_mode == ControlMode.SCHEDULED
                 ):
                     bpt_scheduled_params = (
-                        self.comm_session.ev_controller
-                            .get_bpt_scheduled_ac_charge_loop_params()
+                        self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()
                     )
                 else:
                     bpt_dynamic_params = (
-                        self.comm_session.ev_controller
-                            .get_bpt_dynamic_ac_charge_loop_params()
+                        self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()
                     )
 
                 ac_charge_loop_req = ACChargeLoopReq(

@@ -12,12 +12,13 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargingSession,
     DCEVErrorCode,
     DCEVStatus,
+    PMaxSchedule,
     PMaxScheduleEntry,
     PVPMax,
     RelativeTimeInterval,
     SalesTariff,
     SalesTariffEntry,
-    SAScheduleTuple, PMaxSchedule,
+    SAScheduleTuple,
 )
 from iso15118.shared.messages.iso15118_2.header import MessageHeader
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage

@@ -26,7 +26,6 @@ from iso15118.shared.messages.enums import (
 )
 from iso15118.shared.messages.xmldsig import Signature, X509IssuerSerial
 
-
 # https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
 # Check Annex C.1 or V2G_CI_CommonTypes.xsd
 # certificateType (a DER encoded X.509 certificate)

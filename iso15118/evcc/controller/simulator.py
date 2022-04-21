@@ -46,9 +46,11 @@ from iso15118.shared.messages.enums import (
     ServiceV20,
     UnitSymbol,
 )
+from iso15118.shared.messages.iso15118_2.datatypes import ACEVChargeParameter
 from iso15118.shared.messages.iso15118_2.datatypes import (
-    ACEVChargeParameter,
     ChargeProgress as ChargeProgressV2,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargingProfile,
     DCEVChargeParameter,
     DCEVPowerDeliveryParameter,
@@ -66,6 +68,8 @@ from iso15118.shared.messages.iso15118_20.ac import (
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     ChargeProgress as ChargeProgressV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     DynamicEVPowerProfile,
     DynamicScheduleExchangeReqParams,
     DynamicScheduleExchangeResParams,
@@ -80,6 +84,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     EVPriceRuleStack,
     EVPriceRuleStackList,
 )
+from iso15118.shared.messages.iso15118_20.common_messages import MatchedService
 from iso15118.shared.messages.iso15118_20.common_messages import (
     ParameterSet as ParameterSetV20,
 )
@@ -137,10 +142,6 @@ class SimEVController(EVControllerInterface):
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
 
-    # ============================================================================
-    # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
-    # ============================================================================
-
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """Overrides EVControllerInterface.get_evcc_id()."""
 
@@ -168,20 +169,26 @@ class SimEVController(EVControllerInterface):
             return EnergyTransferModeEnum.DC_EXTENDED
         return EnergyTransferModeEnum.DC_EXTENDED
 
-    def get_energy_service(self) -> ServiceV20:
+    def get_supported_energy_services(self) -> List[ServiceV20]:
         """Overrides EVControllerInterface.get_energy_transfer_service()."""
-        return ServiceV20.AC
+        return [ServiceV20.AC, ServiceV20.AC_BPT]
 
     def select_energy_service_v20(
-        self, service: ServiceV20, is_free: bool, parameter_sets: List[ParameterSetV20]
+        self, services: List[MatchedService]
     ) -> SelectedEnergyService:
-        """Overrides EVControllerInterface.select_energy_service_v20()."""
-        selected_service = SelectedEnergyService(
-            service=service,
-            is_free=is_free,
-            parameter_set=parameter_sets.pop(),
-        )
-        return selected_service
+        if services:
+            top_of_list: MatchedService = services[0]
+            selected_service = SelectedEnergyService(
+                service=top_of_list.service,
+                is_free=top_of_list.is_free,
+                # Hi Marc/André
+                # My understanding is that there could be multiple parameter sets
+                # for matched service.
+                # When we select a service we pick one of the parameter sets.
+                parameter_set=top_of_list.parameter_sets[0],
+            )
+            return selected_service
+        return None
 
     def select_vas_v20(
         self, service: ServiceV20, is_free: bool, parameter_sets: List[ParameterSetV20]

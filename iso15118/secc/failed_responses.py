@@ -103,14 +103,21 @@ from iso15118.shared.messages.enums import (
     Namespace,
     UnitSymbol,
 )
+from iso15118.shared.messages.iso15118_2.body import EMAID
 from iso15118.shared.messages.iso15118_2.body import (
-    EMAID,
     AuthorizationReq as AuthorizationReqV2,
+)
+from iso15118.shared.messages.iso15118_2.body import (
     AuthorizationRes as AuthorizationResV2,
-    CableCheckReq,
-    CableCheckRes,
+)
+from iso15118.shared.messages.iso15118_2.body import CableCheckReq, CableCheckRes
+from iso15118.shared.messages.iso15118_2.body import (
     CertificateInstallationReq as CertificateInstallationReqV2,
+)
+from iso15118.shared.messages.iso15118_2.body import (
     CertificateInstallationRes as CertificateInstallationResV2,
+)
+from iso15118.shared.messages.iso15118_2.body import (
     CertificateUpdateReq,
     CertificateUpdateRes,
     ChargeParameterDiscoveryReq,
@@ -125,32 +132,52 @@ from iso15118.shared.messages.iso15118_2.body import (
     PaymentDetailsRes,
     PaymentServiceSelectionReq,
     PaymentServiceSelectionRes,
+)
+from iso15118.shared.messages.iso15118_2.body import (
     PowerDeliveryReq as PowerDeliveryReqV2,
+)
+from iso15118.shared.messages.iso15118_2.body import (
     PowerDeliveryRes as PowerDeliveryResV2,
-    PreChargeReq,
-    PreChargeRes,
-    ResponseCode as ResponseCodeV2,
+)
+from iso15118.shared.messages.iso15118_2.body import PreChargeReq, PreChargeRes
+from iso15118.shared.messages.iso15118_2.body import ResponseCode as ResponseCodeV2
+from iso15118.shared.messages.iso15118_2.body import (
     ServiceDetailReq as ServiceDetailReqV2,
+)
+from iso15118.shared.messages.iso15118_2.body import (
     ServiceDetailRes as ServiceDetailResV2,
+)
+from iso15118.shared.messages.iso15118_2.body import (
     ServiceDiscoveryReq as ServiceDiscoveryReqV2,
+)
+from iso15118.shared.messages.iso15118_2.body import (
     ServiceDiscoveryRes as ServiceDiscoveryResV2,
+)
+from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupReq as SessionSetupReqV2,
+)
+from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupRes as SessionSetupResV2,
-    SessionStopReq as SessionStopReqV2,
-    SessionStopRes as SessionStopResV2,
+)
+from iso15118.shared.messages.iso15118_2.body import SessionStopReq as SessionStopReqV2
+from iso15118.shared.messages.iso15118_2.body import SessionStopRes as SessionStopResV2
+from iso15118.shared.messages.iso15118_2.body import (
     WeldingDetectionReq as WeldingDetectionReqV2,
+)
+from iso15118.shared.messages.iso15118_2.body import (
     WeldingDetectionRes as WeldingDetectionResV2,
 )
+from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEStatus, AuthOptionList
 from iso15118.shared.messages.iso15118_2.datatypes import (
-    ACEVSEStatus,
     CertificateChain as CertificateChainV2,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargeService,
     DHPublicKey,
     EncryptedPrivateKey,
     EnergyTransferModeList,
-    AuthOptionList,
-    ServiceID,
     ServiceCategory,
+    ServiceID,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeLoopReq,
@@ -162,43 +189,82 @@ from iso15118.shared.messages.iso15118_20.ac import (
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq as AuthorizationReqV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationRes as AuthorizationResV20,
-    SubCertificates,
-    ServiceList,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationSetupReq,
     AuthorizationSetupRes,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     CertificateChain as CertificateChainV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     CertificateInstallationReq as CertificateInstallationReqV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     CertificateInstallationRes as CertificateInstallationResV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     DynamicScheduleExchangeResParams,
     ECDHCurve,
     EIMAuthSetupResParams,
     MeteringConfirmationReq,
     MeteringConfirmationRes,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     PowerDeliveryReq as PowerDeliveryReqV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     PowerDeliveryRes as PowerDeliveryResV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     PriceLevelSchedule,
     PriceLevelScheduleEntryList,
     ScheduleExchangeReq,
     ScheduleExchangeRes,
     Service,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     ServiceDetailReq as ServiceDetailReqV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     ServiceDetailRes as ServiceDetailResV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     ServiceDiscoveryReq as ServiceDiscoveryReqV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     ServiceDiscoveryRes as ServiceDiscoveryResV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    ServiceList,
     ServiceParameterList,
     ServiceSelectionReq,
     ServiceSelectionRes,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionSetupReq as SessionSetupReqV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionSetupRes as SessionSetupResV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionStopReq as SessionStopReqV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionStopRes as SessionStopResV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     SignedInstallationData,
+    SubCertificates,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader as MessageHeaderV20,
-    Processing,
-    RationalNumber,
+)
+from iso15118.shared.messages.iso15118_20.common_types import Processing, RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import (
     ResponseCode as ResponseCodeV20,
 )
 from iso15118.shared.messages.iso15118_20.dc import (

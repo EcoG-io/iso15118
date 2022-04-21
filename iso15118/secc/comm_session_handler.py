@@ -43,9 +43,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     SAScheduleTuple,
     ServiceDetails,
 )
-from iso15118.shared.messages.iso15118_20.common_messages import (
-    ScheduleTuple,
-)
+from iso15118.shared.messages.iso15118_20.common_messages import ScheduleTuple
 from iso15118.shared.messages.sdp import SDPRequest, Security, create_sdp_response
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.messages.v2gtp import V2GTPMessage

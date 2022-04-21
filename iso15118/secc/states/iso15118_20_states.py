@@ -45,7 +45,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ChargingSession,
     EIMAuthSetupResParams,
     EVPowerProfile,
-    OfferedService,
+    MatchedService,
     PnCAuthSetupResParams,
     PowerDeliveryReq,
     PowerDeliveryRes,
@@ -460,8 +460,8 @@ class ServiceDiscovery(StateSECC):
             self.comm_session.evse_controller.get_energy_service_list()
         )
         for energy_service in offered_energy_services.services:
-            self.comm_session.offered_services_v20.append(
-                OfferedService(
+            self.comm_session.matched_services_v20.append(
+                MatchedService(
                     service=ServiceV20.get_by_id(energy_service.service_id),
                     is_energy_service=True,
                     is_free=energy_service.free_service,
@@ -473,8 +473,8 @@ class ServiceDiscovery(StateSECC):
         offered_vas = self.get_vas_list(service_discovery_req.supported_service_ids)
         if offered_vas:
             for vas in offered_vas.services:
-                self.comm_session.offered_services_v20.append(
-                    OfferedService(
+                self.comm_session.matched_services_v20.append(
+                    MatchedService(
                         service=ServiceV20.get_by_id(vas.service_id),
                         is_energy_service=False,
                         is_free=vas.free_service,
@@ -581,7 +581,7 @@ class ServiceDetail(StateSECC):
             )
         )
 
-        for offered_service in self.comm_session.offered_services_v20:
+        for offered_service in self.comm_session.matched_services_v20:
             if offered_service.service.id == service_detail_req.service_id:
                 offered_service.parameter_sets = service_parameter_list.parameter_sets
 
@@ -693,7 +693,7 @@ class ServiceSelection(StateSECC):
         # Create a list of tuples, with each tuple containing the service ID and the
         # associated parameter set IDs of an offered service.
         offered_id_pairs = []
-        for offered_service in self.comm_session.offered_services_v20:
+        for offered_service in self.comm_session.matched_services_v20:
             offered_id_pairs.extend(offered_service.service_parameter_set_ids())
 
         # Let's first check if the (service ID, parameter set ID)-pair of the selected
@@ -725,7 +725,7 @@ class ServiceSelection(StateSECC):
 
         # If all selected services are valid, let's add the information about the
         # parameter set (not just the ID) to each selected service
-        for offered_service in self.comm_session.offered_services_v20:
+        for offered_service in self.comm_session.matched_services_v20:
             if req_energy_service.service_id == offered_service.service.id:
                 for parameter_set in offered_service.parameter_sets:
                     if req_energy_service.parameter_set_id == parameter_set.id:
@@ -1210,29 +1210,25 @@ class ACChargeLoop(StateSECC):
                 and control_mode == ControlMode.SCHEDULED
             ):
                 scheduled_params = (
-                    self.comm_session.evse_controller
-                        .get_scheduled_ac_charge_loop_params()
+                    self.comm_session.evse_controller.get_scheduled_ac_charge_loop_params()
                 )
             elif (
                 selected_energy_service == ServiceV20.AC
                 and control_mode == ControlMode.DYNAMIC
             ):
                 dynamic_params = (
-                    self.comm_session.evse_controller
-                        .get_dynamic_ac_charge_loop_params()
+                    self.comm_session.evse_controller.get_dynamic_ac_charge_loop_params()
                 )
             elif (
                 selected_energy_service == ServiceV20.AC_BPT
                 and control_mode == ControlMode.SCHEDULED
             ):
                 bpt_scheduled_params = (
-                    self.comm_session.evse_controller
-                        .get_bpt_scheduled_ac_charge_loop_params()
+                    self.comm_session.evse_controller.get_bpt_scheduled_ac_charge_loop_params()
                 )
             else:
                 bpt_dynamic_params = (
-                    self.comm_session.evse_controller
-                        .get_bpt_dynamic_ac_charge_loop_params()
+                    self.comm_session.evse_controller.get_bpt_dynamic_ac_charge_loop_params()
                 )
 
             meter_info = None
