@@ -176,7 +176,11 @@ class SimEVController(EVControllerInterface):
     def select_energy_service_v20(
         self, services: List[MatchedService]
     ) -> SelectedEnergyService:
-        if services:
+        """Overrides EVControllerInterface.select_energy_service_v20()."""
+        matched_energy_services = [
+            service for service in services if service.is_energy_service
+        ]
+        if matched_energy_services:
             top_of_list: MatchedService = services[0]
             selected_service = SelectedEnergyService(
                 service=top_of_list.service,
@@ -190,16 +194,23 @@ class SimEVController(EVControllerInterface):
             return selected_service
         return None
 
-    def select_vas_v20(
-        self, service: ServiceV20, is_free: bool, parameter_sets: List[ParameterSetV20]
-    ) -> Optional[SelectedVAS]:
-        """Overrides EVControllerInterface.select_vas_v20()."""
-        selected_service = SelectedVAS(
-            service=service,
-            is_free=is_free,
-            parameter_set=parameter_sets.pop(),
-        )
-        return selected_service
+    def select_vas_services_v20(
+        self, services: List[MatchedService]
+    ) -> Optional[List[SelectedVAS]]:
+        """Overrides EVControllerInterface.select_vas_services_v20()."""
+        matched_vas_services = [
+            service for service in services if not service.is_energy_service
+        ]
+        selected_vas_services: List[MatchedService] = []
+        for vas_service in matched_vas_services:
+            selected_vas_services.append(
+                SelectedVAS(
+                    service=vas_service,
+                    is_free=vas_service.is_free,
+                    parameter_set=selected_vas_services.parameter_sets[0],
+                )
+            )
+        return selected_vas_services
 
     def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
         """Overrides EVControllerInterface.get_charge_params_v2()."""

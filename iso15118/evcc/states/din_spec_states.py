@@ -89,14 +89,14 @@ class SessionSetup(StateEVCC):
         super().__init__(comm_session, Timeouts.SESSION_SETUP_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, SessionSetupRes)
         if not msg:
@@ -128,14 +128,14 @@ class ServiceDiscovery(StateEVCC):
         super().__init__(comm_session, Timeouts.SERVICE_DISCOVERY_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, ServiceDiscoveryRes)
         if not msg:
@@ -236,14 +236,14 @@ class ServicePaymentSelection(StateEVCC):
         super().__init__(comm_session, Timeouts.SERVICE_PAYMENT_SELECTION_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, ServicePaymentSelectionRes)
         if not msg:
@@ -272,14 +272,14 @@ class ContractAuthentication(StateEVCC):
         super().__init__(comm_session, Timeouts.CONTRACT_AUTHENTICATION_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, ContractAuthenticationRes)
         if not msg:
@@ -354,14 +354,14 @@ class ChargeParameterDiscovery(StateEVCC):
         super().__init__(comm_session, Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, ChargeParameterDiscoveryRes)
         if not msg:
@@ -456,14 +456,14 @@ class CableCheck(StateEVCC):
         super().__init__(comm_session, Timeouts.CABLE_CHECK_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, CableCheckRes)
         if not msg:
@@ -479,8 +479,8 @@ class CableCheck(StateEVCC):
             self.comm_session.ongoing_timer = -1
             pre_charge_req: PreChargeReq = self.build_pre_charge_req()
             if (
-                    evse_status_code == DCEVSEStatusCode.EVSE_READY
-                    and isolation_status == IsolationLevel.VALID
+                evse_status_code == DCEVSEStatusCode.EVSE_READY
+                and isolation_status == IsolationLevel.VALID
             ):
                 self.create_next_message(
                     PreCharge,
@@ -539,14 +539,14 @@ class PreCharge(StateEVCC):
         super().__init__(comm_session, Timeouts.PRE_CHARGE_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, PreChargeRes)
         if not msg:
@@ -555,7 +555,7 @@ class PreCharge(StateEVCC):
         pre_charge_res: PreChargeRes = msg.body.pre_charge_res
 
         if self.comm_session.ev_controller.is_precharged(
-                pre_charge_res.evse_present_voltage
+            pre_charge_res.evse_present_voltage
         ):
             self.comm_session.ongoing_timer = -1
             power_delivery_req: PowerDeliveryReq = self.build_power_delivery_req()
@@ -611,14 +611,14 @@ class PowerDelivery(StateEVCC):
         super().__init__(comm_session, Timeouts.POWER_DELIVERY_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, PowerDeliveryRes)
         if not msg:
@@ -679,14 +679,14 @@ class CurrentDemand(StateEVCC):
         super().__init__(comm_session, Timeouts.CURRENT_DEMAND_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, CurrentDemandRes)
         if not msg:
@@ -767,14 +767,14 @@ class WeldingDetection(StateEVCC):
         super().__init__(comm_session, Timeouts.WELDING_DETECTION_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, WeldingDetectionRes)
         if not msg:
@@ -818,14 +818,14 @@ class SessionStop(StateEVCC):
         super().__init__(comm_session, Timeouts.SESSION_STOP_REQ)
 
     def process_message(
-            self,
-            message: Union[
-                SupportedAppProtocolReq,
-                SupportedAppProtocolRes,
-                V2GMessageV2,
-                V2GMessageV20,
-                V2GMessageDINSPEC,
-            ],
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
     ):
         msg = self.check_msg_din_spec(message, SessionStopRes)
         if not msg:

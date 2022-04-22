@@ -139,21 +139,19 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def select_vas_v20(
-        self, service: ServiceV20, is_free: bool, parameter_sets: List[ParameterSetV20]
-    ) -> Optional[SelectedVAS]:
+    def select_vas_services_v20(
+        self, services: List[MatchedService]
+    ) -> Optional[List[SelectedVAS]]:
         """
         Selects a value-added service (VAS) and associated parameter set from a given
         set of parameters for that value-added energy. If you don't want to select
         the offered VAS, return None.
 
         Args:
-            service: The value-added service given as an enum member of ServiceV20
-            is_free: Whether this is a free or paid service
-            parameter_sets: The parameter sets, which the SECC offers for that VAS
+            services: List of matched services
 
         Returns:
-            An instance of SelectedVAS, containing the service, whether it's free or
+            A list of SelectedVAS, containing the service, whether it's free or
             paid, and its chosen parameter set.
 
         Relevant for:

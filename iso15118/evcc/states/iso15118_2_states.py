@@ -1008,9 +1008,7 @@ class MeteringReceipt(StateEVCC):
             bulk_charging_complete=(
                 self.comm_session.ev_controller.is_bulk_charging_complete()
             ),
-            charging_complete=(
-                self.comm_session.ev_controller.is_charging_complete()
-            ),
+            charging_complete=(self.comm_session.ev_controller.is_charging_complete()),
             remaining_time_to_full_soc=(
                 self.comm_session.ev_controller.get_remaining_time_to_full_soc()
             ),
