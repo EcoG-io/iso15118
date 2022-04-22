@@ -17,6 +17,12 @@ from iso15118.shared.messages.app_protocol import (
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import Namespace
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeLoopReq,
+    ACChargeLoopRes,
+    ACChargeParameterDiscoveryReq,
+    ACChargeParameterDiscoveryRes,
+)
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq as AuthorizationReqV20,
 )
@@ -26,13 +32,35 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationSetupRes,
     CertificateInstallationReq,
     CertificateInstallationRes,
+    PowerDeliveryReq,
+    PowerDeliveryRes,
+    ScheduleExchangeReq,
+    ScheduleExchangeRes,
+    ServiceDetailReq,
+    ServiceDetailRes,
     ServiceDiscoveryReq,
     ServiceDiscoveryRes,
+    ServiceSelectionReq,
+    ServiceSelectionRes,
     SessionSetupReq,
     SessionSetupRes,
+    SessionStopReq,
+    SessionStopRes,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
+)
+from iso15118.shared.messages.iso15118_20.dc import (
+    DCCableCheckReq,
+    DCCableCheckRes,
+    DCChargeLoopReq,
+    DCChargeLoopRes,
+    DCChargeParameterDiscoveryReq,
+    DCChargeParameterDiscoveryRes,
+    DCPreChargeReq,
+    DCPreChargeRes,
+    DCWeldingDetectionReq,
+    DCWeldingDetectionRes,
 )
 from iso15118.shared.settings import MESSAGE_LOG_EXI, MESSAGE_LOG_JSON
 
@@ -307,12 +335,36 @@ class EXI:
                     "SessionSetupRes": SessionSetupRes,
                     "AuthorizationSetupReq": AuthorizationSetupReq,
                     "AuthorizationSetupRes": AuthorizationSetupRes,
+                    "CertificateInstallationReq": CertificateInstallationReq,
+                    "CertificateInstallationRes": CertificateInstallationRes,
                     "AuthorizationReq": AuthorizationReqV20,
                     "AuthorizationRes": AuthorizationRes,
                     "ServiceDiscoveryReq": ServiceDiscoveryReq,
                     "ServiceDiscoveryRes": ServiceDiscoveryRes,
-                    "CertificateInstallationReq": CertificateInstallationReq,
-                    "CertificateInstallationRes": CertificateInstallationRes,
+                    "ServiceDetailReq": ServiceDetailReq,
+                    "ServiceDetailRes": ServiceDetailRes,
+                    "ServiceSelectionReq": ServiceSelectionReq,
+                    "ServiceSelectionRes": ServiceSelectionRes,
+                    "AC_ChargeParameterDiscoveryReq": ACChargeParameterDiscoveryReq,
+                    "AC_ChargeParameterDiscoveryRes": ACChargeParameterDiscoveryRes,
+                    "DC_ChargeParameterDiscoveryReq": DCChargeParameterDiscoveryReq,
+                    "DC_ChargeParameterDiscoveryRes": DCChargeParameterDiscoveryRes,
+                    "ScheduleExchangeReq": ScheduleExchangeReq,
+                    "ScheduleExchangeRes": ScheduleExchangeRes,
+                    "DC_CableCheckReq": DCCableCheckReq,
+                    "DC_CableCheckRes": DCCableCheckRes,
+                    "DC_PreChargeReq": DCPreChargeReq,
+                    "DC_PreChargeRes": DCPreChargeRes,
+                    "PowerDeliveryReq": PowerDeliveryReq,
+                    "PowerDeliveryRes": PowerDeliveryRes,
+                    "AC_ChargeLoopReq": ACChargeLoopReq,
+                    "AC_ChargeLoopRes": ACChargeLoopRes,
+                    "DC_ChargeLoopReq": DCChargeLoopReq,
+                    "DC_ChargeLoopRes": DCChargeLoopRes,
+                    "DC_WeldingDetectionReq": DCWeldingDetectionReq,
+                    "DC_WeldingDetectionRes": DCWeldingDetectionRes,
+                    "SessionStopReq": SessionStopReq,
+                    "SessionStopRes": SessionStopRes,
                     # TODO add all the other message types and states
                 }
                 msg_class = msg_classes_dict.get(msg_name)

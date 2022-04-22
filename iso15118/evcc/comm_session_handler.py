@@ -38,7 +38,17 @@ from iso15118.shared.messages.enums import (
     Namespace,
     Protocol,
 )
-from iso15118.shared.messages.iso15118_2.datatypes import ChargingSession
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    ChargingSession as ChargingSessionV2,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    ChargingSession as ChargingSessionV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    ScheduleExchangeReq,
+    ScheduleExchangeRes,
+)
+from iso15118.shared.messages.iso15118_20.common_types import Processing
 from iso15118.shared.messages.sdp import SDPRequest, SDPResponse, Security, Transport
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.messages.v2gtp import V2GTPMessage
@@ -99,10 +109,24 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         # Once the timer is up, the EV will terminate the communication session.
         # A value >= 0 means the timer is running, a value < 0 means it stopped.
         self.ongoing_timer: float = -1
+        # Temporarily save the ScheduleExchangeReq, which need to be resent to the SECC
+        # if the response message's EVSEProcessing field is set to "Ongoing"
+        self.ongoing_schedule_exchange_req: Optional[ScheduleExchangeReq] = None
+        # Whether the EV is still processing to calculate the EVPowerProfile.
+        # That value is needed across states (ScheduleExchange and PowerDelivery)
+        # (ISO 15118-20)
+        self.ev_processing: Processing = Processing.FINISHED
+        # Temporarily save the ScheduleExchangeRes, in case the EVProcessing field of
+        # PowerDeliveryReq is set to "Ongoing", so we can access that response in the
+        # following PowerDelivery state (ISO 15118-20)
+        self.schedule_exchange_res: Optional[ScheduleExchangeRes] = None
         # Whether to pause or terminate a charging session. Is set when sending
-        # a PowerDeliveryReq
-        self.charging_session_stop: Optional[ChargingSession] = None
-        # Whether or not a renegotiation was requested by the SECC (with either
+        # a PowerDeliveryReq (ISO 15118-2)
+        self.charging_session_stop_v2: Optional[ChargingSessionV2] = None
+        # Whether to pause or terminate a charging session. Is set when sending
+        # a PowerDeliveryReq (ISO 15118-20)
+        self.charging_session_stop_v20: Optional[ChargingSessionV20] = None
+        # Whether a renegotiation was requested by the SECC (with either
         # a MeteringReceiptRes, ChargingStatusRes, or CurrentDemandRes) or EVCC
         self.renegotiation_requested = False
         # The ID of the EVSE that controls the power flow to the EV

@@ -5,7 +5,7 @@ This module contains the abstract class for an SECC to retrieve data from the EV
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
@@ -21,15 +21,35 @@ from iso15118.shared.messages.datatypes import (
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
-from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol
+from iso15118.shared.messages.enums import Contactor, EnergyTransferModeEnum, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
-from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTupleEntry
-from iso15118.shared.messages.iso15118_20.common_messages import ProviderID
-from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
+from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTuple
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeParameterDiscoveryResParams,
+    BPTACChargeParameterDiscoveryResParams,
+    BPTDynamicACChargeLoopResParams,
+    BPTScheduledACChargeLoopResParams,
+    DynamicACChargeLoopResParams,
+    ScheduledACChargeLoopResParams,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    DynamicScheduleExchangeResParams,
+    ProviderID,
+    ScheduledScheduleExchangeResParams,
+    ScheduleExchangeReq,
+    SelectedEnergyService,
+    ServiceList,
+    ServiceParameterList,
+)
+from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
+from iso15118.shared.messages.iso15118_20.dc import (
+    BPTDCChargeParameterDiscoveryResParams,
+    DCChargeParameterDiscoveryResParams,
+)
 
 
 @dataclass
@@ -70,11 +90,75 @@ class EVSEControllerInterface(ABC):
         self, protocol: Protocol
     ) -> List[EnergyTransferModeEnum]:
         """
-        The MQTT interface needs to provide the information on the available energy
-        transfer modes, which depends on the socket the EV is connected to
+        The available energy transfer modes, which depends on the socket the EV is
+        connected to.
 
         Relevant for:
         - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_scheduled_se_params(
+        self,
+        selected_energy_service: SelectedEnergyService,
+        schedule_exchange_req: ScheduleExchangeReq,
+    ) -> Optional[ScheduledScheduleExchangeResParams]:
+        """
+        Gets the parameters for a ScheduleExchangeResponse, which correspond to the
+        Scheduled control mode. If the parameters are not yet ready when requested,
+        return None.
+
+        Args:
+            selected_energy_service: The energy services, which the EVCC selected.
+                                     The selected parameter set, that is associated
+                                     with that energy service, influences the
+                                     parameters for the ScheduleExchangeRes
+            schedule_exchange_req: The ScheduleExchangeReq, whose parameters influence
+                                   the parameters for the ScheduleExchangeRes
+
+        Returns:
+            Parameters for the ScheduleExchangeRes in Scheduled control mode, if
+            readily available. If you're still waiting for all parameters, return None.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+
+    @abstractmethod
+    def get_dynamic_se_params(
+        self,
+        selected_energy_service: SelectedEnergyService,
+        schedule_exchange_req: ScheduleExchangeReq,
+    ) -> Optional[DynamicScheduleExchangeResParams]:
+        """
+        Gets the parameters for a ScheduleExchangeResponse, which correspond to the
+        Dynamic control mode. If the parameters are not yet ready when requested,
+        return None.
+
+        Args:
+            selected_energy_service: The energy services, which the EVCC selected.
+                                     The selected parameter set, that is associated
+                                     with that energy service, influences the
+                                     parameters for the ScheduleExchangeRes
+            schedule_exchange_req: The ScheduleExchangeReq, whose parameters influence
+                                   the parameters for the ScheduleExchangeRes
+
+        Returns:
+            Parameters for the ScheduleExchangeRes in Dynamic control mode, if
+            readily available. If you're still waiting for all parameters, return None.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+
+    @abstractmethod
+    def get_energy_service_list(self) -> ServiceList:
+        """
+        The available energy transfer services
+
+        Relevant for:
+        - ISO 15118-20
         """
         raise NotImplementedError
 
@@ -96,7 +180,7 @@ class EVSEControllerInterface(ABC):
     @abstractmethod
     def get_sa_schedule_list(
         self, max_schedule_entries: Optional[int], departure_time: int = 0
-    ) -> Optional[List[SAScheduleTupleEntry]]:
+    ) -> Optional[List[SAScheduleTuple]]:
         """
         Requests the charging schedule from a secondary actor (SA) like a
         charge point operator, if available. If no backend information is given
@@ -105,7 +189,6 @@ class EVSEControllerInterface(ABC):
         and the ampacity of the charging cable.
 
         Args:
-            protocol: Specifies the protocol currently being used.
             max_schedule_entries: The maximum amount of schedule entries the EVCC
                                   can handle, or None if not provided
             departure_time: The departure time given in seconds from the time of
@@ -135,7 +218,6 @@ class EVSEControllerInterface(ABC):
         and the ampacity of the charging cable.
 
         Args:
-            protocol: Specifies the protocol currently being used.
             max_schedule_entries: The maximum amount of schedule entries the EVCC
                                   can handle, or None if not provided
             departure_time: The departure time given in seconds from the time of
@@ -154,23 +236,27 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_meter_info(self, protocol: Protocol) -> Union[MeterInfoV2, MeterInfoV20]:
+    def get_meter_info_v2(self) -> MeterInfoV2:
         """
         Provides the MeterInfo from the EVSE's smart meter
-
-        Args:
-            protocol: The communication protocol enum, used to distinguish between
-                      the different MeterInfo types per protocol
 
         Returns:
             A MeterInfo instance, which contains the meter reading
 
-        Raises:
-            InvalidProtocolError
+        Relevant for:
+        - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_meter_info_v20(self) -> MeterInfoV2:
+        """
+        Provides the MeterInfo from the EVSE's smart meter
+
+        Returns:
+            A MeterInfo instance, which contains the meter reading
 
         Relevant for:
-        - DIN SPEC 70121  # TODO Add support for DIN SPEC 70121
-        - ISO 15118-2
         - ISO 15118-20
         """
         raise NotImplementedError
@@ -199,7 +285,76 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def service_renegotiation_supported(self) -> bool:
+        """
+        Whether or not service renegotiation is supported
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_service_parameter_list(
+        self, service_id: int
+    ) -> Optional[ServiceParameterList]:
+        """
+        Provides a list of parameters for a specific service ID for which the EVCC
+        requests additional information.
+
+        Args:
+            service_id: The service ID, according to Table 204 (ISO 15118-20)
+
+        Returns:
+            A ServiceParameterList instance for the requested service ID, or None if
+            that service is not supported.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def stop_charger(self) -> None:
+        raise NotImplementedError
+
+    def open_contactor(self):
+        """
+        Sends a command to the SECC to open the contactor to terminate energy flow
+
+        Relevant for:
+        - all protocols
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def close_contactor(self):
+        """
+        Sends a command to the SECC to open the contactor to initiate energy flow
+
+        Relevant for:
+        - all protocols
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_contactor_state(self) -> Contactor:
+        """
+        Informs whether the contactor is opened or closed
+
+        Relevant for:
+        - all protocols
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_evse_status(self) -> EVSEStatus:
+        """
+        Gets the status of the EVSE
+
+        Relevant for:
+        - ISO 15118-20
+        """
         raise NotImplementedError
 
     # ============================================================================
@@ -217,12 +372,78 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_ac_evse_charge_parameter(self) -> ACEVSEChargeParameter:
+    def get_ac_charge_params_v2(self) -> ACEVSEChargeParameter:
         """
         Gets the AC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
 
         Relevant for:
         - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryResParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
+        AC charging.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryResParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
+        bidirectional AC charging.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopResParams:
+        """
+        Gets the parameters for the ACChargeLoopRes in the Scheduled control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_bpt_scheduled_ac_charge_loop_params(
+        self,
+    ) -> BPTScheduledACChargeLoopResParams:
+        """
+        Gets the parameters for the ACChargeLoopRes in the Scheduled control mode for
+        bidirectional power transfer (BPT)
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dynamic_ac_charge_loop_params(self) -> DynamicACChargeLoopResParams:
+        """
+        Gets the parameters for the ACChargeLoopRes in the Dynamic control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_bpt_dynamic_ac_charge_loop_params(self) -> BPTDynamicACChargeLoopResParams:
+        """
+        Gets the parameters for the ACChargeLoopRes in the Dynamic control mode for
+        bidirectional power transfer (BPT)
+
+        Relevant for:
+        - ISO 15118-20
         """
         raise NotImplementedError
 
@@ -293,7 +514,6 @@ class EVSEControllerInterface(ABC):
         - DIN SPEC 70121
         - ISO 15118-2
         """
-        #
         raise NotImplementedError
 
     @abstractmethod
@@ -362,11 +582,30 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryResParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
+        DC charging.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
         """
         Gets the max power that can be provided by the charger
 
         Relevant for:
         - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryResParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
+        bidirectional DC charging.
+
+        Relevant for:
+        - ISO 15118-20
         """
         raise NotImplementedError

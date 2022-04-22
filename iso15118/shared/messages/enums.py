@@ -4,9 +4,18 @@ from typing import List, Union
 
 logger = logging.getLogger(__name__)
 
+# For XSD type xs:unsignedLong with value range [0..18446744073709551615]
+UINT_64_MAX = 2**64 - 1
+# For XSD type xs:unsignedInt with value range [0..4294967296]
 UINT_32_MAX = 2**32 - 1
+# For XSD type xs:unsignedShort with value range [0..65535]
+UINT_16_MAX = 2**16 - 1
+# For XSD type xs:unsignedByte with value range [0..255]
+UINT_8_MAX = 2**8 - 1
+# For XSD type xs:short with value range [-32768..32767]
 INT_16_MAX = 2**15 - 1
 INT_16_MIN = -(2**15)
+# For XSD type xs:byte with value range [-128..127]
 INT_8_MAX = 2**7 - 1
 INT_8_MIN = -(2**7)
 
@@ -282,3 +291,112 @@ class Protocol(Enum):
             for protocol in cls
             if "urn:iso:std:iso:15118:-20" in protocol.namespace
         ]
+
+
+class ServiceV20(Enum):
+    """
+    Available services in ISO 15118-20. The values of these enum members are tuples,
+    with the first tuple entry being the service ID (given as an int) and the second
+    tuple entry being the according service name (given as string).
+
+    See Table 204 in section 8.4.3.1 of ISO 15118-20
+    """
+
+    AC = 1
+    DC = 2
+    WPT = 3
+    DC_ACDP = 4
+    AC_BPT = 5
+    DC_BPT = 6
+    DC_ACDP_BPT = 7
+    INTERNET = 65
+    PARKING_STATUS = 66
+
+    @classmethod
+    def get_by_id(cls, service_id):
+        return cls(service_id)
+
+    @property
+    def id(self) -> int:
+        return self.value
+
+
+class ParameterName(str, Enum):
+    CONNECTOR = "Connector"
+    CONTROL_MODE = "ControlMode"
+    EVSE_NOMINAL_VOLTAGE = "EVSENominalVoltage"
+    MOBILITY_NEEDS_MODE = "MobilityNeedsMode"
+    PRICING = "Pricing"
+    BPT_CHANNEL = "BPTChannel"
+    GENERATOR_MODE = "GeneratorMode"
+    GRID_CODE_ISLANDING_DETECTION_MODE = "GridCodeIslandingDetectionMethod"
+
+
+class ACConnector(IntEnum):
+    """See Table 205 in section 8.4.3.2.2 of ISO 15118-20"""
+
+    SINGLE_PHASE = 1
+    THREE_PHASE = 2
+
+
+class DCConnector(IntEnum):
+    """See Table 207 in section 8.4.3.2.3 of ISO 15118-20"""
+
+    CORE = 1
+    EXTENDED = 2
+    DUAL2 = 3
+    DUAL4 = 4
+
+
+class ControlMode(IntEnum):
+    """See e.g. Table 205 in section 8.4.3.2.2 of ISO 15118-20"""
+
+    SCHEDULED = 1
+    DYNAMIC = 2
+
+
+class MobilityNeedsMode(IntEnum):
+    """See e.g. Table 205 in section 8.4.3.2.2 of ISO 15118-20"""
+
+    EVCC_ONLY = 1
+    EVCC_AND_SECC = 2
+
+
+class Pricing(IntEnum):
+    """See e.g. Table 205 in section 8.4.3.2.2 of ISO 15118-20"""
+
+    NONE = 0
+    ABSOLUTE = 1
+    LEVELS = 2
+
+
+class BPTChannel(IntEnum):
+    """See e.g. Table 206 in section 8.4.3.2.2.1 of ISO 15118-20"""
+
+    UNIFIED = 1
+    SEPARATED = 2
+
+
+class GeneratorMode(IntEnum):
+    """See e.g. Table 206 in section 8.4.3.2.2.1 of ISO 15118-20"""
+
+    GRID_FOLLOWING = 1
+    GRID_FORMING = 2
+
+
+class GridCodeIslandingDetectionMode(IntEnum):
+    """See e.g. Table 206 in section 8.4.3.2.2.1 of ISO 15118-20"""
+
+    ACTIVE = 1
+    PASSIVE = 2
+
+
+class PriceAlgorithm(str, Enum):
+    POWER = "urn:iso:std:iso:15118:-20:PriceAlgorithm:1-Power"
+    PEAK_POWER = "urn:iso:std:iso:15118:-20:PriceAlgorithm:2-PeakPower"
+    STACKED_POWER = "urn:iso:std:iso:15118:-20:PriceAlgorithm:3-StackedEnergy"
+
+
+class Contactor(IntEnum):
+    OPENED = 1
+    CLOSED = 2

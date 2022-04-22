@@ -33,6 +33,7 @@ from iso15118.shared.messages.datatypes import (
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
+    Contactor,
     DCEVErrorCode,
     EVSEProcessing,
     IsolationLevel,
@@ -985,7 +986,7 @@ class ChargeParameterDiscovery(StateSECC):
         dc_evse_charge_params: Optional[DCEVSEChargeParameter] = None
         if charge_params_req.ac_ev_charge_parameter:
             ac_evse_charge_params = (
-                self.comm_session.evse_controller.get_ac_evse_charge_parameter()
+                self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
             departure_time = charge_params_req.ac_ev_charge_parameter.departure_time
         else:
@@ -1044,7 +1045,7 @@ class ChargeParameterDiscovery(StateSECC):
             evse_processing=EVSEProcessing.FINISHED
             if sa_schedule_list
             else EVSEProcessing.ONGOING,
-            sa_schedule_list=SAScheduleList(values=sa_schedule_list),
+            sa_schedule_list=SAScheduleList(schedule_tuples=sa_schedule_list),
             ac_charge_parameter=ac_evse_charge_params,
             dc_charge_parameter=dc_evse_charge_params,
         )
@@ -1160,8 +1161,7 @@ class PowerDelivery(StateSECC):
             )
             return
 
-        # TODO We should also do a more detailed check of the charging
-        #      profile, but don't have time for that now
+        # TODO We should also do a more detailed check of the charging profile
 
         logger.debug(f"ChargeProgress set to {power_delivery_req.charge_progress}")
 
@@ -1199,7 +1199,17 @@ class PowerDelivery(StateSECC):
                     message,
                     ResponseCode.FAILED,
                 )
-                next_state = Terminate
+                return
+
+        self.comm_session.evse_controller.close_contactor()
+        contactor_state = self.comm_session.evse_controller.get_contactor_state()
+        if contactor_state == Contactor.OPENED:
+            self.stop_state_machine(
+                "Contactor is still open when about to send PowerDeliveryRes",
+                message,
+                ResponseCode.FAILED_CONTACTOR_ERROR,
+            )
+            return
 
         ac_evse_status: Optional[ACEVSEStatus] = None
         dc_evse_status: Optional[DCEVSEStatus] = None
@@ -1212,6 +1222,8 @@ class PowerDelivery(StateSECC):
             ac_evse_status=ac_evse_status,
             dc_evse_status=dc_evse_status,
         )
+        # TODO Check if in AC or DC charging mode
+        # TODO Close contactor and check for closed contactor
 
         self.create_next_message(
             next_state,
@@ -1451,8 +1463,7 @@ class ChargingStatus(StateSECC):
             #      whether or not a receipt is required and when
             #      (probably only makes sense at the beginning and end of
             #      a charging session). If true, set MeterInfo.
-            # meter_info=self.comm_session.evse_controller.get_meter_info(
-            #     self.comm_session.protocol),
+            # meter_info=self.comm_session.evse_controller.get_meter_info_v2(),
             receipt_required=False,
         )
 

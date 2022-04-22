@@ -22,6 +22,7 @@ class Config:
     allow_cert_install_service: bool = True
     supported_protocols: Optional[List[Protocol]] = None
     supported_auth_options: Optional[List[AuthEnum]] = None
+    standby_allowed: bool = False
 
     def load_envs(self, env_path: Optional[str] = None) -> None:
         """
@@ -73,6 +74,7 @@ class Config:
             Protocol.DIN_SPEC_70121,
             Protocol.ISO_15118_2,
             Protocol.ISO_15118_20_AC,
+            Protocol.ISO_15118_20_DC,
         ]
 
         # Supported authentication options (named payment options in ISO 15118-2).
@@ -80,5 +82,10 @@ class Config:
         # Must be a list containing either AuthEnum members EIM (for External
         # Identification Means), PNC (for Plug & Charge) or both
         self.supported_auth_options = [AuthEnum.EIM, AuthEnum.PNC]
+
+        # Whether the charging station allows the EV to go into Standby (one of the
+        # enum values in PowerDeliveryReq's ChargeProgress field). In Standby, the
+        # EV can still use value-added services while not consuming any power.
+        self.standby_allowed = env.bool("STANDBY_ALLOWED", default=False)
 
         env.seal()  # raise all errors at once, if any

@@ -19,8 +19,8 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     ChargeLoopRes,
     ChargeParameterDiscoveryReq,
     ChargeParameterDiscoveryRes,
-    DynamicChargeLoopReq,
-    DynamicChargeLoopRes,
+    DynamicChargeLoopReqParams,
+    DynamicChargeLoopResParams,
     RationalNumber,
     ScheduledChargeLoopReqParams,
     ScheduledChargeLoopResParams,
@@ -161,7 +161,7 @@ class ScheduledACChargeLoopReqParams(ScheduledChargeLoopReqParams):
     )
 
 
-class ScheduledACChargeLoopResParamsParams(ScheduledChargeLoopResParams):
+class ScheduledACChargeLoopResParams(ScheduledChargeLoopResParams):
     """See section 8.3.5.4.6 in ISO 15118-20"""
 
     evse_target_active_power: RationalNumber = Field(
@@ -216,11 +216,11 @@ class BPTScheduledACChargeLoopReqParams(ScheduledACChargeLoopReqParams):
     )
 
 
-class BPTScheduledACChargeLoopResParams(ScheduledACChargeLoopResParamsParams):
+class BPTScheduledACChargeLoopResParams(ScheduledACChargeLoopResParams):
     """See section 8.3.5.4.7.6 in ISO 15118-20"""
 
 
-class DynamicACChargeLoopReq(DynamicChargeLoopReq):
+class DynamicACChargeLoopReqParams(DynamicChargeLoopReqParams):
     """See section 8.3.5.4.3 in ISO 15118-20"""
 
     ev_max_charge_power: RationalNumber = Field(..., alias="EVMaximumChargePower")
@@ -255,7 +255,7 @@ class DynamicACChargeLoopReq(DynamicChargeLoopReq):
     )
 
 
-class DynamicACChargeLoopRes(DynamicChargeLoopRes):
+class DynamicACChargeLoopResParams(DynamicChargeLoopResParams):
     """See section 8.3.5.4.5 in ISO 15118-20"""
 
     evse_target_active_power: RationalNumber = Field(..., alias="EVSETargetActivePower")
@@ -285,7 +285,7 @@ class DynamicACChargeLoopRes(DynamicChargeLoopRes):
     )
 
 
-class BPTDynamicACChargeLoopReq(DynamicACChargeLoopReq):
+class BPTDynamicACChargeLoopReqParams(DynamicACChargeLoopReqParams):
     """See section 8.3.5.4.7.3 in ISO 15118-20"""
 
     ev_max_discharge_power: RationalNumber = Field(..., alias="EVMaximumDischargePower")
@@ -310,7 +310,7 @@ class BPTDynamicACChargeLoopReq(DynamicACChargeLoopReq):
     )
 
 
-class BPTDynamicACChargeLoopRes(DynamicACChargeLoopRes):
+class BPTDynamicACChargeLoopResParams(DynamicACChargeLoopResParams):
     """See section 8.3.5.4.7.5 in ISO 15118-20"""
 
 
@@ -347,6 +347,10 @@ class ACChargeParameterDiscoveryReq(ChargeParameterDiscoveryReq):
         ):
             return values
 
+    def __str__(self):
+        # The XSD-conform name
+        return "AC_ChargeParameterDiscoveryReq"
+
 
 class ACChargeParameterDiscoveryRes(ChargeParameterDiscoveryRes):
     """See section 8.3.4.4.2.3 in ISO 15118-20"""
@@ -381,30 +385,33 @@ class ACChargeParameterDiscoveryRes(ChargeParameterDiscoveryRes):
         ):
             return values
 
+    def __str__(self):
+        # The XSD-conform name
+        return "AC_ChargeParameterDiscoveryRes"
+
 
 class ACChargeLoopReq(ChargeLoopReq):
     """See section 8.3.4.4.3.2 in ISO 15118-20"""
 
-    scheduled_ac_charge_loop_req: ScheduledACChargeLoopReqParams = Field(
+    scheduled_params: ScheduledACChargeLoopReqParams = Field(
         None, alias="Scheduled_AC_CLReqControlMode"
     )
-    dynamic_ac_charge_loop_req: DynamicACChargeLoopReq = Field(
+    dynamic_params: DynamicACChargeLoopReqParams = Field(
         None, alias="Dynamic_AC_CLReqControlMode"
     )
-    bpt_scheduled_ac_charge_loop_req: BPTScheduledACChargeLoopReqParams = Field(
+    bpt_scheduled_params: BPTScheduledACChargeLoopReqParams = Field(
         None, alias="BPT_Scheduled_AC_CLReqControlMode"
     )
-    bpt_dynamic_ac_charge_loop_req: BPTDynamicACChargeLoopReq = Field(
+    bpt_dynamic_params: BPTDynamicACChargeLoopReqParams = Field(
         None, alias="BPT_Dynamic_AC_CLReqControlMode"
     )
 
     @root_validator(pre=True)
     def either_scheduled_or_dynamic_bpt(cls, values):
         """
-        Either scheduled_ac_charge_loop_req or scheduled_ac_charge_loop_req or
-        bpt_scheduled_ac_charge_loop_req or bpt_dynamic_ac_charge_loop_req
-        must be set, depending on whether unidirectional or bidirectional power
-        transfer and whether scheduled or dynamic mode was chosen.
+        Either scheduled_params or dynamic_params or bpt_scheduled_params or
+        bpt_dynamic_params must be set, depending on whether unidirectional or
+        bidirectional power transfer and whether scheduled or dynamic mode was chosen.
 
         Pydantic validators are "class methods",
         see https://pydantic-docs.helpmanual.io/usage/validators/
@@ -413,13 +420,13 @@ class ACChargeLoopReq(ChargeLoopReq):
         # pylint: disable=no-self-use
         if one_field_must_be_set(
             [
-                "scheduled_ac_charge_loop_req",
+                "scheduled_params",
                 "Scheduled_AC_CLReqControlMode",
-                "dynamic_ac_charge_loop_req",
+                "dynamic_params",
                 "Dynamic_AC_CLReqControlMode",
-                "bpt_scheduled_ac_charge_loop_req",
+                "bpt_scheduled_params",
                 "BPT_Scheduled_AC_CLReqControlMode",
-                "bpt_dynamic_ac_charge_loop_req",
+                "bpt_dynamic_params",
                 "BPT_Dynamic_AC_CLReqControlMode",
             ],
             values,
@@ -427,31 +434,34 @@ class ACChargeLoopReq(ChargeLoopReq):
         ):
             return values
 
+    def __str__(self):
+        # The XSD-conform name
+        return "AC_ChargeLoopReq"
+
 
 class ACChargeLoopRes(ChargeLoopRes):
     """See section 8.3.4.4.3.3 in ISO 15118-20"""
 
     evse_target_frequency: RationalNumber = Field(None, alias="EVSETargetFrequency")
-    scheduled_ac_charge_loop_res: ScheduledACChargeLoopResParamsParams = Field(
+    scheduled_params: ScheduledACChargeLoopResParams = Field(
         None, alias="Scheduled_AC_CLResControlMode"
     )
-    dynamic_ac_charge_loop_res: DynamicACChargeLoopRes = Field(
+    dynamic_params: DynamicACChargeLoopResParams = Field(
         None, alias="Dynamic_AC_CLResControlMode"
     )
-    bpt_scheduled_ac_charge_loop_res: BPTScheduledACChargeLoopResParams = Field(
+    bpt_scheduled_params: BPTScheduledACChargeLoopResParams = Field(
         None, alias="BPT_Scheduled_AC_CLResControlMode"
     )
-    bpt_dynamic_ac_charge_loop_res: BPTDynamicACChargeLoopRes = Field(
+    bpt_dynamic_params: BPTDynamicACChargeLoopResParams = Field(
         None, alias="BPT_Dynamic_AC_CLResControlMode"
     )
 
     @root_validator(pre=True)
     def either_scheduled_or_dynamic_bpt(cls, values):
         """
-        Either scheduled_ac_charge_loop_res or scheduled_ac_charge_loop_res or
-        bpt_scheduled_ac_charge_loop_res or bpt_dynamic_ac_charge_loop_res
-        must be set, depending on whether unidirectional or bidirectional power
-        transfer and whether scheduled or dynamic mode was chosen.
+        Either scheduled_params or dynamic_params or bpt_scheduled_params or
+        bpt_dynamic_params must be set, depending on whether unidirectional or
+        bidirectional power transfer and whether scheduled or dynamic mode was chosen.
 
         Pydantic validators are "class methods",
         see https://pydantic-docs.helpmanual.io/usage/validators/
@@ -460,16 +470,20 @@ class ACChargeLoopRes(ChargeLoopRes):
         # pylint: disable=no-self-use
         if one_field_must_be_set(
             [
-                "scheduled_ac_charge_loop_res",
+                "scheduled_params",
                 "Scheduled_AC_CLResControlMode",
-                "dynamic_ac_charge_loop_res",
+                "dynamic_params",
                 "Dynamic_AC_CLResControlMode",
-                "bpt_scheduled_ac_charge_loop_res",
+                "bpt_scheduled_params",
                 "BPT_Scheduled_AC_CLResControlMode",
-                "bpt_dynamic_ac_charge_loop_res",
+                "bpt_dynamic_params",
                 "BPT_Dynamic_AC_CLResControlMode",
             ],
             values,
             True,
         ):
             return values
+
+    def __str__(self):
+        # The XSD-conform name
+        return "AC_ChargeLoopRes"

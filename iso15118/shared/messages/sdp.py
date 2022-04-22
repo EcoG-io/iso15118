@@ -150,9 +150,9 @@ class SDPResponse:
         """
         TODO: Docstrings
 
-          TODO: We may want to use here the related package or something like pydantic
-                which adds some better validations (but also depends if it makes sense
-                given the criteria of having a small image)
+        TODO: We may want to use here the related package or something like pydantic
+              which adds some better validations (but also depends if it makes sense
+              given the criteria of having a small image)
 
         Also raise Exceptions
         """

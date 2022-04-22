@@ -417,17 +417,17 @@ class RelativeTimeInterval(BaseModel):
     duration: int = Field(None, ge=0, le=86400, alias="duration")
 
 
-class PMaxScheduleEntryDetails(BaseModel):
+class PMaxScheduleEntry(BaseModel):
     """See section 8.5.2.15 in ISO 15118-2"""
 
     p_max: PVPMax = Field(..., alias="PMax")
     time_interval: RelativeTimeInterval = Field(..., alias="RelativeTimeInterval")
 
 
-class PMaxScheduleEntry(BaseModel):
+class PMaxSchedule(BaseModel):
     """See section 8.5.2.14 in ISO 15118-2"""
 
-    entry_details: List[PMaxScheduleEntryDetails] = Field(
+    schedule_entries: List[PMaxScheduleEntry] = Field(
         ..., max_items=1024, alias="PMaxScheduleEntry"
     )
 
@@ -584,17 +584,17 @@ class SalesTariff(BaseModel):
         return type(self).__name__
 
 
-class SAScheduleTupleEntry(BaseModel):
+class SAScheduleTuple(BaseModel):
     """See section 8.5.2.13 in ISO 15118-2"""
 
     # XSD type unsignedByte with value range [1..255]
     sa_schedule_tuple_id: int = Field(..., ge=1, le=255, alias="SAScheduleTupleID")
-    p_max_schedule: PMaxScheduleEntry = Field(..., alias="PMaxSchedule")
+    p_max_schedule: PMaxSchedule = Field(..., alias="PMaxSchedule")
     sales_tariff: SalesTariff = Field(None, alias="SalesTariff")
 
 
 class SAScheduleList(BaseModel):
-    values: List[SAScheduleTupleEntry] = Field(
+    schedule_tuples: List[SAScheduleTuple] = Field(
         ..., max_items=3, alias="SAScheduleTuple"
     )
 
