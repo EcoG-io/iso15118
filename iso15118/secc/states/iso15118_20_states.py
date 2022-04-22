@@ -1210,25 +1210,29 @@ class ACChargeLoop(StateSECC):
                 and control_mode == ControlMode.SCHEDULED
             ):
                 scheduled_params = (
-                    self.comm_session.evse_controller.get_scheduled_ac_charge_loop_params()
+                    self.comm_session.evse_controller
+                        .get_scheduled_ac_charge_loop_params()
                 )
             elif (
                 selected_energy_service == ServiceV20.AC
                 and control_mode == ControlMode.DYNAMIC
             ):
                 dynamic_params = (
-                    self.comm_session.evse_controller.get_dynamic_ac_charge_loop_params()
+                    self.comm_session.evse_controller
+                        .get_dynamic_ac_charge_loop_params()
                 )
             elif (
                 selected_energy_service == ServiceV20.AC_BPT
                 and control_mode == ControlMode.SCHEDULED
             ):
                 bpt_scheduled_params = (
-                    self.comm_session.evse_controller.get_bpt_scheduled_ac_charge_loop_params()
+                    self.comm_session.evse_controller
+                        .get_bpt_scheduled_ac_charge_loop_params()
                 )
             else:
                 bpt_dynamic_params = (
-                    self.comm_session.evse_controller.get_bpt_dynamic_ac_charge_loop_params()
+                    self.comm_session.evse_controller
+                        .get_bpt_dynamic_ac_charge_loop_params()
                 )
 
             meter_info = None

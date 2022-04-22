@@ -43,7 +43,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ChargingSession,
     EIMAuthReqParams,
     MatchedService,
-    ParameterSet,
     PnCAuthReqParams,
     PowerDeliveryReq,
     PowerDeliveryRes,
@@ -821,9 +820,8 @@ class PowerDelivery(StateEVCC):
                 selected_energy_service == ServiceV20.AC
                 and control_mode == ControlMode.SCHEDULED
             ):
-                scheduled_params = (
-                    self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()
-                )
+                scheduled_params = self.comm_session.ev_controller.\
+                    get_scheduled_ac_charge_loop_params()
             elif (
                 selected_energy_service == ServiceV20.AC
                 and control_mode == ControlMode.DYNAMIC
@@ -835,13 +833,11 @@ class PowerDelivery(StateEVCC):
                 selected_energy_service == ServiceV20.AC_BPT
                 and control_mode == ControlMode.SCHEDULED
             ):
-                bpt_scheduled_params = (
-                    self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()
-                )
+                bpt_scheduled_params = self.comm_session.ev_controller.\
+                    get_bpt_scheduled_ac_charge_loop_params()
             else:
-                bpt_dynamic_params = (
-                    self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()
-                )
+                bpt_dynamic_params = self.comm_session.ev_controller.\
+                    get_bpt_dynamic_ac_charge_loop_params()
 
             ac_charge_loop_req = ACChargeLoopReq(
                 header=MessageHeader(
@@ -989,6 +985,19 @@ class ACChargeParameterDiscovery(StateEVCC):
         # TODO Act upon the possible negative response codes in ac_cpd_res
         #      (and delete the # noqa: F841)
 
+        self.comm_session.ongoing_schedule_exchange_req = (
+            self.build_schedule_exchange_request()
+        )
+
+        self.create_next_message(
+            ScheduleExchange,
+            self.comm_session.ongoing_schedule_exchange_req,
+            Timeouts.SCHEDULE_EXCHANGE_REQ,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
+        )
+
+    def build_schedule_exchange_request(self) -> ScheduleExchangeReq:
         scheduled_params, dynamic_params = None, None
         if self.comm_session.control_mode == ControlMode.SCHEDULED:
             scheduled_params = self.comm_session.ev_controller.get_scheduled_se_params(
@@ -1000,7 +1009,7 @@ class ACChargeParameterDiscovery(StateEVCC):
                 self.comm_session.selected_energy_service
             )
 
-        schedule_exchange_req = ScheduleExchangeReq(
+        return ScheduleExchangeReq(
             header=MessageHeader(
                 session_id=self.comm_session.session_id,
                 timestamp=time.time(),
@@ -1008,16 +1017,6 @@ class ACChargeParameterDiscovery(StateEVCC):
             max_supporting_points=self.comm_session.config.max_supporting_points,
             scheduled_params=scheduled_params,
             dynamic_params=dynamic_params,
-        )
-
-        self.comm_session.ongoing_schedule_exchange_req = schedule_exchange_req
-
-        self.create_next_message(
-            ScheduleExchange,
-            schedule_exchange_req,
-            Timeouts.SCHEDULE_EXCHANGE_REQ,
-            Namespace.ISO_V20_COMMON_MSG,
-            ISOV20PayloadTypes.MAINSTREAM,
         )
 
 
@@ -1059,27 +1058,24 @@ class ACChargeLoop(StateEVCC):
                     selected_energy_service == ServiceV20.AC
                     and control_mode == ControlMode.SCHEDULED
                 ):
-                    scheduled_params = (
-                        self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()
-                    )
+                    scheduled_params = self.comm_session.ev_controller.\
+                        get_scheduled_ac_charge_loop_params()
                 elif (
                     selected_energy_service == ServiceV20.AC
                     and control_mode == ControlMode.DYNAMIC
                 ):
-                    dynamic_params = (
-                        self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()
-                    )
+                    dynamic_params = self.comm_session.ev_controller.\
+                        get_dynamic_ac_charge_loop_params()
                 elif (
                     selected_energy_service == ServiceV20.AC_BPT
                     and control_mode == ControlMode.SCHEDULED
                 ):
-                    bpt_scheduled_params = (
-                        self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()
-                    )
+                    bpt_scheduled_params = self.comm_session.ev_controller.\
+                        get_bpt_scheduled_ac_charge_loop_params()
+
                 else:
-                    bpt_dynamic_params = (
-                        self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()
-                    )
+                    bpt_dynamic_params = self.comm_session.ev_controller.\
+                        get_bpt_dynamic_ac_charge_loop_params()
 
                 ac_charge_loop_req = ACChargeLoopReq(
                     header=MessageHeader(
