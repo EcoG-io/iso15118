@@ -60,6 +60,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionStopRes,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
+    EVSENotification,
     MessageHeader,
     Processing,
     RootCertificateIDList,
@@ -802,7 +803,10 @@ class PowerDelivery(StateEVCC):
             self.create_new_power_delivery_req(self.comm_session.schedule_exchange_res)
             return
 
-        if self.comm_session.charging_session_stop_v20:
+        if self.comm_session.charging_session_stop_v20 in (
+            ChargingSession.SERVICE_RENEGOTIATION,
+            ChargingSession.TERMINATE,
+        ):
             session_stop_req = SessionStopReq(
                 header=MessageHeader(
                     session_id=self.comm_session.session_id,
@@ -826,21 +830,21 @@ class PowerDelivery(StateEVCC):
 
         if selected_energy_service.service in (ServiceV20.AC, ServiceV20.AC_BPT):
             if (
-                selected_energy_service == ServiceV20.AC
+                selected_energy_service.service == ServiceV20.AC
                 and control_mode == ControlMode.SCHEDULED
             ):
                 scheduled_params = (
                     self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()  # noqa
                 )
             elif (
-                selected_energy_service == ServiceV20.AC
+                selected_energy_service.service == ServiceV20.AC
                 and control_mode == ControlMode.DYNAMIC
             ):
                 dynamic_params = (
                     self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()
                 )
             elif (
-                selected_energy_service == ServiceV20.AC_BPT
+                selected_energy_service.service == ServiceV20.AC_BPT
                 and control_mode == ControlMode.SCHEDULED
             ):
                 bpt_scheduled_params = (
@@ -960,7 +964,14 @@ class SessionStop(StateEVCC):
             self.comm_session.writer.get_extra_info("peername"),
         )
 
-        self.next_state = Terminate
+        if (
+            self.comm_session.service_renegotiation_supported
+            and self.comm_session.renegotiation_requested
+        ):
+            self.comm_session.renegotiation_requested = False
+            self.next_state = ServiceDiscovery
+        else:
+            self.next_state = Terminate
 
         return
 
@@ -1055,9 +1066,19 @@ class ACChargeLoop(StateEVCC):
         if not msg:
             return
 
-        ac_charge_loop_res: ACChargeLoopRes = msg  # noqa
+        ac_charge_loop_res: ACChargeLoopRes = msg
 
-        if self.comm_session.ev_controller.continue_charging():
+        # Before checking if we should continue charging,
+        # check if SECC requested a renegotiation.
+        # evse_status field in ACChargeLoopRes is optional
+        if ac_charge_loop_res.evse_status:
+            if (
+                ac_charge_loop_res.evse_notification
+                == EVSENotification.SERVICE_RENEGOTIATION
+            ):
+                self.comm_session.renegotiation_requested = True
+                self.stop_charging(True)
+        elif self.comm_session.ev_controller.continue_charging():
             scheduled_params, dynamic_params = None, None
             bpt_scheduled_params, bpt_dynamic_params = None, None
             selected_energy_service = self.comm_session.selected_energy_service
@@ -1067,21 +1088,21 @@ class ACChargeLoop(StateEVCC):
             #      in the response
             if selected_energy_service.service in (ServiceV20.AC, ServiceV20.AC_BPT):
                 if (
-                    selected_energy_service == ServiceV20.AC
+                    selected_energy_service.service == ServiceV20.AC
                     and control_mode == ControlMode.SCHEDULED
                 ):
                     scheduled_params = (
                         self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()  # noqa
                     )
                 elif (
-                    selected_energy_service == ServiceV20.AC
+                    selected_energy_service.service == ServiceV20.AC
                     and control_mode == ControlMode.DYNAMIC
                 ):
                     dynamic_params = (
                         self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()  # noqa
                     )
                 elif (
-                    selected_energy_service == ServiceV20.AC_BPT
+                    selected_energy_service.service == ServiceV20.AC_BPT
                     and control_mode == ControlMode.SCHEDULED
                 ):
                     bpt_scheduled_params = (
@@ -1113,9 +1134,9 @@ class ACChargeLoop(StateEVCC):
                     ISOV20PayloadTypes.AC_MAINSTREAM,
                 )
         else:
-            self.stop_charging()
+            self.stop_charging(False)
 
-    def stop_charging(self):
+    def stop_charging(self, renegotiate_requested: bool):
         power_delivery_req = PowerDeliveryReq(
             header=MessageHeader(
                 session_id=self.comm_session.session_id,
@@ -1133,9 +1154,17 @@ class ACChargeLoop(StateEVCC):
             ISOV20PayloadTypes.MAINSTREAM,
         )
 
-        self.comm_session.charging_session_stop_v20 = ChargingSession.TERMINATE
-        # TODO Implement also a mechanism for pausing
-        logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
+        if renegotiate_requested:
+            self.comm_session.charging_session_stop_v20 = (
+                ChargingSession.SERVICE_RENEGOTIATION
+            )
+            logger.debug(
+                f"ChargeProgress is set to {ChargeProgress.SCHEDULE_RENEGOTIATION}"
+            )
+        else:
+            self.comm_session.charging_session_stop_v20 = ChargingSession.TERMINATE
+            # TODO Implement also a mechanism for pausing
+            logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
 
 
 # ============================================================================

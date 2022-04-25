@@ -604,10 +604,10 @@ class TaxRule(BaseModel):
     tax_rule_name: Name = Field(None, alias="TaxRuleName")
     tax_rate: RationalNumber = Field(..., alias="TaxRate")
     tax_included_in_price: bool = Field(None, alias="TaxIncludedInPrice")
-    applies_to_enery_fee: bool = Field(..., alias="AppliesToEnergyFee")
+    applies_to_energy_fee: bool = Field(..., alias="AppliesToEnergyFee")
     applies_to_parking_fee: bool = Field(..., alias="AppliesToParkingFee")
     applies_to_overstay_fee: bool = Field(..., alias="AppliesToOverstayFee")
-    applies_min_max_cost: bool = Field(..., alias="AppliesMinimumMaximumCost")
+    applies_to_min_max_cost: bool = Field(..., alias="AppliesMinimumMaximumCost")
 
 
 class TaxRuleList(BaseModel):

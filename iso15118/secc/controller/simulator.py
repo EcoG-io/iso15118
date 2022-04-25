@@ -203,8 +203,8 @@ class SimEVSEController(EVSEControllerInterface):
             time_anchor=0,
             available_energy=RationalNumber(exponent=3, value=300),
             power_tolerance=RationalNumber(exponent=0, value=2000),
-            power_schedule_entries=PowerScheduleEntryList(
-                power_schedule_entries=[charging_power_schedule_entry]
+            schedule_entry_list=PowerScheduleEntryList(
+                entries=[charging_power_schedule_entry]
             ),
         )
 
@@ -226,7 +226,7 @@ class SimEVSEController(EVSEControllerInterface):
             parking_fee=RationalNumber(exponent=0, value=0),
             parking_fee_period=0,
             carbon_dioxide_emission=0,
-            renewable_generation_percentage=0,
+            renewable_energy_percentage=0,
             power_range_start=RationalNumber(exponent=0, value=0),
         )
 
@@ -242,7 +242,7 @@ class SimEVSEController(EVSEControllerInterface):
         )
 
         overstay_rules = OverstayRuleList(
-            time_shreshold=3600,
+            time_threshold=3600,
             power_threshold=RationalNumber(exponent=3, value=30),
             rules=[overstay_rule],
         )
@@ -257,6 +257,8 @@ class SimEVSEController(EVSEControllerInterface):
         )
 
         charging_absolute_price_schedule = AbsolutePriceSchedule(
+            time_anchor=0,
+            schedule_id=1,
             currency="EUR",
             language="ENG",
             price_algorithm=PriceAlgorithm.POWER,
@@ -268,11 +270,18 @@ class SimEVSEController(EVSEControllerInterface):
             additional_services=additional_services,
         )
 
-        discharging_power_schedule = PowerSchedule(
+        discharging_power_schedule_entry = PowerScheduleEntry(
             duration=3600,
-            power=RationalNumber(exponent=3, value=-5)
+            power=RationalNumber(exponent=3, value=10)
             # Check if AC ThreePhase applies (Connector parameter within parameter set
             # of SelectedEnergyService) if you want to add power_l2 and power_l3 values
+        )
+
+        discharging_power_schedule = PowerSchedule(
+            time_anchor=0,
+            schedule_entry_list=PowerScheduleEntryList(
+                entries=[discharging_power_schedule_entry]
+            ),
         )
 
         discharging_absolute_price_schedule = charging_absolute_price_schedule

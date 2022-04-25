@@ -937,32 +937,40 @@ class PowerDelivery(StateSECC):
                     ResponseCode.WARN_STANDBY_NOT_ALLOWED,
                 )
                 return
-
-            if self.comm_session.control_mode == ControlMode.SCHEDULED:
-                offered_schedules = self.comm_session.offered_schedules_V20
-                selected_schedule = (
-                    power_delivery_req.ev_power_profile.scheduled_profile
-                )
-
-                if selected_schedule.selected_schedule_tuple_id not in [
-                    schedule.schedule_tuple_id for schedule in offered_schedules
-                ]:
-                    self.stop_state_machine(
-                        f"Schedule with ID "
-                        f"{selected_schedule.selected_schedule_tuple_id} was not "
-                        f"offered",
-                        message,
-                        ResponseCode.FAILED_SCHEDULE_SELECTION_INVALID,
-                    )
-                return
-
-            if power_delivery_req.charge_progress == ChargeProgress.STOP:
+            elif power_delivery_req.charge_progress == ChargeProgress.STOP:
                 next_state = SessionStop
             else:
                 # The only ChargeProgress options left are START and
                 # SCHEDULE_RENEGOTIATION, although the latter is only allowed after we
                 # entered the charge loop
                 # TODO Check how to handle a misplaced SCHEDULE_RENEGOTIATION
+
+                if self.comm_session.control_mode == ControlMode.SCHEDULED:
+                    offered_schedules = self.comm_session.offered_schedules_V20
+                    selected_schedule = (
+                        power_delivery_req.ev_power_profile.scheduled_profile
+                    )
+
+                    if selected_schedule.selected_schedule_tuple_id not in [
+                        schedule.schedule_tuple_id for schedule in offered_schedules
+                    ]:
+                        self.stop_state_machine(
+                            f"Schedule with ID "
+                            f"{selected_schedule.selected_schedule_tuple_id} was not "
+                            f"offered",
+                            message,
+                            ResponseCode.FAILED_SCHEDULE_SELECTION_INVALID,
+                        )
+                        return
+
+                # [V2G20-1617] The EVCC shall signal CP State B before sending the
+                # first PowerDeliveryReq with ChargeProgress equals "Start" within V2G
+                # communication session.
+                # [V2G20 - 847] The EVCC shall signal CP State C or D no later than 250
+                # ms after sending the first PowerDeliveryReq with ChargeProgress equals
+                # "Start" within V2G communication session.
+                # TODO: We may need to check the CP state is C or D before
+                #  closing the contactors.
                 self.comm_session.evse_controller.close_contactor()
                 contactor_state = (
                     self.comm_session.evse_controller.get_contactor_state()
@@ -1038,7 +1046,16 @@ class SessionStop(StateSECC):
 
         session_stop_req: SessionStopReq = msg
 
-        if session_stop_req.charging_session == ChargingSession.TERMINATE:
+        # [V2G20-1477] : If EVSE supports ServiceRegotiation and EVCC requests
+        # it in the SessionStopReq, the next state should be set to ServiceDiscoveryReq
+        next_state = Terminate
+        if (
+            session_stop_req.charging_session == ChargingSession.SERVICE_RENEGOTIATION
+            and self.comm_session.evse_controller.service_renegotiation_supported()
+        ):
+            next_state = ServiceDiscoveryReq
+            stopped = "paused"
+        elif session_stop_req.charging_session == ChargingSession.TERMINATE:
             stopped = "terminated"
         else:
             stopped = "paused"
@@ -1068,7 +1085,7 @@ class SessionStop(StateSECC):
         )
 
         self.create_next_message(
-            Terminate,
+            next_state,
             session_stop_res,
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.ISO_V20_COMMON_MSG,
@@ -1206,21 +1223,21 @@ class ACChargeLoop(StateSECC):
 
         if selected_energy_service.service in (ServiceV20.AC, ServiceV20.AC_BPT):
             if (
-                selected_energy_service == ServiceV20.AC
+                selected_energy_service.service == ServiceV20.AC
                 and control_mode == ControlMode.SCHEDULED
             ):
                 scheduled_params = (
                     self.comm_session.evse_controller.get_scheduled_ac_charge_loop_params()  # noqa
                 )
             elif (
-                selected_energy_service == ServiceV20.AC
+                selected_energy_service.service == ServiceV20.AC
                 and control_mode == ControlMode.DYNAMIC
             ):
                 dynamic_params = (
                     self.comm_session.evse_controller.get_dynamic_ac_charge_loop_params()  # noqa
                 )
             elif (
-                selected_energy_service == ServiceV20.AC_BPT
+                selected_energy_service.service == ServiceV20.AC_BPT
                 and control_mode == ControlMode.SCHEDULED
             ):
                 bpt_scheduled_params = (

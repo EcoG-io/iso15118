@@ -84,8 +84,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     EVPriceRuleStack,
     EVPriceRuleStackList,
     MatchedService,
-)
-from iso15118.shared.messages.iso15118_20.common_messages import (
     PowerToleranceAcceptance,
     ScheduledEVPowerProfile,
     ScheduledScheduleExchangeReqParams,
@@ -329,7 +327,7 @@ class SimEVController(EVControllerInterface):
         )
 
         ev_power_schedule_entries = EVPowerScheduleEntryList(
-            ev_power_schedule_entries=[ev_power_schedule_entry]
+            entries=[ev_power_schedule_entry]
         )
 
         ev_power_schedule = EVPowerSchedule(
@@ -346,7 +344,7 @@ class SimEVController(EVControllerInterface):
             ev_target_energy_request=RationalNumber(exponent=3, value=10),
             ev_max_energy_request=RationalNumber(exponent=3, value=20),
             ev_min_energy_request=RationalNumber(exponent=3, value=5),
-            energy_offer=energy_offer,
+            ev_energy_offer=energy_offer,
         )
 
         return scheduled_params

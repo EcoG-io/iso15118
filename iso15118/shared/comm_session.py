@@ -107,6 +107,12 @@ class SessionStateMachine(ABC):
         self.start_state = start_state
         self.comm_session = comm_session
         self.current_state = start_state(comm_session)
+        self.v20_payload_type_to_namespace = {
+            ISOV20PayloadTypes.AC_MAINSTREAM: Namespace.ISO_V20_AC,
+            ISOV20PayloadTypes.DC_MAINSTREAM: Namespace.ISO_V20_DC,
+            ISOV20PayloadTypes.ACDP_MAINSTREAM: Namespace.ISO_V20_ACDP,
+            ISOV20PayloadTypes.WPT_MAINSTREAM: Namespace.ISO_V20_WPT,
+        }
 
     def get_exi_ns(
         self,
@@ -130,26 +136,10 @@ class SessionStateMachine(ABC):
             return Namespace.ISO_V2_MSG_DEF
         elif self.comm_session.protocol == Protocol.DIN_SPEC_70121:
             return Namespace.DIN_MSG_DEF
-        elif (
-            self.comm_session.protocol.ns.startswith(Namespace.ISO_V20_BASE)
-            and payload_type.value == ISOV20PayloadTypes.AC_MAINSTREAM
-        ):
-            return Namespace.ISO_V20_AC
-        elif (
-            self.comm_session.protocol.ns.startswith(Namespace.ISO_V20_BASE)
-            and payload_type.value == ISOV20PayloadTypes.DC_MAINSTREAM
-        ):
-            return Namespace.ISO_V20_DC
-        elif (
-            self.comm_session.protocol.ns.startswith(Namespace.ISO_V20_BASE)
-            and payload_type.value == ISOV20PayloadTypes.WPT_MAINSTREAM
-        ):
-            return Namespace.ISO_V20_WPT
-        elif (
-            self.comm_session.protocol.ns.startswith(Namespace.ISO_V20_BASE)
-            and payload_type.value == ISOV20PayloadTypes.ACDP_MAINSTREAM
-        ):
-            return Namespace.ISO_V20_ACDP
+        elif self.comm_session.protocol.ns.startswith(Namespace.ISO_V20_BASE):
+            return self.v20_payload_type_to_namespace.get(
+                payload_type.value, Namespace.ISO_V20_COMMON_MSG
+            )
         else:
             return Namespace.ISO_V20_COMMON_MSG
 

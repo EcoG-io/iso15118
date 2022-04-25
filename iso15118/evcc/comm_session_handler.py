@@ -123,7 +123,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         # Whether to pause or terminate a charging session. Is set when sending
         # a PowerDeliveryReq (ISO 15118-2)
         self.charging_session_stop_v2: Optional[ChargingSessionV2] = None
-        # Whether to pause or terminate a charging session. Is set when sending
+        # Whether to pause, standby or terminate a charging session. Is set when sending
         # a PowerDeliveryReq (ISO 15118-20)
         self.charging_session_stop_v20: Optional[ChargingSessionV20] = None
         # Whether a renegotiation was requested by the SECC (with either

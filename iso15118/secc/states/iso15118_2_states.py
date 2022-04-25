@@ -1201,6 +1201,13 @@ class PowerDelivery(StateSECC):
                 )
                 return
 
+        # [V2G2-847] - The EV shall signal CP State C or D no later than 250ms
+        # after sending the first PowerDeliveryReq with ChargeProgress equals
+        # "Start" within V2G Communication SessionPowerDeliveryReq.
+        # [V2G2-860] - If no error is detected, the SECC shall close the Contactor
+        # no later than 3s after measuring CP State C or D.
+        # Before closing the contactor, we may need to check to
+        # ensure the CP is in state C or D
         self.comm_session.evse_controller.close_contactor()
         contactor_state = self.comm_session.evse_controller.get_contactor_state()
         if contactor_state == Contactor.OPENED:

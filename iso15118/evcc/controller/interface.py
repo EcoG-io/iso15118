@@ -44,8 +44,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     EMAIDList,
     EVPowerProfile,
     MatchedService,
-)
-from iso15118.shared.messages.iso15118_20.common_messages import (
     ScheduledScheduleExchangeReqParams,
     ScheduledScheduleExchangeResParams,
     SelectedEnergyService,
