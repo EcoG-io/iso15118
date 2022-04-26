@@ -8,6 +8,9 @@ import time
 from dataclasses import dataclass
 from typing import List, Optional
 
+from aiofile import async_open
+from pydantic import BaseModel, Field
+
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
@@ -40,21 +43,11 @@ from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.enums import (
-    ACConnector,
-    BPTChannel,
     Contactor,
-    ControlMode,
-    DCConnector,
     EnergyTransferModeEnum,
-    GeneratorMode,
-    GridCodeIslandingDetectionMode,
     IsolationLevel,
-    MobilityNeedsMode,
-    ParameterName,
     PriceAlgorithm,
-    Pricing,
     Protocol,
-    ServiceV20,
     UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -89,8 +82,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     DynamicScheduleExchangeResParams,
     OverstayRule,
     OverstayRuleList,
-    Parameter,
-    ParameterSet,
     PowerSchedule,
     PowerScheduleEntry,
     PowerScheduleEntryList,
@@ -121,6 +112,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryResParams,
     DCChargeParameterDiscoveryResParams,
 )
+from iso15118.shared.settings import V20_EVSE_SERVICES_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -134,14 +126,46 @@ class EVDataContext:
     soc: Optional[int] = None  # 0-100
 
 
+class V20ServiceParamMapping(BaseModel):
+    service_id_parameter_set_mapping: dict[int, ServiceParameterList] = Field(
+        ..., alias="service_id_parameter_set_mapping"
+    )
+
+
+async def read_service_id_parameter_mappings():
+    try:
+        async with async_open(V20_EVSE_SERVICES_CONFIG, "r") as v20_service_config:
+            try:
+                json_mapping = await v20_service_config.read()
+                v20_service_parameter_mapping = V20ServiceParamMapping.parse_raw(
+                    json_mapping
+                )
+                return v20_service_parameter_mapping.service_id_parameter_set_mapping
+            except ValueError as exc:
+                raise ValueError(
+                    f"Error reading 15118-20 service parameters settings file"
+                    f" at {V20_EVSE_SERVICES_CONFIG}"
+                ) from exc
+    except (FileNotFoundError, IOError) as exc:
+        raise FileNotFoundError(
+            f"V20 config not found at {V20_EVSE_SERVICES_CONFIG}"
+        ) from exc
+
+
 class SimEVSEController(EVSEControllerInterface):
     """
     A simulated version of an EVSE controller
     """
 
-    def __init__(self):
+    @classmethod
+    async def create(cls):
+        self = SimEVSEController()
         self.contactor = Contactor.OPENED
         self.ev_data_context = EVDataContext()
+        self.v20_service_id_parameter_mapping = (
+            await read_service_id_parameter_mappings()
+        )
+        return self
 
     def reset_ev_data_context(self):
         self.ev_data_context = EVDataContext()
@@ -312,101 +336,8 @@ class SimEVSEController(EVSEControllerInterface):
         self, service_id: int
     ) -> Optional[ServiceParameterList]:
         """Overrides EVSEControllerInterface.get_service_parameter_list()."""
-        if service_id == ServiceV20.AC.id:
-            service_parameter_list = ServiceParameterList(
-                parameter_sets=[
-                    ParameterSet(
-                        id=1,
-                        parameters=[
-                            Parameter(
-                                name=ParameterName.CONNECTOR,
-                                int_value=ACConnector.THREE_PHASE,
-                            ),
-                            Parameter(
-                                name=ParameterName.CONTROL_MODE,
-                                int_value=ControlMode.DYNAMIC,
-                            ),
-                            Parameter(
-                                name=ParameterName.EVSE_NOMINAL_VOLTAGE,
-                                int_value=400,
-                            ),
-                            Parameter(
-                                name=ParameterName.MOBILITY_NEEDS_MODE,
-                                int_value=MobilityNeedsMode.EVCC_AND_SECC,
-                            ),
-                            Parameter(
-                                name=ParameterName.PRICING, int_value=Pricing.NONE
-                            ),
-                        ],
-                    )
-                ]
-            )
-        elif service_id == ServiceV20.AC_BPT.id:
-            service_parameter_list = ServiceParameterList(
-                parameter_sets=[
-                    ParameterSet(
-                        id=1,
-                        parameters=[
-                            Parameter(
-                                name=ParameterName.CONNECTOR,
-                                int_value=ACConnector.THREE_PHASE,
-                            ),
-                            Parameter(
-                                name=ParameterName.CONTROL_MODE,
-                                int_value=ControlMode.SCHEDULED,
-                            ),
-                            Parameter(
-                                name=ParameterName.EVSE_NOMINAL_VOLTAGE,
-                                int_value=400,
-                            ),
-                            Parameter(
-                                name=ParameterName.MOBILITY_NEEDS_MODE,
-                                int_value=MobilityNeedsMode.EVCC_ONLY,
-                            ),
-                            Parameter(
-                                name=ParameterName.PRICING, int_value=Pricing.NONE
-                            ),
-                            Parameter(
-                                name=ParameterName.BPT_CHANNEL,
-                                int_value=BPTChannel.UNIFIED,
-                            ),
-                            Parameter(
-                                name=ParameterName.GENERATOR_MODE,
-                                int_value=GeneratorMode.GRID_FOLLOWING,
-                            ),
-                            Parameter(
-                                name=ParameterName.GRID_CODE_ISLANDING_DETECTION_MODE,
-                                int_value=GridCodeIslandingDetectionMode.ACTIVE,
-                            ),
-                        ],
-                    )
-                ]
-            )
-        elif service_id == ServiceV20.DC.id:
-            service_parameter_list = ServiceParameterList(
-                parameter_sets=[
-                    ParameterSet(
-                        id=1,
-                        parameters=[
-                            Parameter(
-                                name=ParameterName.CONNECTOR,
-                                int_value=DCConnector.EXTENDED,
-                            ),
-                            Parameter(
-                                name=ParameterName.CONTROL_MODE,
-                                int_value=ControlMode.DYNAMIC,
-                            ),
-                            Parameter(
-                                name=ParameterName.MOBILITY_NEEDS_MODE,
-                                int_value=MobilityNeedsMode.EVCC_ONLY,
-                            ),
-                            Parameter(
-                                name=ParameterName.PRICING, int_value=Pricing.NONE
-                            ),
-                        ],
-                    )
-                ]
-            )
+        if service_id in self.v20_service_id_parameter_mapping.keys():
+            service_parameter_list = self.v20_service_id_parameter_mapping[service_id]
         else:
             logger.error(
                 f"No ServiceParameterList available for service ID {service_id}"

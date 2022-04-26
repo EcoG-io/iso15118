@@ -1,0 +1,182 @@
+{
+  "service_id_parameter_set_mapping": {
+    "1": {
+      "ParameterSet": [
+        {
+          "ParameterSetID": 1,
+          "Parameter": [
+            {
+              "Name": "Connector",
+              "intValue": 2
+            },
+            {
+              "Name": "ControlMode",
+              "intValue": 2
+            },
+            {
+              "Name": "EVSENominalVoltage",
+              "intValue": 400
+            },
+            {
+              "Name": "MobilityNeedsMode",
+              "intValue": 2
+            },
+            {
+              "Name": "Pricing",
+              "intValue": 0
+            }
+          ]
+        },
+        {
+          "ParameterSetID": 2,
+          "Parameter": [
+            {
+              "Name": "Connector",
+              "intValue": 2
+            },
+            {
+              "Name": "ControlMode",
+              "intValue": 1
+            },
+            {
+              "Name": "EVSENominalVoltage",
+              "intValue": 400
+            },
+            {
+              "Name": "MobilityNeedsMode",
+              "intValue": 1
+            },
+            {
+              "Name": "Pricing",
+              "intValue": 0
+            }
+          ]
+        }
+      ]
+    },
+    "2": {
+      "ParameterSet": [
+        {
+          "ParameterSetID": 1,
+          "Parameter": [
+            {
+              "Name": "Connector",
+              "intValue": 2
+            },
+            {
+              "Name": "ControlMode",
+              "intValue": 2
+            },
+            {
+              "Name": "MobilityNeedsMode",
+              "intValue": 1
+            },
+            {
+              "Name": "Pricing",
+              "intValue": 0
+            }
+          ]
+        },
+        {
+          "ParameterSetID": 2,
+          "Parameter": [
+            {
+              "Name": "Connector",
+              "intValue": 2
+            },
+            {
+              "Name": "ControlMode",
+              "intValue": 1
+            },
+            {
+              "Name": "MobilityNeedsMode",
+              "intValue": 1
+            },
+            {
+              "Name": "Pricing",
+              "intValue": 0
+            }
+          ]
+        }
+      ]
+    },
+    "5": {
+      "ParameterSet": [
+        {
+          "ParameterSetID": 1,
+          "Parameter": [
+            {
+              "Name": "Connector",
+              "intValue": 2
+            },
+            {
+              "Name": "ControlMode",
+              "intValue": 1
+            },
+            {
+              "Name": "EVSENominalVoltage",
+              "intValue": 400
+            },
+            {
+              "Name": "MobilityNeedsMode",
+              "intValue": 1
+            },
+            {
+              "Name": "Pricing",
+              "intValue": 0
+            },
+            {
+              "Name": "BPTChannel",
+              "intValue": 1
+            },
+            {
+              "Name": "GeneratorMode",
+              "intValue": 1
+            },
+            {
+              "Name": "GridCodeIslandingDetectionMethod",
+              "intValue": 1
+            }
+          ]
+        },
+        {
+          "ParameterSetID": 2,
+          "Parameter": [
+            {
+              "Name": "Connector",
+              "intValue": 2
+            },
+            {
+              "Name": "ControlMode",
+              "intValue": 2
+            },
+            {
+              "Name": "EVSENominalVoltage",
+              "intValue": 400
+            },
+            {
+              "Name": "MobilityNeedsMode",
+              "intValue": 1
+            },
+            {
+              "Name": "Pricing",
+              "intValue": 0
+            },
+            {
+              "Name": "BPTChannel",
+              "intValue": 1
+            },
+            {
+              "Name": "GeneratorMode",
+              "intValue": 1
+            },
+            {
+              "Name": "GridCodeIslandingDetectionMethod",
+              "intValue": 1
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
