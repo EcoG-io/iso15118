@@ -3,7 +3,6 @@ This module contains the code to retrieve (hardware-related) data from the EVSE
 (Electric Vehicle Supply Equipment).
 """
 import logging
-import random
 import time
 from dataclasses import dataclass
 from typing import List, Optional
@@ -210,11 +209,6 @@ class SimEVSEController(EVSEControllerInterface):
         selected_energy_service: SelectedEnergyService,
         schedule_exchange_req: ScheduleExchangeReq,
     ) -> Optional[ScheduledScheduleExchangeResParams]:
-        is_ready = bool(random.getrandbits(1))
-        if not is_ready:
-            logger.debug("Scheduled parameters for ScheduleExchangeRes not yet ready")
-            return None
-
         """Overrides EVSEControllerInterface.get_scheduled_se_params()."""
         charging_power_schedule_entry = PowerScheduleEntry(
             duration=3600,
@@ -352,11 +346,6 @@ class SimEVSEController(EVSEControllerInterface):
         schedule_exchange_req: ScheduleExchangeReq,
     ) -> Optional[DynamicScheduleExchangeResParams]:
         """Overrides EVSEControllerInterface.get_dynamic_se_params()."""
-        is_ready = bool(random.getrandbits(1))
-        if not is_ready:
-            logger.debug("Dynamic parameters for ScheduleExchangeRes not yet ready")
-            return None
-
         price_level_schedule_entry = PriceLevelScheduleEntry(
             duration=3600, price_level=1
         )
