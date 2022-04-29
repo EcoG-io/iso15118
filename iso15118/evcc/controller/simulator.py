@@ -101,30 +101,6 @@ from iso15118.shared.network import get_nic_mac_address
 logger = logging.getLogger(__name__)
 
 
-def get_ac_charge_params_sample_vals_v20() -> dict:
-    ac_charge_params = {
-        "ev_max_charge_power": RationalNumber(exponent=3, value=3),
-        "ev_max_charge_power_l2": RationalNumber(exponent=3, value=3),
-        "ev_max_charge_power_l3": RationalNumber(exponent=3, value=3),
-        "ev_min_charge_power": RationalNumber(exponent=0, value=100),
-        "ev_min_charge_power_l2": RationalNumber(exponent=0, value=100),
-        "ev_min_charge_power_l3": RationalNumber(exponent=0, value=100),
-    }
-    return ac_charge_params
-
-
-def get_dc_charge_params_sample_vals_v20() -> dict:
-    dc_charge_params = {
-        "ev_max_charge_power": RationalNumber(exponent=3, value=300),
-        "ev_min_charge_power": RationalNumber(exponent=0, value=100),
-        "ev_max_charge_current": RationalNumber(exponent=0, value=300),
-        "ev_min_charge_current": RationalNumber(exponent=0, value=10),
-        "ev_max_voltage": RationalNumber(exponent=0, value=1000),
-        "ev_min_voltage": RationalNumber(exponent=0, value=10),
-    }
-    return dc_charge_params
-
-
 class SimEVController(EVControllerInterface):
     """
     A simulated version of an EV controller
@@ -636,13 +612,19 @@ class SimEVController(EVControllerInterface):
     def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
         """Overrides EVControllerInterface.get_ac_charge_params_v20()."""
         return ACChargeParameterDiscoveryReqParams(
-            **get_ac_charge_params_sample_vals_v20()
+            ev_max_charge_power=RationalNumber(exponent=3, value=3),
+            ev_max_charge_power_l2=RationalNumber(exponent=3, value=3),
+            ev_max_charge_power_l3=RationalNumber(exponent=3, value=3),
+            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+            ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
         )
 
     def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryReqParams:
         """Overrides EVControllerInterface.get_bpt_ac_charge_params_v20()."""
+        ac_charge_params_v20 = self.get_ac_charge_params_v20().dict()
         return BPTACChargeParameterDiscoveryReqParams(
-            **get_ac_charge_params_sample_vals_v20(),
+            **ac_charge_params_v20,
             ev_max_discharge_power=RationalNumber(exponent=3, value=11),
             ev_max_discharge_power_l2=RationalNumber(exponent=3, value=11),
             ev_max_discharge_power_l3=RationalNumber(exponent=3, value=11),
@@ -720,13 +702,19 @@ class SimEVController(EVControllerInterface):
     def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryReqParams:
         """Overrides EVControllerInterface.get_dc_charge_params_v20()."""
         return DCChargeParameterDiscoveryReqParams(
-            **get_dc_charge_params_sample_vals_v20()
+            ev_max_charge_power=RationalNumber(exponent=3, value=300),
+            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_max_charge_current=RationalNumber(exponent=0, value=300),
+            ev_min_charge_current=RationalNumber(exponent=0, value=10),
+            ev_max_voltage=RationalNumber(exponent=0, value=1000),
+            ev_min_voltage=RationalNumber(exponent=0, value=10),
         )
 
     def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryReqParams:
         """Overrides EVControllerInterface.get_bpt_dc_charge_params_v20()."""
+        dc_charge_params_v20 = self.get_dc_charge_params_v20().dict()
         return BPTDCChargeParameterDiscoveryReqParams(
-            **get_dc_charge_params_sample_vals_v20(),
+            **dc_charge_params_v20,
             ev_max_discharge_power=RationalNumber(exponent=3, value=11),
             ev_min_discharge_power=RationalNumber(exponent=3, value=1),
             ev_max_discharge_current=RationalNumber(exponent=0, value=11),

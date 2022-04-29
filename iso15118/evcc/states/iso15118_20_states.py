@@ -513,7 +513,7 @@ class ServiceDetail(StateEVCC):
             )
         )
 
-        if not self.is_control_mode():
+        if not self.is_control_mode_set():
             session_stop_req = SessionStopReq(
                 header=MessageHeader(
                     session_id=self.comm_session.session_id,
@@ -573,7 +573,7 @@ class ServiceDetail(StateEVCC):
 
         return service_selection_req
 
-    def is_control_mode(self) -> bool:
+    def is_control_mode_set(self) -> bool:
         control_mode_set = False
         if self.comm_session.selected_energy_service:
             parameter_set = self.comm_session.selected_energy_service.parameter_set
