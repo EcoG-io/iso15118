@@ -101,6 +101,30 @@ from iso15118.shared.network import get_nic_mac_address
 logger = logging.getLogger(__name__)
 
 
+def get_ac_charge_params_sample_vals_v20() -> dict:
+    ac_charge_params = {
+        "ev_max_charge_power": RationalNumber(exponent=3, value=3),
+        "ev_max_charge_power_l2": RationalNumber(exponent=3, value=3),
+        "ev_max_charge_power_l3": RationalNumber(exponent=3, value=3),
+        "ev_min_charge_power": RationalNumber(exponent=0, value=100),
+        "ev_min_charge_power_l2": RationalNumber(exponent=0, value=100),
+        "ev_min_charge_power_l3": RationalNumber(exponent=0, value=100),
+    }
+    return ac_charge_params
+
+
+def get_dc_charge_params_sample_vals_v20() -> dict:
+    dc_charge_params = {
+        "ev_max_charge_power": RationalNumber(exponent=3, value=300),
+        "ev_min_charge_power": RationalNumber(exponent=0, value=100),
+        "ev_max_charge_current": RationalNumber(exponent=0, value=300),
+        "ev_min_charge_current": RationalNumber(exponent=0, value=10),
+        "ev_max_voltage": RationalNumber(exponent=0, value=1000),
+        "ev_min_voltage": RationalNumber(exponent=0, value=10),
+    }
+    return dc_charge_params
+
+
 class SimEVController(EVControllerInterface):
     """
     A simulated version of an EV controller
@@ -166,7 +190,7 @@ class SimEVController(EVControllerInterface):
 
     def get_supported_energy_services(self) -> List[ServiceV20]:
         """Overrides EVControllerInterface.get_energy_transfer_service()."""
-        return [ServiceV20.AC, ServiceV20.AC_BPT]
+        return [ServiceV20.AC_BPT]
 
     def select_energy_service_v20(
         self, services: List[MatchedService]
@@ -343,7 +367,7 @@ class SimEVController(EVControllerInterface):
             departure_time=7200,
             ev_target_energy_request=RationalNumber(exponent=3, value=10),
             ev_max_energy_request=RationalNumber(exponent=3, value=20),
-            ev_min_energy_request=RationalNumber(exponent=3, value=5),
+            ev_min_energy_request=RationalNumber(exponent=-2, value=5),
             ev_energy_offer=energy_offer,
         )
 
@@ -359,7 +383,7 @@ class SimEVController(EVControllerInterface):
             target_soc=80,
             ev_target_energy_request=RationalNumber(exponent=3, value=40),
             ev_max_energy_request=RationalNumber(exponent=1, value=6000),
-            ev_min_energy_request=RationalNumber(exponent=0, value=20000),
+            ev_min_energy_request=RationalNumber(exponent=0, value=-20000),
             ev_max_v2x_energy_request=RationalNumber(exponent=0, value=5000),
             ev_min_v2x_energy_request=RationalNumber(exponent=0, value=0),
         )
@@ -612,21 +636,19 @@ class SimEVController(EVControllerInterface):
     def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
         """Overrides EVControllerInterface.get_ac_charge_params_v20()."""
         return ACChargeParameterDiscoveryReqParams(
-            ev_max_charge_power=RationalNumber(exponent=3, value=3),
-            ev_max_charge_power_l2=RationalNumber(exponent=3, value=3),
-            ev_max_charge_power_l3=RationalNumber(exponent=3, value=3),
-            ev_min_charge_power=RationalNumber(exponent=0, value=100),
-            ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
-            ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+            **get_ac_charge_params_sample_vals_v20()
         )
 
     def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryReqParams:
         """Overrides EVControllerInterface.get_bpt_ac_charge_params_v20()."""
         return BPTACChargeParameterDiscoveryReqParams(
-            ev_max_charge_power=RationalNumber(exponent=3, value=11),
-            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            **get_ac_charge_params_sample_vals_v20(),
             ev_max_discharge_power=RationalNumber(exponent=3, value=11),
+            ev_max_discharge_power_l2=RationalNumber(exponent=3, value=11),
+            ev_max_discharge_power_l3=RationalNumber(exponent=3, value=11),
             ev_min_discharge_power=RationalNumber(exponent=0, value=100),
+            ev_min_discharge_power_l2=RationalNumber(exponent=0, value=100),
+            ev_min_discharge_power_l3=RationalNumber(exponent=0, value=100),
         )
 
     def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopReqParams:
@@ -650,9 +672,9 @@ class SimEVController(EVControllerInterface):
         return DynamicACChargeLoopReqParams(
             ev_target_energy_request=RationalNumber(exponent=3, value=40),
             ev_max_energy_request=RationalNumber(exponent=3, value=60),
-            ev_min_energy_request=RationalNumber(exponent=3, value=20),
+            ev_min_energy_request=RationalNumber(exponent=3, value=-20),
             ev_max_charge_power=RationalNumber(exponent=3, value=300),
-            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_min_charge_power=RationalNumber(exponent=0, value=-100),
             ev_present_active_power=RationalNumber(exponent=3, value=200),
             ev_present_reactive_power=RationalNumber(exponent=3, value=20),
             # Add more optional fields if wanted
@@ -663,13 +685,13 @@ class SimEVController(EVControllerInterface):
         return BPTDynamicACChargeLoopReqParams(
             ev_target_energy_request=RationalNumber(exponent=3, value=40),
             ev_max_energy_request=RationalNumber(exponent=3, value=60),
-            ev_min_energy_request=RationalNumber(exponent=3, value=20),
+            ev_min_energy_request=RationalNumber(exponent=-2, value=20),
             ev_max_charge_power=RationalNumber(exponent=3, value=300),
-            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_min_charge_power=RationalNumber(exponent=0, value=-100),
             ev_present_active_power=RationalNumber(exponent=3, value=200),
             ev_present_reactive_power=RationalNumber(exponent=3, value=20),
             ev_max_discharge_power=RationalNumber(exponent=3, value=11),
-            ev_min_discharge_power=RationalNumber(exponent=3, value=1),
+            ev_min_discharge_power=RationalNumber(exponent=-3, value=1),
             # Add more optional fields if wanted
         )
 
@@ -698,23 +720,13 @@ class SimEVController(EVControllerInterface):
     def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryReqParams:
         """Overrides EVControllerInterface.get_dc_charge_params_v20()."""
         return DCChargeParameterDiscoveryReqParams(
-            ev_max_charge_power=RationalNumber(exponent=3, value=300),
-            ev_min_charge_power=RationalNumber(exponent=0, value=100),
-            ev_max_charge_current=RationalNumber(exponent=0, value=300),
-            ev_min_charge_current=RationalNumber(exponent=0, value=10),
-            ev_max_voltage=RationalNumber(exponent=0, value=1000),
-            ev_min_voltage=RationalNumber(exponent=0, value=10),
+            **get_dc_charge_params_sample_vals_v20()
         )
 
     def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryReqParams:
         """Overrides EVControllerInterface.get_bpt_dc_charge_params_v20()."""
         return BPTDCChargeParameterDiscoveryReqParams(
-            ev_max_charge_power=RationalNumber(exponent=3, value=300),
-            ev_min_charge_power=RationalNumber(exponent=0, value=100),
-            ev_max_charge_current=RationalNumber(exponent=0, value=300),
-            ev_min_charge_current=RationalNumber(exponent=0, value=10),
-            ev_max_voltage=RationalNumber(exponent=0, value=1000),
-            ev_min_oltage=RationalNumber(exponent=0, value=10),
+            **get_dc_charge_params_sample_vals_v20(),
             ev_max_discharge_power=RationalNumber(exponent=3, value=11),
             ev_min_discharge_power=RationalNumber(exponent=3, value=1),
             ev_max_discharge_current=RationalNumber(exponent=0, value=11),

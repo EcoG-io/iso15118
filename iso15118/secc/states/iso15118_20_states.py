@@ -723,6 +723,7 @@ class ServiceSelection(StateSECC):
                         ResponseCode.FAILED_SERVICE_SELECTION_INVALID,
                     )
 
+        # TODO: Refactor to a separate method.
         # If all selected services are valid, let's add the information about the
         # parameter set (not just the ID) to each selected service
         for offered_service in self.comm_session.matched_services_v20:
@@ -1221,25 +1222,17 @@ class ACChargeLoop(StateSECC):
         selected_energy_service = self.comm_session.selected_energy_service
         control_mode = self.comm_session.control_mode
 
-        if selected_energy_service.service in (ServiceV20.AC, ServiceV20.AC_BPT):
-            if (
-                selected_energy_service.service == ServiceV20.AC
-                and control_mode == ControlMode.SCHEDULED
-            ):
+        if selected_energy_service.service == ServiceV20.AC:
+            if control_mode == ControlMode.SCHEDULED:
                 scheduled_params = (
                     self.comm_session.evse_controller.get_scheduled_ac_charge_loop_params()  # noqa
                 )
-            elif (
-                selected_energy_service.service == ServiceV20.AC
-                and control_mode == ControlMode.DYNAMIC
-            ):
+            elif control_mode == ControlMode.DYNAMIC:
                 dynamic_params = (
                     self.comm_session.evse_controller.get_dynamic_ac_charge_loop_params()  # noqa
                 )
-            elif (
-                selected_energy_service.service == ServiceV20.AC_BPT
-                and control_mode == ControlMode.SCHEDULED
-            ):
+        elif selected_energy_service.service == ServiceV20.AC_BPT:
+            if control_mode == ControlMode.SCHEDULED:
                 bpt_scheduled_params = (
                     self.comm_session.evse_controller.get_bpt_scheduled_ac_charge_loop_params()  # noqa
                 )
@@ -1247,36 +1240,37 @@ class ACChargeLoop(StateSECC):
                 bpt_dynamic_params = (
                     self.comm_session.evse_controller.get_bpt_dynamic_ac_charge_loop_params()  # noqa
                 )
-
-            meter_info = None
-            if ac_charge_loop_req.meter_info_requested:
-                meter_info = self.comm_session.evse_controller.get_meter_info_v20()
-
-            ac_charge_loop_res = ACChargeLoopRes(
-                header=MessageHeader(
-                    session_id=self.comm_session.session_id,
-                    timestamp=time.time(),
-                ),
-                # TODO Check for other failed or warning response codes
-                response_code=ResponseCode.OK,
-                scheduled_params=scheduled_params,
-                dynamic_params=dynamic_params,
-                bpt_scheduled_params=bpt_scheduled_params,
-                bpt_dynamic_params=bpt_dynamic_params,
-                meter_info=meter_info,
-            )
-
-            self.create_next_message(
-                None,
-                ac_charge_loop_res,
-                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                Namespace.ISO_V20_AC,
-                ISOV20PayloadTypes.AC_MAINSTREAM,
-            )
         else:
             logger.error(
                 f"Energy service {selected_energy_service.service} not yet supported"
             )
+            return
+
+        meter_info = None
+        if ac_charge_loop_req.meter_info_requested:
+            meter_info = self.comm_session.evse_controller.get_meter_info_v20()
+
+        ac_charge_loop_res = ACChargeLoopRes(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id,
+                timestamp=time.time(),
+            ),
+            # TODO Check for other failed or warning response codes
+            response_code=ResponseCode.OK,
+            scheduled_params=scheduled_params,
+            dynamic_params=dynamic_params,
+            bpt_scheduled_params=bpt_scheduled_params,
+            bpt_dynamic_params=bpt_dynamic_params,
+            meter_info=meter_info,
+        )
+
+        self.create_next_message(
+            None,
+            ac_charge_loop_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_AC,
+            ISOV20PayloadTypes.AC_MAINSTREAM,
+        )
 
     def check_power_profile(self) -> ResponseCode:
         # TODO Check the power profile for any violation

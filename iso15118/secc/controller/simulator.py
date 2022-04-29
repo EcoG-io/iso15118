@@ -131,6 +131,9 @@ class V20ServiceParamMapping(BaseModel):
     )
 
 
+# This method is added to help read the service to parameter
+# mapping (json format) from file. The key is in the dictionary is
+# enum value of the energy transfer mode and value is the service parameter
 async def read_service_id_parameter_mappings():
     try:
         async with async_open(V20_EVSE_SERVICES_CONFIG, "r") as v20_service_config:
@@ -533,38 +536,33 @@ class SimEVSEController(EVSEControllerInterface):
             evse_max_current=evse_max_current,
         )
 
+    def get_ac_charge_params_params_v20(self) -> dict:
+        params = {
+            "evse_max_charge_power": RationalNumber(exponent=3, value=11),
+            "evse_max_charge_power_l2": RationalNumber(exponent=3, value=11),
+            "evse_max_charge_power_l3": RationalNumber(exponent=3, value=11),
+            "evse_min_charge_power": RationalNumber(exponent=0, value=100),
+            "evse_min_charge_power_l2": RationalNumber(exponent=0, value=100),
+            "evse_min_charge_power_l3": RationalNumber(exponent=0, value=100),
+            "evse_nominal_frequency": RationalNumber(exponent=0, value=400),
+            "max_power_asymmetry": RationalNumber(exponent=0, value=500),
+            "evse_power_ramp_limit": RationalNumber(exponent=0, value=10),
+            "evse_present_active_power": RationalNumber(exponent=3, value=3),
+            "evse_present_active_power_l2": RationalNumber(exponent=3, value=3),
+            "evse_present_active_power_l3": RationalNumber(exponent=3, value=3),
+        }
+        return params
+
     def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryResParams:
         """Overrides EVSEControllerInterface.get_ac_charge_params_v20()."""
         return ACChargeParameterDiscoveryResParams(
-            evse_max_charge_power=RationalNumber(exponent=3, value=11),
-            evse_max_charge_power_l2=RationalNumber(exponent=3, value=11),
-            evse_max_charge_power_l3=RationalNumber(exponent=3, value=11),
-            evse_min_charge_power=RationalNumber(exponent=0, value=100),
-            evse_min_charge_power_l2=RationalNumber(exponent=0, value=100),
-            evse_min_charge_power_l3=RationalNumber(exponent=0, value=100),
-            evse_nominal_frequency=RationalNumber(exponent=0, value=400),
-            max_power_asymmetry=RationalNumber(exponent=0, value=500),
-            evse_power_ramp_limit=RationalNumber(exponent=0, value=10),
-            evse_present_active_power=RationalNumber(exponent=3, value=3),
-            evse_present_active_power_l2=RationalNumber(exponent=3, value=3),
-            evse_present_active_power_l3=RationalNumber(exponent=3, value=3),
+            **self.get_ac_charge_params_params_v20()
         )
 
     def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryResParams:
         """Overrides EVSEControllerInterface.get_ac_bpt_charge_params_v20()."""
         return BPTACChargeParameterDiscoveryResParams(
-            evse_max_charge_power=RationalNumber(exponent=3, value=11),
-            evse_max_charge_power_l2=RationalNumber(exponent=3, value=11),
-            evse_max_charge_power_l3=RationalNumber(exponent=3, value=11),
-            evse_min_charge_power=RationalNumber(exponent=0, value=100),
-            evse_min_charge_power_l2=RationalNumber(exponent=0, value=100),
-            evse_min_charge_power_l3=RationalNumber(exponent=0, value=100),
-            evse_nominal_frequency=RationalNumber(exponent=0, value=400),
-            max_power_asymmetry=RationalNumber(exponent=0, value=500),
-            evse_power_ramp_limit=RationalNumber(exponent=0, value=10),
-            evse_present_active_power=RationalNumber(exponent=3, value=3),
-            evse_present_active_power_l2=RationalNumber(exponent=3, value=3),
-            evse_present_active_power_l3=RationalNumber(exponent=3, value=3),
+            **self.get_ac_charge_params_params_v20(),
             evse_max_discharge_power=RationalNumber(exponent=0, value=3000),
             evse_max_discharge_power_l2=RationalNumber(exponent=0, value=3000),
             evse_max_discharge_power_l3=RationalNumber(exponent=0, value=3000),
@@ -710,7 +708,7 @@ class SimEVSEController(EVSEControllerInterface):
             evse_max_charge_current=RationalNumber(exponent=0, value=300),
             evse_min_charge_current=RationalNumber(exponent=0, value=10),
             evse_max_voltage=RationalNumber(exponent=0, value=1000),
-            evse_min_oltage=RationalNumber(exponent=0, value=10),
+            evse_min_voltage=RationalNumber(exponent=0, value=10),
             evse_max_discharge_power=RationalNumber(exponent=3, value=11),
             evse_min_discharge_power=RationalNumber(exponent=3, value=1),
             evse_max_discharge_current=RationalNumber(exponent=0, value=11),

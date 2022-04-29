@@ -800,7 +800,7 @@ class DynamicScheduleExchangeResParams(BaseModel):
     @root_validator(pre=True)
     def min_soc_less_than_or_equal_to_target_soc(cls, values):
         """
-        The min_soc value must be smaller than target_soc ([V2G20-1640]).
+        The min_soc value must be smaller or equal to target_soc ([V2G20-1640]).
 
         Pydantic validators are "class methods",
         see https://pydantic-docs.helpmanual.io/usage/validators/
