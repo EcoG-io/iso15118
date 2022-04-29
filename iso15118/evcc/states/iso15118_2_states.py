@@ -6,7 +6,7 @@ SessionStopRes.
 
 import logging
 from time import time
-from typing import List, Union
+from typing import Any, List, Union
 
 from iso15118.evcc import evcc_settings
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
@@ -747,8 +747,8 @@ class ChargeParameterDiscovery(StateEVCC):
                 charge_progress,
                 schedule_id,
                 charging_profile,
-            ) = self.comm_session.ev_controller.process_sa_schedules(
-                charge_params_res.sa_schedule_list.values
+            ) = self.comm_session.ev_controller.process_sa_schedules_v2(
+                charge_params_res.sa_schedule_list.schedule_tuples
             )
 
             if self.comm_session.selected_charging_type_is_ac:
@@ -841,11 +841,11 @@ class PowerDelivery(StateEVCC):
             return
 
         if (
-            self.comm_session.charging_session_stop
+            self.comm_session.charging_session_stop_v2
             and self.comm_session.selected_charging_type_is_ac
         ):
             session_stop_req = SessionStopReq(
-                charging_session=self.comm_session.charging_session_stop
+                charging_session=self.comm_session.charging_session_stop_v2
             )
             self.create_next_message(
                 SessionStop,
@@ -853,7 +853,7 @@ class PowerDelivery(StateEVCC):
                 Timeouts.SESSION_STOP_REQ,
                 Namespace.ISO_V2_MSG_DEF,
             )
-        elif self.comm_session.charging_session_stop:
+        elif self.comm_session.charging_session_stop_v2:
             welding_detection_req = WeldingDetectionReq(
                 dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
             )
@@ -991,11 +991,32 @@ class MeteringReceipt(StateEVCC):
             else:
                 self.create_next_message(
                     CurrentDemand,
-                    # TODO Create proper CurrentDemandReq
-                    CurrentDemandReq(),
+                    self.build_current_demand_req(),
                     Timeouts.CHARGING_STATUS_REQ,
                     Namespace.ISO_V2_MSG_DEF,
                 )
+
+    def build_current_demand_req(self) -> CurrentDemandReq:
+        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
+        current_demand_req: CurrentDemandReq = CurrentDemandReq(
+            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            ev_target_current=dc_charge_params.dc_target_current,
+            ev_target_voltage=dc_charge_params.dc_target_voltage,
+            ev_max_voltage_limit=dc_charge_params.dc_max_voltage_limit,
+            ev_max_current_limit=dc_charge_params.dc_max_current_limit,
+            ev_max_power_limit=dc_charge_params.dc_max_power_limit,
+            bulk_charging_complete=(
+                self.comm_session.ev_controller.is_bulk_charging_complete()
+            ),
+            charging_complete=(self.comm_session.ev_controller.is_charging_complete()),
+            remaining_time_to_full_soc=(
+                self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+            ),
+            remaining_time_to_bulk_soc=(
+                self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+            ),
+        )
+        return current_demand_req
 
 
 class SessionStop(StateEVCC):
@@ -1023,7 +1044,8 @@ class SessionStop(StateEVCC):
 
         self.comm_session.stop_reason = StopNotification(
             True,
-            f"Communication session {self.comm_session.charging_session_stop.lower()}d",
+            f"Communication session "
+            f"{self.comm_session.charging_session_stop_v2.lower()}d",
             self.comm_session.writer.get_extra_info("peername"),
         )
 
@@ -1136,7 +1158,7 @@ class ChargingStatus(StateEVCC):
             Timeouts.POWER_DELIVERY_REQ,
             Namespace.ISO_V2_MSG_DEF,
         )
-        self.comm_session.charging_session_stop = ChargingSession.TERMINATE
+        self.comm_session.charging_session_stop_v2 = ChargingSession.TERMINATE
         # TODO Implement also a mechanism for pausing
         logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
 
@@ -1362,6 +1384,10 @@ class CurrentDemand(StateEVCC):
         power_delivery_req = PowerDeliveryReq(
             charge_progress=ChargeProgress.STOP,
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
+            # charging_profile=None,  # TODO
+            dc_ev_power_delivery_parameter=(
+                self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
+            ),
         )
         self.create_next_message(
             PowerDelivery,
@@ -1369,7 +1395,7 @@ class CurrentDemand(StateEVCC):
             Timeouts.POWER_DELIVERY_REQ,
             Namespace.ISO_V2_MSG_DEF,
         )
-        self.comm_session.charging_session_stop = ChargingSession.TERMINATE
+        self.comm_session.charging_session_stop_v2 = ChargingSession.TERMINATE
         logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
 
 
@@ -1408,13 +1434,13 @@ class WeldingDetection(StateEVCC):
             self.comm_session.ongoing_timer = time()
 
         next_state = None
-        next_request = WeldingDetectionReq(
+        next_request: Any = WeldingDetectionReq(
             dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
         )
         next_timeout = Timeouts.WELDING_DETECTION_REQ
         if self.comm_session.ev_controller.welding_detection_has_finished():
             session_stop_req = SessionStopReq(
-                charging_session=self.comm_session.charging_session_stop
+                charging_session=self.comm_session.charging_session_stop_v2
             )
             next_state = SessionStop
             next_request = session_stop_req

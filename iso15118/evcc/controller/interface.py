@@ -19,7 +19,7 @@ from iso15118.shared.messages.din_spec.datatypes import DCEVStatus as DCEVStatus
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
-from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol
+from iso15118.shared.messages.enums import Protocol, ServiceV20
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
@@ -27,13 +27,32 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVChargeParameter,
     DCEVPowerDeliveryParameter,
     DCEVStatus,
-    SAScheduleTupleEntry,
+    EnergyTransferModeEnum,
+    SAScheduleTuple,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
     BPTACChargeParameterDiscoveryReqParams,
+    BPTDynamicACChargeLoopReqParams,
+    BPTScheduledACChargeLoopReqParams,
+    DynamicACChargeLoopReqParams,
+    ScheduledACChargeLoopReqParams,
 )
-from iso15118.shared.messages.iso15118_20.common_messages import EMAIDList
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    DynamicScheduleExchangeReqParams,
+    DynamicScheduleExchangeResParams,
+    EMAIDList,
+    EVPowerProfile,
+    MatchedService,
+    ScheduledScheduleExchangeReqParams,
+    ScheduledScheduleExchangeResParams,
+    SelectedEnergyService,
+    SelectedVAS,
+)
+from iso15118.shared.messages.iso15118_20.dc import (
+    BPTDCChargeParameterDiscoveryReqParams,
+    DCChargeParameterDiscoveryReqParams,
+)
 
 
 @dataclass
@@ -44,6 +63,11 @@ class ChargeParamsV2:
 
 
 class EVControllerInterface(ABC):
+
+    # ============================================================================
+    # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
+    # ============================================================================
+
     @abstractmethod
     def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """
@@ -79,57 +103,142 @@ class EVControllerInterface(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def get_dc_charge_params(self) -> DCEVChargeParams:
+    def get_supported_energy_services(self) -> List[ServiceV20]:
         """
-        This would return an encapsulation of the following parameters:
-        DC Max Current Limit
-        DC Max Voltage Limit
-        DC Target Current
-        DC Target Voltage
-
-        Relevant for
-        - DIN SPEC 70121
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
-        """
-        Gets the charge parameter needed for ChargeParameterDiscoveryReq (ISO 15118-2),
-        including the energy transfer mode and the energy mode-specific parameters,
-        which is an instance of either ACEVChargeParameter or DCEVChargeParameter,
-        depending on the EnergyTransferMode.
-
-        Returns:
-            A tuple of ChargeParamsV2, including EnergyTransferMode and
-            ACEVChargeParameter (or DCEVChargeParameter)
-
-        Relevant for:
-        - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_charge_params_v20(
-        self,
-    ) -> Tuple[
-        ACChargeParameterDiscoveryReqParams,
-        Optional[BPTACChargeParameterDiscoveryReqParams],
-    ]:
-        """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryReq, which is
-        either an ACChargeParameterDiscoveryReq, or a DCChargeParameterDiscoveryReq,
-        or a WPTChargeParameterDiscoveryReq from ISO 15118-20, including the optional
-        optional BPT (bi-directional power flow) paramters.
-
-        Returns:
-            A tuple containing both the non-BPT and BPT charger parameter needed for a
-            request message of type ChargeParameterDiscoveryReq (AC, DC, or WPT)
+        Gets the energy transfer service requested for the current charging session.
+        This must be one of the energy related services (services with ID 1 through 7)
 
         Relevant for:
         - ISO 15118-20
-        TODO Add support for DC and WPT in the return type
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def select_energy_service_v20(
+        self, services: List[MatchedService]
+    ) -> SelectedEnergyService:
+        """
+        Selects the energy service and associated parameter set from a given set of
+        parameters per energy service ID.
+
+        Args:
+            services: List of compatible energy services offered by EVSE
+
+        Returns:
+            An instance of SelectedEnergyService, containing the service, whether it's
+            free or paid, and its chosen parameter set.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def select_vas_services_v20(
+        self, services: List[MatchedService]
+    ) -> Optional[List[SelectedVAS]]:
+        """
+        Selects a value-added service (VAS) and associated parameter set from a given
+        set of parameters for that value-added energy. If you don't want to select
+        the offered VAS, return None.
+
+        Args:
+            services: List of matched services
+
+        Returns:
+            A list of SelectedVAS, containing the service, whether it's free or
+            paid, and its chosen parameter set.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_scheduled_se_params(
+        self, selected_energy_service: SelectedEnergyService
+    ) -> ScheduledScheduleExchangeReqParams:
+        """
+        Gets the parameters for a ScheduleExchangeRequest, which correspond to the
+        Scheduled control mode.
+
+        Args:
+            selected_energy_service: The energy services, which the EVCC selected.
+                                     The selected parameter set, that is associated
+                                     with that energy service, influences the
+                                     parameters for the ScheduleExchangeReq
+
+        Returns:
+            Parameters for the ScheduleExchangeReq in Scheduled control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+
+    @abstractmethod
+    def get_dynamic_se_params(
+        self, selected_energy_service: SelectedEnergyService
+    ) -> DynamicScheduleExchangeReqParams:
+        """
+        Gets the parameters for a ScheduleExchangeRequest, which correspond to the
+        Dynamic control mode.
+
+        Args:
+            selected_energy_service: The energy services, which the EVCC selected.
+                                     The selected parameter set, that is associated
+                                     with that energy service, influences the
+                                     parameters for the ScheduleExchangeReq
+
+        Returns:
+            Parameters for the ScheduleExchangeReq in Dynamic control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+
+    @abstractmethod
+    def process_scheduled_se_params(
+        self, scheduled_params: ScheduledScheduleExchangeResParams, pause: bool
+    ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
+        """
+        Processes the ScheduleExchangeRes parameters for the Scheduled mode.
+
+        Args:
+            scheduled_params: The list of offered schedule tuples for Scheduled mode
+            pause: When set to True, this indicates that the EVSE doesn’t have any power
+                   available and the EV should set ChargeProgress to PAUSE
+
+        Returns:
+            A tuple consisting of
+            1. the resulting charging profile of the EV (or None, if not yet ready)
+            1. the ChargeProgress status
+            needed to create the PowerDeliveryReq message
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def process_dynamic_se_params(
+        self, dynamic_params: DynamicScheduleExchangeResParams, pause: bool
+    ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
+        """
+        Processes the ScheduleExchangeRes parameters for the Dynamic mode.
+
+        Args:
+            dynamic_params: The parameters relevant for the Dynamic mode
+            pause: When set to True, this indicates that the EVSE doesn’t have any power
+                   available and the EV should set ChargeProgress to PAUSE
+
+        Returns:
+            A tuple consisting of
+            1. the resulting charging profile of the EV (or None, if not yet ready)
+            1. the ChargeProgress status
+            needed to create the PowerDeliveryReq message
+
+        Relevant for:
+        - ISO 15118-20
         """
         raise NotImplementedError
 
@@ -176,8 +285,8 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def process_sa_schedules(
-        self, sa_schedules: List[SAScheduleTupleEntry]
+    def process_sa_schedules_v2(
+        self, sa_schedules: List[SAScheduleTuple]
     ) -> Tuple[ChargeProgress, int, ChargingProfile]:
         """
         Processes the SAScheduleList provided with the ChargeParameterDiscoveryRes
@@ -289,24 +398,28 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_ev_power_delivery_parameter_dinspec(
-        self,
-    ) -> DCEVPowerDeliveryParameterDINSPEC:
+    def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
         """
-        gets the Power Delivery Parameter of the EV
+        Gets the charge parameter needed for ChargeParameterDiscoveryReq (ISO 15118-2),
+        including the energy transfer mode and the energy mode-specific parameters,
+        which is an instance of either ACEVChargeParameter.
+
+        Returns:
+            A tuple of ChargeParamsV2, including EnergyTransferMode and
+            ACEVChargeParameter
 
         Relevant for:
-        - DIN SPEC 70121
+        - ISO 15118-2
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
+    def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
         """
-        gets the Power Delivery Parameter of the EV
+        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
+        AC charging.
 
         Relevant for:
-        - ISO 15118-2
         - ISO 15118-20
         """
         raise NotImplementedError
@@ -357,6 +470,72 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryReqParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
+        bidirectional AC charging.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopReqParams:
+        """
+        Gets the parameters for the ACChargeLoopReq in the Scheduled control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_bpt_scheduled_ac_charge_loop_params(
+        self,
+    ) -> BPTScheduledACChargeLoopReqParams:
+        """
+        Gets the parameters for the ACChargeLoopReq in the Scheduled control mode for
+        bi-directional power transfer (BPT)
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dynamic_ac_charge_loop_params(self) -> DynamicACChargeLoopReqParams:
+        """
+        Gets the parameters for the ACChargeLoopReq in the Dynamic control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_bpt_dynamic_ac_charge_loop_params(self) -> BPTDynamicACChargeLoopReqParams:
+        """
+        Gets the parameters for the ACChargeLoopReq in the Dynamic control mode for
+        bi-directional power transfer (BPT)
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    # ============================================================================
+    # |                          DC-SPECIFIC FUNCTIONS                           |
+    # ============================================================================
+
+    @abstractmethod
+    def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryReqParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
+        DC charging.
+        """
+        raise NotImplementedError
+
     def get_remaining_time_to_bulk_soc(self) -> PVRemainingTimeToBulkSOC:
         """
         Gets the remaining time until bulk soc is reached.
@@ -385,5 +564,53 @@ class EVControllerInterface(ABC):
     def stop_charging(self) -> None:
         """
         Used by CurrentDemand to indicate to EV to stop charging.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryReqParams:
+        """
+        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
+        bidirectional DC charging.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_ev_power_delivery_parameter_dinspec(
+        self,
+    ) -> DCEVPowerDeliveryParameterDINSPEC:
+        """
+        gets the Power Delivery Parameter of the EV
+
+        Relevant for:
+        - DIN SPEC 70121
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
+        """
+        gets the Power Delivery Parameter of the EV
+
+        Relevant for:
+        - ISO 15118-2
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dc_charge_params(self) -> DCEVChargeParams:
+        """
+        This would return an encapsulation of the following parameters:
+        DC Max Current Limit
+        DC Max Voltage Limit
+        DC Target Current
+        DC Target Voltage
+
+        Relevant for
+        - DIN SPEC 70121
         """
         raise NotImplementedError

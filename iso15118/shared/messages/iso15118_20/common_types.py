@@ -14,17 +14,30 @@ from abc import ABC
 from enum import Enum
 from typing import List
 
-from pydantic import Field, conbytes, constr, validator
+from pydantic import Field, conbytes, conint, constr, validator
 
 from iso15118.shared.messages import BaseModel
-from iso15118.shared.messages.enums import UINT_32_MAX
+from iso15118.shared.messages.enums import (
+    INT_8_MAX,
+    INT_8_MIN,
+    INT_16_MAX,
+    INT_16_MIN,
+    UINT_32_MAX,
+)
 from iso15118.shared.messages.xmldsig import Signature, X509IssuerSerial
 
 # https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
-# constrained types
 # Check Annex C.1 or V2G_CI_CommonTypes.xsd
+# certificateType (a DER encoded X.509 certificate)
 Certificate = conbytes(max_length=1600)
+# identifierType
 Identifier = constr(max_length=255)
+# numericIDType
+NumericID = conint(ge=1, le=UINT_32_MAX)
+# nameType
+Name = constr(max_length=80)
+# descriptionType
+Description = constr(max_length=160)
 
 
 class MessageHeader(BaseModel):
@@ -47,7 +60,6 @@ class MessageHeader(BaseModel):
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
         try:
-            # convert value to int, assuming base 16
             int(value, 16)
             return value
         except ValueError as exc:
@@ -141,9 +153,9 @@ class RationalNumber(BaseModel):
     """See section 8.3.5.3.8 in ISO 15118-20"""
 
     # XSD type byte with value range [-128..127]
-    exponent: int = Field(..., ge=-128, le=127, alias="Exponent")
+    exponent: int = Field(..., ge=INT_8_MIN, le=INT_8_MAX, alias="Exponent")
     # XSD type short (16 bit integer) with value range [-32768..32767]
-    value: int = Field(..., ge=-32768, le=32767, alias="Value")
+    value: int = Field(..., ge=INT_16_MIN, le=INT_16_MAX, alias="Value")
 
 
 class EVSENotification(str, Enum):
@@ -274,7 +286,7 @@ class ScheduledChargeLoopResParams(BaseModel, ABC):
     """
 
 
-class DynamicChargeLoopReq(BaseModel, ABC):
+class DynamicChargeLoopReqParams(BaseModel, ABC):
     """
     A base class for DynamicACChargeLoopReqParams and
     DynamicDCChargeLoopReqParams
@@ -284,17 +296,17 @@ class DynamicChargeLoopReq(BaseModel, ABC):
     ev_target_energy_request: RationalNumber = Field(..., alias="EVTargetEnergyRequest")
     ev_max_energy_request: RationalNumber = Field(..., alias="EVMaximumEnergyRequest")
     ev_min_energy_request: RationalNumber = Field(..., alias="EVMinimumEnergyRequest")
-    departure_time: int = Field(None, alias="DepartureTime")
+    departure_time: int = Field(None, ge=0, le=UINT_32_MAX, alias="DepartureTime")
 
 
-class DynamicChargeLoopRes(BaseModel):
+class DynamicChargeLoopResParams(BaseModel):
     """
     A base class for DynamicACChargeLoopResParams and
     DynamicDCChargeLoopResParams
     See page 465 of Annex A in ISO 15118-20
     """
 
-    departure_time: int = Field(None, alias="DepartureTime")
+    departure_time: int = Field(None, ge=0, le=UINT_32_MAX, alias="DepartureTime")
     # XSD type byte with value range [0..100]
     min_soc: int = Field(None, ge=0, le=100, alias="MinimumSOC")
     # XSD type byte with value range [0..100]
@@ -323,9 +335,9 @@ class Processing(str, Enum):
     WAITING_FOR_CUSTOMER = "Ongoing_WaitingForCustomerInteraction"
 
 
-class RootCertificateID(BaseModel):
+class RootCertificateIDList(BaseModel):
     """See section 8.3.5.3.27 in ISO 15118-20"""
 
-    x509_issuer_serial: List[X509IssuerSerial] = Field(
+    root_cert_ids: List[X509IssuerSerial] = Field(
         ..., max_items=20, alias="RootCertificateID"
     )

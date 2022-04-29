@@ -320,11 +320,13 @@ class StateSECC(State, ABC):
             error_res.response_code = response_code
             self.create_next_message(Terminate, error_res, 0, Namespace.DIN_MSG_DEF)
         elif isinstance(faulty_request, V2GRequest):
-            error_res, namespace = self.comm_session.failed_responses_isov20.get(
-                type(faulty_request)
-            )
+            (
+                error_res,
+                namespace,
+                payload_type,
+            ) = self.comm_session.failed_responses_isov20.get(type(faulty_request))
             error_res.response_code = response_code
-            self.create_next_message(Terminate, error_res, 0, namespace)
+            self.create_next_message(Terminate, error_res, 0, namespace, payload_type)
         elif isinstance(faulty_request, SupportedAppProtocolReq):
             error_res = SupportedAppProtocolRes(response_code=response_code)
 
