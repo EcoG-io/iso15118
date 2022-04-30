@@ -165,7 +165,7 @@ class EXI:
         return cls._instance
 
     def set_exi_codec(self, codec: IEXICodec):
-        logger.debug(f"EXI Codec version: {codec.get_version()}")
+        logger.info(f"EXI Codec version: {codec.get_version()}")
         self.exi_codec = codec
 
     def get_exi_codec(self) -> IEXICodec:
@@ -304,7 +304,7 @@ class EXI:
 
         if MESSAGE_LOG_JSON:
             logger.debug(
-                f"Decoded message: \n{decoded_dict}" f"\nXSD namespace: {namespace}"
+                f"Decoded message: \n{decoded_dict}" f"\n XSD namespace: {namespace}"
             )
 
         try:

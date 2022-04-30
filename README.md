@@ -104,14 +104,17 @@ Finally, the project includes a few configuration variables, whose default
 values can be modified by setting them as environmental variables.
 The following table provides a few of the available variables:
 
-| ENV               | Default Value                | Description                                                                                                                                                     |
-| ----------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| NETWORK_INTERFACE | `eth0`                       | HomePlug Green PHY Network Interface from which the high-level communication (HLC) will be established                                                          |
-| SECC_ENFORCE_TLS  | `False`                      | Whether or not the SECC will enforce a TLS connection                                                                                                           |
-| EVCC_USE_TLS      | `True`                       | Whether or not the EVCC signals the preference to communicate with a TLS connection                                                                             |
-| EVCC_ENFORCE_TLS  | `False`                      | Whether or not the EVCC will only accept TLS connections                                                                                                        |
-| PKI_PATH          | `<CWD>/iso15118/shared/pki/` | Path for the location of the PKI where the certificates are located. By default, the system will look for the PKI directory under the current working directory |
-| LOG_LEVEL         | `INFO`                       | Level of the Python log service                                                                                                                                 |
+| ENV               | Default Value                 | Description                                                                                                                                                     |
+| ----------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| NETWORK_INTERFACE | `eth0`                        | HomePlug Green PHY Network Interface from which the high-level communication (HLC) will be established                                                          |
+| SECC_ENFORCE_TLS  | `False`                       | Whether or not the SECC will enforce a TLS connection                                                                                                           |
+| EVCC_USE_TLS      | `True`                        | Whether or not the EVCC signals the preference to communicate with a TLS connection                                                                             |
+| EVCC_ENFORCE_TLS  | `False`                       | Whether or not the EVCC will only accept TLS connections                                                                                                        |
+| PKI_PATH          | `<CWD>/iso15118/shared/pki/`  | Path for the location of the PKI where the certificates are located. By default, the system will look for the PKI directory under the current working directory |
+| LOG_LEVEL         | `INFO`                        | Level of the Python log service
+| MESSAGE_LOG_JSON  | `True`                        | Whether or not to log the EXI JSON messages (only works if log level is se to DEBUG)
+| MESSAGE_LOG_EXI   | `False`                       | Whether or not to log the EXI Bytestream messages (only works if log level is se to DEBUG)
+
 
 The project includes a few environmental files, in the root directory, for
 different purposes:

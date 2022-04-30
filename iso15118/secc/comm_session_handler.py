@@ -193,7 +193,7 @@ class CommunicationSessionHandler:
         if not self.config.enforce_tls:
             self.list_of_tasks.append(self.tcp_server.start_no_tls())
 
-        logger.debug("Communication session handler started")
+        logger.info("Communication session handler started")
 
         await wait_till_finished(self.list_of_tasks)
 
