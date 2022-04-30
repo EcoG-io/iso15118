@@ -404,6 +404,9 @@ class ServiceDiscovery(StateEVCC):
                     )
 
         if not self.comm_session.matched_services_v20:
+            self.comm_session.charging_session_stop_v20 = ChargingSession.TERMINATE
+            termination_reason: str = "WrongServiceID"
+            logger.info(f"Requesting SessionStop. Reason: {termination_reason} ")
             session_stop_req = SessionStopReq(
                 header=MessageHeader(
                     session_id=self.comm_session.session_id,
@@ -412,7 +415,7 @@ class ServiceDiscovery(StateEVCC):
                 charging_session=ChargingSession.TERMINATE,
                 # See "3.5.2. Error handling" in CharIN Implementation Guide for DC BPT
                 ev_termination_code=1,
-                ev_termination_explanation="WrongServiceID",
+                ev_termination_explanation=termination_reason,
             )
 
             self.create_next_message(

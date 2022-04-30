@@ -117,11 +117,11 @@ class State(ABC):
         # result of sending this next message
         self.next_msg_timeout: Union[float, int] = 0
 
-        logger.debug(f"Entered state {str(self)}")
+        logger.info(f"Entered state {str(self)}")
 
         if timeout > 0:
             self.timeout = timeout
-            logger.debug(f"Waiting for up to {timeout} s")
+            logger.info(f"Waiting for up to {timeout} s")
 
     @abstractmethod
     def process_message(

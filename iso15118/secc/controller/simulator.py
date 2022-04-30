@@ -377,7 +377,8 @@ class SimEVSEController(EVSEControllerInterface):
 
     def get_energy_service_list(self) -> ServiceList:
         """Overrides EVSEControllerInterface.get_energy_service_list()."""
-        # AC = 1, DC = 2, AC_BPT = 5, DC_BPT = 6
+        # AC = 1, DC = 2, AC_BPT = 5, DC_BPT = 6;
+        # DC_ACDP = 4 and DC_ADCP_BPT NOT supported
         service_ids = [1, 5]
         service_list: ServiceList = ServiceList(services=[])
         for service_id in service_ids:

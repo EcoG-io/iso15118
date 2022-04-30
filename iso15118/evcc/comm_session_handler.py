@@ -288,7 +288,7 @@ class CommunicationSessionHandler:
             self.restart_sdp(True),
         ]
 
-        logger.debug("Communication session handler started")
+        logger.info("Communication session handler started")
 
         await wait_till_finished(self.list_of_tasks)
 

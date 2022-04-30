@@ -94,7 +94,7 @@ class UDPServer(asyncio.DatagramProtocol):
             reuse_address=True,
         )
 
-        logger.debug(
+        logger.info(
             "UDP server started at address "
             f"{SDP_MULTICAST_GROUP}%{self.iface} "
             f"and port {SDP_SERVER_PORT}"
@@ -107,7 +107,7 @@ class UDPServer(asyncio.DatagramProtocol):
         Callback of the lower level API, which is called when the connection to
         the socket succeeds
         """
-        logger.debug("UDP server socket ready")
+        logger.info("UDP server socket ready")
         self.started = True
 
     def datagram_received(self, data: bytes, addr: Tuple[str, int]):

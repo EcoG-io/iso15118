@@ -212,7 +212,7 @@ class SessionStateMachine(ABC):
 
         # Step 3
         try:
-            logger.debug(f"{str(decoded_message)} received")
+            logger.info(f"{str(decoded_message)} received")
             self.current_state.process_message(decoded_message)
         except MessageProcessingError as exc:
             logger.exception(
@@ -322,7 +322,7 @@ class V2GCommunicationSession(SessionStateMachine):
         self.last_message_sent: Optional[V2GTPMessage] = None
         self._started: bool = True
 
-        logger.debug("Starting a new communication session")
+        logger.info("Starting a new communication session")
         SessionStateMachine.__init__(self, start_state, comm_session)
 
     async def start(self, timeout: float):
@@ -381,7 +381,7 @@ class V2GCommunicationSession(SessionStateMachine):
         await asyncio.sleep(3)
         self.writer.close()
         await self.writer.wait_closed()
-        logger.debug(
+        logger.info(
             "TCP connection closed to peer with address "
             f"{self.writer.get_extra_info('peername')}"
         )
@@ -393,7 +393,7 @@ class V2GCommunicationSession(SessionStateMachine):
         Args:
             message: A V2GTPMessage
         """
-        logger.debug(f"Sending {str(self.current_state.next_msg)}")
+        logger.info(f"Sending {str(self.current_state.next_msg)}")
         # TODO: we may also check for writer exceptions
         self.writer.write(message.to_bytes())
         await self.writer.drain()

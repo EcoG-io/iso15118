@@ -5,6 +5,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2022-04-30
+
+### Added
+
+- feat: Support for 15118-20 AC and AC_BPT by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/33
+- bumped to version 0.4.0 by @tropxy in https://github.com/SwitchEV/iso15118/pull/34
+
+### Fixed
+
+- fixed: converted debug messages to info by @tropxy in https://github.com/SwitchEV/iso15118/pull/34
+- setting of the logger level based on the .env file info by @tropxy in https://github.com/SwitchEV/iso15118/pull/34
+- Updated the README with the ability to set MESSAGE_LOG_JSON and MESSAGE_LOG_EXI by @tropxy in https://github.com/SwitchEV/iso15118/pull/34
+
+### Removed
+
+- Removed aioredis dependency as it is not used by @tropxy in https://github.com/SwitchEV/iso15118/pull/34
+
 ## [0.3.0] - 2022-04-13
 
 ### Added

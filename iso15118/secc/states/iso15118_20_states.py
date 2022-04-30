@@ -1067,14 +1067,14 @@ class SessionStop(StateSECC):
             or session_stop_req.ev_termination_explanation
         ):
             termination_info = (
-                f"\nEV termination code: '{session_stop_req.ev_termination_code}'"
-                f"\nEV termination explanation: '"
+                f"EV termination code: '{session_stop_req.ev_termination_code}'; "
+                f"EV termination explanation: '"
                 f"{session_stop_req.ev_termination_explanation}'"
             )
 
         self.comm_session.stop_reason = StopNotification(
             True,
-            f"Communication session {stopped}{termination_info}",
+            f"Communication session {stopped}. EV Info: {termination_info}",
             self.comm_session.writer.get_extra_info("peername"),
         )
 

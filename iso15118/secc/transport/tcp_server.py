@@ -106,7 +106,7 @@ class TCPServer(asyncio.Protocol):
             ssl=ssl_context,
         )
 
-        logger.debug(
+        logger.info(
             f"{server_type} server started at "
             f"address {self.ipv6_address_host}%{self.iface} and "
             f"port {port}"

@@ -102,7 +102,7 @@ class UDPClient(DatagramProtocol):
             addr: The address of the peer sending the data; the exact format
                   depends on the transport.
         """
-        logger.debug(f"Received datagram from UDP server at address {addr}")
+        logger.info(f"Received datagram from UDP server at address {addr}")
         try:
             udp_packet = UDPPacketNotification(data, addr)
             self._rcv_queue.put_nowait((udp_packet, addr))
