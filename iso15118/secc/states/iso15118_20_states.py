@@ -460,6 +460,7 @@ class ServiceDiscovery(StateSECC):
             self.comm_session.evse_controller.get_energy_service_list()
         )
         for energy_service in offered_energy_services.services:
+            # if energy_service.service_id in service_discovery_req.supported_service_ids:
             self.comm_session.matched_services_v20.append(
                 MatchedService(
                     service=ServiceV20.get_by_id(energy_service.service_id),

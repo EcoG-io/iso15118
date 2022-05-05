@@ -325,6 +325,9 @@ class StateSECC(State, ABC):
                 namespace,
                 payload_type,
             ) = self.comm_session.failed_responses_isov20.get(type(faulty_request))
+            # As the Header in the case of -20 is part of the -20 message payload,
+            # we need to set the session id of the the current session to it
+            error_res.header.session_id = self.comm_session.session_id
             error_res.response_code = response_code
             self.create_next_message(Terminate, error_res, 0, namespace, payload_type)
         elif isinstance(faulty_request, SupportedAppProtocolReq):
