@@ -13,46 +13,6 @@ The primary dependencies to install the project are the following:
 
 There are two recommended ways of running the project:
 
-1. Building and running the docker file:
-
-   ```bash
-   $ make build
-   $ make dev
-   ```
-
-2. Local Installation
-
-   Install JRE engine with the following command:
-
-   ```bash
-   sudo apt update && sudo apt install -y default-jre
-
-   ```
-
-   The JRE engine is only a temporary requirement until we replace the Java-based
-   EXI codec (EXIficient)[^4] with our own Rust-based EXI codec.
-
-   Install the module using `poetry` and run the main script related
-   to the EVCC or SECC instance you want to run. Switch to the iso15118 directory
-   and run:
-
-   ```bash
-   $ poetry update
-   $ poetry install
-   $ python iso15118/secc/start_secc.py # or python iso15118/evcc/start_evcc.py
-   ```
-
-   For convenience, the Makefile, present in the project, helps you to run these
-   steps. Thus, in the terminal run:
-
-   ```bash
-   $ make install-local
-   $ make run-secc
-   ```
-
-   This will call the poetry commands above and run the start script of the
-   secc.
-
 Option number `1` has the advantage of running within Docker, where everything
 is fired up automatically, including certificates generation, tests and linting.
 
@@ -66,6 +26,47 @@ The following command provides a helper for the script usage:
 ```bash
 $ ./create_certs.sh -h
 ```
+
+Use the following commands to generate certificates for 15118-2 and 15118-20:
+```bash
+$ ./create_certs.sh -v iso-2
+$ ./create_certs.sh -v iso-20
+```
+
+Option 1. Building and running the docker file:
+
+   ```bash
+   $ make build
+   $ make dev
+   ```
+
+Option 2. Local Installation
+
+   Install JRE engine with the following command:
+
+   ```bash
+   sudo apt update && sudo apt install -y default-jre
+   ```
+
+   The JRE engine is only a requirement if using the Java-based
+   EXI codec (EXIficient)[^4]. Josev Professional uses our own Rust-based EXI codec.
+
+   For convenience, the Makefile, present in the project, helps you to start up SECC. Thus, in the terminal run:
+
+   ```bash
+   $ make install-local
+   $ make run-secc
+   ```
+   
+   The following is a summary of what it does in the background with the above commands:
+   1. Poetry update and install
+   2. Runs the start script for SECC
+
+   ```bash
+   $ poetry update
+   $ poetry install
+   $ python iso15118/secc/start_secc.py # or python iso15118/evcc/start_evcc.py
+   ```
 
 ---
 
