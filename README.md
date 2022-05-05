@@ -48,7 +48,7 @@ Option 2. Local Installation
    sudo apt update && sudo apt install -y default-jre
    ```
 
-   The JRE engine is only a requirement if using the Java-based
+   The JRE engine is only a requirement in Josev Community if using the Java-based
    EXI codec (EXIficient)[^4]. Josev Professional uses our own Rust-based EXI codec.
 
    For convenience, the Makefile, present in the project, helps you to start up SECC. Thus, in the terminal run:
