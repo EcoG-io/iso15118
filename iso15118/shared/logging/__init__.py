@@ -1,5 +1,6 @@
 import logging.config
 import os
+
 import environs
 
 LOGGING_DIR = os.path.dirname(os.path.abspath(__file__))
