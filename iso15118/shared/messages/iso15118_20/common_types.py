@@ -70,7 +70,14 @@ class MessageHeader(BaseModel):
 
 
 class V2GMessage(BaseModel, ABC):
-    """See section 8.3 in ISO 15118-20"""
+    """See section 8.3 in ISO 15118-20
+    This class model follows the schemas, where the
+    V2GMessage type is defined, in the V2G_CI_CommonTypes.xsd schema.
+    This type is the base of all messages and contains the the Header
+
+    This is a tiny but quite important difference in respect to ISO 15118-2 payload
+    structure, where the header is not included within each Request and Response message
+    """
 
     header: MessageHeader = Field(..., alias="Header")
 
@@ -79,7 +86,10 @@ class V2GMessage(BaseModel, ABC):
 
 
 class V2GRequest(V2GMessage, ABC):
-    """Base class for all V2GMessages that are request messages"""
+    """Base class for all V2GMessages that are request messages
+    This class also follows the structure defined in the V2G_CI_CommonTypes.xsd schema
+    where the V2GRequestType is an extension of the V2GMessageType
+    """
 
 
 class ResponseCode(str, Enum):
@@ -130,7 +140,10 @@ class ResponseCode(str, Enum):
 
 
 class V2GResponse(V2GMessage, ABC):
-    """A base class for all V2GMessages that are response messages"""
+    """A base class for all V2GMessages that are response messages
+    This class also follows the structure defined in the V2G_CI_CommonTypes.xsd schema
+    where the V2GResponseType is an extension of the V2GMessageType
+    """
 
     response_code: ResponseCode = Field(..., alias="ResponseCode")
 

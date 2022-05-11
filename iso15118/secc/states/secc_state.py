@@ -23,7 +23,7 @@ from iso15118.shared.messages.din_spec.datatypes import (
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import Namespace
-from iso15118.shared.messages.iso15118_2.body import BodyBase
+from iso15118.shared.messages.iso15118_2.body import BodyBase as BodyBaseV2
 from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupReq as SessionSetupReqV2,
 )
@@ -39,7 +39,9 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
-from iso15118.shared.messages.iso15118_20.common_types import V2GRequest
+from iso15118.shared.messages.iso15118_20.common_types import (
+    V2GRequest as V2GRequestV20,
+)
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
 
@@ -106,8 +108,8 @@ class StateSECC(State, ABC):
             Union[
                 Type[SupportedAppProtocolReq],
                 Type[BodyBaseDINSPEC],
-                Type[V2GRequest],
-                Type[BodyBase],
+                Type[V2GRequestV20],
+                Type[BodyBaseV2],
             ]
         ],
         expect_first: bool = True,
@@ -128,8 +130,8 @@ class StateSECC(State, ABC):
         expected_msg_types: List[
             Union[
                 Type[SupportedAppProtocolReq],
-                Type[BodyBase],
-                Type[V2GRequest],
+                Type[BodyBaseV2],
+                Type[V2GRequestV20],
                 Type[BodyBaseDINSPEC],
             ]
         ],
@@ -149,8 +151,8 @@ class StateSECC(State, ABC):
         expected_msg_types: List[
             Union[
                 Type[SupportedAppProtocolReq],
-                Type[BodyBase],
-                Type[V2GRequest],
+                Type[BodyBaseV2],
+                Type[V2GRequestV20],
                 Type[BodyBaseDINSPEC],
             ]
         ],
@@ -171,8 +173,8 @@ class StateSECC(State, ABC):
         expected_msg_types: List[
             Union[
                 Type[SupportedAppProtocolReq],
-                Type[BodyBase],
-                Type[V2GRequest],
+                Type[BodyBaseV2],
+                Type[V2GRequestV20],
                 Type[BodyBaseDINSPEC],
             ]
         ],
@@ -218,6 +220,8 @@ class StateSECC(State, ABC):
             session's StopNotification and setting the next state to Terminate) and the
             last response message is prepared.
         """
+        # TODO: Check the need for this if clause also because the Response code is
+        # specific for V2 and we now have DIN and V20....
         if not isinstance(message, expected_return_type):
             self.stop_state_machine(
                 f"{type(message)}' not a valid message type " f"in state {str(self)}",
@@ -226,12 +230,14 @@ class StateSECC(State, ABC):
             )
             return None
 
-        msg_body: Union[SupportedAppProtocolReq, BodyBase, V2GRequest, BodyBaseDINSPEC]
+        msg_body: Union[
+            SupportedAppProtocolReq, BodyBaseV2, V2GRequestV20, BodyBaseDINSPEC
+        ]
         if isinstance(message, V2GMessageV2) or isinstance(message, V2GMessageDINSPEC):
             # ISO 15118-2
             msg_body = message.body.get_message()
         else:
-            # SupportedAppProtocolReq, V2GRequest (ISO 15118-20)
+            # SupportedAppProtocolReq, V2GRequestV20 (ISO 15118-20)
             msg_body = message
 
         match = False
@@ -319,7 +325,10 @@ class StateSECC(State, ABC):
             error_res = self.comm_session.failed_responses_din_spec.get(msg_type)
             error_res.response_code = response_code
             self.create_next_message(Terminate, error_res, 0, Namespace.DIN_MSG_DEF)
-        elif isinstance(faulty_request, V2GRequest):
+        # Here we could have been more specific and check if it is a V2GRequestV20,
+        # but to be consistent with the other if clauses and since there is no negative
+        # consequences in the behavior of the code, we check if it is a V2GMessageV20
+        elif isinstance(faulty_request, V2GMessageV20):
             (
                 error_res,
                 namespace,
