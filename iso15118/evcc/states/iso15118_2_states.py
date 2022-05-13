@@ -35,7 +35,6 @@ from iso15118.shared.messages.enums import (
     Protocol,
 )
 from iso15118.shared.messages.iso15118_2.body import (
-    EMAID,
     AuthorizationReq,
     AuthorizationRes,
     CableCheckReq,
@@ -76,6 +75,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     RootCertificateIDList,
     ServiceCategory,
     ServiceID,
+    eMAID,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_2.timeouts import Timeouts
@@ -453,9 +453,7 @@ class PaymentServiceSelection(StateEVCC):
             else:
                 try:
                     payment_details_req = PaymentDetailsReq(
-                        emaid=EMAID(
-                            value=get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER))
-                        ),
+                        emaid=eMAID(get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER))),
                         cert_chain=load_cert_chain(
                             protocol=Protocol.ISO_15118_2,
                             leaf_path=CertPath.CONTRACT_LEAF_DER,
