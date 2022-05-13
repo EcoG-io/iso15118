@@ -693,7 +693,7 @@ class SimEVSEController(EVSEControllerInterface):
             evse_min_charge_current=RationalNumber(exponent=0, value=10),
             evse_max_voltage=RationalNumber(exponent=0, value=1000),
             evse_min_voltage=RationalNumber(exponent=0, value=10),
-            evse_power_ramp_limit=RationalNumber(pyexpat=0, value=10),
+            evse_power_ramp_limit=RationalNumber(exponent=0, value=10),
         )
 
     def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryResParams:

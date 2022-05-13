@@ -16,7 +16,8 @@ from iso15118.shared.messages.din_spec.body import (
     SessionSetupRes as SessionSetupResDINSPEC,
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
-from iso15118.shared.messages.iso15118_2.body import BodyBase, Response
+from iso15118.shared.messages.iso15118_2.body import BodyBase as BodyBaseV2
+from iso15118.shared.messages.iso15118_2.body import Response as ResponseV2
 from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupRes as SessionSetupResV2,
 )
@@ -27,7 +28,9 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
-from iso15118.shared.messages.iso15118_20.common_types import V2GResponse
+from iso15118.shared.messages.iso15118_20.common_types import (
+    V2GResponse as V2GResponseV20,
+)
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
 
@@ -83,8 +86,8 @@ class StateEVCC(State, ABC):
         ],
         expected_msg_type: Union[
             Type[SupportedAppProtocolRes],
-            Type[Response],
-            Type[V2GResponse],
+            Type[ResponseV2],
+            Type[V2GResponseV20],
             Type[ResponseDINSPEC],
         ],
     ) -> Optional[V2GMessageDINSPEC]:
@@ -101,8 +104,8 @@ class StateEVCC(State, ABC):
         ],
         expected_msg_type: Union[
             Type[SupportedAppProtocolRes],
-            Type[Response],
-            Type[V2GResponse],
+            Type[ResponseV2],
+            Type[V2GResponseV20],
             Type[ResponseDINSPEC],
         ],
     ) -> Optional[V2GMessageV2]:
@@ -133,8 +136,8 @@ class StateEVCC(State, ABC):
         expected_return_type: Type[T],
         expected_msg_type: Union[
             Type[SupportedAppProtocolRes],
-            Type[Response],
-            Type[V2GResponse],
+            Type[ResponseV2],
+            Type[V2GResponseV20],
             Type[ResponseDINSPEC],
         ],
     ) -> Optional[T]:
@@ -169,7 +172,9 @@ class StateEVCC(State, ABC):
             )
             return None
 
-        msg_body: Union[SupportedAppProtocolRes, BodyBase, V2GResponse, BodyBaseDINSPEC]
+        msg_body: Union[
+            SupportedAppProtocolRes, BodyBaseV2, V2GResponseV20, BodyBaseDINSPEC
+        ]
         if isinstance(message, V2GMessageV2) or isinstance(message, V2GMessageDINSPEC):
             # ISO 15118-2 or DIN SPEC 72101
             msg_body = message.body.get_message()

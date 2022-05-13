@@ -89,7 +89,7 @@ class BPTACChargeParameterDiscoveryReqParams(ACChargeParameterDiscoveryReqParams
         None, alias="EVMaximumDischargePower_L2"
     )
     ev_max_discharge_power_l3: RationalNumber = Field(
-        None, alias="EVMaximumDischargePower_L2"
+        None, alias="EVMaximumDischargePower_L3"
     )
     ev_min_discharge_power: RationalNumber = Field(..., alias="EVMinimumDischargePower")
     ev_min_discharge_power_l2: RationalNumber = Field(
@@ -228,7 +228,7 @@ class DynamicACChargeLoopReqParams(DynamicChargeLoopReqParams):
         None, alias="EVMaximumChargePower_L2"
     )
     ev_max_charge_power_l3: RationalNumber = Field(
-        None, alias="EVMaximumChargePower_l2"
+        None, alias="EVMaximumChargePower_L3"
     )
     ev_min_charge_power: RationalNumber = Field(..., alias="EVMinimumChargePower")
     ev_min_charge_power_l2: RationalNumber = Field(
