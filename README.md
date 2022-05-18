@@ -9,7 +9,7 @@ The primary dependencies to install the project are the following:
 
 > - Linux Distro (Non-Linux Systems are not supported)
 > - Poetry [^3]
-> - Python >= 3.7
+> - Python >= 3.9
 
 There are two recommended ways of running the project:
 
@@ -50,6 +50,26 @@ Option 2. Local Installation
 
    The JRE engine is only a requirement in Josev Community if using the Java-based
    EXI codec (EXIficient)[^4]. Josev Professional uses our own Rust-based EXI codec.
+
+   In Ubuntu, the default version of Java installed by your distribution may not be recent enough.
+   If so, you can manually install a more recent version of Java and configure it to
+   be the default:
+
+   ```bash
+   sudo apt install openjdk-17-jre
+   ```
+
+   Display the different installed versions of Java you have installed:
+   ```bash
+   update-alternatives --query java
+   ```
+
+   Configure the more recent version to be the default:
+   ```bash
+   update-alternatives --config java
+   ```
+
+   Then follow the instructions to configure your desired version. 
 
    For convenience, the Makefile, present in the project, helps you to start up SECC. Thus, in the terminal run:
 
@@ -130,6 +150,10 @@ it is required to create a `.env` file, containing the required settings.
 This means, if development settings are desired, one can simply copy the contents
 of `.env.dev.local` to `.env`.
 
+By default, `.env.dev.local` assumes the presence of an `eth0` network interface.
+If you are not using ethernet, replace the `NETWORK_INTERFACE` value in your local `.env`
+file with the one you are using. 
+
 If Docker is used, the command `make run` will try to get the `.env` file;
 The command `make dev` will fetch the contents of `.env.dev.docker` - thus,
 in this case, the user does not need to create a `.env` file, as Docker will
@@ -153,7 +177,7 @@ $ make run-evcc
 This integration test was tested under:
 
 - Linux - Ubuntu and Debian distros
-- MacOs
+- MacOS
 
 [^1]: https://www.iso.org/standard/55366.html
 [^2]: https://www.switch-ev.com/news-and-events/new-features-and-timeline-for-iso15118-20
