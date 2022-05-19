@@ -151,8 +151,8 @@ This means, if development settings are desired, one can simply copy the content
 of `.env.dev.local` to `.env`.
 
 By default, `.env.dev.local` assumes the presence of an `eth0` network interface.
-If you are not using ethernet, replace the `NETWORK_INTERFACE` value in your local `.env`
-file with the one you are using. 
+If you are not using eth0 as your network interface, replace the `NETWORK_INTERFACE` value
+in your local `.env` file with the one you are using.
 
 If Docker is used, the command `make run` will try to get the `.env` file;
 The command `make dev` will fetch the contents of `.env.dev.docker` - thus,
