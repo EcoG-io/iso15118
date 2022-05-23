@@ -7,23 +7,40 @@ Python Implementation of the ISO 15118 -2 [^1] and -20 [^2] protocols
 The ISO 15118 -2 and -20 code lives in the directory `iso15118`.
 The primary dependencies to install the project are the following:
 
-> - Linux Distro (Non-Linux Systems are not supported)
+> - Linux Distro
+    * MacOS is not fully supported -- see "IPv6 Warning" below
+    * Other non-Linux Systems are not supported
 > - Poetry [^3]
 > - Python >= 3.9
 
 There are two recommended ways of running the project:
 
-Option number `1` has the advantage of running within Docker, where everything
-is fired up automatically, including certificates generation, tests and linting.
+### Running with Docker
+Using Docker has the advantage of starting everything up automatically,
+including certificates generation, tests and linting, as well as spawning
+both the SECC and EVCC.
 
-Also both SECC and EVCC are spawned, automatically.
+Building and running the docker file:
 
-For option number `2`, the certificates need to be provided. The project includes
-a script to help on the generation of -2 and -20 certificates. This script
-is located under `iso15118/shared/pki/` directory and is called `create_certs.sh`.
+   ```bash
+   $ make build
+   $ make dev
+   ```
+
+Note that if Docker is used, the command `make run` will try to get the `.env` file;
+The command `make dev` will fetch the contents of `.env.dev.docker` - thus,
+in this case, the user does not need to create a `.env` file, as Docker will
+automatically fetch the `.env.dev.docker` one.
+
+### Local installation
+
+#### 1. Generate certificates
+The project includes a script to help on the generation of -2 and -20 certificates.
+This script is located under `iso15118/shared/pki/` directory and is called `create_certs.sh`.
 The following command provides a helper for the script usage:
 
 ```bash
+$ cd iso15118/shared/pki/
 $ ./create_certs.sh -h
 ```
 
@@ -33,64 +50,105 @@ $ ./create_certs.sh -v iso-2
 $ ./create_certs.sh -v iso-20
 ```
 
-Option 1. Building and running the docker file:
+#### 2. Install a current version of the JRE
 
-   ```bash
-   $ make build
-   $ make dev
-   ```
+The JRE engine is only a requirement in Josev Community if using the Java-based
+EXI codec (EXIficient)[^4]. Josev Professional uses our own Rust-based EXI codec.
 
-Option 2. Local Installation
+Install the JRE engine with the following command:
 
-   Install JRE engine with the following command:
+```bash
+sudo apt update && sudo apt install -y default-jre
+```
 
-   ```bash
-   sudo apt update && sudo apt install -y default-jre
-   ```
+In Ubuntu, the default version of Java installed by your distribution may not be recent enough.
+If so, you can manually install a more recent version of Java and configure it to
+be the default:
 
-   The JRE engine is only a requirement in Josev Community if using the Java-based
-   EXI codec (EXIficient)[^4]. Josev Professional uses our own Rust-based EXI codec.
+```bash
+sudo apt install openjdk-17-jre
+```
 
-   In Ubuntu, the default version of Java installed by your distribution may not be recent enough.
-   If so, you can manually install a more recent version of Java and configure it to
-   be the default:
+Display the different installed versions of Java you have installed:
+```bash
+update-alternatives --query java
+```
 
-   ```bash
-   sudo apt install openjdk-17-jre
-   ```
+Configure the more recent version to be the default:
+```bash
+update-alternatives --config java
+```
 
-   Display the different installed versions of Java you have installed:
-   ```bash
-   update-alternatives --query java
-   ```
+Then follow the instructions to configure your desired version.
 
-   Configure the more recent version to be the default:
-   ```bash
-   update-alternatives --config java
-   ```
+#### 3. Set up local environment variable configuration
 
-   Then follow the instructions to configure your desired version. 
+The project includes multiple environmental files, in the root directory, for
+different purposes:
 
-   For convenience, the Makefile, present in the project, helps you to start up SECC. Thus, in the terminal run:
+- `.env.dev.docker` - ENV file with development settings, tailored to be used with docker
+- `.env.dev.local` - ENV file with development settings, tailored to be used with
+  the local host
 
-   ```bash
-   $ make install-local
-   $ make run-secc
-   ```
-   
-   The following is a summary of what it does in the background with the above commands:
-   1. Poetry update and install
-   2. Runs the start script for SECC
+If the user runs the project locally, e.g. using `$ make build && make run-secc`,
+it is required to create a `.env` file, containing the required settings.
 
-   ```bash
-   $ poetry update
-   $ poetry install
-   $ python iso15118/secc/start_secc.py # or python iso15118/evcc/start_evcc.py
-   ```
+To run for local development, simply copy the contents of `.env.dev.local` to `.env`.
+
+**Setting your local network interface**
+By default, `.env.dev.local` assumes the presence of an `eth0` network interface.
+If you are not using eth0 as your network interface, replace the `NETWORK_INTERFACE` value
+in your local `.env` file with the one you are using.
+
+The key-value pairs defined in the `.env` file directly affect the settings
+present in `secc_settings.py` and `evcc_settings.py`. In these scripts, the
+user will find all the settings that can be configured. For reference,
+a table is included below.
+
+#### 4. Install Poetry
+
+We use Poetry to manage dependencies.
+
+The recommended way to install Poetry is to use its installation script.
+See https://python-poetry.org/docs/#installation for instructions.
+
+#### 5. Run the SECC/EVCC
+For convenience, the Makefile, present in the project, helps you to start up the controllers. Thus, in the terminal run:
+
+```bash
+$ make install-local
+$ make poetry-shell
+$ make run-secc
+```
+
+The above commands will do the following:
+1. Install all dependencies with Poetry
+2. Use the Poetry shell to activate the appropriate virtual environment
+3. Run the start script for SECC
+
+```bash
+$ poetry install
+$ poetry shell
+$ python iso15118/secc/start_secc.py
+```
+
+If you wish to run the EVCC instead, use `make run-evcc`. Since the project includes
+both the SECC and EVCC side, it is possible to test your application by starting both services.
+Similar to the SECC, we can start the EVCC side as follows:
+
+```bash
+$ make install-local
+$ make poetry-shell
+$ make run-evcc
+```
+
+The SECC and EVCC have been tested together under:
+- Linux - Ubuntu and Debian distros
+- MacOS
 
 ---
 
-**IPv6 WARNING**
+## IPv6 WARNING
 
 For the system to work locally, the network interface to be used needs to have
 an IPv6 local-link address assigned.
@@ -121,8 +179,7 @@ In that case, it is advised to back up the compose file.
 
 ## Environment Settings
 
-Finally, the project includes a few configuration variables, whose default
-values can be modified by setting them as environmental variables.
+The default configuration values can be modified by setting them as environment variables.
 The following table provides a few of the available variables:
 
 | ENV               | Default Value                 | Description                                                                                                                                                     |
@@ -133,51 +190,8 @@ The following table provides a few of the available variables:
 | EVCC_ENFORCE_TLS  | `False`                       | Whether or not the EVCC will only accept TLS connections                                                                                                        |
 | PKI_PATH          | `<CWD>/iso15118/shared/pki/`  | Path for the location of the PKI where the certificates are located. By default, the system will look for the PKI directory under the current working directory |
 | LOG_LEVEL         | `INFO`                        | Level of the Python log service
-| MESSAGE_LOG_JSON  | `True`                        | Whether or not to log the EXI JSON messages (only works if log level is se to DEBUG)
-| MESSAGE_LOG_EXI   | `False`                       | Whether or not to log the EXI Bytestream messages (only works if log level is se to DEBUG)
-
-
-The project includes a few environmental files, in the root directory, for
-different purposes:
-
-- `.env.dev.docker` - ENV file with development settings, tailored to be used with docker
-- `.env.dev.local` - ENV file with development settings, tailored to be used with
-  the local host
-
-If the user runs the project locally, e.g. using `$ make build && make run-secc`,
-it is required to create a `.env` file, containing the required settings.
-
-This means, if development settings are desired, one can simply copy the contents
-of `.env.dev.local` to `.env`.
-
-By default, `.env.dev.local` assumes the presence of an `eth0` network interface.
-If you are not using eth0 as your network interface, replace the `NETWORK_INTERFACE` value
-in your local `.env` file with the one you are using.
-
-If Docker is used, the command `make run` will try to get the `.env` file;
-The command `make dev` will fetch the contents of `.env.dev.docker` - thus,
-in this case, the user does not need to create a `.env` file, as Docker will
-automatically fetch the `.env.dev.docker` one.
-
-The key-value pairs defined in the `.env` file directly affect the settings
-present in `secc_settings.py` and `evcc_settings.py`. In these scripts, the
-user will find all the settings that can be configured.
-
-## Integration Test with an EV Simulator
-
-Since the project includes both the SECC and EVCC side, it is possible to test
-your application starting both services. Similar to the SECC, we can start the
-EVCC side as follows:
-
-```bash
-$ make install-local
-$ make run-evcc
-```
-
-This integration test was tested under:
-
-- Linux - Ubuntu and Debian distros
-- MacOS
+| MESSAGE_LOG_JSON  | `True`                        | Whether or not to log the EXI JSON messages (only works if log level is set to DEBUG)
+| MESSAGE_LOG_EXI   | `False`                       | Whether or not to log the EXI Bytestream messages (only works if log level is set to DEBUG)
 
 
 ## License

@@ -69,14 +69,16 @@ poetry-update:
 	poetry update
 
 install-local:
-	pip install .
+	poetry install
+
+poetry-shell:
+	poetry shell
 
 run-evcc:
 	$(shell which python) iso15118/evcc/main.py
 
 run-secc:
 	$(shell which python) iso15118/secc/main.py
-
 
 mypy:
 	mypy --config-file mypy.ini iso15118 tests
