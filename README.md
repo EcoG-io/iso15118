@@ -16,10 +16,9 @@ The primary dependencies to install the project are the following:
 There are two recommended ways of running the project:
 
 ### Running with Docker
-Option number `1` has the advantage of running within Docker, where everything
-is fired up automatically, including certificates generation, tests and linting.
-
-Also both SECC and EVCC are spawned, automatically.
+Using Docker has the advantage of starting everything up automatically,
+including certificates generation, tests and linting, as well as spawning
+both the SECC and EVCC.
 
 Building and running the docker file:
 
@@ -106,7 +105,14 @@ present in `secc_settings.py` and `evcc_settings.py`. In these scripts, the
 user will find all the settings that can be configured. For reference,
 a table is included below.
 
-#### 4. Run the SECC/EVCC
+#### 4. Install Poetry
+
+We use Poetry to manage dependencies.
+
+The recommended way to install Poetry is to use its installation script.
+See https://python-poetry.org/docs/#installation for instructions.
+
+#### 5. Run the SECC/EVCC
 For convenience, the Makefile, present in the project, helps you to start up the controllers. Thus, in the terminal run:
 
 ```bash
