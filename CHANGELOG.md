@@ -5,6 +5,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2022-05-24
+
+### Added
+- docs: add details discovered in running locally by @danielgordon-switch-ev in https://github.com/SwitchEV/iso15118/pull/43
+- added the apache license by @tropxy in https://github.com/SwitchEV/iso15118/pull/47
+
+### Fixed
+- fixes for the issues found during the vector testival by @tropxy in https://github.com/SwitchEV/iso15118/pull/38
+- Fixed error while constructing PaymentDetailsReq message.(AB#1936) by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/41
+
+### Changed
+- Updated README. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/36
+- docs: restructure readme by @danielgordon-switch-ev in https://github.com/SwitchEV/iso15118/pull/46
+- switch the upload to the public pypi server by @tropxy in https://github.com/SwitchEV/iso15118/pull/48
+- chore: use lockfile instead of poetry update by @danielgordon-switch-ev in https://github.com/SwitchEV/iso15118/pull/45
+
+
 ## [0.4.0] - 2022-04-30
 
 ### Added
