@@ -29,17 +29,17 @@ RUN sed -i 's/secc/secc/g' pyproject.toml
 # Do not create a virtual poetry env as we already are in an isolated container
 RUN poetry config virtualenvs.create false
 # Install dependencies and the project in the venv
-RUN poetry update && poetry install --no-interaction --no-ansi
+RUN poetry install --no-interaction --no-ansi
 
 # Copy the project to the system
 COPY iso15118/ iso15118/
 
 # Run the tests and linting
 COPY tests/ tests/
-RUN poetry run pytest -vv --cov-config .coveragerc --cov-report term-missing  --durations=3 --cov=.
 RUN poetry run black --check --diff --line-length=88 iso15118 tests
 RUN poetry run flake8 --config .flake8 iso15118 tests
 # RUN poetry run mypy --config-file mypy.ini iso15118 tests
+RUN poetry run pytest -vv --cov-config .coveragerc --cov-report term-missing  --durations=3 --cov=.
 
 
 # Generate the wheel to be used by next stage
