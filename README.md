@@ -179,6 +179,23 @@ This integration test was tested under:
 - Linux - Ubuntu and Debian distros
 - MacOS
 
+
+## License
+
+Copyright [2022] [Switch-EV]
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 [^1]: https://www.iso.org/standard/55366.html
 [^2]: https://www.switch-ev.com/news-and-events/new-features-and-timeline-for-iso15118-20
 [^3]: https://python-poetry.org/docs/#installation
