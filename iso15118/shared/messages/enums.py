@@ -39,6 +39,23 @@ class AuthEnum(str, Enum):
     PNC_V2 = "Contract"
 
 
+class AuthorizationStatus(str, Enum):
+    """Whether an authorization request is accepted, rejected, or is ongoing.
+
+    An ISO 15118 authorization response can be Accepted, Rejected, or
+    Ongoing, since sending a request multiple times is used as a workaround
+    for very short timeouts required in the ISO 15118-2 spec.
+    For example, AuthorizationReq has a timeout of 2 seconds.
+    For further detail, see 8.7.2.1 Definitions, tables 108-110, pp. 171-73,
+    in the ISO 15118-2 specification.
+
+    In DIN SPEC 70121, only Accepted and Rejected should be used.
+    """
+    ACCEPTED = "Accepted"
+    REJECTED = "Rejected"
+    ONGOING = "Ongoing"
+
+
 class EnergyTransferModeEnum(str, Enum):
     """
     This enum is shared between DIN SPEC 70121 and ISO 15118-2
