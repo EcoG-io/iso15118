@@ -151,22 +151,22 @@ The SECC and EVCC have been tested together under:
 ## IPv6 WARNING
 
 For the system to work locally, the network interface needs to have
-an IPv6 local-link address assigned.
+an IPv6 link-local address assigned.
 
 For Docker, the `docker-compose.yml` was configured to create an `IPv6` network
-called `ipv6_net`, which enables the containers to acquire a local-link address - this is required to establish an
+called `ipv6_net`, which enables the containers to acquire a link-local address - this is required to establish an
 ISO 15118 communication. This configuration is fine if the user wants to test, in isolation, the EVCC and SECC, and
 allow ISO 15118 communication. This configuration works for both Linux and BSD systems.
 
 However, the usage of an internal `ipv6_net` network, in Docker, does not allow the
-host to reach local-link addresses. This would pose a problem, as it would require
+host to reach link-local addresses. This would pose a problem, as it would require
 the application to use the global link address, which is not supported by ISO 15118.
 
 The solution is to use the `network_mode: host` feature of Docker, which replicates
 the host network topology within the Docker world, ie the containers and the
 host share the same network. This way, Docker can directly access the virtual
 network interface created by the HomePlug Green PHY module, making it possible
-to use the local-link address.
+to use the link-local address.
 
 Currently, `network_mode: host` just works within Linux environments [^5] [^6].
 Since the Switch team relies mostly on MacOS and this project is on a development stage,
