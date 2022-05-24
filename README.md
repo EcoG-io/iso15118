@@ -7,9 +7,11 @@ Python Implementation of the ISO 15118 -2 [^1] and -20 [^2] protocols
 The ISO 15118 -2 and -20 code live in the directory `iso15118`.
 The primary dependencies to install the project are the following:
 
-> - Linux Distro
-    * MacOS is not fully supported -- see "IPv6 Warning" below
-    * Other non-Linux Systems are not supported
+> - Linux
+>
+>    * MacOS is not fully supported -- see "IPv6 Warning" below
+>    * Other non-Linux operating systems are not supported
+>
 > - Poetry [^3]
 > - Python >= 3.9
 
@@ -96,11 +98,12 @@ it is required to create a `.env` file, containing the required settings.
 To run for local development, simply copy the contents of `.env.dev.local` to `.env`.
 
 **Setting your local network interface**
+
 By default, `.env.dev.local` assumes the presence of an `eth0` network interface.
 If you are not using eth0 as your network interface, replace the `NETWORK_INTERFACE` value
 in your local `.env` file with the one you are using.
 
-The key value pairs defined in the `.env` file directly affect the settings
+The key-value pairs defined in the `.env` file directly affect the settings
 present in `secc_settings.py` and `evcc_settings.py`. In these scripts, the
 user will find all the settings that can be configured. For reference,
 a table is included below.
