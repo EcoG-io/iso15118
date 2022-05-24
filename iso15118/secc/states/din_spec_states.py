@@ -51,6 +51,7 @@ from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDIN
 from iso15118.shared.messages.din_spec.timeouts import Timeouts
 from iso15118.shared.messages.enums import (
     AuthEnum,
+    AuthorizationStatus,
     DCEVErrorCode,
     EVSEProcessing,
     IsolationLevel,
@@ -304,7 +305,7 @@ class ContractAuthentication(StateSECC):
 
         evse_processing = EVSEProcessing.ONGOING
         next_state: Type["State"] = None
-        if self.comm_session.evse_controller.is_authorised():
+        if self.comm_session.evse_controller.is_authorized() == AuthorizationStatus.ACCEPTED:
             evse_processing = EVSEProcessing.FINISHED
             next_state = ChargeParameterDiscovery
 

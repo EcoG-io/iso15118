@@ -18,6 +18,7 @@ from iso15118.shared.messages.app_protocol import (
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
+    AuthorizationStatus,
     Contactor,
     ControlMode,
     ISOV20PayloadTypes,
@@ -377,10 +378,19 @@ class Authorization(StateSECC):
             if auth_req.pnc_params.gen_challenge != self.comm_session.gen_challenge:
                 response_code = ResponseCode.WARN_CHALLENGE_INVALID
 
-        if self.comm_session.evse_controller.is_authorised():
+        if (
+            self.comm_session.evse_controller.is_authorized() == (
+                AuthorizationStatus.ACCEPTED
+            )
+        ):
             auth_status = Processing.FINISHED
-        else:
+        elif (
+            self.comm_session.evse_controller.is_authorized() == (
+                AuthorizationStatus.ONGOING
+            )
+        ):
             auth_status = Processing.ONGOING
+        # TODO Handle REJECTED case?
         # TODO Need to distinguish between ONGOING and WAITING_FOR_CUSTOMER
 
         auth_res = AuthorizationRes(

@@ -163,9 +163,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_authorised(self) -> bool:
+    def is_authorized(self) -> bool:
         """
-        Provides the information on whether or not the user is authorised to charge at
+        Provides the information on whether or not the user is authorized to charge at
         this EVSE. The auth token could be an RFID card, a whitelisted MAC address
         of the EV (Autocharge), a contract certificate (Plug & Charge), or a payment
         authorization via NFC or credit card.

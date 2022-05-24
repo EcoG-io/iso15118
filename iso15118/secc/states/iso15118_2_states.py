@@ -33,6 +33,7 @@ from iso15118.shared.messages.datatypes import (
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
+    AuthorizationStatus,
     Contactor,
     DCEVErrorCode,
     EVSEProcessing,
@@ -820,16 +821,16 @@ class Authorization(StateSECC):
     AuthorizationReq message from the EVCC.
 
     At this state, the application will assert if the authorization has been
-    concluded by running the method `is_authorised` from the evcc_controller.
-    If the method returns `True`, then the authorization step is finished and
-    the state machine can move on to the `ChargeParameterDiscovery` state,
+    concluded by running the method `is_authorized` from the evcc_controller.
+    If the method returns `Authorized`, then the authorization step is finished
+    and the state machine can move on to the `ChargeParameterDiscovery` state,
     otherwise will stay in this state and answer to the EV with
     `EVSEProcessing=Ongoing`.
 
     TODO: This method is incomplete, as it wont allow answering with a Failed
           response, for a rejected authorization. `is_authorized` shall return
-          one out of three responses: `ongoing`, `accepted` or `rejected`.
-          In case of rejected and according to table 112 from ISO 15118-2, the
+          one out of three responses: `Ongoing`, `Accepted` or `Rejected`.
+          In case of Rejected and according to table 112 from ISO 15118-2, the
           errors allowed to be used are: FAILED, FAILED_Challenge_Invalid or
           FAILED_Certificate_Revoked.
           Please check: https://dev.azure.com/switch-ev/Josev/_backlogs/backlog/Josev%20Team/Stories/?workitem=1049  # noqa: E501
@@ -885,7 +886,11 @@ class Authorization(StateSECC):
 
         auth_status: EVSEProcessing = EVSEProcessing.ONGOING
         next_state: Type["State"] = Authorization
-        if self.comm_session.evse_controller.is_authorised():
+        if (
+            self.comm_session.evse_controller.is_authorized() == (
+                AuthorizationStatus.ACCEPTED
+            )
+        ):
             auth_status = EVSEProcessing.FINISHED
             next_state = ChargeParameterDiscovery
 

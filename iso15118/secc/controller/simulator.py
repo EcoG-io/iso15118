@@ -42,6 +42,7 @@ from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.enums import (
+    AuthorizationStatus,
     Contactor,
     EnergyTransferModeEnum,
     IsolationLevel,
@@ -388,9 +389,9 @@ class SimEVSEController(EVSEControllerInterface):
 
         return service_list
 
-    def is_authorised(self) -> bool:
-        """Overrides EVSEControllerInterface.is_authorised()."""
-        return True
+    def is_authorized(self) -> AuthorizationStatus:
+        """Overrides EVSEControllerInterface.is_authorized()."""
+        return AuthorizationStatus.AUTHORIZED
 
     def get_sa_schedule_list_dinspec(
         self, max_schedule_entries: Optional[int], departure_time: int = 0
