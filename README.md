@@ -4,7 +4,7 @@ Python Implementation of the ISO 15118 -2 [^1] and -20 [^2] protocols
 
 ## How to fire it up :fire:
 
-The ISO 15118 -2 and -20 code lives in the directory `iso15118`.
+The ISO 15118 -2 and -20 code live in the directory `iso15118`.
 The primary dependencies to install the project are the following:
 
 > - Linux Distro
@@ -17,7 +17,7 @@ There are two recommended ways of running the project:
 
 ### Running with Docker
 Using Docker has the advantage of starting everything up automatically,
-including certificates generation, tests and linting, as well as spawning
+including certificate generation, tests and linting, as well as creating
 both the SECC and EVCC.
 
 Building and running the docker file:
@@ -27,7 +27,7 @@ Building and running the docker file:
    $ make dev
    ```
 
-Note that if Docker is used, the command `make run` will try to get the `.env` file;
+Note that if Docker is used, the command `make run` will try to get the `.env` file.
 The command `make dev` will fetch the contents of `.env.dev.docker` - thus,
 in this case, the user does not need to create a `.env` file, as Docker will
 automatically fetch the `.env.dev.docker` one.
@@ -37,14 +37,14 @@ automatically fetch the `.env.dev.docker` one.
 #### 1. Generate certificates
 The project includes a script to help on the generation of -2 and -20 certificates.
 This script is located under `iso15118/shared/pki/` directory and is called `create_certs.sh`.
-The following command provides a helper for the script usage:
+The following command provides a guide for the script usage:
 
 ```bash
 $ cd iso15118/shared/pki/
 $ ./create_certs.sh -h
 ```
 
-Use the following commands to generate certificates for 15118-2 and 15118-20:
+Use the following commands to generate certificates for ISO 15118-2 and 15118-20:
 ```bash
 $ ./create_certs.sh -v iso-2
 $ ./create_certs.sh -v iso-20
@@ -90,7 +90,7 @@ different purposes:
 - `.env.dev.local` - ENV file with development settings, tailored to be used with
   the local host
 
-If the user runs the project locally, e.g. using `$ make build && make run-secc`,
+If the user runs the project locally, eg using `$ make build && make run-secc`,
 it is required to create a `.env` file, containing the required settings.
 
 To run for local development, simply copy the contents of `.env.dev.local` to `.env`.
@@ -100,7 +100,7 @@ By default, `.env.dev.local` assumes the presence of an `eth0` network interface
 If you are not using eth0 as your network interface, replace the `NETWORK_INTERFACE` value
 in your local `.env` file with the one you are using.
 
-The key-value pairs defined in the `.env` file directly affect the settings
+The key value pairs defined in the `.env` file directly affect the settings
 present in `secc_settings.py` and `evcc_settings.py`. In these scripts, the
 user will find all the settings that can be configured. For reference,
 a table is included below.
@@ -150,30 +150,28 @@ The SECC and EVCC have been tested together under:
 
 ## IPv6 WARNING
 
-For the system to work locally, the network interface to be used needs to have
-an IPv6 local-link address assigned.
+For the system to work locally, the network interface needs to have
+an IPv6 link-local address assigned.
 
 For Docker, the `docker-compose.yml` was configured to create an `IPv6` network
-called `ipv6_net`, which enables the containers to acquire a local-link address,
-which is required to establish an ISO 15118 communication. This configuration is
-fine if the user wants to test, in isolation, the EVCC and SECC and allow ISO 15118
+called `ipv6_net`, which enables the containers to acquire a link-local address - this is required to establish an ISO 15118 communication. This configuration is fine if the user wants to test, in isolation, the EVCC and SECC, and allow ISO 15118
 communication. This configuration works for both Linux and BSD systems.
 
 However, the usage of an internal `ipv6_net` network, in Docker, does not allow the
 host to reach link-local addresses. This would pose a problem, as it would require
-the application to use the global-link address, which is not supported by ISO 15118.
+the application to use the global link address, which is not supported by ISO 15118.
 
 The solution is to use the `network_mode: host` feature of Docker, which replicates
-the host network topology within the Docker world, i.e. the containers and the
+the host network topology within the Docker world, ie the containers and the
 host share the same network. This way, Docker can directly access the virtual
 network interface created by the HomePlug Green PHY module, making it possible
-to use the local-link address.
+to use the link-local address.
 
 Currently, `network_mode: host` just works within Linux environments [^5] [^6].
 Since the Switch team relies mostly on MacOS and this project is on a development stage,
-`network_mode` is not used by default, but it is possible to use it if the contents of the
+`network_mode` is not used by default; it is possible to use it, however, if the contents of the
 file `docker-compose-host-mode.yml` are copied to the main compose file, `docker-compose.yml`.
-In that case, it is advised to back up the compose file.
+In that case, we advise you to back up the compose file.
 
 ---
 
@@ -194,21 +192,21 @@ The following table provides a few of the available variables:
 | MESSAGE_LOG_EXI   | `False`                       | Whether or not to log the EXI Bytestream messages (only works if log level is set to DEBUG)
 
 
-## License
+## Licence
 
-Copyright [2022] [Switch-EV]
+Copyright [2022] [Switch]
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Licensed under the Apache Licence, Version 2.0 (the "Licence");
+you may not use this file except in compliance with the Licence.
+You may obtain a copy of the Licence at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
+distributed under the Licence is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+See the Licence for the specific language governing permissions and
+limitations under the Licence.
 
 [^1]: https://www.iso.org/standard/55366.html
 [^2]: https://www.switch-ev.com/news-and-events/new-features-and-timeline-for-iso15118-20
