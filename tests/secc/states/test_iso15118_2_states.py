@@ -9,7 +9,8 @@ from iso15118.secc.states.iso15118_2_states import (
     PowerDelivery,
     WeldingDetection,
 )
-from iso15118.shared.messages.enums import AuthEnum
+from iso15118.secc.states.secc_state import StateSECC
+from iso15118.shared.messages.enums import AuthEnum, AuthorizationStatus
 from tests.secc.states.test_messages import (
     get_dummy_v2g_message_authorization_req,
     get_dummy_v2g_message_welding_detection_req,
@@ -49,16 +50,22 @@ class TestEvScenarios:
         pass
         # V2G2-570
 
-    async def test_authorization_to_parameter_discovery_when_authorization_accepted(
+    @pytest.mark.parametrize(
+        "is_authorized_return_value, expected_next_state",
+        [
+            (AuthorizationStatus.ACCEPTED, ChargeParameterDiscovery),
+            (AuthorizationStatus.ONGOING, Authorization),
+            (AuthorizationStatus.REJECTED, Authorization),
+        ],
+    )
+    async def test_authorization_next_state_on_authorization_request(
         self,
+        is_authorized_return_value: AuthorizationStatus,
+        expected_next_state: StateSECC,
     ):
         self.comm_session.selected_auth_option = AuthEnum.EIM
+        mock_is_authorized = Mock(return_value=is_authorized_return_value)
+        self.comm_session.evse_controller.is_authorized = mock_is_authorized 
         authorization = Authorization(self.comm_session)
         authorization.process_message(message=get_dummy_v2g_message_authorization_req())
-        assert isinstance(self.comm_session.current_state, ChargeParameterDiscovery)
-
-    async def test_authorization_to_authorization_when_authorization_ongoing(self):
-        assert False
-
-    async def test_authorization_to_authorization_when_authorization_rejected(self):
-        assert False
+        assert authorization.next_state == expected_next_state
