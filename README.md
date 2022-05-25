@@ -17,8 +17,8 @@ There are two recommended ways of running the project:
 
 ### Running with Docker
 Using Docker has the advantage of starting everything up automatically,
-including certificate generation, tests and linting, as well as creating
-both the SECC and EVCC.
+including certificate generation, tests and linting, as well as spawning
+both the SECC and EVCC containers.
 
 Building and running the docker file:
 
@@ -154,8 +154,9 @@ For the system to work locally, the network interface needs to have
 an IPv6 link-local address assigned.
 
 For Docker, the `docker-compose.yml` was configured to create an `IPv6` network
-called `ipv6_net`, which enables the containers to acquire a link-local address - this is required to establish an ISO 15118 communication. This configuration is fine if the user wants to test, in isolation, the EVCC and SECC, and allow ISO 15118
-communication. This configuration works for both Linux and BSD systems.
+called `ipv6_net`, which enables the containers to acquire a link-local address - this is required to establish an
+ISO 15118 communication. This configuration is fine if the user wants to test, in isolation, the EVCC and SECC, and
+allow ISO 15118 communication. This configuration works for both Linux and BSD systems.
 
 However, the usage of an internal `ipv6_net` network, in Docker, does not allow the
 host to reach link-local addresses. This would pose a problem, as it would require
@@ -192,21 +193,21 @@ The following table provides a few of the available variables:
 | MESSAGE_LOG_EXI   | `False`                       | Whether or not to log the EXI Bytestream messages (only works if log level is set to DEBUG)
 
 
-## Licence
+## License
 
 Copyright [2022] [Switch]
 
-Licensed under the Apache Licence, Version 2.0 (the "Licence");
-you may not use this file except in compliance with the Licence.
-You may obtain a copy of the Licence at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
-distributed under the Licence is distributed on an "AS IS" BASIS,
+distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the Licence for the specific language governing permissions and
-limitations under the Licence.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 [^1]: https://www.iso.org/standard/55366.html
 [^2]: https://www.switch-ev.com/news-and-events/new-features-and-timeline-for-iso15118-20
