@@ -391,7 +391,7 @@ class SimEVSEController(EVSEControllerInterface):
 
     def is_authorized(self) -> AuthorizationStatus:
         """Overrides EVSEControllerInterface.is_authorized()."""
-        return AuthorizationStatus.AUTHORIZED
+        return AuthorizationStatus.ACCEPTED
 
     def get_sa_schedule_list_dinspec(
         self, max_schedule_entries: Optional[int], departure_time: int = 0

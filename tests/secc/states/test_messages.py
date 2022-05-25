@@ -2,6 +2,7 @@ from typing import List
 
 from iso15118.shared.messages.enums import UnitSymbol
 from iso15118.shared.messages.iso15118_2.body import (
+    AuthorizationReq,
     Body,
     PowerDeliveryReq,
     SessionStopReq,
@@ -101,4 +102,16 @@ def get_dummy_v2g_message_session_stop_req():
     return V2GMessage(
         header=MessageHeader(session_id="F9F9EE8505F55838"),
         body=Body(session_stop_req=session_stop_req),
+    )
+
+
+def get_dummy_v2g_message_authorization_req():
+    # The AuthorizationReq is empty, unless it is following a PaymentDetailsRes
+    # message, in which case it must send back the generated challenge.
+    authorization_req = AuthorizationReq()
+
+    # TODO: replace this with a constant
+    return V2GMessage(
+        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        body=Body(authorization_req=authorization_req),
     )
