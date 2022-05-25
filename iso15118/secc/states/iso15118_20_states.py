@@ -378,16 +378,12 @@ class Authorization(StateSECC):
             if auth_req.pnc_params.gen_challenge != self.comm_session.gen_challenge:
                 response_code = ResponseCode.WARN_CHALLENGE_INVALID
 
-        if (
-            self.comm_session.evse_controller.is_authorized() == (
-                AuthorizationStatus.ACCEPTED
-            )
+        if self.comm_session.evse_controller.is_authorized() == (
+            AuthorizationStatus.ACCEPTED
         ):
             auth_status = Processing.FINISHED
-        elif (
-            self.comm_session.evse_controller.is_authorized() == (
-                AuthorizationStatus.ONGOING
-            )
+        elif self.comm_session.evse_controller.is_authorized() == (
+            AuthorizationStatus.ONGOING
         ):
             auth_status = Processing.ONGOING
         # TODO Handle REJECTED case?

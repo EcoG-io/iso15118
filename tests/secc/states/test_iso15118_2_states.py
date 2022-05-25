@@ -65,7 +65,7 @@ class TestEvScenarios:
     ):
         self.comm_session.selected_auth_option = AuthEnum.EIM
         mock_is_authorized = Mock(return_value=is_authorized_return_value)
-        self.comm_session.evse_controller.is_authorized = mock_is_authorized 
+        self.comm_session.evse_controller.is_authorized = mock_is_authorized
         authorization = Authorization(self.comm_session)
         authorization.process_message(message=get_dummy_v2g_message_authorization_req())
         assert authorization.next_state == expected_next_state

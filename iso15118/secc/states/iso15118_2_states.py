@@ -886,10 +886,8 @@ class Authorization(StateSECC):
 
         auth_status: EVSEProcessing = EVSEProcessing.ONGOING
         next_state: Type["State"] = Authorization
-        if (
-            self.comm_session.evse_controller.is_authorized() == (
-                AuthorizationStatus.ACCEPTED
-            )
+        if self.comm_session.evse_controller.is_authorized() == (
+            AuthorizationStatus.ACCEPTED
         ):
             auth_status = EVSEProcessing.FINISHED
             next_state = ChargeParameterDiscovery

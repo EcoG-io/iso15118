@@ -51,6 +51,7 @@ class AuthorizationStatus(str, Enum):
 
     In DIN SPEC 70121, only Accepted and Rejected should be used.
     """
+
     ACCEPTED = "Accepted"
     REJECTED = "Rejected"
     ONGOING = "Ongoing"
