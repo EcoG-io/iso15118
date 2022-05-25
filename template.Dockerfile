@@ -71,4 +71,4 @@ COPY --from=build /usr/src/app/iso15118/shared/pki/ /usr/src/app/iso15118/shared
 
 
 # This will run the entrypoint script defined in the pyproject.toml
-CMD /venv/bin/iso15118
+CMD sleep 1 && /venv/bin/iso15118
