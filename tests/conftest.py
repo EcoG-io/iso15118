@@ -10,12 +10,13 @@ from iso15118.shared.messages.enums import Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.notifications import StopNotification
 from tests.secc.states.test_messages import get_sa_schedule_list
+from tests.tools import MOCK_SESSION_ID
 
 
 @pytest.fixture
 def comm_evcc_session_mock():
     comm_session_mock = Mock(spec=EVCCCommunicationSession)
-    comm_session_mock.session_id = "F9F9EE8505F55838"
+    comm_session_mock.session_id = MOCK_SESSION_ID
     comm_session_mock.stop_reason = StopNotification(False, "pytest")
     comm_session_mock.ev_controller = SimEVController()
     comm_session_mock.protocol = Protocol.UNKNOWN
@@ -28,7 +29,7 @@ def comm_evcc_session_mock():
 @pytest.fixture
 def comm_secc_session_mock():
     comm_session_mock = Mock(spec=SECCCommunicationSession)
-    comm_session_mock.session_id = "F9F9EE8505F55838"
+    comm_session_mock.session_id = MOCK_SESSION_ID
     comm_session_mock.offered_schedules = get_sa_schedule_list()
     comm_session_mock.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
     comm_session_mock.selected_charging_type_is_ac = False

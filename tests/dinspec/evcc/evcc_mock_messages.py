@@ -45,6 +45,7 @@ from iso15118.shared.messages.enums import (
     EnergyTransferModeEnum,
     EVSEProcessing,
 )
+from tests.tools import MOCK_SESSION_ID
 
 
 def get_dc_evse_status():
@@ -143,7 +144,7 @@ def get_failed_current_demand_acheived():
         evse_power_limit_achieved=(is_evse_power_limit_achieved()),
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(current_demand_res=current_demand_res),
     )
 
@@ -163,7 +164,7 @@ def get_service_discovery_message_payment_service_not_offered():
         charge_service=charge_service,
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(service_discovery_res=service_discovery_res),
     )
 
@@ -183,7 +184,7 @@ def get_service_discovery_message_charge_service_not_offered():
         charge_service=charge_service,
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(service_discovery_res=service_discovery_res),
     )
 
@@ -203,7 +204,7 @@ def get_service_discovery_message():
         charge_service=charge_service,
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(service_discovery_res=service_discovery_res),
     )
 
@@ -219,7 +220,7 @@ def get_current_demand_acheived():
         evse_power_limit_achieved=(is_evse_power_limit_achieved()),
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(current_demand_res=current_demand_res),
     )
 
@@ -238,7 +239,7 @@ def get_v2g_message_current_demand_current_limit_not_achieved():
         evse_max_power_limit=PVEVSEMaxPowerLimit(multiplier=1, value=1000, unit="W"),
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(current_demand_res=current_demand_res),
     )
 
@@ -248,7 +249,7 @@ def get_service_payment_selection_message():
         response_code=ResponseCode.OK
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(service_payment_selection_res=service_payment_selection_message),
     )
 
@@ -258,7 +259,7 @@ def get_service_payment_selection_fail_message():
         response_code=ResponseCode.FAILED_PAYMENT_SELECTION_INVALID
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(service_payment_selection_res=service_payment_selection_message),
     )
 
@@ -268,7 +269,7 @@ def get_contract_authentication_message():
         response_code=ResponseCode.OK, evse_processing=EVSEProcessing.FINISHED
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(contract_authentication_res=contract_authentication_message),
     )
 
@@ -278,7 +279,7 @@ def get_contract_authentication_ongoing_message():
         response_code=ResponseCode.OK, evse_processing=EVSEProcessing.ONGOING
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(contract_authentication_res=contract_authentication_message),
     )
 
@@ -297,7 +298,7 @@ def get_charge_parameter_discovery_on_going_message():
         )
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(charge_parameter_discovery_res=charge_parameter_discovery_res),
     )
 
@@ -316,7 +317,7 @@ def get_charge_parameter_discovery_message():
         )
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(charge_parameter_discovery_res=charge_parameter_discovery_res),
     )
 
@@ -327,7 +328,7 @@ def get_power_delivery_res_message():
         dc_evse_status=get_dc_evse_status(),
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(power_delivery_res=power_delivery_res),
     )
 
@@ -339,6 +340,6 @@ def get_welding_detection_on_going_message():
         evse_present_voltage=get_evse_present_voltage(),
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(welding_detection_res=welding_detection),
     )
