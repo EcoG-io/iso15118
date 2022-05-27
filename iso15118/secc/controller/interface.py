@@ -21,7 +21,7 @@ from iso15118.shared.messages.datatypes import (
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
-from iso15118.shared.messages.enums import Contactor, EnergyTransferModeEnum, Protocol
+from iso15118.shared.messages.enums import AuthorizationStatus, Contactor, EnergyTransferModeEnum, Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
@@ -163,7 +163,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_authorized(self) -> bool:
+    def is_authorized(self) -> AuthorizationStatus:
         """
         Provides the information on whether or not the user is authorized to charge at
         this EVSE. The auth token could be an RFID card, a whitelisted MAC address
