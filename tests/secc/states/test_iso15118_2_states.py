@@ -7,6 +7,7 @@ from iso15118.secc.states.iso15118_2_states import (
     ChargeParameterDiscovery,
     CurrentDemand,
     PowerDelivery,
+    Terminate,
     WeldingDetection,
 )
 from iso15118.secc.states.secc_state import StateSECC
@@ -55,7 +56,11 @@ class TestEvScenarios:
         [
             (AuthorizationStatus.ACCEPTED, ChargeParameterDiscovery),
             (AuthorizationStatus.ONGOING, Authorization),
-            (AuthorizationStatus.REJECTED, Authorization),
+            pytest.param(
+                AuthorizationStatus.REJECTED,
+                Terminate,
+                marks=pytest.mark.xfail(reason="REJECTED handling not implemented yet"),
+            ),
         ],
     )
     async def test_authorization_next_state_on_authorization_request(
