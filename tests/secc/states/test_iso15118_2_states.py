@@ -59,7 +59,10 @@ class TestEvScenarios:
             pytest.param(
                 AuthorizationStatus.REJECTED,
                 Terminate,
-                marks=pytest.mark.xfail(reason="REJECTED handling not implemented yet"),
+                marks=pytest.mark.xfail(
+                    reason="REJECTED handling not implemented yet; "
+                    "see GitHub issue #54",
+                ),
             ),
         ],
     )

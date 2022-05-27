@@ -892,6 +892,7 @@ class Authorization(StateSECC):
             auth_status = EVSEProcessing.FINISHED
             next_state = ChargeParameterDiscovery
 
+        # TODO GitHub#54: handle REJECTED case
         # TODO Need to distinguish between ONGOING and
         #      ONGOING_WAITING_FOR_CUSTOMER
 
