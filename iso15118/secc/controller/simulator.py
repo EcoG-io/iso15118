@@ -2,12 +2,22 @@
 This module contains the code to retrieve (hardware-related) data from the EVSE
 (Electric Vehicle Supply Equipment).
 """
+
 import logging
 import time
 from dataclasses import dataclass
 from typing import List, Optional
 
-from aiofile import async_open
+
+from iso15118.shared.utils import install
+
+try:
+    from aiofile import async_open
+except ModuleNotFoundError:
+    install("aiofile")
+    from aiofile import async_open
+
+
 from pydantic import BaseModel, Field
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
@@ -112,6 +122,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DCChargeParameterDiscoveryResParams,
 )
 from iso15118.shared.settings import V20_EVSE_SERVICES_CONFIG
+
 
 logger = logging.getLogger(__name__)
 

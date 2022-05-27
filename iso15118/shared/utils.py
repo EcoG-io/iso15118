@@ -2,7 +2,8 @@
 This module contains methods for managing multiple asnycio tasks that are
 supposed to run concurrently.
 """
-
+import sys
+import subprocess
 import asyncio
 import json
 import logging
@@ -11,6 +12,10 @@ from contextlib import suppress
 from typing import Any, Awaitable, List
 
 logger = logging.getLogger(__name__)
+
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
 
 def load_from_env(variable, default=None):
