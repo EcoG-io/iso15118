@@ -386,7 +386,7 @@ class Authorization(StateSECC):
             AuthorizationStatus.ONGOING
         ):
             auth_status = Processing.ONGOING
-        # TODO Handle REJECTED case?
+        # TODO GitHub#56 Handle REJECTED case
         # TODO Need to distinguish between ONGOING and WAITING_FOR_CUSTOMER
 
         auth_res = AuthorizationRes(
