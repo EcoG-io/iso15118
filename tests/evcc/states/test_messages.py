@@ -17,6 +17,7 @@ from iso15118.shared.messages.iso15118_2.body import (
 from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode
 from iso15118.shared.messages.iso15118_2.header import MessageHeader
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage
+from tests.tools import MOCK_SESSION_ID
 
 
 def get_dc_evse_status():
@@ -45,7 +46,7 @@ def get_v2g_message_current_demand_res():
         receipt_required=False,
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(current_demand_res=current_demand_res),
     )
 
@@ -64,6 +65,6 @@ def get_v2g_message_power_delivery_res():
         dc_evse_status=get_dc_evse_status(),
     )
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(power_delivery_res=power_delivery_res),
     )

@@ -14,6 +14,7 @@ from iso15118.shared.messages.din_spec.datatypes import DCEVStatus
 from iso15118.shared.messages.din_spec.header import MessageHeader
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage
 from iso15118.shared.messages.enums import DCEVErrorCode, UnitSymbol
+from tests.tools import MOCK_SESSION_ID
 
 
 def get_dc_ev_status() -> DCEVStatus:
@@ -71,6 +72,6 @@ def build_dummy_current_demand_req() -> CurrentDemandReq:
 def get_current_on_going_req():
     current_demand_req = build_dummy_current_demand_req()
     return V2GMessage(
-        header=MessageHeader(session_id="F9F9EE8505F55838"),
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(current_demand_req=current_demand_req),
     )
