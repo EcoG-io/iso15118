@@ -3,6 +3,7 @@ This module contains the code to retrieve (hardware-related) data from the EVSE
 (Electric Vehicle Supply Equipment).
 """
 import logging
+import math
 import time
 from dataclasses import dataclass
 from typing import List, Optional
@@ -420,21 +421,40 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_sa_schedule_list()."""
         sa_schedule_list: List[SAScheduleTuple] = []
 
+        if departure_time == 0:
+            # [V2G2-304] If no departure_time is provided, the sum of the individual
+            # time intervals shall be greater than or equal to 24 hours.
+            departure_time = 86400
+
         # PMaxSchedule
-        p_max = PVPMax(multiplier=0, value=11000, unit=UnitSymbol.WATT)
-        p_max_schedule_entry = PMaxScheduleEntry(
-            p_max=p_max, time_interval=RelativeTimeInterval(start=0, duration=3600)
+        p_max_1 = PVPMax(multiplier=0, value=11000, unit=UnitSymbol.WATT)
+        p_max_2 = PVPMax(multiplier=0, value=7000, unit=UnitSymbol.WATT)
+        p_max_schedule_entry_1 = PMaxScheduleEntry(
+            p_max=p_max_1, time_interval=RelativeTimeInterval(start=0)
         )
-        p_max_schedule = PMaxSchedule(schedule_entries=[p_max_schedule_entry])
+        p_max_schedule_entry_2 = PMaxScheduleEntry(
+            p_max=p_max_2,
+            time_interval=RelativeTimeInterval(
+                start=math.floor(departure_time / 2),
+                duration=math.ceil(departure_time / 2),
+            ),
+        )
+        p_max_schedule = PMaxSchedule(
+            schedule_entries=[p_max_schedule_entry_1, p_max_schedule_entry_2]
+        )
 
         # SalesTariff
         sales_tariff_entries: List[SalesTariffEntry] = []
         sales_tariff_entry_1 = SalesTariffEntry(
-            e_price_level=1, time_interval=RelativeTimeInterval(start=0)
+            e_price_level=1,
+            time_interval=RelativeTimeInterval(start=math.floor(departure_time / 2)),
         )
         sales_tariff_entry_2 = SalesTariffEntry(
             e_price_level=2,
-            time_interval=RelativeTimeInterval(start=1801, duration=1799),
+            time_interval=RelativeTimeInterval(
+                start=math.floor(departure_time / 2),
+                duration=math.ceil(departure_time / 2),
+            ),
         )
         sales_tariff_entries.append(sales_tariff_entry_1)
         sales_tariff_entries.append(sales_tariff_entry_2)
