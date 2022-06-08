@@ -205,9 +205,9 @@ class SimEVSEController(EVSEControllerInterface):
             return [dc_extended]
 
         # ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
-        # ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
+        ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
         dc_extended = EnergyTransferModeEnum.DC_EXTENDED
-        return [dc_extended]
+        return [dc_extended, ac_three_phase]
 
     def get_scheduled_se_params(
         self,
