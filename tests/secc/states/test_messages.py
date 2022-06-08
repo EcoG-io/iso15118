@@ -130,7 +130,7 @@ def get_charge_parameter_discovery_req_message_departure_time_one_hour():
     ev_max_voltage = PVEVMaxVoltage(multiplier=0, value=400, unit=UnitSymbol.VOLTAGE)
     ev_max_current = PVEVMaxCurrent(multiplier=-3, value=32000, unit=UnitSymbol.AMPERE)
     ev_min_current = PVEVMinCurrent(multiplier=0, value=10, unit=UnitSymbol.AMPERE)
-    one_hour_in_seconds = 3
+    one_hour_in_seconds = 3600
     ac_charge_params = ACEVChargeParameter(
         departure_time=one_hour_in_seconds,
         e_amount=e_amount,
@@ -142,7 +142,6 @@ def get_charge_parameter_discovery_req_message_departure_time_one_hour():
     charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
         requested_energy_mode=EnergyTransferModeEnum.AC_THREE_PHASE_CORE,
         ac_ev_charge_parameter=ac_charge_params,
-        dc_ev_charge_parameter=None,
     )
 
     return V2GMessage(

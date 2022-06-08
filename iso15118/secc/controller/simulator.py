@@ -204,6 +204,8 @@ class SimEVSEController(EVSEControllerInterface):
             dc_extended = EnergyTransferModeEnum.DC_EXTENDED
             return [dc_extended]
 
+        # It's not valid to have mixed energy transfer modes associated with
+        # a single EVSE. Providing this here only for simulation purposes.
         # ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
         ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
         dc_extended = EnergyTransferModeEnum.DC_EXTENDED

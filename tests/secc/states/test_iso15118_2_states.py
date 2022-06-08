@@ -111,15 +111,23 @@ class TestEvScenarios:
             assert schedule_tuples.p_max_schedule is not None
             schedule_duration = 0
             if schedule_tuples.p_max_schedule.schedule_entries is not None:
-                start_time = schedule_tuples.p_max_schedule.schedule_entries[
-                    0
+                first_entry_start_time = (
+                    schedule_tuples.p_max_schedule.schedule_entries[
+                        0
+                    ].time_interval.start
+                )
+                last_entry_start_time = schedule_tuples.p_max_schedule.schedule_entries[
+                    -1
                 ].time_interval.start
+                last_entry_schedule_duration = (
+                    schedule_tuples.p_max_schedule.schedule_entries[
+                        -1
+                    ].time_interval.duration
+                )
+                schedule_duration = (
+                    last_entry_start_time - first_entry_start_time
+                ) + last_entry_schedule_duration
 
-            for entry in schedule_tuples.p_max_schedule.schedule_entries:
-                schedule_duration += entry.time_interval.start - start_time
-                if entry.time_interval.duration is not None:
-                    schedule_duration += entry.time_interval.duration
-                start_time = entry.time_interval.start
             assert schedule_duration == charging_duration
 
     async def test_charge_parameter_discovery_res_v2g2_304(self):
@@ -138,22 +146,29 @@ class TestEvScenarios:
             charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
         )
         assert charge_parameter_discovery_res.sa_schedule_list is not None
-        schedule_tuples = (
+        sa_schedule_tuples = (
             charge_parameter_discovery_res.sa_schedule_list.schedule_tuples
         )
 
-        for schedule_tuple in schedule_tuples:
+        for schedule_tuples in sa_schedule_tuples:
             schedule_duration = 0
-            if schedule_tuple.p_max_schedule.schedule_entries is not None:
-                start_time = schedule_tuple.p_max_schedule.schedule_entries[
-                    0
+            if schedule_tuples.p_max_schedule.schedule_entries is not None:
+                first_entry_start_time = (
+                    schedule_tuples.p_max_schedule.schedule_entries[
+                        0
+                    ].time_interval.start
+                )
+                last_entry_start_time = schedule_tuples.p_max_schedule.schedule_entries[
+                    -1
                 ].time_interval.start
-
-            for entry in schedule_tuple.p_max_schedule.schedule_entries:
-                schedule_duration += entry.time_interval.start - start_time
-                if entry.time_interval.duration is not None:
-                    schedule_duration += entry.time_interval.duration
-                start_time = entry.time_interval.start
+                last_entry_schedule_duration = (
+                    schedule_tuples.p_max_schedule.schedule_entries[
+                        -1
+                    ].time_interval.duration
+                )
+                schedule_duration = (
+                    last_entry_start_time - first_entry_start_time
+                ) + last_entry_schedule_duration
             assert schedule_duration >= twenty_four_hours_in_seconds
 
     async def test_charge_parameter_discovery_res_v2g2_761(self):
@@ -179,9 +194,8 @@ class TestEvScenarios:
         for schedule_tuples in sa_schedule_tuples:
             assert schedule_tuples.p_max_schedule is not None
             found_entry_indicating_start_without_delay = False
-            duration_indicating_immediate_start = 30
             for entry in schedule_tuples.p_max_schedule.schedule_entries:
-                if entry.time_interval.start < duration_indicating_immediate_start:
+                if entry.time_interval.start == 0:
                     found_entry_indicating_start_without_delay = True
                     break
 

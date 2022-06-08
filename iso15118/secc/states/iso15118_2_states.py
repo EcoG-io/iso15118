@@ -1006,10 +1006,10 @@ class ChargeParameterDiscovery(StateSECC):
             max_schedule_entries, departure_time
         )
 
-        sa_schedule_list_validated = self.validate_sa_schedule_list(
+        sa_schedule_list_valid = self.validate_sa_schedule_list(
             sa_schedule_list, departure_time
         )
-        if not sa_schedule_list_validated:
+        if not sa_schedule_list_valid:
             # V2G2-305 : It is still acceptable if the sum of the schedule entry
             # durations falls short of departure_time requested by the EVCC in
             # ChargeParameterDiscoveryReq - EVCC could still request a new schedule
@@ -1095,18 +1095,22 @@ class ChargeParameterDiscovery(StateSECC):
             schedule_duration = 0
 
             if schedule_tuples.p_max_schedule.schedule_entries is not None:
-                start_time = schedule_tuples.p_max_schedule.schedule_entries[
-                    0
+                first_entry_start_time = (
+                    schedule_tuples.p_max_schedule.schedule_entries[
+                        0
+                    ].time_interval.start
+                )
+                last_entry_start_time = schedule_tuples.p_max_schedule.schedule_entries[
+                    -1
                 ].time_interval.start
-
-            for entry in schedule_tuples.p_max_schedule.schedule_entries:
-                interval = entry.time_interval.start - start_time
-                schedule_duration += interval
-                if entry.time_interval.duration is not None:
-                    # [V2G2-331] The duration element will be present only
-                    # the last schedule entry
-                    schedule_duration += entry.time_interval.duration
-                start_time = entry.time_interval.start
+                last_entry_schedule_duration = (
+                    schedule_tuples.p_max_schedule.schedule_entries[
+                        -1
+                    ].time_interval.duration
+                )
+                schedule_duration = (
+                    last_entry_start_time - first_entry_start_time
+                ) + last_entry_schedule_duration
 
             # If departure time is not provided, schedule duration must be at least
             # 24 hours
@@ -1121,6 +1125,10 @@ class ChargeParameterDiscovery(StateSECC):
             # Not setting this check as equality check as it is possible that the time
             # could be off by few seconds. Also considering V2G2-305, it would suffice
             # if departure_time_total is at least the same as departure_time
+            # It is still possible to have a sa_schedule list that doesn't cover
+            # the entire duration (V2G2-305). In this case, it is up to the EVCC to
+            # request a new schedule via renegotiation while on the last entry in the
+            # schedule/sales tariff entry
             elif departure_time != 0 and departure_time < schedule_duration:
                 valid = False
                 break
