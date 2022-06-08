@@ -447,7 +447,7 @@ class SimEVSEController(EVSEControllerInterface):
         sales_tariff_entries: List[SalesTariffEntry] = []
         sales_tariff_entry_1 = SalesTariffEntry(
             e_price_level=1,
-            time_interval=RelativeTimeInterval(start=math.floor(departure_time / 2)),
+            time_interval=RelativeTimeInterval(start=0),
         )
         sales_tariff_entry_2 = SalesTariffEntry(
             e_price_level=2,
