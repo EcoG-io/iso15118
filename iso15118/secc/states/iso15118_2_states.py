@@ -9,6 +9,7 @@ import time
 from typing import List, Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.secc.controller.interface import EVChargeParamsLimits
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
     CertAttributeError,
@@ -993,17 +994,39 @@ class ChargeParameterDiscovery(StateSECC):
             ac_evse_charge_params = (
                 self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
+            ev_max_voltage = charge_params_req.ac_ev_charge_parameter.ev_max_voltage
+            ev_max_current = charge_params_req.ac_ev_charge_parameter.ev_max_current
+            e_amount = charge_params_req.ac_ev_charge_parameter.e_amount
+            ev_charge_params_limits = EVChargeParamsLimits(
+                ev_max_voltage=ev_max_voltage,
+                ev_max_current=ev_max_current,
+                e_amount=e_amount,
+            )
             departure_time = charge_params_req.ac_ev_charge_parameter.departure_time
         else:
             dc_evse_charge_params = (
                 self.comm_session.evse_controller.get_dc_evse_charge_parameter()
+            )
+            ev_max_voltage = (
+                charge_params_req.dc_ev_charge_parameter.ev_maximum_voltage_limit
+            )
+            ev_max_current = (
+                charge_params_req.dc_ev_charge_parameter.ev_maximum_current_limit
+            )
+            ev_energy_request = (
+                charge_params_req.dc_ev_charge_parameter.ev_energy_request
+            )
+            ev_charge_params_limits = EVChargeParamsLimits(
+                ev_max_voltage=ev_max_voltage,
+                ev_max_current=ev_max_current,
+                ev_energy_request=ev_energy_request,
             )
             departure_time = charge_params_req.dc_ev_charge_parameter.departure_time
 
         if not departure_time:
             departure_time = 0
         sa_schedule_list = self.comm_session.evse_controller.get_sa_schedule_list(
-            max_schedule_entries, departure_time
+            ev_charge_params_limits, max_schedule_entries, departure_time
         )
 
         sa_schedule_list_valid = self.validate_sa_schedule_list(

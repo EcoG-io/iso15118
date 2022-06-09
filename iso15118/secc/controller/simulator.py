@@ -11,7 +11,10 @@ from typing import List, Optional
 from aiofile import async_open
 from pydantic import BaseModel, Field
 
-from iso15118.secc.controller.interface import EVSEControllerInterface
+from iso15118.secc.controller.interface import (
+    EVChargeParamsLimits,
+    EVSEControllerInterface,
+)
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
@@ -418,7 +421,10 @@ class SimEVSEController(EVSEControllerInterface):
         return sa_schedule_list
 
     def get_sa_schedule_list(
-        self, max_schedule_entries: Optional[int], departure_time: int = 0
+        self,
+        ev_charge_params_limits: EVChargeParamsLimits,
+        max_schedule_entries: Optional[int],
+        departure_time: int = 0,
     ) -> Optional[List[SAScheduleTuple]]:
         """Overrides EVSEControllerInterface.get_sa_schedule_list()."""
         sa_schedule_list: List[SAScheduleTuple] = []
