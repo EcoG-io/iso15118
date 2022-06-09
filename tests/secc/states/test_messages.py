@@ -1,14 +1,22 @@
 from typing import List
 
-from iso15118.shared.messages.enums import UnitSymbol
+from iso15118.shared.messages.datatypes import (
+    PVEAmount,
+    PVEVMaxCurrent,
+    PVEVMaxVoltage,
+    PVEVMinCurrent,
+)
+from iso15118.shared.messages.enums import EnergyTransferModeEnum, UnitSymbol
 from iso15118.shared.messages.iso15118_2.body import (
     AuthorizationReq,
     Body,
+    ChargeParameterDiscoveryReq,
     PowerDeliveryReq,
     SessionStopReq,
     WeldingDetectionReq,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
+    ACEVChargeParameter,
     ChargeProgress,
     ChargingSession,
     DCEVErrorCode,
@@ -114,4 +122,53 @@ def get_dummy_v2g_message_authorization_req():
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(authorization_req=authorization_req),
+    )
+
+
+def get_charge_parameter_discovery_req_message_departure_time_one_hour():
+    e_amount = PVEAmount(multiplier=0, value=60, unit=UnitSymbol.WATT_HOURS)
+    ev_max_voltage = PVEVMaxVoltage(multiplier=0, value=400, unit=UnitSymbol.VOLTAGE)
+    ev_max_current = PVEVMaxCurrent(multiplier=-3, value=32000, unit=UnitSymbol.AMPERE)
+    ev_min_current = PVEVMinCurrent(multiplier=0, value=10, unit=UnitSymbol.AMPERE)
+    one_hour_in_seconds = 3600
+    ac_charge_params = ACEVChargeParameter(
+        departure_time=one_hour_in_seconds,
+        e_amount=e_amount,
+        ev_max_voltage=ev_max_voltage,
+        ev_max_current=ev_max_current,
+        ev_min_current=ev_min_current,
+    )
+
+    charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
+        requested_energy_mode=EnergyTransferModeEnum.AC_THREE_PHASE_CORE,
+        ac_ev_charge_parameter=ac_charge_params,
+    )
+
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(charge_parameter_discovery_req=charge_parameter_discovery_req),
+    )
+
+
+def get_charge_parameter_discovery_req_message_no_departure_time():
+    e_amount = PVEAmount(multiplier=0, value=60, unit=UnitSymbol.WATT_HOURS)
+    ev_max_voltage = PVEVMaxVoltage(multiplier=0, value=400, unit=UnitSymbol.VOLTAGE)
+    ev_max_current = PVEVMaxCurrent(multiplier=-3, value=32000, unit=UnitSymbol.AMPERE)
+    ev_min_current = PVEVMinCurrent(multiplier=0, value=10, unit=UnitSymbol.AMPERE)
+    ac_charge_params = ACEVChargeParameter(
+        e_amount=e_amount,
+        ev_max_voltage=ev_max_voltage,
+        ev_max_current=ev_max_current,
+        ev_min_current=ev_min_current,
+    )
+
+    charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
+        requested_energy_mode=EnergyTransferModeEnum.AC_THREE_PHASE_CORE,
+        ac_ev_charge_parameter=ac_charge_params,
+        dc_ev_charge_parameter=None,
+    )
+
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(charge_parameter_discovery_req=charge_parameter_discovery_req),
     )

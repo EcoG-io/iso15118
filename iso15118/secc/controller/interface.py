@@ -10,6 +10,10 @@ from typing import List, Optional
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
+    PVEAmount,
+    PVEVEnergyRequest,
+    PVEVMaxCurrentLimit,
+    PVEVMaxVoltageLimit,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
     PVEVSEMaxVoltageLimit,
@@ -64,6 +68,14 @@ class EVDataContext:
     ac_current: Optional[dict] = None  # {"l1": 10, "l2": 10, "l3": 10}
     ac_voltage: Optional[dict] = None  # {"l1": 230, "l2": 230, "l3": 230}
     soc: Optional[int] = None  # 0-100
+
+
+@dataclass
+class EVChargeParamsLimits:
+    ev_max_voltage: Optional[PVEVMaxVoltageLimit] = None
+    ev_max_current: Optional[PVEVMaxCurrentLimit] = None
+    e_amount: Optional[PVEAmount] = None
+    ev_energy_request: Optional[PVEVEnergyRequest] = None
 
 
 class EVSEControllerInterface(ABC):
@@ -184,7 +196,10 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     def get_sa_schedule_list(
-        self, max_schedule_entries: Optional[int], departure_time: int = 0
+        self,
+        ev_charge_params_limits: EVChargeParamsLimits,
+        max_schedule_entries: Optional[int],
+        departure_time: int = 0,
     ) -> Optional[List[SAScheduleTuple]]:
         """
         Requests the charging schedule from a secondary actor (SA) like a
@@ -194,6 +209,8 @@ class EVSEControllerInterface(ABC):
         and the ampacity of the charging cable.
 
         Args:
+            ev_charge_params_limits: Lists the maximum limits of the EV: max_voltage,
+                            max_current and e_amount(AC)/energy_requested(DC)
             max_schedule_entries: The maximum amount of schedule entries the EVCC
                                   can handle, or None if not provided
             departure_time: The departure time given in seconds from the time of

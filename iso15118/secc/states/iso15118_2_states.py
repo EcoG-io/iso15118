@@ -9,6 +9,7 @@ import time
 from typing import List, Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.secc.controller.interface import EVChargeParamsLimits
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
     CertAttributeError,
@@ -91,6 +92,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     Parameter,
     ParameterSet,
     SAScheduleList,
+    SAScheduleTuple,
     ServiceCategory,
     ServiceDetails,
     ServiceID,
@@ -992,18 +994,53 @@ class ChargeParameterDiscovery(StateSECC):
             ac_evse_charge_params = (
                 self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
+            ev_max_voltage = charge_params_req.ac_ev_charge_parameter.ev_max_voltage
+            ev_max_current = charge_params_req.ac_ev_charge_parameter.ev_max_current
+            e_amount = charge_params_req.ac_ev_charge_parameter.e_amount
+            ev_charge_params_limits = EVChargeParamsLimits(
+                ev_max_voltage=ev_max_voltage,
+                ev_max_current=ev_max_current,
+                e_amount=e_amount,
+            )
             departure_time = charge_params_req.ac_ev_charge_parameter.departure_time
         else:
             dc_evse_charge_params = (
                 self.comm_session.evse_controller.get_dc_evse_charge_parameter()
+            )
+            ev_max_voltage = (
+                charge_params_req.dc_ev_charge_parameter.ev_maximum_voltage_limit
+            )
+            ev_max_current = (
+                charge_params_req.dc_ev_charge_parameter.ev_maximum_current_limit
+            )
+            ev_energy_request = (
+                charge_params_req.dc_ev_charge_parameter.ev_energy_request
+            )
+            ev_charge_params_limits = EVChargeParamsLimits(
+                ev_max_voltage=ev_max_voltage,
+                ev_max_current=ev_max_current,
+                ev_energy_request=ev_energy_request,
             )
             departure_time = charge_params_req.dc_ev_charge_parameter.departure_time
 
         if not departure_time:
             departure_time = 0
         sa_schedule_list = self.comm_session.evse_controller.get_sa_schedule_list(
-            max_schedule_entries, departure_time
+            ev_charge_params_limits, max_schedule_entries, departure_time
         )
+
+        sa_schedule_list_valid = self.validate_sa_schedule_list(
+            sa_schedule_list, departure_time
+        )
+        if not sa_schedule_list_valid:
+            # V2G2-305 : It is still acceptable if the sum of the schedule entry
+            # durations falls short of departure_time requested by the EVCC in
+            # ChargeParameterDiscoveryReq - EVCC could still request a new schedule
+            # when it is on the last entry of the selected schedule.
+            logger.warning(
+                f"validate_sa_schedule_list() failed. departure_time: {departure_time} "
+                f" {sa_schedule_list}"
+            )
 
         signature = None
         next_state = None
@@ -1061,6 +1098,64 @@ class ChargeParameterDiscovery(StateSECC):
             Namespace.ISO_V2_MSG_DEF,
             signature=signature,
         )
+
+    def validate_sa_schedule_list(
+        self, sa_schedules: List[SAScheduleTuple], departure_time: int
+    ) -> bool:
+        # V2G2-303 - The total duration covered by schedule_entries under
+        # p_max_schedule must be equal to the duration_time provided by the EVCC
+        # V2G2-304 - If no duration was provided, then the total duration covered
+        # must be greater than or equal to 24 hours
+        # V2G2-305 - In case, the total duration covered falls short of the duration
+        # requested, it is up to the EVCC to request a new schedule via
+        # ChargeParameterDiscoveryReq when the last pmax_schedule/sales tariff entry
+        # becomes active.
+        # In this method - if V2G2-305 is violated the method would return false
+        # (but would tolerate if the total duration goes beyond the departure_time)
+        valid = True
+        duration_24_hours_in_seconds = 86400
+        for schedule_tuples in sa_schedules:
+            schedule_duration = 0
+
+            if schedule_tuples.p_max_schedule.schedule_entries is not None:
+                first_entry_start_time = (
+                    schedule_tuples.p_max_schedule.schedule_entries[
+                        0
+                    ].time_interval.start
+                )
+                last_entry_start_time = schedule_tuples.p_max_schedule.schedule_entries[
+                    -1
+                ].time_interval.start
+                last_entry_schedule_duration = (
+                    schedule_tuples.p_max_schedule.schedule_entries[
+                        -1
+                    ].time_interval.duration
+                )
+                schedule_duration = (
+                    last_entry_start_time - first_entry_start_time
+                ) + last_entry_schedule_duration
+
+            # If departure time is not provided, schedule duration must be at least
+            # 24 hours
+            if departure_time == 0 and schedule_duration < duration_24_hours_in_seconds:
+                logger.warning(
+                    f"departure_time is not set. schedule duration {schedule_duration}"
+                )
+                logger.warning(f"Schedule tuples {schedule_tuples}")
+                valid = False
+                break
+
+            # Not setting this check as equality check as it is possible that the time
+            # could be off by few seconds. Also considering V2G2-305, it would suffice
+            # if departure_time_total is at least the same as departure_time
+            # It is still possible to have a sa_schedule list that doesn't cover
+            # the entire duration (V2G2-305). In this case, it is up to the EVCC to
+            # request a new schedule via renegotiation while on the last entry in the
+            # schedule/sales tariff entry
+            elif departure_time != 0 and departure_time < schedule_duration:
+                valid = False
+                break
+        return valid
 
 
 class PowerDelivery(StateSECC):
