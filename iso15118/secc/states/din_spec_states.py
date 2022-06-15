@@ -119,7 +119,7 @@ class SessionSetup(StateSECC):
 
         session_setup_res = SessionSetupRes(
             response_code=self.response_code,
-            evse_id=self.comm_session.evse_controller.get_evse_id(
+            evse_id=await self.comm_session.evse_controller.get_evse_id(
                 Protocol.DIN_SPEC_70121
             ),
             datetime_now=time.time(),
@@ -166,7 +166,7 @@ class ServiceDiscovery(StateSECC):
             return
 
         service_discovery_req: ServiceDiscoveryReq = msg.body.service_discovery_req
-        service_discovery_res = self.build_service_discovery_res(
+        service_discovery_res = await self.build_service_discovery_res(
             service_discovery_req.service_category
         )
 
@@ -177,7 +177,7 @@ class ServiceDiscovery(StateSECC):
             Namespace.DIN_MSG_DEF,
         )
 
-    def build_service_discovery_res(
+    async def build_service_discovery_res(
         self, category_filter: ServiceCategory
     ) -> ServiceDiscoveryRes:
         """
@@ -191,11 +191,10 @@ class ServiceDiscovery(StateSECC):
         """
 
         self.comm_session.offered_auth_options = [AuthEnum.EIM_V2]
-        energy_mode = (
-            self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+        energy_modes = await self.comm_session.evse_controller.get_supported_energy_transfer_modes(
                 Protocol.DIN_SPEC_70121
-            )[0]
-        )  # noqa: E501
+            )  # noqa: E501
+        energy_mode = energy_modes[0]
 
         service_details = ServiceDetails(
             service_id=ServiceID.CHARGING, service_category=ServiceCategory.CHARGING
@@ -306,7 +305,7 @@ class ContractAuthentication(StateSECC):
         evse_processing = EVSEProcessing.ONGOING
         next_state: Type["State"] = None
         if (
-            self.comm_session.evse_controller.is_authorized()
+            await self.comm_session.evse_controller.is_authorized()
             == AuthorizationStatus.ACCEPTED
         ):
             evse_processing = EVSEProcessing.FINISHED
@@ -356,7 +355,7 @@ class ChargeParameterDiscovery(StateSECC):
         )
 
         if charge_parameter_discovery_req.requested_energy_mode not in (
-            self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+            await self.comm_session.evse_controller.get_supported_energy_transfer_modes(
                 Protocol.DIN_SPEC_70121
             )
         ):
@@ -373,11 +372,11 @@ class ChargeParameterDiscovery(StateSECC):
         )
 
         dc_evse_charge_params = (
-            self.comm_session.evse_controller.get_dc_evse_charge_parameter()  # noqa
+            await self.comm_session.evse_controller.get_dc_evse_charge_parameter()  # noqa
         )
 
         sa_schedule_list = (
-            self.comm_session.evse_controller.get_sa_schedule_list_dinspec(None, 0)
+            await self.comm_session.evse_controller.get_sa_schedule_list_dinspec(None, 0)
         )
 
         evse_processing: EVSEProcessing = EVSEProcessing.ONGOING
@@ -441,13 +440,13 @@ class CableCheck(StateSECC):
             return
 
         if not self.cable_check_req_was_received:
-            self.comm_session.evse_controller.start_cable_check()
+            await self.comm_session.evse_controller.start_cable_check()
             self.cable_check_req_was_received = True
         self.comm_session.evse_controller.ev_data_context.soc = (
             cable_check_req.dc_ev_status.ev_ress_soc
         )
 
-        dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
+        dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
 
         # [V2G-DC-418] Stay in CableCheck state until EVSEProcessing is complete.
         # Until EVSEProcessing is completed, EV will send identical
@@ -535,7 +534,7 @@ class PreCharge(StateSECC):
 
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
-        present_current = self.comm_session.evse_controller.get_evse_present_current()
+        present_current = await self.comm_session.evse_controller.get_evse_present_current()
         present_current_in_a = present_current.value * 10**present_current.multiplier
         target_current = precharge_req.ev_target_current
         target_current_in_a = target_current.value * 10**target_current.multiplier
@@ -549,14 +548,14 @@ class PreCharge(StateSECC):
             return
 
         if self.expect_pre_charge_req:
-            self.comm_session.evse_controller.set_precharge(
+            await self.comm_session.evse_controller.set_precharge(
                 precharge_req.ev_target_voltage, precharge_req.ev_target_current
             )
             self.expect_pre_charge_req = False
 
-        dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
+        dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
         evse_present_voltage = (
-            self.comm_session.evse_controller.get_evse_present_voltage()
+            await self.comm_session.evse_controller.get_evse_present_voltage()
         )
 
         precharge_res = PreChargeRes(
@@ -629,7 +628,7 @@ class PowerDelivery(StateSECC):
 
         next_state: Optional[Type[State]] = None
         if power_delivery_req.ready_to_charge:
-            self.comm_session.evse_controller.set_hlc_charging(True)
+            await self.comm_session.evse_controller.set_hlc_charging(True)
             next_state = CurrentDemand
             self.comm_session.charge_progress_started = True
         else:
@@ -639,9 +638,9 @@ class PowerDelivery(StateSECC):
                 "WeldingDetectionReq/SessionStopReq"
             )
             next_state = None
-            self.comm_session.evse_controller.stop_charger()
+            await self.comm_session.evse_controller.stop_charger()
 
-        dc_evse_status = self.comm_session.evse_controller.get_dc_evse_status()
+        dc_evse_status = await self.comm_session.evse_controller.get_dc_evse_status()
         power_delivery_res = PowerDeliveryRes(
             response_code=ResponseCode.OK,
             dc_evse_status=dc_evse_status,
@@ -695,25 +694,25 @@ class CurrentDemand(StateSECC):
         self.comm_session.evse_controller.ev_data_context.soc = (
             current_demand_req.dc_ev_status.ev_ress_soc
         )
-        self.comm_session.evse_controller.send_charging_command(
+        await self.comm_session.evse_controller.send_charging_command(
             current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
         )
 
         current_demand_res: CurrentDemandRes = CurrentDemandRes(
             response_code=ResponseCode.OK,
-            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
+            dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
             evse_present_voltage=(
-                self.comm_session.evse_controller.get_evse_present_voltage()
+                await self.comm_session.evse_controller.get_evse_present_voltage()
             ),
             evse_present_current=(
-                self.comm_session.evse_controller.get_evse_present_current()
+                await self.comm_session.evse_controller.get_evse_present_current()
             ),
             evse_current_limit_achieved=current_demand_req.charging_complete,
             evse_voltage_limit_achieved=(
-                self.comm_session.evse_controller.is_evse_voltage_limit_achieved()
+                await self.comm_session.evse_controller.is_evse_voltage_limit_achieved()
             ),
             evse_power_limit_achieved=(
-                self.comm_session.evse_controller.is_evse_power_limit_achieved()
+                await self.comm_session.evse_controller.is_evse_power_limit_achieved()
             ),
         )
 
@@ -764,17 +763,17 @@ class WeldingDetection(StateSECC):
         self.expect_welding_detection = False
         self.create_next_message(
             None,
-            self.build_welding_detection_response(),
+            await self.build_welding_detection_response(),
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.DIN_MSG_DEF,
         )
 
-    def build_welding_detection_response(self) -> WeldingDetectionRes:
+    async def build_welding_detection_response(self) -> WeldingDetectionRes:
         return WeldingDetectionRes(
             response_code=ResponseCode.OK,
-            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
+            dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
             evse_present_voltage=(
-                self.comm_session.evse_controller.get_evse_present_voltage()
+                await self.comm_session.evse_controller.get_evse_present_voltage()
             ),
         )
 

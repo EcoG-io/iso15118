@@ -366,7 +366,7 @@ class SimEVController(EVControllerInterface):
 
         return dynamic_params
 
-    def process_scheduled_se_params(
+    async def process_scheduled_se_params(
         self, scheduled_params: ScheduledScheduleExchangeResParams, pause: bool
     ) -> Tuple[Optional[EVPowerProfile], ChargeProgressV20]:
         """Overrides EVControllerInterface.process_scheduled_se_params()."""

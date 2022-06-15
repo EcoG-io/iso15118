@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -74,7 +74,7 @@ class TestEvScenarios:
         expected_next_state: StateSECC,
     ):
         self.comm_session.selected_auth_option = AuthEnum.EIM
-        mock_is_authorized = Mock(return_value=is_authorized_return_value)
+        mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
         self.comm_session.evse_controller.is_authorized = mock_is_authorized
         authorization = Authorization(self.comm_session)
         await authorization.process_message(message=get_dummy_v2g_message_authorization_req())

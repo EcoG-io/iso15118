@@ -177,7 +177,7 @@ class SessionSetup(StateSECC):
 
         session_setup_res = SessionSetupRes(
             response_code=self.response_code,
-            evse_id=self.comm_session.evse_controller.get_evse_id(Protocol.ISO_15118_2),
+            evse_id=await self.comm_session.evse_controller.get_evse_id(Protocol.ISO_15118_2),
             evse_timestamp=time.time(),
         )
 
@@ -244,7 +244,7 @@ class ServiceDiscovery(StateSECC):
             return
 
         service_discovery_req: ServiceDiscoveryReq = msg.body.service_discovery_req
-        service_discovery_res = self.get_services(
+        service_discovery_res = await self.get_services(
             service_discovery_req.service_category
         )
 
@@ -257,7 +257,7 @@ class ServiceDiscovery(StateSECC):
 
         self.expecting_service_discovery_req = False
 
-    def get_services(self, category_filter: ServiceCategory) -> ServiceDiscoveryRes:
+    async def get_services(self, category_filter: ServiceCategory) -> ServiceDiscoveryRes:
         """
         Provides the ServiceDiscoveryRes message with all its services,
         including the mandatory ChargeService and optional value-added services
@@ -284,7 +284,7 @@ class ServiceDiscovery(StateSECC):
         self.comm_session.offered_auth_options = auth_options
 
         energy_modes = (
-            self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+            await self.comm_session.evse_controller.get_supported_energy_transfer_modes(
                 Protocol.ISO_15118_2
             )
         )
@@ -888,7 +888,7 @@ class Authorization(StateSECC):
 
         auth_status: EVSEProcessing = EVSEProcessing.ONGOING
         next_state: Type["State"] = Authorization
-        if self.comm_session.evse_controller.is_authorized() == (
+        if await self.comm_session.evse_controller.is_authorized() == (
             AuthorizationStatus.ACCEPTED
         ):
             auth_status = EVSEProcessing.FINISHED
@@ -967,7 +967,7 @@ class ChargeParameterDiscovery(StateSECC):
         )
 
         if charge_params_req.requested_energy_mode not in (
-            self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+            await self.comm_session.evse_controller.get_supported_energy_transfer_modes(
                 Protocol.ISO_15118_2
             )
         ):  # noqa: E501
@@ -992,7 +992,7 @@ class ChargeParameterDiscovery(StateSECC):
         dc_evse_charge_params: Optional[DCEVSEChargeParameter] = None
         if charge_params_req.ac_ev_charge_parameter:
             ac_evse_charge_params = (
-                self.comm_session.evse_controller.get_ac_charge_params_v2()
+                await self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
             ev_max_voltage = charge_params_req.ac_ev_charge_parameter.ev_max_voltage
             ev_max_current = charge_params_req.ac_ev_charge_parameter.ev_max_current
@@ -1005,7 +1005,7 @@ class ChargeParameterDiscovery(StateSECC):
             departure_time = charge_params_req.ac_ev_charge_parameter.departure_time
         else:
             dc_evse_charge_params = (
-                self.comm_session.evse_controller.get_dc_evse_charge_parameter()
+                await self.comm_session.evse_controller.get_dc_evse_charge_parameter()
             )
             ev_max_voltage = (
                 charge_params_req.dc_ev_charge_parameter.ev_maximum_voltage_limit
@@ -1025,7 +1025,7 @@ class ChargeParameterDiscovery(StateSECC):
 
         if not departure_time:
             departure_time = 0
-        sa_schedule_list = self.comm_session.evse_controller.get_sa_schedule_list(
+        sa_schedule_list = await self.comm_session.evse_controller.get_sa_schedule_list(
             ev_charge_params_limits, max_schedule_entries, departure_time
         )
 
@@ -1266,7 +1266,7 @@ class PowerDelivery(StateSECC):
 
         next_state: Type[State]
         if power_delivery_req.charge_progress == ChargeProgress.START:
-            self.comm_session.evse_controller.set_hlc_charging(True)
+            await self.comm_session.evse_controller.set_hlc_charging(True)
             if self.comm_session.selected_charging_type_is_ac:
                 next_state = ChargingStatus
             else:
@@ -1279,11 +1279,11 @@ class PowerDelivery(StateSECC):
             power_delivery_req.charge_progress == ChargeProgress.STOP
             and self.comm_session.selected_charging_type_is_ac
         ):
-            self.comm_session.evse_controller.set_hlc_charging(False)
+            await self.comm_session.evse_controller.set_hlc_charging(False)
             next_state = SessionStop
         elif power_delivery_req.charge_progress == ChargeProgress.STOP:
             next_state = None
-            self.comm_session.evse_controller.stop_charger()
+            await self.comm_session.evse_controller.stop_charger()
         else:
             # ChargeProgress only has three enum values: Start, Stop, and
             # Renegotiate. So this is the renegotiation case.
@@ -1307,8 +1307,8 @@ class PowerDelivery(StateSECC):
         # no later than 3s after measuring CP State C or D.
         # Before closing the contactor, we may need to check to
         # ensure the CP is in state C or D
-        self.comm_session.evse_controller.close_contactor()
-        contactor_state = self.comm_session.evse_controller.get_contactor_state()
+        await self.comm_session.evse_controller.close_contactor()
+        contactor_state = await self.comm_session.evse_controller.get_contactor_state()
         if contactor_state == Contactor.OPENED:
             self.stop_state_machine(
                 "Contactor is still open when about to send PowerDeliveryRes",
@@ -1320,9 +1320,9 @@ class PowerDelivery(StateSECC):
         ac_evse_status: Optional[ACEVSEStatus] = None
         dc_evse_status: Optional[DCEVSEStatus] = None
         if self.comm_session.selected_charging_type_is_ac:
-            ac_evse_status = self.comm_session.evse_controller.get_ac_evse_status()
+            ac_evse_status = await self.comm_session.evse_controller.get_ac_evse_status()
         else:
-            dc_evse_status = self.comm_session.evse_controller.get_dc_evse_status()
+            dc_evse_status = await self.comm_session.evse_controller.get_dc_evse_status()
         power_delivery_res = PowerDeliveryRes(
             response_code=ResponseCode.OK,
             ac_evse_status=ac_evse_status,
@@ -1440,12 +1440,12 @@ class MeteringReceipt(StateSECC):
         ):
             metering_receipt_res = MeteringReceiptRes(
                 response_code=ResponseCode.OK,
-                ac_evse_status=self.comm_session.evse_controller.get_ac_evse_status(),
+                ac_evse_status=await self.comm_session.evse_controller.get_ac_evse_status(),
             )
         else:
             metering_receipt_res = MeteringReceiptRes(
                 response_code=ResponseCode.OK,
-                dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
+                dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
             )
 
         self.create_next_message(
@@ -1558,7 +1558,7 @@ class ChargingStatus(StateSECC):
         # do, then set receipt_required to True and set the field meter_info
         charging_status_res = ChargingStatusRes(
             response_code=ResponseCode.OK,
-            evse_id=self.comm_session.evse_controller.get_evse_id(Protocol.ISO_15118_2),
+            evse_id=await self.comm_session.evse_controller.get_evse_id(Protocol.ISO_15118_2),
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             ac_evse_status=ACEVSEStatus(
                 notification_max_delay=0,
@@ -1569,7 +1569,7 @@ class ChargingStatus(StateSECC):
             #      whether or not a receipt is required and when
             #      (probably only makes sense at the beginning and end of
             #      a charging session). If true, set MeterInfo.
-            # meter_info=self.comm_session.evse_controller.get_meter_info_v2(),
+            # meter_info=await self.comm_session.evse_controller.get_meter_info_v2(),
             receipt_required=False,
         )
 
@@ -1642,13 +1642,13 @@ class CableCheck(StateSECC):
             return
 
         if not self.cable_check_req_was_received:
-            self.comm_session.evse_controller.start_cable_check()
+            await self.comm_session.evse_controller.start_cable_check()
             self.cable_check_req_was_received = True
         self.comm_session.evse_controller.ev_data_context.soc = (
             cable_check_req.dc_ev_status.ev_ress_soc
         )
 
-        dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
+        dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
 
         evse_processing = EVSEProcessing.ONGOING
         next_state = None
@@ -1741,7 +1741,7 @@ class PreCharge(StateSECC):
 
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
-        present_current = self.comm_session.evse_controller.get_evse_present_current()
+        present_current = await self.comm_session.evse_controller.get_evse_present_current()
         present_current_in_a = present_current.value * 10**present_current.multiplier
         target_current = precharge_req.ev_target_current
         target_current_in_a = target_current.value * 10**target_current.multiplier
@@ -1755,14 +1755,14 @@ class PreCharge(StateSECC):
             return
 
         if not self.precharge_req_was_reveived:
-            self.comm_session.evse_controller.set_precharge(
+            await self.comm_session.evse_controller.set_precharge(
                 precharge_req.ev_target_voltage, precharge_req.ev_target_current
             )
             self.precharge_req_was_reveived = True
 
-        dc_charger_state = self.comm_session.evse_controller.get_dc_evse_status()
+        dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
         evse_present_voltage = (
-            self.comm_session.evse_controller.get_evse_present_voltage()
+            await self.comm_session.evse_controller.get_evse_present_voltage()
         )
 
         precharge_res = PreChargeRes(
@@ -1817,13 +1817,13 @@ class CurrentDemand(StateSECC):
         self.comm_session.evse_controller.ev_data_context.soc = (
             current_demand_req.dc_ev_status.ev_ress_soc
         )
-        self.comm_session.evse_controller.send_charging_command(
+        await self.comm_session.evse_controller.send_charging_command(
             current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
         )
 
         # We don't care about signed meter values from the EVCC, but if you
         # do, then set receipt_required to True and set the field meter_info
-        evse_controller = self.comm_session.evse_controller
+        evse_controller = await self.comm_session.evse_controller
         current_demand_res = CurrentDemandRes(
             response_code=ResponseCode.OK,
             dc_evse_status=evse_controller.get_dc_evse_status(),
@@ -1845,7 +1845,7 @@ class CurrentDemand(StateSECC):
             #      whether or not a receipt is required and when
             #      (probably only makes sense at the beginning and end of
             #      a charging session). If true, set MeterInfo.
-            # meter_info=self.comm_session.evse_controller.get_meter_info(
+            # meter_info=await self.comm_session.evse_controller.get_meter_info(
             #     self.comm_session.protocol),
             receipt_required=False,
         )
@@ -1918,9 +1918,9 @@ class WeldingDetection(StateSECC):
             #  Exception Description: No conversion value provided for the value [OK]
             #  in field [ns5:WeldingDetectionRes.ns5:ResponseCode/text()].
             response_code=ResponseCode.OK,
-            dc_evse_status=self.comm_session.evse_controller.get_dc_evse_status(),
+            dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
             evse_present_voltage=(
-                self.comm_session.evse_controller.get_evse_present_voltage()
+                await self.comm_session.evse_controller.get_evse_present_voltage()
             ),
         )
 
