@@ -21,7 +21,7 @@ from tests.secc.states.test_messages import (
 )
 
 
-@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value="\x01"))
+@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b'01'))
 @pytest.mark.asyncio
 class TestEvScenarios:
     @pytest.fixture(autouse=True)
