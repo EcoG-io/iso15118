@@ -69,7 +69,7 @@ class EVControllerInterface(ABC):
     # ============================================================================
 
     @abstractmethod
-    def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
+    async def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """
         Retrieves the EVCCID, which is a field of the SessionSetupReq. The structure of
         the EVCCID depends on the protocol version. In DIN SPEC 70121 and ISO 15118-2,
@@ -91,7 +91,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_energy_transfer_mode(self, protocol: Protocol) -> EnergyTransferModeEnum:
+    async def get_energy_transfer_mode(self, protocol: Protocol) -> EnergyTransferModeEnum:
         """
         Gets the energy transfer mode requested for the current charging session.
         This depends on the charging cable being plugged in, which could be a
@@ -103,7 +103,7 @@ class EVControllerInterface(ABC):
         """
         raise NotImplementedError
 
-    def get_supported_energy_services(self) -> List[ServiceV20]:
+    async def get_supported_energy_services(self) -> List[ServiceV20]:
         """
         Gets the energy transfer service requested for the current charging session.
         This must be one of the energy related services (services with ID 1 through 7)
@@ -114,7 +114,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def select_energy_service_v20(
+    async def select_energy_service_v20(
         self, services: List[MatchedService]
     ) -> SelectedEnergyService:
         """
@@ -134,7 +134,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def select_vas_services_v20(
+    async def select_vas_services_v20(
         self, services: List[MatchedService]
     ) -> Optional[List[SelectedVAS]]:
         """
@@ -155,7 +155,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_scheduled_se_params(
+    async def get_scheduled_se_params(
         self, selected_energy_service: SelectedEnergyService
     ) -> ScheduledScheduleExchangeReqParams:
         """
@@ -176,7 +176,7 @@ class EVControllerInterface(ABC):
         """
 
     @abstractmethod
-    def get_dynamic_se_params(
+    async def get_dynamic_se_params(
         self, selected_energy_service: SelectedEnergyService
     ) -> DynamicScheduleExchangeReqParams:
         """
@@ -197,7 +197,7 @@ class EVControllerInterface(ABC):
         """
 
     @abstractmethod
-    def process_scheduled_se_params(
+    async def process_scheduled_se_params(
         self, scheduled_params: ScheduledScheduleExchangeResParams, pause: bool
     ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
         """
@@ -220,7 +220,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def process_dynamic_se_params(
+    async def process_dynamic_se_params(
         self, dynamic_params: DynamicScheduleExchangeResParams, pause: bool
     ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
         """
@@ -243,7 +243,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_cert_install_needed(self) -> bool:
+    async def is_cert_install_needed(self) -> bool:
         """
         Returns True if the installation of a contract certificate is needed, False
         otherwise. A certificate installation is needed if the authorization option
@@ -262,7 +262,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def process_sa_schedules_dinspec(
+    async def process_sa_schedules_dinspec(
         self, sa_schedules: List[SAScheduleTupleEntryDINSPEC]
     ) -> int:
         """
@@ -285,7 +285,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def process_sa_schedules_v2(
+    async def process_sa_schedules_v2(
         self, sa_schedules: List[SAScheduleTuple]
     ) -> Tuple[ChargeProgress, int, ChargingProfile]:
         """
@@ -315,7 +315,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def continue_charging(self) -> bool:
+    async def continue_charging(self) -> bool:
         """
         Whether or not to continue the energy flow during the charging loop. This
         depends on factors like SOC or user interaction with the vehicle (e.g. opened
@@ -329,7 +329,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def store_contract_cert_and_priv_key(self, contract_cert: bytes, priv_key: bytes):
+    async def store_contract_cert_and_priv_key(self, contract_cert: bytes, priv_key: bytes):
         """
         Stores the contract certificate and associated private key, both needed
         for Plug & Charge and received via a CertificateInstallationRes.
@@ -343,7 +343,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_prioritised_emaids(self) -> Optional[EMAIDList]:
+    async def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         """
         Indicates the list of EMAIDs (E-Mobility Account IDs) referencing contract
         certificates that shall be installed into the EV. The EMAIDs are given in
@@ -362,7 +362,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_ev_status_dinspec(self) -> DCEVStatusDINSPEC:
+    async def get_dc_ev_status_dinspec(self) -> DCEVStatusDINSPEC:
         """
         Gets the DC-specific EV Status information.
 
@@ -372,7 +372,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_ev_status(self) -> DCEVStatus:
+    async def get_dc_ev_status(self) -> DCEVStatus:
         """
         Gets the DC-specific EV Status information.
 
@@ -384,7 +384,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
+    async def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
         """
         Return True if the output voltage of the EVSE has reached
         the requested precharge voltage. Otherwise return False.
@@ -398,7 +398,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
+    async def get_charge_params_v2(self, protocol: Protocol) -> ChargeParamsV2:
         """
         Gets the charge parameter needed for ChargeParameterDiscoveryReq (ISO 15118-2),
         including the energy transfer mode and the energy mode-specific parameters,
@@ -414,7 +414,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
+    async def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
         AC charging.
@@ -425,7 +425,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def ready_to_charge(self) -> bool:
+    async def ready_to_charge(self) -> bool:
         """
         Used by PowerDeliveryReq message (DIN SPEC) to indicate if we are
         ready to start/stop charging.
@@ -433,7 +433,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_charging_complete(self) -> bool:
+    async def is_charging_complete(self) -> bool:
         """
         If set to True, the EV indicates that full charge (100% SOC) is complete.
 
@@ -446,7 +446,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_bulk_charging_complete(self) -> bool:
+    async def is_bulk_charging_complete(self) -> bool:
         """
         Returns True if the soc for bulk charging is reached
 
@@ -458,7 +458,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_remaining_time_to_full_soc(self) -> PVRemainingTimeToFullSOC:
+    async def get_remaining_time_to_full_soc(self) -> PVRemainingTimeToFullSOC:
         """
         Gets the remaining time until full soc is reached.
 
@@ -470,7 +470,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryReqParams:
+    async def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryReqParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
         bidirectional AC charging.
@@ -481,7 +481,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopReqParams:
+    async def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopReqParams:
         """
         Gets the parameters for the ACChargeLoopReq in the Scheduled control mode
 
@@ -491,7 +491,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_bpt_scheduled_ac_charge_loop_params(
+    async def get_bpt_scheduled_ac_charge_loop_params(
         self,
     ) -> BPTScheduledACChargeLoopReqParams:
         """
@@ -504,7 +504,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dynamic_ac_charge_loop_params(self) -> DynamicACChargeLoopReqParams:
+    async def get_dynamic_ac_charge_loop_params(self) -> DynamicACChargeLoopReqParams:
         """
         Gets the parameters for the ACChargeLoopReq in the Dynamic control mode
 
@@ -514,7 +514,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_bpt_dynamic_ac_charge_loop_params(self) -> BPTDynamicACChargeLoopReqParams:
+    async def get_bpt_dynamic_ac_charge_loop_params(self) -> BPTDynamicACChargeLoopReqParams:
         """
         Gets the parameters for the ACChargeLoopReq in the Dynamic control mode for
         bi-directional power transfer (BPT)
@@ -529,14 +529,14 @@ class EVControllerInterface(ABC):
     # ============================================================================
 
     @abstractmethod
-    def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryReqParams:
+    async def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryReqParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
         DC charging.
         """
         raise NotImplementedError
 
-    def get_remaining_time_to_bulk_soc(self) -> PVRemainingTimeToBulkSOC:
+    async def get_remaining_time_to_bulk_soc(self) -> PVRemainingTimeToBulkSOC:
         """
         Gets the remaining time until bulk soc is reached.
 
@@ -548,7 +548,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def welding_detection_has_finished(self):
+    async def welding_detection_has_finished(self):
         """
         Returns true as soon as the process of welding
         detection has finished successfully.
@@ -561,14 +561,14 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def stop_charging(self) -> None:
+    async def stop_charging(self) -> None:
         """
         Used by CurrentDemand to indicate to EV to stop charging.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryReqParams:
+    async def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryReqParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
         bidirectional DC charging.
@@ -579,7 +579,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_ev_power_delivery_parameter_dinspec(
+    async def get_dc_ev_power_delivery_parameter_dinspec(
         self,
     ) -> DCEVPowerDeliveryParameterDINSPEC:
         """
@@ -591,7 +591,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
+    async def get_dc_ev_power_delivery_parameter(self) -> DCEVPowerDeliveryParameter:
         """
         gets the Power Delivery Parameter of the EV
 
@@ -602,7 +602,7 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_charge_params(self) -> DCEVChargeParams:
+    async def get_dc_charge_params(self) -> DCEVChargeParams:
         """
         This would return an encapsulation of the following parameters:
         DC Max Current Limit

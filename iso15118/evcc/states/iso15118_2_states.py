@@ -179,8 +179,8 @@ class ServiceDiscovery(StateEVCC):
             return
 
         self.select_auth_mode(service_discovery_res.auth_option_list.auth_options)
-        self.select_services(service_discovery_res)
-        self.select_energy_transfer_mode()
+        await self.select_services(service_discovery_res)
+        await self.select_energy_transfer_mode()
 
         charge_service: ChargeService = service_discovery_res.charge_service
         offered_energy_modes: List[
@@ -221,7 +221,7 @@ class ServiceDiscovery(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
 
-    def select_energy_transfer_mode(self):
+    async def select_energy_transfer_mode(self):
         """
         Check if an energy transfer mode was saved from a previously paused
         communication session and reuse for resumed session, otherwise request
@@ -239,7 +239,7 @@ class ServiceDiscovery(StateEVCC):
             evcc_settings.RESUME_REQUESTED_ENERGY_MODE = None
         else:
             self.comm_session.selected_energy_mode = (
-                self.comm_session.ev_controller.get_energy_transfer_mode(
+                await self.comm_session.ev_controller.get_energy_transfer_mode(
                     Protocol.ISO_15118_2
                 )
             )
@@ -274,7 +274,7 @@ class ServiceDiscovery(StateEVCC):
             else:
                 self.comm_session.selected_auth_option = AuthEnum.EIM_V2
 
-    def select_services(self, service_discovery_res: ServiceDiscoveryRes):
+    async def select_services(self, service_discovery_res: ServiceDiscoveryRes):
         """
         According to [V2G2-422], a ServiceDetailReq is needed in case VAS
         (value added services) such as certificate installation/update are to
@@ -304,7 +304,7 @@ class ServiceDiscovery(StateEVCC):
                 service.service_category == ServiceCategory.CERTIFICATE
                 and self.comm_session.selected_auth_option
                 and self.comm_session.selected_auth_option == AuthEnum.PNC_V2
-                and self.comm_session.ev_controller.is_cert_install_needed()
+                and await self.comm_session.ev_controller.is_cert_install_needed()
             ):
                 # Make sure to send a ServiceDetailReq for the
                 # Certificate service
@@ -408,7 +408,7 @@ class PaymentServiceSelection(StateEVCC):
             self.comm_session.selected_auth_option
             and self.comm_session.selected_auth_option == AuthEnum.PNC_V2
         ):
-            if self.comm_session.ev_controller.is_cert_install_needed():
+            if await self.comm_session.ev_controller.is_cert_install_needed():
                 # TODO: Find a more generic way to serach for all available
                 #       V2GRootCA certificates
                 issuer, serial = get_cert_issuer_serial(CertPath.V2G_ROOT_DER)
@@ -549,7 +549,7 @@ class CertificateInstallation(StateEVCC):
                 ecdh_pub_key=to_ec_pub_key(cert_install_res.dh_public_key.value),
             )
 
-            self.comm_session.ev_controller.store_contract_cert_and_priv_key(
+            await self.comm_session.ev_controller.store_contract_cert_and_priv_key(
                 cert_install_res.contract_cert_chain.certificate, decrypted_priv_key
             )
         except DecryptionError:
@@ -666,7 +666,7 @@ class Authorization(StateEVCC):
             # Reset the Ongoing timer
             self.comm_session.ongoing_timer = -1
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2(
+            charge_params = await self.comm_session.ev_controller.get_charge_params_v2(
                 Protocol.ISO_15118_2
             )
 
@@ -745,7 +745,7 @@ class ChargeParameterDiscovery(StateEVCC):
                 charge_progress,
                 schedule_id,
                 charging_profile,
-            ) = self.comm_session.ev_controller.process_sa_schedules_v2(
+            ) = await self.comm_session.ev_controller.process_sa_schedules_v2(
                 charge_params_res.sa_schedule_list.schedule_tuples
             )
 
@@ -765,7 +765,7 @@ class ChargeParameterDiscovery(StateEVCC):
                 )
             else:
                 cable_check_req = CableCheckReq(
-                    dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+                    dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
                 )
 
                 self.create_next_message(
@@ -794,7 +794,7 @@ class ChargeParameterDiscovery(StateEVCC):
             else:
                 self.comm_session.ongoing_timer = time()
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2(
+            charge_params = await self.comm_session.ev_controller.get_charge_params_v2(
                 Protocol.ISO_15118_2
             )
 
@@ -853,7 +853,7 @@ class PowerDelivery(StateEVCC):
             )
         elif self.comm_session.charging_session_stop_v2:
             welding_detection_req = WeldingDetectionReq(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
+                dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status()
             )
             self.create_next_message(
                 WeldingDetection,
@@ -864,7 +864,7 @@ class PowerDelivery(StateEVCC):
         elif self.comm_session.renegotiation_requested:
             self.comm_session.renegotiation_requested = False
 
-            charge_params = self.comm_session.ev_controller.get_charge_params_v2(
+            charge_params = await self.comm_session.ev_controller.get_charge_params_v2(
                 Protocol.ISO_15118_2
             )
 
@@ -891,7 +891,7 @@ class PowerDelivery(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
         else:
-            current_demand_req = self.build_current_demand_data()
+            current_demand_req = await self.build_current_demand_data()
 
             self.create_next_message(
                 CurrentDemand,
@@ -900,22 +900,22 @@ class PowerDelivery(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
 
-    def build_current_demand_data(self) -> CurrentDemandReq:
-        dc_ev_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
+    async def build_current_demand_data(self) -> CurrentDemandReq:
+        dc_ev_charge_params = await self.comm_session.ev_controller.get_dc_charge_params()
         current_demand_req = CurrentDemandReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_current=dc_ev_charge_params.dc_target_current,
             ev_max_current_limit=dc_ev_charge_params.dc_max_current_limit,
             ev_max_power_limit=dc_ev_charge_params.dc_max_power_limit,
             bulk_charging_complete=(
-                self.comm_session.ev_controller.is_bulk_charging_complete()
+                await self.comm_session.ev_controller.is_bulk_charging_complete()
             ),
-            charging_complete=(self.comm_session.ev_controller.is_charging_complete()),
+            charging_complete=(await self.comm_session.ev_controller.is_charging_complete()),
             remaining_time_to_full_soc=(
-                self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+                await self.comm_session.ev_controller.get_remaining_time_to_full_soc()
             ),
             remaining_time_to_bulk_soc=(
-                self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+                await self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
             ),
             ev_target_voltage=dc_ev_charge_params.dc_target_voltage,
         )
@@ -994,24 +994,24 @@ class MeteringReceipt(StateEVCC):
                     Namespace.ISO_V2_MSG_DEF,
                 )
 
-    def build_current_demand_req(self) -> CurrentDemandReq:
-        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
+    async def build_current_demand_req(self) -> CurrentDemandReq:
+        dc_charge_params = await self.comm_session.ev_controller.get_dc_charge_params()
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_current=dc_charge_params.dc_target_current,
             ev_target_voltage=dc_charge_params.dc_target_voltage,
             ev_max_voltage_limit=dc_charge_params.dc_max_voltage_limit,
             ev_max_current_limit=dc_charge_params.dc_max_current_limit,
             ev_max_power_limit=dc_charge_params.dc_max_power_limit,
             bulk_charging_complete=(
-                self.comm_session.ev_controller.is_bulk_charging_complete()
+                await self.comm_session.ev_controller.is_bulk_charging_complete()
             ),
-            charging_complete=(self.comm_session.ev_controller.is_charging_complete()),
+            charging_complete=(await self.comm_session.ev_controller.is_charging_complete()),
             remaining_time_to_full_soc=(
-                self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+                await self.comm_session.ev_controller.get_remaining_time_to_full_soc()
             ),
             remaining_time_to_bulk_soc=(
-                self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+                await self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
             ),
         )
         return current_demand_req
@@ -1133,9 +1133,9 @@ class ChargingStatus(StateEVCC):
             )
             logger.debug(f"ChargeProgress is set to {ChargeProgress.RENEGOTIATE}")
         elif ac_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
-            self.stop_charging()
+            await self.stop_charging()
 
-        elif self.comm_session.ev_controller.continue_charging():
+        elif await self.comm_session.ev_controller.continue_charging():
             self.create_next_message(
                 ChargingStatus,
                 ChargingStatusReq(),
@@ -1143,9 +1143,9 @@ class ChargingStatus(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
         else:
-            self.stop_charging()
+            await self.stop_charging()
 
-    def stop_charging(self):
+    async def stop_charging(self):
         power_delivery_req = PowerDeliveryReq(
             charge_progress=ChargeProgress.STOP,
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
@@ -1200,7 +1200,7 @@ class CableCheck(StateEVCC):
                 evse_status_code == DCEVSEStatusCode.EVSE_READY
                 and isolation_status == IsolationLevel.VALID
             ):
-                precharge_req = self.build_pre_charge_message()
+                precharge_req = await self.build_pre_charge_message()
                 self.create_next_message(
                     PreCharge,
                     precharge_req,
@@ -1221,7 +1221,7 @@ class CableCheck(StateEVCC):
                 self.comm_session.ongoing_timer = time()
 
             cable_check_req = CableCheckReq(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+                dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             )
             self.create_next_message(
                 CableCheck,
@@ -1230,12 +1230,12 @@ class CableCheck(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
 
-    def build_pre_charge_message(self):
+    async def build_pre_charge_message(self):
         charge_params: DCEVChargeParams = (
-            self.comm_session.ev_controller.get_dc_charge_params()
+            await self.comm_session.ev_controller.get_dc_charge_params()
         )
         pre_charge_req = PreChargeReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_voltage=charge_params.dc_target_voltage,
             ev_target_current=charge_params.dc_target_current,
         )
@@ -1267,7 +1267,7 @@ class PreCharge(StateEVCC):
 
         precharge_res: PreChargeRes = msg.body.pre_charge_res
 
-        if self.comm_session.ev_controller.is_precharged(
+        if await self.comm_session.ev_controller.is_precharged(
             precharge_res.evse_present_voltage
         ):
             self.comm_session.ongoing_timer = -1
@@ -1276,7 +1276,7 @@ class PreCharge(StateEVCC):
                 sa_schedule_tuple_id=self.comm_session.selected_schedule,
                 # charging_profile=None,  # TODO
                 dc_ev_power_delivery_parameter=(
-                    self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
+                    await self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
                 ),
             )
             self.create_next_message(
@@ -1296,7 +1296,7 @@ class PreCharge(StateEVCC):
             else:
                 self.comm_session.ongoing_timer = time()
 
-            precharge_req = self.build_pre_charge_message()
+            precharge_req = await self.build_pre_charge_message()
             self.create_next_message(
                 PreCharge,
                 precharge_req,
@@ -1304,12 +1304,12 @@ class PreCharge(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
 
-    def build_pre_charge_message(self):
+    async def build_pre_charge_message(self):
         charge_params: DCEVChargeParams = (
-            self.comm_session.ev_controller.get_dc_charge_params()
+            await self.comm_session.ev_controller.get_dc_charge_params()
         )
         pre_charge_req = PreChargeReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_voltage=charge_params.dc_target_voltage,
             ev_target_current=charge_params.dc_target_current,
         )
@@ -1343,10 +1343,10 @@ class CurrentDemand(StateEVCC):
         dc_evse_status: DCEVSEStatus = current_demand_res.dc_evse_status
 
         if dc_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
-            self.stop_charging()
+            await self.stop_charging()
 
-        elif self.comm_session.ev_controller.continue_charging():
-            current_demand_req = self.build_current_demand_data()
+        elif await self.comm_session.ev_controller.continue_charging():
+            current_demand_req = await self.build_current_demand_data()
 
             self.create_next_message(
                 CurrentDemand,
@@ -1355,36 +1355,36 @@ class CurrentDemand(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
         else:
-            self.stop_charging()
+            await self.stop_charging()
 
-    def build_current_demand_data(self) -> CurrentDemandReq:
-        dc_ev_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
+    async def build_current_demand_data(self) -> CurrentDemandReq:
+        dc_ev_charge_params = await self.comm_session.ev_controller.get_dc_charge_params()
         current_demand_req = CurrentDemandReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status(),
+            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_current=dc_ev_charge_params.dc_target_current,
             ev_max_current_limit=dc_ev_charge_params.dc_max_current_limit,
             ev_max_power_limit=dc_ev_charge_params.dc_max_power_limit,
             bulk_charging_complete=(
-                self.comm_session.ev_controller.is_bulk_charging_complete()
+                await self.comm_session.ev_controller.is_bulk_charging_complete()
             ),
-            charging_complete=self.comm_session.ev_controller.is_charging_complete(),
+            charging_complete=await self.comm_session.ev_controller.is_charging_complete(),
             remaining_time_to_full_soc=(
-                self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+                await self.comm_session.ev_controller.get_remaining_time_to_full_soc()
             ),
             remaining_time_to_bulk_soc=(
-                self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+                await self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
             ),
             ev_target_voltage=dc_ev_charge_params.dc_target_voltage,
         )
         return current_demand_req
 
-    def stop_charging(self):
+    async def stop_charging(self):
         power_delivery_req = PowerDeliveryReq(
             charge_progress=ChargeProgress.STOP,
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             # charging_profile=None,  # TODO
             dc_ev_power_delivery_parameter=(
-                self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
+                await self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
             ),
         )
         self.create_next_message(
@@ -1433,10 +1433,10 @@ class WeldingDetection(StateEVCC):
 
         next_state = None
         next_request: Any = WeldingDetectionReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status()
+            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status()
         )
         next_timeout = Timeouts.WELDING_DETECTION_REQ
-        if self.comm_session.ev_controller.welding_detection_has_finished():
+        if await self.comm_session.ev_controller.welding_detection_has_finished():
             session_stop_req = SessionStopReq(
                 charging_session=self.comm_session.charging_session_stop_v2
             )

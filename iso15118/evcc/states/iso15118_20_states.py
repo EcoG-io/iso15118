@@ -167,7 +167,7 @@ class AuthorizationSetup(StateEVCC):
 
         if (
             auth_setup_res.cert_install_service
-            and self.comm_session.ev_controller.is_cert_install_needed()
+            and await self.comm_session.ev_controller.is_cert_install_needed()
         ):
             # TODO: Find a more generic way to search for all available
             #       V2GRootCA certificates
@@ -211,7 +211,7 @@ class AuthorizationSetup(StateEVCC):
                         ]
                     ),
                     max_contract_cert_chains=self.comm_session.config.max_contract_certs,  # noqa: E501
-                    prioritized_emaids=self.comm_session.ev_controller.get_prioritised_emaids(),  # noqa: E501
+                    prioritized_emaids=await self.comm_session.ev_controller.get_prioritised_emaids(),  # noqa: E501
                 )
 
                 self.create_next_message(
@@ -385,7 +385,7 @@ class ServiceDiscovery(StateEVCC):
 
         req_energy_services: List[
             ServiceV20
-        ] = self.comm_session.ev_controller.get_supported_energy_services()
+        ] = await self.comm_session.ev_controller.get_supported_energy_services()
 
         for energy_service in service_discovery_res.energy_service_list.services:
             for requested_energy_service in req_energy_services:
@@ -511,7 +511,7 @@ class ServiceDetail(StateEVCC):
             return
 
         self.comm_session.selected_energy_service = (
-            self.comm_session.ev_controller.select_energy_service_v20(
+            await self.comm_session.ev_controller.select_energy_service_v20(
                 self.comm_session.matched_services_v20
             )
         )
@@ -535,7 +535,7 @@ class ServiceDetail(StateEVCC):
             )
             return
 
-        service_selection_req: ServiceSelectionReq = self.build_service_selection_req()
+        service_selection_req: ServiceSelectionReq = await self.build_service_selection_req()
 
         self.create_next_message(
             ServiceSelection,
@@ -545,14 +545,14 @@ class ServiceDetail(StateEVCC):
             ISOV20PayloadTypes.MAINSTREAM,
         )
 
-    def build_service_selection_req(self) -> ServiceSelectionReq:
+    async def build_service_selection_req(self) -> ServiceSelectionReq:
         selected_energy_service = SelectedService(
             service_id=self.comm_session.selected_energy_service.service_id,
             parameter_set_id=self.comm_session.selected_energy_service.parameter_set_id,
         )
 
         self.comm_session.selected_vas_list_v20 = (
-            self.comm_session.ev_controller.select_vas_services_v20(
+            await self.comm_session.ev_controller.select_vas_services_v20(
                 self.comm_session.matched_services_v20
             )
         )
@@ -629,10 +629,10 @@ class ServiceSelection(StateEVCC):
         ):
             ac_params, bpt_ac_params = None, None
             if self.comm_session.selected_energy_service.service == ServiceV20.AC:
-                ac_params = self.comm_session.ev_controller.get_ac_charge_params_v20()
+                ac_params = await self.comm_session.ev_controller.get_ac_charge_params_v20()
             else:
                 bpt_ac_params = (
-                    self.comm_session.ev_controller.get_ac_bpt_charge_params_v20()
+                    await self.comm_session.ev_controller.get_ac_bpt_charge_params_v20()
                 )
 
             next_req = ACChargeParameterDiscoveryReq(
@@ -657,10 +657,10 @@ class ServiceSelection(StateEVCC):
         ):
             dc_params, bpt_dc_params = None, None
             if self.comm_session.selected_energy_service.service == ServiceV20.DC:
-                dc_params = self.comm_session.ev_controller.get_dc_charge_params_v20()
+                dc_params = await self.comm_session.ev_controller.get_dc_charge_params_v20()
             else:
                 bpt_dc_params = (
-                    self.comm_session.ev_controller.get_dc_bpt_charge_params_v20()
+                    await self.comm_session.ev_controller.get_dc_bpt_charge_params_v20()
                 )
 
             next_req = DCChargeParameterDiscoveryReq(
@@ -726,7 +726,7 @@ class ScheduleExchange(StateEVCC):
                 (
                     ev_power_profile,
                     charge_progress,
-                ) = self.comm_session.ev_controller.process_scheduled_se_params(
+                ) = await self.comm_session.ev_controller.process_scheduled_se_params(
                     schedule_exchange_res.scheduled_params,
                     schedule_exchange_res.go_to_pause,
                 )
@@ -734,7 +734,7 @@ class ScheduleExchange(StateEVCC):
                 (
                     ev_power_profile,
                     charge_progress,
-                ) = self.comm_session.ev_controller.process_dynamic_se_params(
+                ) = await self.comm_session.ev_controller.process_dynamic_se_params(
                     schedule_exchange_res.dynamic_params,
                     schedule_exchange_res.go_to_pause,
                 )
@@ -803,7 +803,7 @@ class PowerDelivery(StateEVCC):
         power_delivery_res: PowerDeliveryRes = msg  # noqa
 
         if self.comm_session.ev_processing == Processing.ONGOING:
-            self.create_new_power_delivery_req(self.comm_session.schedule_exchange_res)
+            await self.create_new_power_delivery_req(self.comm_session.schedule_exchange_res)
             return
 
         if self.comm_session.charging_session_stop_v20 in (
@@ -834,20 +834,20 @@ class PowerDelivery(StateEVCC):
         if selected_energy_service.service == ServiceV20.AC:
             if control_mode == ControlMode.SCHEDULED:
                 scheduled_params = (
-                    self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()  # noqa
+                    await self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()  # noqa
                 )
             else:
                 dynamic_params = (
-                    self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()
+                    await self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()
                 )
         elif selected_energy_service.service == ServiceV20.AC_BPT:
             if control_mode == ControlMode.SCHEDULED:
                 bpt_scheduled_params = (
-                    self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()  # noqa
+                    await self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()  # noqa
                 )
             else:
                 bpt_dynamic_params = (
-                    self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()  # noqa
+                    await self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()  # noqa
                 )
         else:
             logger.error(
@@ -875,12 +875,12 @@ class PowerDelivery(StateEVCC):
             ISOV20PayloadTypes.AC_MAINSTREAM,
         )
 
-    def create_new_power_delivery_req(self, schedule_exchange_res: ScheduleExchangeRes):
+    async def create_new_power_delivery_req(self, schedule_exchange_res: ScheduleExchangeRes):
         if self.comm_session.control_mode == ControlMode.SCHEDULED:
             (
                 ev_power_profile,
                 charge_progress,
-            ) = self.comm_session.ev_controller.process_scheduled_se_params(
+            ) = await self.comm_session.ev_controller.process_scheduled_se_params(
                 schedule_exchange_res.scheduled_params,
                 schedule_exchange_res.go_to_pause,
             )
@@ -888,7 +888,7 @@ class PowerDelivery(StateEVCC):
             (
                 ev_power_profile,
                 charge_progress,
-            ) = self.comm_session.ev_controller.process_dynamic_se_params(
+            ) = await self.comm_session.ev_controller.process_dynamic_se_params(
                 schedule_exchange_res.dynamic_params, schedule_exchange_res.go_to_pause
             )
 
@@ -1005,7 +1005,7 @@ class ACChargeParameterDiscovery(StateEVCC):
         #      (and delete the # noqa: F841)
 
         self.comm_session.ongoing_schedule_exchange_req = (
-            self.build_schedule_exchange_request()
+            await self.build_schedule_exchange_request()
         )
 
         self.create_next_message(
@@ -1016,15 +1016,15 @@ class ACChargeParameterDiscovery(StateEVCC):
             ISOV20PayloadTypes.MAINSTREAM,
         )
 
-    def build_schedule_exchange_request(self) -> ScheduleExchangeReq:
+    async def build_schedule_exchange_request(self) -> ScheduleExchangeReq:
         scheduled_params, dynamic_params = None, None
         if self.comm_session.control_mode == ControlMode.SCHEDULED:
-            scheduled_params = self.comm_session.ev_controller.get_scheduled_se_params(
+            scheduled_params = await self.comm_session.ev_controller.get_scheduled_se_params(
                 self.comm_session.selected_energy_service
             )
 
         if self.comm_session.control_mode == ControlMode.DYNAMIC:
-            dynamic_params = self.comm_session.ev_controller.get_dynamic_se_params(
+            dynamic_params = await self.comm_session.ev_controller.get_dynamic_se_params(
                 self.comm_session.selected_energy_service
             )
 
@@ -1074,7 +1074,7 @@ class ACChargeLoop(StateEVCC):
             ):
                 self.comm_session.renegotiation_requested = True
                 self.stop_charging(True)
-        elif self.comm_session.ev_controller.continue_charging():
+        elif await self.comm_session.ev_controller.continue_charging():
             scheduled_params, dynamic_params = None, None
             bpt_scheduled_params, bpt_dynamic_params = None, None
             selected_energy_service = self.comm_session.selected_energy_service
@@ -1085,20 +1085,20 @@ class ACChargeLoop(StateEVCC):
             if selected_energy_service.service == ServiceV20.AC:
                 if control_mode == ControlMode.SCHEDULED:
                     scheduled_params = (
-                        self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()  # noqa
+                        await self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()  # noqa
                     )
                 else:
                     dynamic_params = (
-                        self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()  # noqa
+                        await self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()  # noqa
                     )
             elif selected_energy_service.service == ServiceV20.AC_BPT:
                 if control_mode == ControlMode.SCHEDULED:
                     bpt_scheduled_params = (
-                        self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()  # noqa
+                        await self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()  # noqa
                     )
                 else:
                     bpt_dynamic_params = (
-                        self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()  # noqa
+                        await self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()  # noqa
                     )
             else:
                 logger.error(
@@ -1194,7 +1194,7 @@ class DCChargeParameterDiscovery(StateEVCC):
         #      (and delete the # noqa: F841)
 
         self.comm_session.ongoing_schedule_exchange_req = (
-            self.build_schedule_exchange_request()
+            await self.build_schedule_exchange_request()
         )
 
         self.create_next_message(
@@ -1205,15 +1205,15 @@ class DCChargeParameterDiscovery(StateEVCC):
             ISOV20PayloadTypes.DC_MAINSTREAM,
         )
 
-    def build_schedule_exchange_request(self) -> ScheduleExchangeReq:
+    async def build_schedule_exchange_request(self) -> ScheduleExchangeReq:
         scheduled_params, dynamic_params = None, None
         if self.comm_session.control_mode == ControlMode.SCHEDULED:
-            scheduled_params = self.comm_session.ev_controller.get_scheduled_se_params(
+            scheduled_params = await self.comm_session.ev_controller.get_scheduled_se_params(
                 self.comm_session.selected_energy_service
             )
 
         if self.comm_session.control_mode == ControlMode.DYNAMIC:
-            dynamic_params = self.comm_session.ev_controller.get_dynamic_se_params(
+            dynamic_params = await self.comm_session.ev_controller.get_dynamic_se_params(
                 self.comm_session.selected_energy_service
             )
 
