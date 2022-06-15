@@ -124,7 +124,7 @@ class State(ABC):
             logger.info(f"Waiting for up to {timeout} s")
 
     @abstractmethod
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -343,7 +343,7 @@ class Terminate(State):
     ):
         super().__init__(comm_session)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -363,7 +363,7 @@ class Pause(State):
     ):
         super().__init__(comm_session)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,

@@ -141,7 +141,7 @@ class SessionSetup(StateSECC):
         #       SDPRequest and SupportedAppProtocolReq
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -217,7 +217,7 @@ class ServiceDiscovery(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_service_discovery_req: bool = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -236,11 +236,11 @@ class ServiceDiscovery(StateSECC):
             return
 
         if msg.body.service_detail_req:
-            ServiceDetail(self.comm_session).process_message(message)
+            await ServiceDetail(self.comm_session).process_message(message)
             return
 
         if msg.body.payment_service_selection_req:
-            PaymentServiceSelection(self.comm_session).process_message(message)
+            await PaymentServiceSelection(self.comm_session).process_message(message)
             return
 
         service_discovery_req: ServiceDiscoveryReq = msg.body.service_discovery_req
@@ -363,7 +363,7 @@ class ServiceDetail(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_service_detail_req: bool = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -382,7 +382,7 @@ class ServiceDetail(StateSECC):
             return
 
         if msg.body.payment_service_selection_req:
-            PaymentServiceSelection(self.comm_session).process_message(message)
+            await PaymentServiceSelection(self.comm_session).process_message(message)
             return
 
         service_detail_req: ServiceDetailReq = msg.body.service_detail_req
@@ -448,7 +448,7 @@ class PaymentServiceSelection(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_service_selection_req: bool = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -472,15 +472,15 @@ class PaymentServiceSelection(StateSECC):
             return
 
         if msg.body.certificate_installation_req:
-            CertificateInstallation(self.comm_session).process_message(message)
+            await CertificateInstallation(self.comm_session).process_message(message)
             return
 
         if msg.body.payment_details_req:
-            PaymentDetails(self.comm_session).process_message(message)
+            await PaymentDetails(self.comm_session).process_message(message)
             return
 
         if msg.body.authorization_req:
-            Authorization(self.comm_session).process_message(message)
+            await Authorization(self.comm_session).process_message(message)
             return
 
         # passes_initial_check, ensures that one of the accepted messages
@@ -564,7 +564,7 @@ class CertificateInstallation(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -732,7 +732,7 @@ class PaymentDetails(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -842,7 +842,7 @@ class Authorization(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -936,7 +936,7 @@ class ChargeParameterDiscovery(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_charge_parameter_discovery_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -955,11 +955,11 @@ class ChargeParameterDiscovery(StateSECC):
             return
 
         if msg.body.power_delivery_req:
-            PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message)
             return
 
         if msg.body.cable_check_req:
-            CableCheck(self.comm_session).process_message(message)
+            await CableCheck(self.comm_session).process_message(message)
             return
 
         charge_params_req: ChargeParameterDiscoveryReq = (
@@ -1196,7 +1196,7 @@ class PowerDelivery(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_power_delivery_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1219,11 +1219,11 @@ class PowerDelivery(StateSECC):
             return
 
         if msg.body.session_stop_req:
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         if msg.body.welding_detection_req:
-            WeldingDetection(self.comm_session).process_message(message)
+            await WeldingDetection(self.comm_session).process_message(message)
             return
 
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
@@ -1367,7 +1367,7 @@ class MeteringReceipt(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_metering_receipt_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1386,15 +1386,15 @@ class MeteringReceipt(StateSECC):
             return
 
         if msg.body.power_delivery_req:
-            PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message)
             return
 
         if msg.body.charging_status_req:
-            ChargingStatus(self.comm_session).process_message(message)
+            await ChargingStatus(self.comm_session).process_message(message)
             return
 
         if msg.body.current_demand_req:
-            CurrentDemand(self.comm_session).process_message(message)
+            await CurrentDemand(self.comm_session).process_message(message)
             return
 
         metering_receipt_req: MeteringReceiptReq = msg.body.metering_receipt_req
@@ -1467,7 +1467,7 @@ class SessionStop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1528,7 +1528,7 @@ class ChargingStatus(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_charging_status_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1547,11 +1547,11 @@ class ChargingStatus(StateSECC):
             return
 
         if msg.body.power_delivery_req:
-            PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message)
             return
 
         if msg.body.metering_receipt_req:
-            MeteringReceipt(self.comm_session).process_message(message)
+            await MeteringReceipt(self.comm_session).process_message(message)
             return
 
         # We don't care about signed meter values from the EVCC, but if you
@@ -1616,7 +1616,7 @@ class CableCheck(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.cable_check_req_was_received = False
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1701,7 +1701,7 @@ class PreCharge(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.precharge_req_was_reveived = False
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1720,7 +1720,7 @@ class PreCharge(StateSECC):
             return
 
         if msg.body.power_delivery_req:
-            PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message)
             return
 
         precharge_req: PreChargeReq = msg.body.pre_charge_req
@@ -1790,7 +1790,7 @@ class CurrentDemand(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_current_demand_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1809,7 +1809,7 @@ class CurrentDemand(StateSECC):
             return
 
         if msg.body.power_delivery_req:
-            PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message)
             return
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
@@ -1888,7 +1888,7 @@ class WeldingDetection(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_welding_detection_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1910,7 +1910,7 @@ class WeldingDetection(StateSECC):
             return
 
         if msg.body.session_stop_req:
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         welding_detection_res = WeldingDetectionRes(

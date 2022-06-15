@@ -143,7 +143,7 @@ class SessionStateMachine(ABC):
         else:
             return Namespace.ISO_V20_COMMON_MSG
 
-    def process_message(self, message: bytes):
+    async def process_message(self, message: bytes):
         """
         The following steps are conducted in this state machine's general
         process_message() function:
@@ -213,7 +213,7 @@ class SessionStateMachine(ABC):
         # Step 3
         try:
             logger.info(f"{str(decoded_message)} received")
-            self.current_state.process_message(decoded_message)
+            await self.current_state.process_message(decoded_message)
         except MessageProcessingError as exc:
             logger.exception(
                 f"{exc.__class__.__name__} while processing " f"{exc.message_name}"
@@ -458,7 +458,7 @@ class V2GCommunicationSession(SessionStateMachine):
             try:
                 # This will create the values needed for the next state, such as
                 # next_state, next_v2gtp_message, next_message_payload_type etc.
-                self.process_message(message)
+                await self.process_message(message)
 
                 if self.current_state.next_v2gtp_msg:
                     # next_v2gtp_msg would not be set only if the next state is either

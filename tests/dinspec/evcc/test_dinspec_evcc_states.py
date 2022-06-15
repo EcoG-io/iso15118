@@ -65,40 +65,40 @@ class TestEvScenarios:
 
     async def test_service_discovery_payment_service_not_offered(self):
         service_discovery = ServiceDiscovery(self.comm_session_mock)
-        service_discovery.process_message(
+        await service_discovery.process_message(
             message=get_service_discovery_message_payment_service_not_offered()
         )
         assert service_discovery.next_state is Terminate
 
     async def test_service_discovery_charge_service_not_offered(self):
         service_discovery = ServiceDiscovery(self.comm_session_mock)
-        service_discovery.process_message(
+        await service_discovery.process_message(
             message=get_service_discovery_message_charge_service_not_offered()
         )
         assert service_discovery.next_state is Terminate
 
     async def test_service_discovery_to_service_payment_selection(self):
         service_discovery = ServiceDiscovery(self.comm_session_mock)
-        service_discovery.process_message(message=get_service_discovery_message())
+        await service_discovery.process_message(message=get_service_discovery_message())
         assert service_discovery.next_state is ServicePaymentSelection
 
     async def test_service_payment_selection_fail(self):
         service_payment_selection = ServicePaymentSelection(self.comm_session_mock)
-        service_payment_selection.process_message(
+        await service_payment_selection.process_message(
             message=get_service_payment_selection_fail_message()
         )
         assert service_payment_selection.next_state is Terminate
 
     async def test_service_payment_selection_to_contract_authentication(self):
         service_payment_selection = ServicePaymentSelection(self.comm_session_mock)
-        service_payment_selection.process_message(
+        await service_payment_selection.process_message(
             message=get_service_payment_selection_message()
         )
         assert service_payment_selection.next_state is ContractAuthentication
 
     async def test_contract_authentication_on_going(self):
         contract_authentication = ContractAuthentication(self.comm_session_mock)
-        contract_authentication.process_message(
+        await contract_authentication.process_message(
             message=get_contract_authentication_ongoing_message()
         )
         assert contract_authentication.next_state is None
@@ -106,46 +106,46 @@ class TestEvScenarios:
     @pytest.mark.skip(reason="Takes too long. Need to patch timeout enum")
     async def test_contract_authentication_timeout(self):
         contract_authentication = ContractAuthentication(self.comm_session_mock)
-        contract_authentication.process_message(
+        await contract_authentication.process_message(
             message=get_contract_authentication_ongoing_message()
         )
         assert contract_authentication.next_state is None
         time.sleep(61)
-        contract_authentication.process_message(
+        await contract_authentication.process_message(
             message=get_contract_authentication_ongoing_message()
         )
         assert contract_authentication.next_state is Terminate
 
     async def test_contract_authentication_to_charge_parameter_discovery(self):
         contract_authentication = ContractAuthentication(self.comm_session_mock)
-        contract_authentication.process_message(
+        await contract_authentication.process_message(
             message=get_contract_authentication_message()
         )
         assert contract_authentication.next_state is ChargeParameterDiscovery
 
     async def test_current_demand_req_to_power_delivery_req(self):
         current_demand = CurrentDemand(self.comm_session_mock)
-        current_demand.process_message(message=get_current_demand_acheived())
+        await current_demand.process_message(message=get_current_demand_acheived())
         assert current_demand.next_state is PowerDelivery
 
     async def test_current_demand_req_to_power_delivery_req_to_welding_detection(self):
         current_demand = CurrentDemand(self.comm_session_mock)
-        current_demand.process_message(message=get_current_demand_acheived())
+        await current_demand.process_message(message=get_current_demand_acheived())
         assert current_demand.next_state is PowerDelivery
         power_delivery = PowerDelivery(self.comm_session_mock)
-        power_delivery.process_message(message=get_power_delivery_res_message())
+        await power_delivery.process_message(message=get_power_delivery_res_message())
         assert power_delivery.next_state is WeldingDetection
 
     async def test_current_demand_to_current_demand(self):
         current_demand = CurrentDemand(self.comm_session_mock)
-        current_demand.process_message(
+        await current_demand.process_message(
             message=get_v2g_message_current_demand_current_limit_not_achieved()
         )
         assert current_demand.next_state is None
 
     async def test_charge_parameter_discovery_to_cable_check(self):
         charge_parameter_discovery = ChargeParameterDiscovery(self.comm_session_mock)
-        charge_parameter_discovery.process_message(
+        await charge_parameter_discovery.process_message(
             message=get_charge_parameter_discovery_message()
         )
         assert charge_parameter_discovery.next_state is CableCheck
@@ -153,12 +153,12 @@ class TestEvScenarios:
     @pytest.mark.skip(reason="Takes too long. Need to patch timeout enum")
     async def test_charge_parameter_discovery_timeout(self):
         charge_parameter_discovery = ChargeParameterDiscovery(self.comm_session_mock)
-        charge_parameter_discovery.process_message(
+        await charge_parameter_discovery.process_message(
             message=get_charge_parameter_discovery_on_going_message()
         )
         assert charge_parameter_discovery.next_state is None
         time.sleep(61)
-        charge_parameter_discovery.process_message(
+        await charge_parameter_discovery.process_message(
             message=get_charge_parameter_discovery_on_going_message()
         )
         assert charge_parameter_discovery.next_state is Terminate
@@ -212,11 +212,11 @@ class TestEvScenarios:
     @pytest.mark.skip(reason="Takes too long. Need to patch timeout")
     async def test_welding_detection_timeout(self, _is_welding_detection_complete):
         welding_detection = WeldingDetection(self.comm_session_mock)
-        welding_detection.process_message(
+        await welding_detection.process_message(
             message=get_welding_detection_on_going_message()
         )
         time.sleep(2)
-        welding_detection.process_message(
+        await welding_detection.process_message(
             message=get_welding_detection_on_going_message()
         )
         assert welding_detection.next_state is Terminate

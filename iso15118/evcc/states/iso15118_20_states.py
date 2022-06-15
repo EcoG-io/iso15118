@@ -105,7 +105,7 @@ class SessionSetup(StateEVCC):
         #       SDPResponse and SupportedAppProtocolRes
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -148,7 +148,7 @@ class AuthorizationSetup(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.AUTHORIZATION_SETUP_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -296,7 +296,7 @@ class CertificateInstallation(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.CERTIFICATE_INSTALLATION_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -318,7 +318,7 @@ class Authorization(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.AUTHORIZATION_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -363,7 +363,7 @@ class ServiceDiscovery(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.SERVICE_DISCOVERY_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -471,7 +471,7 @@ class ServiceDetail(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.SERVICE_DETAIL_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -604,7 +604,7 @@ class ServiceSelection(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.SERVICE_SELECTION_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -697,7 +697,7 @@ class ScheduleExchange(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.SCHEDULE_EXCHANGE_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -786,7 +786,7 @@ class PowerDelivery(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.POWER_DELIVERY_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -939,7 +939,7 @@ class SessionStop(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.SESSION_STOP_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -986,7 +986,7 @@ class ACChargeParameterDiscovery(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1048,7 +1048,7 @@ class ACChargeLoop(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.AC_CHARGE_LOOP_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1175,7 +1175,7 @@ class DCChargeParameterDiscovery(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1237,7 +1237,7 @@ class DCCableCheck(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.DC_CABLE_CHECK_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1259,7 +1259,7 @@ class DCPreCharge(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.DC_PRE_CHARGE_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1281,7 +1281,7 @@ class DCChargeLoop(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.DC_CHARGE_LOOP_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1303,7 +1303,7 @@ class DCWeldingDetection(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.DC_WELDING_DETECTION_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,

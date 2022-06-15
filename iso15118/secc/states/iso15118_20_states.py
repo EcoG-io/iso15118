@@ -108,7 +108,7 @@ class SessionSetup(StateSECC):
         #       SDPRequest and SupportedAppProtocolReq
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -188,7 +188,7 @@ class AuthorizationSetup(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_auth_setup_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -212,15 +212,15 @@ class AuthorizationSetup(StateSECC):
             return
 
         if isinstance(msg, CertificateInstallationReq):
-            CertificateInstallation(self.comm_session).process_message(message)
+            await CertificateInstallation(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, AuthorizationReq):
-            Authorization(self.comm_session).process_message(message)
+            await Authorization(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         auth_options: List[AuthEnum] = []
@@ -279,7 +279,7 @@ class CertificateInstallation(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -318,7 +318,7 @@ class Authorization(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_authorization_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -342,15 +342,15 @@ class Authorization(StateSECC):
             return
 
         if isinstance(msg, CertificateInstallationReq):
-            CertificateInstallation(self.comm_session).process_message(message)
+            await CertificateInstallation(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, ServiceDiscoveryReq):
-            ServiceDiscovery(self.comm_session).process_message(message)
+            await ServiceDiscovery(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         auth_req: AuthorizationReq = msg
@@ -433,7 +433,7 @@ class ServiceDiscovery(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_service_discovery_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -452,11 +452,11 @@ class ServiceDiscovery(StateSECC):
             return
 
         if isinstance(msg, ServiceDetailReq):
-            ServiceDetail(self.comm_session).process_message(message)
+            await ServiceDetail(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         service_discovery_req: ServiceDiscoveryReq = msg
@@ -550,7 +550,7 @@ class ServiceDetail(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_service_detail_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -572,11 +572,11 @@ class ServiceDetail(StateSECC):
             return
 
         if isinstance(msg, ServiceSelectionReq):
-            ServiceSelection(self.comm_session).process_message(message)
+            await ServiceSelection(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         service_detail_req: ServiceDetailReq = msg
@@ -620,7 +620,7 @@ class ServiceSelection(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -635,7 +635,7 @@ class ServiceSelection(StateSECC):
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         service_selection_req: ServiceSelectionReq = msg
@@ -796,7 +796,7 @@ class ScheduleExchange(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -815,15 +815,15 @@ class ScheduleExchange(StateSECC):
             return
 
         if isinstance(msg, DCCableCheckReq):
-            DCCableCheck(self.comm_session).process_message(message)
+            await DCCableCheck(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, PowerDeliveryReq):
-            PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         schedule_exchange_req: ScheduleExchangeReq = msg
@@ -889,7 +889,7 @@ class PowerDelivery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -904,7 +904,7 @@ class PowerDelivery(StateSECC):
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         power_delivery_req: PowerDeliveryReq = msg
@@ -1037,7 +1037,7 @@ class SessionStop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1114,7 +1114,7 @@ class ACChargeParameterDiscovery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1131,7 +1131,7 @@ class ACChargeParameterDiscovery(StateSECC):
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         ac_cpd_req: ACChargeParameterDiscoveryReq = msg
@@ -1193,7 +1193,7 @@ class ACChargeLoop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1214,11 +1214,11 @@ class ACChargeLoop(StateSECC):
             return
 
         if isinstance(msg, PowerDeliveryReq):
-            PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         ac_charge_loop_req: ACChargeLoopReq = msg
@@ -1297,7 +1297,7 @@ class DCChargeParameterDiscovery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1314,7 +1314,7 @@ class DCChargeParameterDiscovery(StateSECC):
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         dc_cpd_req: DCChargeParameterDiscoveryReq = msg
@@ -1376,7 +1376,7 @@ class DCCableCheck(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1398,7 +1398,7 @@ class DCPreCharge(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1420,7 +1420,7 @@ class DCChargeLoop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1442,7 +1442,7 @@ class DCWeldingDetection(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,

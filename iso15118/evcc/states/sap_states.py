@@ -59,7 +59,7 @@ class SupportedAppProtocol(StateEVCC):
         #       SDPResponse
         super().__init__(comm_session, TimeoutsShared.SUPPORTED_APP_PROTOCOL_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,

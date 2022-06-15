@@ -40,7 +40,7 @@ class SupportedAppProtocol(StateSECC):
         # TODO: less the time used for waiting for and processing the SDPRequest
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
