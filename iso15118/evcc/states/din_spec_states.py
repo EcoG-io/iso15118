@@ -370,16 +370,16 @@ class ChargeParameterDiscovery(StateEVCC):
         charge_parameter_discovery_res: ChargeParameterDiscoveryRes = (
             msg.body.charge_parameter_discovery_res
         )
-
+        ev_controller = self.comm_session.ev_controller
         if charge_parameter_discovery_res.evse_processing == EVSEProcessing.FINISHED:
             # Reset the Ongoing timer
             self.comm_session.ongoing_timer = -1
-            schedule_id = await self.comm_session.ev_controller.process_sa_schedules_dinspec(
+            schedule_id = await ev_controller.process_sa_schedules_dinspec(
                 charge_parameter_discovery_res.sa_schedule_list.values
             )
 
             cable_check_req = CableCheckReq(
-                dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+                dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             )
 
             self.create_next_message(
@@ -420,13 +420,12 @@ class ChargeParameterDiscovery(StateEVCC):
             )
 
     async def build_charge_parameter_discovery_req(self) -> ChargeParameterDiscoveryReq:
-        dc_charge_params: DCEVChargeParams = (
-            await self.comm_session.ev_controller.get_dc_charge_params()
-        )
+        ev_controller = self.comm_session.ev_controller
+        dc_charge_params: DCEVChargeParams = await ev_controller.get_dc_charge_params()
         max_current_limit = dc_charge_params.dc_max_current_limit
         max_voltage_limit = dc_charge_params.dc_max_voltage_limit
         dc_charge_parameter: DCEVChargeParameter = DCEVChargeParameter(
-            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             ev_maximum_current_limit=max_current_limit,
             ev_maximum_voltage_limit=max_voltage_limit,
         )
@@ -508,17 +507,19 @@ class CableCheck(StateEVCC):
             )
 
     async def build_pre_charge_req(self) -> PreChargeReq:
-        dc_charge_params = await self.comm_session.ev_controller.get_dc_charge_params()
+        ev_controller = self.comm_session.ev_controller
+        dc_charge_params = await ev_controller.get_dc_charge_params()
         pre_charge_req = PreChargeReq(
-            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
             ev_target_current=dc_charge_params.dc_target_current,
         )
         return pre_charge_req
 
     async def build_cable_check_req(self) -> CableCheckReq:
+        ev_controller = self.comm_session.ev_controller
         cable_check_req = CableCheckReq(
-            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
         )
         return cable_check_req
 
@@ -584,20 +585,22 @@ class PreCharge(StateEVCC):
             )
 
     async def build_pre_charge_req(self) -> PreChargeReq:
-        dc_charge_params = await self.comm_session.ev_controller.get_dc_charge_params()
+        ev_controller = self.comm_session.ev_controller
+        dc_charge_params = await ev_controller.get_dc_charge_params()
         pre_charge_req = PreChargeReq(
-            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
             ev_target_current=dc_charge_params.dc_target_current,
         )
         return pre_charge_req
 
     async def build_power_delivery_req(self) -> PowerDeliveryReq:
+        ev_controller = self.comm_session.ev_controller
         power_delivery_req = PowerDeliveryReq(
             ready_to_charge=True,
             charging_profile=None,
             dc_ev_power_delivery_parameter=(
-                await self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
+                await ev_controller.get_dc_ev_power_delivery_parameter()
             ),
         )
         return power_delivery_req
@@ -642,30 +645,30 @@ class PowerDelivery(StateEVCC):
             )
 
     async def build_current_demand_req(self) -> CurrentDemandReq:
-        dc_charge_params = await self.comm_session.ev_controller.get_dc_charge_params()
+        ev_controller = self.comm_session.ev_controller
+        dc_charge_params = await ev_controller.get_dc_charge_params()
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
-            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             ev_target_current=dc_charge_params.dc_target_current,
             ev_max_voltage_limit=dc_charge_params.dc_max_voltage_limit,
             ev_max_current_limit=dc_charge_params.dc_max_current_limit,
             ev_max_power_limit=dc_charge_params.dc_max_power_limit,
-            bulk_charging_complete=(
-                await self.comm_session.ev_controller.is_bulk_charging_complete()
-            ),
-            charging_complete=await self.comm_session.ev_controller.is_charging_complete(),
+            bulk_charging_complete=(await ev_controller.is_bulk_charging_complete()),
+            charging_complete=await ev_controller.is_charging_complete(),
             remaining_time_to_full_soc=(
-                await self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+                await ev_controller.get_remaining_time_to_full_soc()
             ),
             remaining_time_to_bulk_soc=(
-                await self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+                await ev_controller.get_remaining_time_to_bulk_soc()
             ),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
         )
         return current_demand_req
 
     async def build_welding_detection_req(self):
+        ev_controller = self.comm_session.ev_controller
         welding_detection_req: WeldingDetectionReq = WeldingDetectionReq(
-            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status_dinspec()
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec()
         )
         return welding_detection_req
 
@@ -715,11 +718,12 @@ class CurrentDemand(StateEVCC):
             await self.stop_charging()
 
     async def stop_charging(self):
-        await self.comm_session.ev_controller.stop_charging()
+        ev_controller = self.comm_session.ev_controller
+        await ev_controller.stop_charging()
         power_delivery_req = PowerDeliveryReq(
             ready_to_charge=False,
             dc_ev_power_delivery_parameter=(
-                await self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
+                await ev_controller.get_dc_ev_power_delivery_parameter()
             ),
         )
         self.create_next_message(
@@ -732,24 +736,21 @@ class CurrentDemand(StateEVCC):
         logger.debug("Stopping charging.")
 
     async def build_current_demand_req(self):
-        dc_charge_params: DCEVChargeParams = (
-            await self.comm_session.ev_controller.get_dc_charge_params()
-        )
+        ev_controller = self.comm_session.ev_controller
+        dc_charge_params: DCEVChargeParams = await ev_controller.get_dc_charge_params()
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
-            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             ev_target_current=dc_charge_params.dc_target_current,
             ev_max_voltage_limit=dc_charge_params.dc_max_voltage_limit,
             ev_max_current_limit=dc_charge_params.dc_max_current_limit,
             ev_max_power_limit=dc_charge_params.dc_max_power_limit,
-            bulk_charging_complete=(
-                await self.comm_session.ev_controller.is_bulk_charging_complete()
-            ),
-            charging_complete=await self.comm_session.ev_controller.is_charging_complete(),
+            bulk_charging_complete=(await ev_controller.is_bulk_charging_complete()),
+            charging_complete=await ev_controller.is_charging_complete(),
             remaining_time_to_full_soc=(
-                await self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+                await ev_controller.get_remaining_time_to_full_soc()
             ),
             remaining_time_to_bulk_soc=(
-                await self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+                await ev_controller.get_remaining_time_to_bulk_soc()
             ),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
         )
@@ -794,12 +795,13 @@ class WeldingDetection(StateEVCC):
         elif self.comm_session.ongoing_timer == -1:
             self.comm_session.ongoing_timer = time()
 
+        ev_controller = self.comm_session.ev_controller
         next_state = None
         next_request: Any = WeldingDetectionReq(
-            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status_dinspec()
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec()
         )
         next_timeout = Timeouts.WELDING_DETECTION_REQ
-        if await self.comm_session.ev_controller.welding_detection_has_finished():
+        if await ev_controller.welding_detection_has_finished():
             next_state = SessionStop
             next_request = SessionStopReq()
             next_timeout = Timeouts.SESSION_STOP_REQ

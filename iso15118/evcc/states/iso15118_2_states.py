@@ -732,6 +732,7 @@ class ChargeParameterDiscovery(StateEVCC):
         charge_params_res: ChargeParameterDiscoveryRes = (
             msg.body.charge_parameter_discovery_res
         )
+        ev_controller = self.comm_session.ev_controller
 
         if charge_params_res.evse_processing == EVSEProcessing.FINISHED:
             # Reset the Ongoing timer
@@ -745,7 +746,7 @@ class ChargeParameterDiscovery(StateEVCC):
                 charge_progress,
                 schedule_id,
                 charging_profile,
-            ) = await self.comm_session.ev_controller.process_sa_schedules_v2(
+            ) = await ev_controller.process_sa_schedules_v2(
                 charge_params_res.sa_schedule_list.schedule_tuples
             )
 
@@ -765,7 +766,7 @@ class ChargeParameterDiscovery(StateEVCC):
                 )
             else:
                 cable_check_req = CableCheckReq(
-                    dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
+                    dc_ev_status=await ev_controller.get_dc_ev_status(),
                 )
 
                 self.create_next_message(
@@ -794,7 +795,7 @@ class ChargeParameterDiscovery(StateEVCC):
             else:
                 self.comm_session.ongoing_timer = time()
 
-            charge_params = await self.comm_session.ev_controller.get_charge_params_v2(
+            charge_params = await ev_controller.get_charge_params_v2(
                 Protocol.ISO_15118_2
             )
 
@@ -901,7 +902,9 @@ class PowerDelivery(StateEVCC):
             )
 
     async def build_current_demand_data(self) -> CurrentDemandReq:
-        dc_ev_charge_params = await self.comm_session.ev_controller.get_dc_charge_params()
+        dc_ev_charge_params = (
+            await self.comm_session.ev_controller.get_dc_charge_params()
+        )
         current_demand_req = CurrentDemandReq(
             dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_current=dc_ev_charge_params.dc_target_current,
@@ -910,7 +913,9 @@ class PowerDelivery(StateEVCC):
             bulk_charging_complete=(
                 await self.comm_session.ev_controller.is_bulk_charging_complete()
             ),
-            charging_complete=(await self.comm_session.ev_controller.is_charging_complete()),
+            charging_complete=(
+                await self.comm_session.ev_controller.is_charging_complete()
+            ),
             remaining_time_to_full_soc=(
                 await self.comm_session.ev_controller.get_remaining_time_to_full_soc()
             ),
@@ -1006,7 +1011,9 @@ class MeteringReceipt(StateEVCC):
             bulk_charging_complete=(
                 await self.comm_session.ev_controller.is_bulk_charging_complete()
             ),
-            charging_complete=(await self.comm_session.ev_controller.is_charging_complete()),
+            charging_complete=(
+                await self.comm_session.ev_controller.is_charging_complete()
+            ),
             remaining_time_to_full_soc=(
                 await self.comm_session.ev_controller.get_remaining_time_to_full_soc()
             ),
@@ -1266,17 +1273,16 @@ class PreCharge(StateEVCC):
             return
 
         precharge_res: PreChargeRes = msg.body.pre_charge_res
+        ev_controller = self.comm_session.ev_controller
 
-        if await self.comm_session.ev_controller.is_precharged(
-            precharge_res.evse_present_voltage
-        ):
+        if await ev_controller.is_precharged(precharge_res.evse_present_voltage):
             self.comm_session.ongoing_timer = -1
             power_delivery_req = PowerDeliveryReq(
                 charge_progress=ChargeProgress.START,
                 sa_schedule_tuple_id=self.comm_session.selected_schedule,
                 # charging_profile=None,  # TODO
                 dc_ev_power_delivery_parameter=(
-                    await self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
+                    await ev_controller.get_dc_ev_power_delivery_parameter()
                 ),
             )
             self.create_next_message(
@@ -1358,33 +1364,33 @@ class CurrentDemand(StateEVCC):
             await self.stop_charging()
 
     async def build_current_demand_data(self) -> CurrentDemandReq:
-        dc_ev_charge_params = await self.comm_session.ev_controller.get_dc_charge_params()
+        ev_controller = self.comm_session.ev_controller
+        dc_ev_charge_params = await ev_controller.get_dc_charge_params()
         current_demand_req = CurrentDemandReq(
-            dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
+            dc_ev_status=await ev_controller.get_dc_ev_status(),
             ev_target_current=dc_ev_charge_params.dc_target_current,
             ev_max_current_limit=dc_ev_charge_params.dc_max_current_limit,
             ev_max_power_limit=dc_ev_charge_params.dc_max_power_limit,
-            bulk_charging_complete=(
-                await self.comm_session.ev_controller.is_bulk_charging_complete()
-            ),
-            charging_complete=await self.comm_session.ev_controller.is_charging_complete(),
+            bulk_charging_complete=(await ev_controller.is_bulk_charging_complete()),
+            charging_complete=await ev_controller.is_charging_complete(),
             remaining_time_to_full_soc=(
-                await self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+                await ev_controller.get_remaining_time_to_full_soc()
             ),
             remaining_time_to_bulk_soc=(
-                await self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+                await ev_controller.get_remaining_time_to_bulk_soc()
             ),
             ev_target_voltage=dc_ev_charge_params.dc_target_voltage,
         )
         return current_demand_req
 
     async def stop_charging(self):
+        ev_controller = self.comm_session.ev_controller
         power_delivery_req = PowerDeliveryReq(
             charge_progress=ChargeProgress.STOP,
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             # charging_profile=None,  # TODO
             dc_ev_power_delivery_parameter=(
-                await self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
+                await ev_controller.get_dc_ev_power_delivery_parameter()
             ),
         )
         self.create_next_message(

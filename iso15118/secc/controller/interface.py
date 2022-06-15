@@ -415,7 +415,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryResParams:
+    async def get_ac_bpt_charge_params_v20(
+        self,
+    ) -> BPTACChargeParameterDiscoveryResParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
         bidirectional AC charging.
@@ -426,7 +428,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopResParams:
+    async def get_scheduled_ac_charge_loop_params(
+        self,
+    ) -> ScheduledACChargeLoopResParams:
         """
         Gets the parameters for the ACChargeLoopRes in the Scheduled control mode
 
@@ -459,7 +463,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_bpt_dynamic_ac_charge_loop_params(self) -> BPTDynamicACChargeLoopResParams:
+    async def get_bpt_dynamic_ac_charge_loop_params(
+        self,
+    ) -> BPTDynamicACChargeLoopResParams:
         """
         Gets the parameters for the ACChargeLoopRes in the Dynamic control mode for
         bidirectional power transfer (BPT)
@@ -514,7 +520,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def set_precharge(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
+    async def set_precharge(
+        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
+    ):
         """
         Sets the precharge information coming from the EV.
         The charger must adapt it's output voltage to the requested voltage from the EV.
@@ -622,7 +630,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryResParams:
+    async def get_dc_bpt_charge_params_v20(
+        self,
+    ) -> BPTDCChargeParameterDiscoveryResParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
         bidirectional DC charging.

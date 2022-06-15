@@ -191,9 +191,11 @@ class ServiceDiscovery(StateSECC):
         """
 
         self.comm_session.offered_auth_options = [AuthEnum.EIM_V2]
-        energy_modes = await self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+        energy_modes = (
+            await self.comm_session.evse_controller.get_supported_energy_transfer_modes(
                 Protocol.DIN_SPEC_70121
-            )  # noqa: E501
+            )
+        )  # noqa: E501
         energy_mode = energy_modes[0]
 
         service_details = ServiceDetails(
@@ -376,7 +378,9 @@ class ChargeParameterDiscovery(StateSECC):
         )
 
         sa_schedule_list = (
-            await self.comm_session.evse_controller.get_sa_schedule_list_dinspec(None, 0)
+            await self.comm_session.evse_controller.get_sa_schedule_list_dinspec(
+                None, 0
+            )
         )
 
         evse_processing: EVSEProcessing = EVSEProcessing.ONGOING
@@ -534,7 +538,9 @@ class PreCharge(StateSECC):
 
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
-        present_current = await self.comm_session.evse_controller.get_evse_present_current()
+        present_current = (
+            await self.comm_session.evse_controller.get_evse_present_current()
+        )
         present_current_in_a = present_current.value * 10**present_current.multiplier
         target_current = precharge_req.ev_target_current
         target_current_in_a = target_current.value * 10**target_current.multiplier

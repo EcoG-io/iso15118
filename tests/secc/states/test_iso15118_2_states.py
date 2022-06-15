@@ -21,7 +21,7 @@ from tests.secc.states.test_messages import (
 )
 
 
-@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b'01'))
+@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b"01"))
 @pytest.mark.asyncio
 class TestEvScenarios:
     @pytest.fixture(autouse=True)
@@ -33,7 +33,9 @@ class TestEvScenarios:
     ):
         current_demand = CurrentDemand(self.comm_session)
         current_demand.expecting_current_demand_req = False
-        await current_demand.process_message(message=get_v2g_message_power_delivery_req())
+        await current_demand.process_message(
+            message=get_v2g_message_power_delivery_req()
+        )
         assert isinstance(self.comm_session.current_state, PowerDelivery)
 
     async def test_power_delivery_to_welding_detection_when_welding_detection_received(
@@ -77,7 +79,9 @@ class TestEvScenarios:
         mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
         self.comm_session.evse_controller.is_authorized = mock_is_authorized
         authorization = Authorization(self.comm_session)
-        await authorization.process_message(message=get_dummy_v2g_message_authorization_req())
+        await authorization.process_message(
+            message=get_dummy_v2g_message_authorization_req()
+        )
         assert authorization.next_state == expected_next_state
 
     async def test_charge_parameter_discovery_res_v2g2_303(self):

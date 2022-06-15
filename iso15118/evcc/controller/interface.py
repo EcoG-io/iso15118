@@ -91,7 +91,9 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_energy_transfer_mode(self, protocol: Protocol) -> EnergyTransferModeEnum:
+    async def get_energy_transfer_mode(
+        self, protocol: Protocol
+    ) -> EnergyTransferModeEnum:
         """
         Gets the energy transfer mode requested for the current charging session.
         This depends on the charging cable being plugged in, which could be a
@@ -329,7 +331,9 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def store_contract_cert_and_priv_key(self, contract_cert: bytes, priv_key: bytes):
+    async def store_contract_cert_and_priv_key(
+        self, contract_cert: bytes, priv_key: bytes
+    ):
         """
         Stores the contract certificate and associated private key, both needed
         for Plug & Charge and received via a CertificateInstallationRes.
@@ -470,7 +474,9 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryReqParams:
+    async def get_ac_bpt_charge_params_v20(
+        self,
+    ) -> BPTACChargeParameterDiscoveryReqParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
         bidirectional AC charging.
@@ -481,7 +487,9 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopReqParams:
+    async def get_scheduled_ac_charge_loop_params(
+        self,
+    ) -> ScheduledACChargeLoopReqParams:
         """
         Gets the parameters for the ACChargeLoopReq in the Scheduled control mode
 
@@ -514,7 +522,9 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_bpt_dynamic_ac_charge_loop_params(self) -> BPTDynamicACChargeLoopReqParams:
+    async def get_bpt_dynamic_ac_charge_loop_params(
+        self,
+    ) -> BPTDynamicACChargeLoopReqParams:
         """
         Gets the parameters for the ACChargeLoopReq in the Dynamic control mode for
         bi-directional power transfer (BPT)
@@ -568,7 +578,9 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryReqParams:
+    async def get_dc_bpt_charge_params_v20(
+        self,
+    ) -> BPTDCChargeParameterDiscoveryReqParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
         bidirectional DC charging.

@@ -843,8 +843,10 @@ class ScheduleExchange(StateSECC):
                 )
 
         if self.comm_session.control_mode == ControlMode.DYNAMIC:
-            dynamic_params = await self.comm_session.evse_controller.get_dynamic_se_params(
-                self.comm_session.selected_energy_service, schedule_exchange_req
+            dynamic_params = (
+                await self.comm_session.evse_controller.get_dynamic_se_params(
+                    self.comm_session.selected_energy_service, schedule_exchange_req
+                )
             )
             if dynamic_params:
                 evse_processing = Processing.FINISHED
@@ -1053,12 +1055,13 @@ class SessionStop(StateSECC):
 
         session_stop_req: SessionStopReq = msg
 
+        evse_controller = self.comm_session.evse_controller
         # [V2G20-1477] : If EVSE supports ServiceRegotiation and EVCC requests
         # it in the SessionStopReq, the next state should be set to ServiceDiscoveryReq
         next_state = Terminate
         if (
             session_stop_req.charging_session == ChargingSession.SERVICE_RENEGOTIATION
-            and await self.comm_session.evse_controller.service_renegotiation_supported()
+            and await evse_controller.service_renegotiation_supported()
         ):
             next_state = ServiceDiscoveryReq
             stopped = "paused"
@@ -1142,7 +1145,9 @@ class ACChargeParameterDiscovery(StateSECC):
         if energy_service == ServiceV20.AC and self.charge_parameter_valid(
             ac_cpd_req.ac_params
         ):
-            ac_params = await self.comm_session.evse_controller.get_ac_charge_params_v20()
+            ac_params = (
+                await self.comm_session.evse_controller.get_ac_charge_params_v20()
+            )
         elif energy_service == ServiceV20.AC_BPT and self.charge_parameter_valid(
             ac_cpd_req.bpt_ac_params
         ):
@@ -1325,7 +1330,9 @@ class DCChargeParameterDiscovery(StateSECC):
         if energy_service == ServiceV20.DC and self.charge_parameter_valid(
             dc_cpd_req.dc_params
         ):
-            dc_params = await self.comm_session.evse_controller.get_dc_charge_params_v20()
+            dc_params = (
+                await self.comm_session.evse_controller.get_dc_charge_params_v20()
+            )
         elif energy_service == ServiceV20.DC_BPT and self.charge_parameter_valid(
             dc_cpd_req.bpt_dc_params
         ):

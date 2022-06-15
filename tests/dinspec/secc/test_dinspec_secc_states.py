@@ -15,7 +15,7 @@ class MockWriter:
         return "not supported"
 
 
-@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b'01'))
+@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b"01"))
 @pytest.mark.asyncio
 class TestEvseScenarios:
     @pytest.fixture(autouse=True)
@@ -38,16 +38,16 @@ class TestEvseScenarios:
 
     async def test_charging(self):
         current_demand: CurrentDemand = CurrentDemand(self.comm_session_mock)
-        current_demand.process_message(get_current_on_going_req())
+        await current_demand.process_message(get_current_on_going_req())
         assert current_demand.next_state is None
-        current_demand.process_message(get_current_on_going_req())
+        await current_demand.process_message(get_current_on_going_req())
         assert current_demand.next_state is None
 
     async def test_charging_finish(self):
         current_demand: CurrentDemand = CurrentDemand(self.comm_session_mock)
-        current_demand.process_message(get_current_on_going_req())
+        await current_demand.process_message(get_current_on_going_req())
         assert current_demand.next_state is None
-        current_demand.process_message(get_current_on_going_req())
+        await current_demand.process_message(get_current_on_going_req())
         assert current_demand.next_state is None
 
     async def test_finalise_charging(self):

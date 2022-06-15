@@ -583,7 +583,9 @@ class SimEVSEController(EVSEControllerInterface):
             evse_present_active_power_l3=RationalNumber(exponent=3, value=3),
         )
 
-    async def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryResParams:
+    async def get_ac_bpt_charge_params_v20(
+        self,
+    ) -> BPTACChargeParameterDiscoveryResParams:
         """Overrides EVSEControllerInterface.get_ac_bpt_charge_params_v20()."""
         ac_charge_params_v20 = (await self.get_ac_charge_params_v20()).dict()
         return BPTACChargeParameterDiscoveryResParams(
@@ -596,7 +598,9 @@ class SimEVSEController(EVSEControllerInterface):
             evse_min_discharge_power_l3=RationalNumber(exponent=0, value=300),
         )
 
-    async def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopResParams:
+    async def get_scheduled_ac_charge_loop_params(
+        self,
+    ) -> ScheduledACChargeLoopResParams:
         """Overrides EVControllerInterface.get_scheduled_ac_charge_loop_params()."""
         return ScheduledACChargeLoopResParams(
             evse_present_active_power=RationalNumber(exponent=3, value=3),
@@ -625,7 +629,9 @@ class SimEVSEController(EVSEControllerInterface):
             # Add more optional fields if wanted
         )
 
-    async def get_bpt_dynamic_ac_charge_loop_params(self) -> BPTDynamicACChargeLoopResParams:
+    async def get_bpt_dynamic_ac_charge_loop_params(
+        self,
+    ) -> BPTDynamicACChargeLoopResParams:
         """Overrides EVControllerInterface.get_bpt_dynamic_ac_charge_loop_params()."""
         return BPTDynamicACChargeLoopResParams(
             evse_target_active_power=RationalNumber(exponent=3, value=3),
@@ -687,7 +693,9 @@ class SimEVSEController(EVSEControllerInterface):
     async def start_cable_check(self):
         pass
 
-    async def set_precharge(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
+    async def set_precharge(
+        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
+    ):
         pass
 
     async def send_charging_command(
@@ -725,7 +733,9 @@ class SimEVSEController(EVSEControllerInterface):
             evse_power_ramp_limit=RationalNumber(exponent=0, value=10),
         )
 
-    async def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryResParams:
+    async def get_dc_bpt_charge_params_v20(
+        self,
+    ) -> BPTDCChargeParameterDiscoveryResParams:
         """Overrides EVSEControllerInterface.get_dc_bpt_charge_params_v20()."""
         return BPTDCChargeParameterDiscoveryResParams(
             evse_max_charge_power=RationalNumber(exponent=3, value=300),

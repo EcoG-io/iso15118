@@ -78,7 +78,6 @@ class Config:
             Protocol.ISO_15118_2,
             Protocol.DIN_SPEC_70121,
         ]
-        
 
         # Indicates the maximum number of entries the EVCC supports within the
         # sub-elements of a ScheduleTuple (e.g. PowerScheduleType and PriceRuleType in

@@ -177,7 +177,9 @@ class SessionSetup(StateSECC):
 
         session_setup_res = SessionSetupRes(
             response_code=self.response_code,
-            evse_id=await self.comm_session.evse_controller.get_evse_id(Protocol.ISO_15118_2),
+            evse_id=await self.comm_session.evse_controller.get_evse_id(
+                Protocol.ISO_15118_2
+            ),
             evse_timestamp=time.time(),
         )
 
@@ -257,7 +259,9 @@ class ServiceDiscovery(StateSECC):
 
         self.expecting_service_discovery_req = False
 
-    async def get_services(self, category_filter: ServiceCategory) -> ServiceDiscoveryRes:
+    async def get_services(
+        self, category_filter: ServiceCategory
+    ) -> ServiceDiscoveryRes:
         """
         Provides the ServiceDiscoveryRes message with all its services,
         including the mandatory ChargeService and optional value-added services
@@ -1320,9 +1324,13 @@ class PowerDelivery(StateSECC):
         ac_evse_status: Optional[ACEVSEStatus] = None
         dc_evse_status: Optional[DCEVSEStatus] = None
         if self.comm_session.selected_charging_type_is_ac:
-            ac_evse_status = await self.comm_session.evse_controller.get_ac_evse_status()
+            ac_evse_status = (
+                await self.comm_session.evse_controller.get_ac_evse_status()
+            )
         else:
-            dc_evse_status = await self.comm_session.evse_controller.get_dc_evse_status()
+            dc_evse_status = (
+                await self.comm_session.evse_controller.get_dc_evse_status()
+            )
         power_delivery_res = PowerDeliveryRes(
             response_code=ResponseCode.OK,
             ac_evse_status=ac_evse_status,
@@ -1434,18 +1442,19 @@ class MeteringReceipt(StateSECC):
             )
             return
 
+        evse_controller = self.comm_session.evse_controller
         if (
             self.comm_session.selected_energy_mode
             and self.comm_session.selected_charging_type_is_ac
         ):
             metering_receipt_res = MeteringReceiptRes(
                 response_code=ResponseCode.OK,
-                ac_evse_status=await self.comm_session.evse_controller.get_ac_evse_status(),
+                ac_evse_status=await evse_controller.get_ac_evse_status(),
             )
         else:
             metering_receipt_res = MeteringReceiptRes(
                 response_code=ResponseCode.OK,
-                dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
+                dc_evse_status=await evse_controller.get_dc_evse_status(),
             )
 
         self.create_next_message(
@@ -1558,7 +1567,9 @@ class ChargingStatus(StateSECC):
         # do, then set receipt_required to True and set the field meter_info
         charging_status_res = ChargingStatusRes(
             response_code=ResponseCode.OK,
-            evse_id=await self.comm_session.evse_controller.get_evse_id(Protocol.ISO_15118_2),
+            evse_id=await self.comm_session.evse_controller.get_evse_id(
+                Protocol.ISO_15118_2
+            ),
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             ac_evse_status=ACEVSEStatus(
                 notification_max_delay=0,
@@ -1741,7 +1752,9 @@ class PreCharge(StateSECC):
 
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
-        present_current = await self.comm_session.evse_controller.get_evse_present_current()
+        present_current = (
+            await self.comm_session.evse_controller.get_evse_present_current()
+        )
         present_current_in_a = present_current.value * 10**present_current.multiplier
         target_current = precharge_req.ev_target_current
         target_current_in_a = target_current.value * 10**target_current.multiplier
@@ -1823,23 +1836,23 @@ class CurrentDemand(StateSECC):
 
         # We don't care about signed meter values from the EVCC, but if you
         # do, then set receipt_required to True and set the field meter_info
-        evse_controller = await self.comm_session.evse_controller
+        evse_controller = self.comm_session.evse_controller
         current_demand_res = CurrentDemandRes(
             response_code=ResponseCode.OK,
-            dc_evse_status=evse_controller.get_dc_evse_status(),
-            evse_present_voltage=evse_controller.get_evse_present_voltage(),
-            evse_present_current=evse_controller.get_evse_present_current(),
+            dc_evse_status=await evse_controller.get_dc_evse_status(),
+            evse_present_voltage=await evse_controller.get_evse_present_voltage(),
+            evse_present_current=await evse_controller.get_evse_present_current(),
             evse_current_limit_achieved=(
-                evse_controller.is_evse_current_limit_achieved()
+                await evse_controller.is_evse_current_limit_achieved()
             ),
             evse_voltage_limit_achieved=(
-                evse_controller.is_evse_voltage_limit_achieved()
+                await evse_controller.is_evse_voltage_limit_achieved()
             ),
-            evse_power_limit_achieved=evse_controller.is_evse_power_limit_achieved(),
-            evse_max_voltage_limit=evse_controller.get_evse_max_voltage_limit(),
-            evse_max_current_limit=evse_controller.get_evse_max_current_limit(),
-            evse_max_power_limit=evse_controller.get_evse_max_power_limit(),
-            evse_id=evse_controller.get_evse_id(Protocol.ISO_15118_2),
+            evse_power_limit_achieved=await evse_controller.is_evse_power_limit_achieved(),  # noqa
+            evse_max_voltage_limit=await evse_controller.get_evse_max_voltage_limit(),
+            evse_max_current_limit=await evse_controller.get_evse_max_current_limit(),
+            evse_max_power_limit=await evse_controller.get_evse_max_power_limit(),
+            evse_id=await evse_controller.get_evse_id(Protocol.ISO_15118_2),
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             # TODO Could maybe request an OCPP setting that determines
             #      whether or not a receipt is required and when
