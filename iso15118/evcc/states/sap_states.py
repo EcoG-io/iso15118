@@ -59,7 +59,7 @@ class SupportedAppProtocol(StateEVCC):
         #       SDPResponse
         super().__init__(comm_session, TimeoutsShared.SUPPORTED_APP_PROTOCOL_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -82,7 +82,7 @@ class SupportedAppProtocol(StateEVCC):
             V2GRequest,
             BodyBaseDINSPEC,
         ] = SessionSetupReqV2(
-            evcc_id=self.comm_session.ev_controller.get_evcc_id(
+            evcc_id=await self.comm_session.ev_controller.get_evcc_id(
                 Protocol.ISO_15118_2, self.comm_session.config.iface
             )
         )
@@ -103,7 +103,7 @@ class SupportedAppProtocol(StateEVCC):
                     self.comm_session.session_id = self.get_session_id()
 
                     next_msg = SessionSetupReqDINSPEC(
-                        evcc_id=self.comm_session.ev_controller.get_evcc_id(
+                        evcc_id=await self.comm_session.ev_controller.get_evcc_id(
                             Protocol.DIN_SPEC_70121, self.comm_session.config.iface
                         )
                     )
@@ -119,7 +119,7 @@ class SupportedAppProtocol(StateEVCC):
                     )
                     next_msg = SessionSetupReqV20(
                         header=header,
-                        evcc_id=self.comm_session.ev_controller.get_evcc_id(
+                        evcc_id=await self.comm_session.ev_controller.get_evcc_id(
                             self.comm_session.protocol, self.comm_session.config.iface
                         ),
                     )

@@ -88,7 +88,7 @@ class SessionSetup(StateEVCC):
         #       SDPResponse and SupportedAppProtocolRes
         super().__init__(comm_session, Timeouts.SESSION_SETUP_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -127,7 +127,7 @@ class ServiceDiscovery(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.SERVICE_DISCOVERY_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -149,7 +149,7 @@ class ServiceDiscovery(StateEVCC):
 
         self.select_auth_mode(service_discovery_res.auth_option_list.auth_options)
         self.select_services(service_discovery_res)
-        self.select_energy_transfer_mode()
+        await self.select_energy_transfer_mode()
 
         charge_service: ChargeService = service_discovery_res.charge_service
         offered_energy_modes: List[EnergyTransferModeEnum] = [
@@ -188,7 +188,7 @@ class ServiceDiscovery(StateEVCC):
             Namespace.DIN_MSG_DEF,
         )
 
-    def select_energy_transfer_mode(self):
+    async def select_energy_transfer_mode(self):
         """
         Check if an energy transfer mode was saved from a previously paused
         communication session and reuse for resumed session, otherwise request
@@ -206,7 +206,7 @@ class ServiceDiscovery(StateEVCC):
             evcc_settings.RESUME_REQUESTED_ENERGY_MODE = None
         else:
             self.comm_session.selected_energy_mode = (
-                self.comm_session.ev_controller.get_energy_transfer_mode(
+                await self.comm_session.ev_controller.get_energy_transfer_mode(
                     Protocol.DIN_SPEC_70121
                 )
             )
@@ -235,7 +235,7 @@ class ServicePaymentSelection(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.SERVICE_PAYMENT_SELECTION_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -271,7 +271,7 @@ class ContractAuthentication(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.CONTRACT_AUTHENTICATION_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -309,7 +309,7 @@ class ContractAuthentication(StateEVCC):
 
         if contract_authentication_res.evse_processing == EVSEProcessing.FINISHED:
             next_state = ChargeParameterDiscovery
-            next_message = self.build_charge_parameter_discovery_req()
+            next_message = await self.build_charge_parameter_discovery_req()
             timeout = Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ
 
         self.create_next_message(
@@ -319,12 +319,12 @@ class ContractAuthentication(StateEVCC):
             Namespace.DIN_MSG_DEF,
         )
 
-    def build_charge_parameter_discovery_req(self) -> ChargeParameterDiscoveryReq:
+    async def build_charge_parameter_discovery_req(self) -> ChargeParameterDiscoveryReq:
         dc_ev_status: DCEVStatus = (
-            self.comm_session.ev_controller.get_dc_ev_status_dinspec()
+            await self.comm_session.ev_controller.get_dc_ev_status_dinspec()
         )
         dc_charge_params: DCEVChargeParams = (
-            self.comm_session.ev_controller.get_dc_charge_params()
+            await self.comm_session.ev_controller.get_dc_charge_params()
         )
         max_current_limit = dc_charge_params.dc_max_current_limit
         max_voltage_limit = dc_charge_params.dc_max_voltage_limit
@@ -335,7 +335,7 @@ class ContractAuthentication(StateEVCC):
         )
         return ChargeParameterDiscoveryReq(
             requested_energy_mode=(
-                self.comm_session.ev_controller.get_energy_transfer_mode(
+                await self.comm_session.ev_controller.get_energy_transfer_mode(
                     Protocol.DIN_SPEC_70121
                 )
             ),
@@ -353,7 +353,7 @@ class ChargeParameterDiscovery(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.CHARGE_PARAMETER_DISCOVERY_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -370,16 +370,16 @@ class ChargeParameterDiscovery(StateEVCC):
         charge_parameter_discovery_res: ChargeParameterDiscoveryRes = (
             msg.body.charge_parameter_discovery_res
         )
-
+        ev_controller = self.comm_session.ev_controller
         if charge_parameter_discovery_res.evse_processing == EVSEProcessing.FINISHED:
             # Reset the Ongoing timer
             self.comm_session.ongoing_timer = -1
-            schedule_id = self.comm_session.ev_controller.process_sa_schedules_dinspec(
+            schedule_id = await ev_controller.process_sa_schedules_dinspec(
                 charge_parameter_discovery_res.sa_schedule_list.values
             )
 
             cable_check_req = CableCheckReq(
-                dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+                dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             )
 
             self.create_next_message(
@@ -409,7 +409,7 @@ class ChargeParameterDiscovery(StateEVCC):
                 self.comm_session.ongoing_timer = time()
 
             charge_parameter_discovery_req: ChargeParameterDiscoveryReq = (
-                self.build_charge_parameter_discovery_req()
+                await self.build_charge_parameter_discovery_req()
             )
 
             self.create_next_message(
@@ -419,21 +419,20 @@ class ChargeParameterDiscovery(StateEVCC):
                 Namespace.DIN_MSG_DEF,
             )
 
-    def build_charge_parameter_discovery_req(self) -> ChargeParameterDiscoveryReq:
-        dc_charge_params: DCEVChargeParams = (
-            self.comm_session.ev_controller.get_dc_charge_params()
-        )
+    async def build_charge_parameter_discovery_req(self) -> ChargeParameterDiscoveryReq:
+        ev_controller = self.comm_session.ev_controller
+        dc_charge_params: DCEVChargeParams = await ev_controller.get_dc_charge_params()
         max_current_limit = dc_charge_params.dc_max_current_limit
         max_voltage_limit = dc_charge_params.dc_max_voltage_limit
         dc_charge_parameter: DCEVChargeParameter = DCEVChargeParameter(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             ev_maximum_current_limit=max_current_limit,
             ev_maximum_voltage_limit=max_voltage_limit,
         )
 
         charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
             requested_energy_mode=(
-                self.comm_session.ev_controller.get_energy_transfer_mode(
+                await self.comm_session.ev_controller.get_energy_transfer_mode(
                     Protocol.DIN_SPEC_70121
                 )
             ),
@@ -455,7 +454,7 @@ class CableCheck(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.CABLE_CHECK_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -477,7 +476,7 @@ class CableCheck(StateEVCC):
         if cable_check_res.evse_processing == EVSEProcessing.FINISHED:
             # Reset the Ongoing timer
             self.comm_session.ongoing_timer = -1
-            pre_charge_req: PreChargeReq = self.build_pre_charge_req()
+            pre_charge_req: PreChargeReq = await self.build_pre_charge_req()
             if (
                 evse_status_code == DCEVSEStatusCode.EVSE_READY
                 and isolation_status == IsolationLevel.VALID
@@ -502,23 +501,25 @@ class CableCheck(StateEVCC):
 
             self.create_next_message(
                 None,
-                self.build_cable_check_req(),
+                await self.build_cable_check_req(),
                 Timeouts.CABLE_CHECK_REQ,
                 Namespace.DIN_MSG_DEF,
             )
 
-    def build_pre_charge_req(self) -> PreChargeReq:
-        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
+    async def build_pre_charge_req(self) -> PreChargeReq:
+        ev_controller = self.comm_session.ev_controller
+        dc_charge_params = await ev_controller.get_dc_charge_params()
         pre_charge_req = PreChargeReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
             ev_target_current=dc_charge_params.dc_target_current,
         )
         return pre_charge_req
 
-    def build_cable_check_req(self) -> CableCheckReq:
+    async def build_cable_check_req(self) -> CableCheckReq:
+        ev_controller = self.comm_session.ev_controller
         cable_check_req = CableCheckReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
         )
         return cable_check_req
 
@@ -538,7 +539,7 @@ class PreCharge(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.PRE_CHARGE_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -554,11 +555,11 @@ class PreCharge(StateEVCC):
 
         pre_charge_res: PreChargeRes = msg.body.pre_charge_res
 
-        if self.comm_session.ev_controller.is_precharged(
+        if await self.comm_session.ev_controller.is_precharged(
             pre_charge_res.evse_present_voltage
         ):
             self.comm_session.ongoing_timer = -1
-            power_delivery_req: PowerDeliveryReq = self.build_power_delivery_req()
+            power_delivery_req: PowerDeliveryReq = await self.build_power_delivery_req()
             self.create_next_message(
                 PowerDelivery,
                 power_delivery_req,
@@ -575,7 +576,7 @@ class PreCharge(StateEVCC):
             else:
                 self.comm_session.ongoing_timer = time()
 
-            pre_charge_req: PreChargeReq = self.build_pre_charge_req()
+            pre_charge_req: PreChargeReq = await self.build_pre_charge_req()
             self.create_next_message(
                 None,
                 pre_charge_req,
@@ -583,21 +584,23 @@ class PreCharge(StateEVCC):
                 Namespace.DIN_MSG_DEF,
             )
 
-    def build_pre_charge_req(self) -> PreChargeReq:
-        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
+    async def build_pre_charge_req(self) -> PreChargeReq:
+        ev_controller = self.comm_session.ev_controller
+        dc_charge_params = await ev_controller.get_dc_charge_params()
         pre_charge_req = PreChargeReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
             ev_target_current=dc_charge_params.dc_target_current,
         )
         return pre_charge_req
 
-    def build_power_delivery_req(self) -> PowerDeliveryReq:
+    async def build_power_delivery_req(self) -> PowerDeliveryReq:
+        ev_controller = self.comm_session.ev_controller
         power_delivery_req = PowerDeliveryReq(
             ready_to_charge=True,
             charging_profile=None,
             dc_ev_power_delivery_parameter=(
-                self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
+                await ev_controller.get_dc_ev_power_delivery_parameter()
             ),
         )
         return power_delivery_req
@@ -612,7 +615,7 @@ class PowerDelivery(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.POWER_DELIVERY_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -626,46 +629,46 @@ class PowerDelivery(StateEVCC):
         if not msg:
             return
 
-        if self.comm_session.ev_controller.continue_charging():
+        if await self.comm_session.ev_controller.continue_charging():
             self.create_next_message(
                 CurrentDemand,
-                self.build_current_demand_req(),
+                await self.build_current_demand_req(),
                 Timeouts.CURRENT_DEMAND_REQ,
                 Namespace.DIN_MSG_DEF,
             )
         else:
             self.create_next_message(
                 WeldingDetection,
-                self.build_welding_detection_req(),
+                await self.build_welding_detection_req(),
                 Timeouts.WELDING_DETECTION_REQ,
                 Namespace.DIN_MSG_DEF,
             )
 
-    def build_current_demand_req(self) -> CurrentDemandReq:
-        dc_charge_params = self.comm_session.ev_controller.get_dc_charge_params()
+    async def build_current_demand_req(self) -> CurrentDemandReq:
+        ev_controller = self.comm_session.ev_controller
+        dc_charge_params = await ev_controller.get_dc_charge_params()
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             ev_target_current=dc_charge_params.dc_target_current,
             ev_max_voltage_limit=dc_charge_params.dc_max_voltage_limit,
             ev_max_current_limit=dc_charge_params.dc_max_current_limit,
             ev_max_power_limit=dc_charge_params.dc_max_power_limit,
-            bulk_charging_complete=(
-                self.comm_session.ev_controller.is_bulk_charging_complete()
-            ),
-            charging_complete=self.comm_session.ev_controller.is_charging_complete(),
+            bulk_charging_complete=(await ev_controller.is_bulk_charging_complete()),
+            charging_complete=await ev_controller.is_charging_complete(),
             remaining_time_to_full_soc=(
-                self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+                await ev_controller.get_remaining_time_to_full_soc()
             ),
             remaining_time_to_bulk_soc=(
-                self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+                await ev_controller.get_remaining_time_to_bulk_soc()
             ),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
         )
         return current_demand_req
 
-    def build_welding_detection_req(self):
+    async def build_welding_detection_req(self):
+        ev_controller = self.comm_session.ev_controller
         welding_detection_req: WeldingDetectionReq = WeldingDetectionReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec()
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec()
         )
         return welding_detection_req
 
@@ -680,7 +683,7 @@ class CurrentDemand(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.CURRENT_DEMAND_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -702,24 +705,25 @@ class CurrentDemand(StateEVCC):
         # - by EV itself where it sets ready_to_charge to False.
         if dc_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
             logger.debug("EVSE Notification received requesting to stop charging.")
-            self.stop_charging()
-        elif self.comm_session.ev_controller.continue_charging():
+            await self.stop_charging()
+        elif await self.comm_session.ev_controller.continue_charging():
             self.create_next_message(
                 None,
-                self.build_current_demand_req(),
+                await self.build_current_demand_req(),
                 Timeouts.CURRENT_DEMAND_REQ,
                 Namespace.DIN_MSG_DEF,
             )
         else:
             logger.debug("EV initiated stop charging.")
-            self.stop_charging()
+            await self.stop_charging()
 
-    def stop_charging(self):
-        self.comm_session.ev_controller.stop_charging()
+    async def stop_charging(self):
+        ev_controller = self.comm_session.ev_controller
+        await ev_controller.stop_charging()
         power_delivery_req = PowerDeliveryReq(
             ready_to_charge=False,
             dc_ev_power_delivery_parameter=(
-                self.comm_session.ev_controller.get_dc_ev_power_delivery_parameter()
+                await ev_controller.get_dc_ev_power_delivery_parameter()
             ),
         )
         self.create_next_message(
@@ -731,25 +735,22 @@ class CurrentDemand(StateEVCC):
 
         logger.debug("Stopping charging.")
 
-    def build_current_demand_req(self):
-        dc_charge_params: DCEVChargeParams = (
-            self.comm_session.ev_controller.get_dc_charge_params()
-        )
+    async def build_current_demand_req(self):
+        ev_controller = self.comm_session.ev_controller
+        dc_charge_params: DCEVChargeParams = await ev_controller.get_dc_charge_params()
         current_demand_req: CurrentDemandReq = CurrentDemandReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec(),
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             ev_target_current=dc_charge_params.dc_target_current,
             ev_max_voltage_limit=dc_charge_params.dc_max_voltage_limit,
             ev_max_current_limit=dc_charge_params.dc_max_current_limit,
             ev_max_power_limit=dc_charge_params.dc_max_power_limit,
-            bulk_charging_complete=(
-                self.comm_session.ev_controller.is_bulk_charging_complete()
-            ),
-            charging_complete=self.comm_session.ev_controller.is_charging_complete(),
+            bulk_charging_complete=(await ev_controller.is_bulk_charging_complete()),
+            charging_complete=await ev_controller.is_charging_complete(),
             remaining_time_to_full_soc=(
-                self.comm_session.ev_controller.get_remaining_time_to_full_soc()
+                await ev_controller.get_remaining_time_to_full_soc()
             ),
             remaining_time_to_bulk_soc=(
-                self.comm_session.ev_controller.get_remaining_time_to_bulk_soc()
+                await ev_controller.get_remaining_time_to_bulk_soc()
             ),
             ev_target_voltage=dc_charge_params.dc_target_voltage,
         )
@@ -770,7 +771,7 @@ class WeldingDetection(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.WELDING_DETECTION_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -794,12 +795,13 @@ class WeldingDetection(StateEVCC):
         elif self.comm_session.ongoing_timer == -1:
             self.comm_session.ongoing_timer = time()
 
+        ev_controller = self.comm_session.ev_controller
         next_state = None
         next_request: Any = WeldingDetectionReq(
-            dc_ev_status=self.comm_session.ev_controller.get_dc_ev_status_dinspec()
+            dc_ev_status=await ev_controller.get_dc_ev_status_dinspec()
         )
         next_timeout = Timeouts.WELDING_DETECTION_REQ
-        if self.comm_session.ev_controller.welding_detection_has_finished():
+        if await ev_controller.welding_detection_has_finished():
             next_state = SessionStop
             next_request = SessionStopReq()
             next_timeout = Timeouts.SESSION_STOP_REQ
@@ -821,7 +823,7 @@ class SessionStop(StateEVCC):
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.SESSION_STOP_REQ)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,

@@ -108,7 +108,7 @@ class SessionSetup(StateSECC):
         #       SDPRequest and SupportedAppProtocolReq
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -145,7 +145,7 @@ class SessionSetup(StateSECC):
         session_setup_res = SessionSetupRes(
             header=MessageHeader(session_id=session_id, timestamp=time.time()),
             response_code=self.response_code,
-            evse_id=self.comm_session.evse_controller.get_evse_id(
+            evse_id=await self.comm_session.evse_controller.get_evse_id(
                 Protocol.ISO_15118_20_COMMON_MESSAGES
             ),
         )
@@ -188,7 +188,7 @@ class AuthorizationSetup(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_auth_setup_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -212,15 +212,15 @@ class AuthorizationSetup(StateSECC):
             return
 
         if isinstance(msg, CertificateInstallationReq):
-            CertificateInstallation(self.comm_session).process_message(message)
+            await CertificateInstallation(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, AuthorizationReq):
-            Authorization(self.comm_session).process_message(message)
+            await Authorization(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         auth_options: List[AuthEnum] = []
@@ -232,7 +232,7 @@ class AuthorizationSetup(StateSECC):
             self.comm_session.gen_challenge = get_random_bytes(16)
             pnc_as_res = PnCAuthSetupResParams(
                 gen_challenge=self.comm_session.gen_challenge,
-                supported_providers=self.comm_session.evse_controller.get_supported_providers(),  # noqa: E501
+                supported_providers=await self.comm_session.evse_controller.get_supported_providers(),  # noqa: E501
             )
 
         if AuthEnum.EIM in supported_auth_options:
@@ -279,7 +279,7 @@ class CertificateInstallation(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -318,7 +318,7 @@ class Authorization(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_authorization_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -342,15 +342,15 @@ class Authorization(StateSECC):
             return
 
         if isinstance(msg, CertificateInstallationReq):
-            CertificateInstallation(self.comm_session).process_message(message)
+            await CertificateInstallation(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, ServiceDiscoveryReq):
-            ServiceDiscovery(self.comm_session).process_message(message)
+            await ServiceDiscovery(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         auth_req: AuthorizationReq = msg
@@ -378,11 +378,11 @@ class Authorization(StateSECC):
             if auth_req.pnc_params.gen_challenge != self.comm_session.gen_challenge:
                 response_code = ResponseCode.WARN_CHALLENGE_INVALID
 
-        if self.comm_session.evse_controller.is_authorized() == (
+        if await self.comm_session.evse_controller.is_authorized() == (
             AuthorizationStatus.ACCEPTED
         ):
             auth_status = Processing.FINISHED
-        elif self.comm_session.evse_controller.is_authorized() == (
+        elif await self.comm_session.evse_controller.is_authorized() == (
             AuthorizationStatus.ONGOING
         ):
             auth_status = Processing.ONGOING
@@ -433,7 +433,7 @@ class ServiceDiscovery(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_service_discovery_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -452,18 +452,18 @@ class ServiceDiscovery(StateSECC):
             return
 
         if isinstance(msg, ServiceDetailReq):
-            ServiceDetail(self.comm_session).process_message(message)
+            await ServiceDetail(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         service_discovery_req: ServiceDiscoveryReq = msg
         # TODO: Filter services based on
         #  SupportedServiceIDs field in ServiceDiscoveryReq
         offered_energy_services = (
-            self.comm_session.evse_controller.get_energy_service_list()
+            await self.comm_session.evse_controller.get_energy_service_list()
         )
         for energy_service in offered_energy_services.services:
             self.comm_session.matched_services_v20.append(
@@ -494,7 +494,7 @@ class ServiceDiscovery(StateSECC):
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            service_renegotiation_supported=self.comm_session.evse_controller.service_renegotiation_supported(),  # noqa: E501
+            service_renegotiation_supported=await self.comm_session.evse_controller.service_renegotiation_supported(),  # noqa: E501
             energy_service_list=offered_energy_services,
             vas_list=offered_vas,
         )
@@ -550,7 +550,7 @@ class ServiceDetail(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_service_detail_req = True
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -572,17 +572,17 @@ class ServiceDetail(StateSECC):
             return
 
         if isinstance(msg, ServiceSelectionReq):
-            ServiceSelection(self.comm_session).process_message(message)
+            await ServiceSelection(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         service_detail_req: ServiceDetailReq = msg
 
         service_parameter_list = (
-            self.comm_session.evse_controller.get_service_parameter_list(
+            await self.comm_session.evse_controller.get_service_parameter_list(
                 service_detail_req.service_id
             )
         )
@@ -620,7 +620,7 @@ class ServiceSelection(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -635,7 +635,7 @@ class ServiceSelection(StateSECC):
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         service_selection_req: ServiceSelectionReq = msg
@@ -796,7 +796,7 @@ class ScheduleExchange(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -815,15 +815,15 @@ class ScheduleExchange(StateSECC):
             return
 
         if isinstance(msg, DCCableCheckReq):
-            DCCableCheck(self.comm_session).process_message(message)
+            await DCCableCheck(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, PowerDeliveryReq):
-            PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         schedule_exchange_req: ScheduleExchangeReq = msg
@@ -832,7 +832,7 @@ class ScheduleExchange(StateSECC):
         evse_processing = Processing.ONGOING
         if self.comm_session.control_mode == ControlMode.SCHEDULED:
             scheduled_params = (
-                self.comm_session.evse_controller.get_scheduled_se_params(
+                await self.comm_session.evse_controller.get_scheduled_se_params(
                     self.comm_session.selected_energy_service, schedule_exchange_req
                 )
             )
@@ -843,8 +843,10 @@ class ScheduleExchange(StateSECC):
                 )
 
         if self.comm_session.control_mode == ControlMode.DYNAMIC:
-            dynamic_params = self.comm_session.evse_controller.get_dynamic_se_params(
-                self.comm_session.selected_energy_service, schedule_exchange_req
+            dynamic_params = (
+                await self.comm_session.evse_controller.get_dynamic_se_params(
+                    self.comm_session.selected_energy_service, schedule_exchange_req
+                )
             )
             if dynamic_params:
                 evse_processing = Processing.FINISHED
@@ -889,7 +891,7 @@ class PowerDelivery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -904,7 +906,7 @@ class PowerDelivery(StateSECC):
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         power_delivery_req: PowerDeliveryReq = msg
@@ -978,9 +980,9 @@ class PowerDelivery(StateSECC):
                 # "Start" within V2G communication session.
                 # TODO: We may need to check the CP state is C or D before
                 #  closing the contactors.
-                self.comm_session.evse_controller.close_contactor()
+                await self.comm_session.evse_controller.close_contactor()
                 contactor_state = (
-                    self.comm_session.evse_controller.get_contactor_state()
+                    await self.comm_session.evse_controller.get_contactor_state()
                 )
                 if contactor_state == Contactor.OPENED:
                     self.stop_state_machine(
@@ -1037,7 +1039,7 @@ class SessionStop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1053,12 +1055,13 @@ class SessionStop(StateSECC):
 
         session_stop_req: SessionStopReq = msg
 
+        evse_controller = self.comm_session.evse_controller
         # [V2G20-1477] : If EVSE supports ServiceRegotiation and EVCC requests
         # it in the SessionStopReq, the next state should be set to ServiceDiscoveryReq
         next_state = Terminate
         if (
             session_stop_req.charging_session == ChargingSession.SERVICE_RENEGOTIATION
-            and self.comm_session.evse_controller.service_renegotiation_supported()
+            and await evse_controller.service_renegotiation_supported()
         ):
             next_state = ServiceDiscoveryReq
             stopped = "paused"
@@ -1114,7 +1117,7 @@ class ACChargeParameterDiscovery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1131,7 +1134,7 @@ class ACChargeParameterDiscovery(StateSECC):
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         ac_cpd_req: ACChargeParameterDiscoveryReq = msg
@@ -1142,12 +1145,14 @@ class ACChargeParameterDiscovery(StateSECC):
         if energy_service == ServiceV20.AC and self.charge_parameter_valid(
             ac_cpd_req.ac_params
         ):
-            ac_params = self.comm_session.evse_controller.get_ac_charge_params_v20()
+            ac_params = (
+                await self.comm_session.evse_controller.get_ac_charge_params_v20()
+            )
         elif energy_service == ServiceV20.AC_BPT and self.charge_parameter_valid(
             ac_cpd_req.bpt_ac_params
         ):
             bpt_ac_params = (
-                self.comm_session.evse_controller.get_ac_bpt_charge_params_v20()
+                await self.comm_session.evse_controller.get_ac_bpt_charge_params_v20()
             )
         else:
             self.stop_state_machine(
@@ -1193,7 +1198,7 @@ class ACChargeLoop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1214,11 +1219,11 @@ class ACChargeLoop(StateSECC):
             return
 
         if isinstance(msg, PowerDeliveryReq):
-            PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message)
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         ac_charge_loop_req: ACChargeLoopReq = msg
@@ -1231,20 +1236,20 @@ class ACChargeLoop(StateSECC):
         if selected_energy_service.service == ServiceV20.AC:
             if control_mode == ControlMode.SCHEDULED:
                 scheduled_params = (
-                    self.comm_session.evse_controller.get_scheduled_ac_charge_loop_params()  # noqa
+                    await self.comm_session.evse_controller.get_scheduled_ac_charge_loop_params()  # noqa
                 )
             elif control_mode == ControlMode.DYNAMIC:
                 dynamic_params = (
-                    self.comm_session.evse_controller.get_dynamic_ac_charge_loop_params()  # noqa
+                    await self.comm_session.evse_controller.get_dynamic_ac_charge_loop_params()  # noqa
                 )
         elif selected_energy_service.service == ServiceV20.AC_BPT:
             if control_mode == ControlMode.SCHEDULED:
                 bpt_scheduled_params = (
-                    self.comm_session.evse_controller.get_bpt_scheduled_ac_charge_loop_params()  # noqa
+                    await self.comm_session.evse_controller.get_bpt_scheduled_ac_charge_loop_params()  # noqa
                 )
             else:
                 bpt_dynamic_params = (
-                    self.comm_session.evse_controller.get_bpt_dynamic_ac_charge_loop_params()  # noqa
+                    await self.comm_session.evse_controller.get_bpt_dynamic_ac_charge_loop_params()  # noqa
                 )
         else:
             logger.error(
@@ -1254,7 +1259,7 @@ class ACChargeLoop(StateSECC):
 
         meter_info = None
         if ac_charge_loop_req.meter_info_requested:
-            meter_info = self.comm_session.evse_controller.get_meter_info_v20()
+            meter_info = await self.comm_session.evse_controller.get_meter_info_v20()
 
         ac_charge_loop_res = ACChargeLoopRes(
             header=MessageHeader(
@@ -1297,7 +1302,7 @@ class DCChargeParameterDiscovery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1314,7 +1319,7 @@ class DCChargeParameterDiscovery(StateSECC):
             return
 
         if isinstance(msg, SessionStopReq):
-            SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message)
             return
 
         dc_cpd_req: DCChargeParameterDiscoveryReq = msg
@@ -1325,12 +1330,14 @@ class DCChargeParameterDiscovery(StateSECC):
         if energy_service == ServiceV20.DC and self.charge_parameter_valid(
             dc_cpd_req.dc_params
         ):
-            dc_params = self.comm_session.evse_controller.get_dc_charge_params_v20()
+            dc_params = (
+                await self.comm_session.evse_controller.get_dc_charge_params_v20()
+            )
         elif energy_service == ServiceV20.DC_BPT and self.charge_parameter_valid(
             dc_cpd_req.bpt_dc_params
         ):
             bpt_dc_params = (
-                self.comm_session.evse_controller.get_dc_bpt_charge_params_v20()
+                await self.comm_session.evse_controller.get_dc_bpt_charge_params_v20()
             )
         else:
             self.stop_state_machine(
@@ -1376,7 +1383,7 @@ class DCCableCheck(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1398,7 +1405,7 @@ class DCPreCharge(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1420,7 +1427,7 @@ class DCChargeLoop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,
@@ -1442,7 +1449,7 @@ class DCWeldingDetection(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    def process_message(
+    async def process_message(
         self,
         message: Union[
             SupportedAppProtocolReq,

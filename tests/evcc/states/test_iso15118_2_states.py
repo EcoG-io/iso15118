@@ -16,7 +16,7 @@ from tests.evcc.states.test_messages import (
 )
 
 
-@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value="\x01"))
+@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b"01"))
 @pytest.mark.asyncio
 class TestEvScenarios:
     @pytest.fixture(autouse=True)
@@ -26,7 +26,9 @@ class TestEvScenarios:
     async def test_current_demand_to_current_demand(self):
         #  according V2G2-531
         current_demand = CurrentDemand(self.comm_session)
-        current_demand.process_message(message=get_v2g_message_current_demand_res())
+        await current_demand.process_message(
+            message=get_v2g_message_current_demand_res()
+        )
         assert current_demand.next_state == CurrentDemand
 
     async def test_current_demand_power_delivery_when_notification_is_stop_charging(
@@ -36,7 +38,7 @@ class TestEvScenarios:
         # as well in states chargeParameterDiscoveryRes, PowerDeliveryREs,
         # MeteringReceiptRes, PrechargeRes, currentDemandRes, WeldingDetectionREs ??
         current_demand = CurrentDemand(self.comm_session)
-        current_demand.process_message(
+        await current_demand.process_message(
             message=get_v2g_message_current_demand_res_with_stop_charging(),
         )
         assert current_demand.next_state == PowerDelivery
@@ -52,5 +54,7 @@ class TestEvScenarios:
         self.comm_session.stop_reason = StopNotification(True, "pytest")
         power_delivery = PowerDelivery(self.comm_session)
         self.comm_session.charging_session_stop_v2 = ChargingSession.TERMINATE
-        power_delivery.process_message(message=get_v2g_message_power_delivery_res())
+        await power_delivery.process_message(
+            message=get_v2g_message_power_delivery_res()
+        )
         assert power_delivery.next_state == WeldingDetection

@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -21,7 +21,7 @@ from tests.secc.states.test_messages import (
 )
 
 
-@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value="\x01"))
+@patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b"01"))
 @pytest.mark.asyncio
 class TestEvScenarios:
     @pytest.fixture(autouse=True)
@@ -33,7 +33,9 @@ class TestEvScenarios:
     ):
         current_demand = CurrentDemand(self.comm_session)
         current_demand.expecting_current_demand_req = False
-        current_demand.process_message(message=get_v2g_message_power_delivery_req())
+        await current_demand.process_message(
+            message=get_v2g_message_power_delivery_req()
+        )
         assert isinstance(self.comm_session.current_state, PowerDelivery)
 
     async def test_power_delivery_to_welding_detection_when_welding_detection_received(
@@ -42,7 +44,7 @@ class TestEvScenarios:
         # V2G2-601 (to WeldingDetection)
         power_delivery = PowerDelivery(self.comm_session)
         power_delivery.expecting_power_delivery_req = False
-        power_delivery.process_message(
+        await power_delivery.process_message(
             message=get_dummy_v2g_message_welding_detection_req()
         )
         assert isinstance(self.comm_session.current_state, WeldingDetection)
@@ -74,10 +76,12 @@ class TestEvScenarios:
         expected_next_state: StateSECC,
     ):
         self.comm_session.selected_auth_option = AuthEnum.EIM
-        mock_is_authorized = Mock(return_value=is_authorized_return_value)
+        mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
         self.comm_session.evse_controller.is_authorized = mock_is_authorized
         authorization = Authorization(self.comm_session)
-        authorization.process_message(message=get_dummy_v2g_message_authorization_req())
+        await authorization.process_message(
+            message=get_dummy_v2g_message_authorization_req()
+        )
         assert authorization.next_state == expected_next_state
 
     async def test_charge_parameter_discovery_res_v2g2_303(self):
@@ -88,7 +92,7 @@ class TestEvScenarios:
         charge_parameter_discovery_req_departure_time_set = (
             get_charge_parameter_discovery_req_message_departure_time_one_hour()
         )
-        charge_parameter_discovery.process_message(
+        await charge_parameter_discovery.process_message(
             message=charge_parameter_discovery_req_departure_time_set
         )
 
@@ -135,7 +139,7 @@ class TestEvScenarios:
         # in PMaxSchedule shall be greater than or equal to 24 hours.
         twenty_four_hours_in_seconds = 86400
         charge_parameter_discovery = ChargeParameterDiscovery(self.comm_session)
-        charge_parameter_discovery.process_message(
+        await charge_parameter_discovery.process_message(
             message=get_charge_parameter_discovery_req_message_no_departure_time()
         )
         assert (
@@ -175,7 +179,7 @@ class TestEvScenarios:
         # V2G2-761: If departure time was not provided, then SECC shall assume
         # that the EV intends to start charging without any delay
         charge_parameter_discovery = ChargeParameterDiscovery(self.comm_session)
-        charge_parameter_discovery.process_message(
+        await charge_parameter_discovery.process_message(
             message=get_charge_parameter_discovery_req_message_no_departure_time()
         )
         assert (

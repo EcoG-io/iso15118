@@ -90,7 +90,7 @@ class EVSEControllerInterface(ABC):
     # ============================================================================
 
     @abstractmethod
-    def get_evse_id(self, protocol: Protocol) -> str:
+    async def get_evse_id(self, protocol: Protocol) -> str:
         """
         Gets the ID of the EVSE (Electric Vehicle Supply Equipment), which is
         controlling the energy flow to the connector the EV is plugged into.
@@ -103,7 +103,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_supported_energy_transfer_modes(
+    async def get_supported_energy_transfer_modes(
         self, protocol: Protocol
     ) -> List[EnergyTransferModeEnum]:
         """
@@ -116,7 +116,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_scheduled_se_params(
+    async def get_scheduled_se_params(
         self,
         selected_energy_service: SelectedEnergyService,
         schedule_exchange_req: ScheduleExchangeReq,
@@ -143,7 +143,7 @@ class EVSEControllerInterface(ABC):
         """
 
     @abstractmethod
-    def get_dynamic_se_params(
+    async def get_dynamic_se_params(
         self,
         selected_energy_service: SelectedEnergyService,
         schedule_exchange_req: ScheduleExchangeReq,
@@ -170,7 +170,7 @@ class EVSEControllerInterface(ABC):
         """
 
     @abstractmethod
-    def get_energy_service_list(self) -> ServiceList:
+    async def get_energy_service_list(self) -> ServiceList:
         """
         The available energy transfer services
 
@@ -180,7 +180,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_authorized(self) -> AuthorizationStatus:
+    async def is_authorized(self) -> AuthorizationStatus:
         """
         Provides the information on whether or not the user is authorized to charge at
         this EVSE. The auth token could be an RFID card, a whitelisted MAC address
@@ -195,7 +195,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_sa_schedule_list(
+    async def get_sa_schedule_list(
         self,
         ev_charge_params_limits: EVChargeParamsLimits,
         max_schedule_entries: Optional[int],
@@ -229,7 +229,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_sa_schedule_list_dinspec(
+    async def get_sa_schedule_list_dinspec(
         self, max_schedule_entries: Optional[int], departure_time: int = 0
     ) -> Optional[List[SAScheduleTupleEntryDINSPEC]]:
         """
@@ -258,7 +258,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_meter_info_v2(self) -> MeterInfoV2:
+    async def get_meter_info_v2(self) -> MeterInfoV2:
         """
         Provides the MeterInfo from the EVSE's smart meter
 
@@ -271,7 +271,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_meter_info_v20(self) -> MeterInfoV2:
+    async def get_meter_info_v20(self) -> MeterInfoV2:
         """
         Provides the MeterInfo from the EVSE's smart meter
 
@@ -284,7 +284,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_supported_providers(self) -> Optional[List[ProviderID]]:
+    async def get_supported_providers(self) -> Optional[List[ProviderID]]:
         """
         Provides a list of eMSPs (E-Mobility Service Providers) supported by the SECC.
         This allows EVCC to filter the list of contract certificates to be utilized
@@ -296,7 +296,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set_hlc_charging(self, is_ongoing: bool) -> None:
+    async def set_hlc_charging(self, is_ongoing: bool) -> None:
         """
         Notify that high level communication is ongoing or not.
         Args:
@@ -307,7 +307,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def service_renegotiation_supported(self) -> bool:
+    async def service_renegotiation_supported(self) -> bool:
         """
         Whether or not service renegotiation is supported
 
@@ -317,7 +317,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_service_parameter_list(
+    async def get_service_parameter_list(
         self, service_id: int
     ) -> Optional[ServiceParameterList]:
         """
@@ -337,10 +337,10 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def stop_charger(self) -> None:
+    async def stop_charger(self) -> None:
         raise NotImplementedError
 
-    def open_contactor(self):
+    async def open_contactor(self):
         """
         Sends a command to the SECC to open the contactor to terminate energy flow
 
@@ -350,7 +350,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def close_contactor(self):
+    async def close_contactor(self):
         """
         Sends a command to the SECC to open the contactor to initiate energy flow
 
@@ -360,7 +360,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_contactor_state(self) -> Contactor:
+    async def get_contactor_state(self) -> Contactor:
         """
         Informs whether the contactor is opened or closed
 
@@ -370,7 +370,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_evse_status(self) -> EVSEStatus:
+    async def get_evse_status(self) -> EVSEStatus:
         """
         Gets the status of the EVSE
 
@@ -384,7 +384,7 @@ class EVSEControllerInterface(ABC):
     # ============================================================================
 
     @abstractmethod
-    def get_ac_evse_status(self) -> ACEVSEStatus:
+    async def get_ac_evse_status(self) -> ACEVSEStatus:
         """
         Gets the AC-specific EVSE status information
 
@@ -394,7 +394,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_ac_charge_params_v2(self) -> ACEVSEChargeParameter:
+    async def get_ac_charge_params_v2(self) -> ACEVSEChargeParameter:
         """
         Gets the AC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
 
@@ -404,7 +404,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryResParams:
+    async def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryResParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
         AC charging.
@@ -415,7 +415,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_ac_bpt_charge_params_v20(self) -> BPTACChargeParameterDiscoveryResParams:
+    async def get_ac_bpt_charge_params_v20(
+        self,
+    ) -> BPTACChargeParameterDiscoveryResParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
         bidirectional AC charging.
@@ -426,7 +428,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_scheduled_ac_charge_loop_params(self) -> ScheduledACChargeLoopResParams:
+    async def get_scheduled_ac_charge_loop_params(
+        self,
+    ) -> ScheduledACChargeLoopResParams:
         """
         Gets the parameters for the ACChargeLoopRes in the Scheduled control mode
 
@@ -436,7 +440,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_bpt_scheduled_ac_charge_loop_params(
+    async def get_bpt_scheduled_ac_charge_loop_params(
         self,
     ) -> BPTScheduledACChargeLoopResParams:
         """
@@ -449,7 +453,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dynamic_ac_charge_loop_params(self) -> DynamicACChargeLoopResParams:
+    async def get_dynamic_ac_charge_loop_params(self) -> DynamicACChargeLoopResParams:
         """
         Gets the parameters for the ACChargeLoopRes in the Dynamic control mode
 
@@ -459,7 +463,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_bpt_dynamic_ac_charge_loop_params(self) -> BPTDynamicACChargeLoopResParams:
+    async def get_bpt_dynamic_ac_charge_loop_params(
+        self,
+    ) -> BPTDynamicACChargeLoopResParams:
         """
         Gets the parameters for the ACChargeLoopRes in the Dynamic control mode for
         bidirectional power transfer (BPT)
@@ -474,7 +480,7 @@ class EVSEControllerInterface(ABC):
     # ============================================================================
 
     @abstractmethod
-    def get_dc_evse_status(self) -> DCEVSEStatus:
+    async def get_dc_evse_status(self) -> DCEVSEStatus:
         """
         Gets the DC-specific EVSE status information
 
@@ -484,7 +490,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
+    async def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         """
         Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
 
@@ -494,7 +500,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
+    async def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
         """
         Gets the presently available voltage at the EVSE
 
@@ -504,7 +510,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_evse_present_current(self) -> PVEVSEPresentCurrent:
+    async def get_evse_present_current(self) -> PVEVSEPresentCurrent:
         """
         Gets the presently available voltage at the EVSE
 
@@ -514,7 +520,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set_precharge(self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent):
+    async def set_precharge(
+        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
+    ):
         """
         Sets the precharge information coming from the EV.
         The charger must adapt it's output voltage to the requested voltage from the EV.
@@ -527,7 +535,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def start_cable_check(self):
+    async def start_cable_check(self):
         """
         This method is called at the beginning of the state CableCheck.
         It requests the charger to perform a CableCheck
@@ -539,7 +547,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def send_charging_command(
+    async def send_charging_command(
         self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
     ):
         """
@@ -554,7 +562,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_evse_current_limit_achieved(self) -> bool:
+    async def is_evse_current_limit_achieved(self) -> bool:
         """
         Returns true if the current limit of the charger has achieved
 
@@ -564,7 +572,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_evse_voltage_limit_achieved(self) -> bool:
+    async def is_evse_voltage_limit_achieved(self) -> bool:
         """
         Returns true if the current limit of the charger has achieved
 
@@ -574,7 +582,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_evse_power_limit_achieved(self) -> bool:
+    async def is_evse_power_limit_achieved(self) -> bool:
         """
         Returns true if the current limit of the charger has achieved
 
@@ -584,7 +592,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
+    async def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
         """
         Gets the max voltage that can be provided by the charger
 
@@ -594,7 +602,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
+    async def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
         """
         Gets the max current that can be provided by the charger
 
@@ -604,7 +612,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryResParams:
+    async def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryResParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
         DC charging.
@@ -612,7 +620,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
+    async def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
         """
         Gets the max power that can be provided by the charger
 
@@ -622,7 +630,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_dc_bpt_charge_params_v20(self) -> BPTDCChargeParameterDiscoveryResParams:
+    async def get_dc_bpt_charge_params_v20(
+        self,
+    ) -> BPTDCChargeParameterDiscoveryResParams:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
         bidirectional DC charging.
