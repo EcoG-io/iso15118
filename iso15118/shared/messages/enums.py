@@ -416,5 +416,6 @@ class PriceAlgorithm(str, Enum):
 
 
 class Contactor(IntEnum):
+    ERROR = 0
     OPENED = 1
     CLOSED = 2
