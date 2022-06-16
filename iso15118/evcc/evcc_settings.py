@@ -75,6 +75,7 @@ class Config:
         # has higher priority than second list entry). A list entry must be a member
         # of the Protocol enum
         self.supported_protocols = [
+            Protocol.ISO_15118_20_AC,
             Protocol.ISO_15118_2,
             Protocol.DIN_SPEC_70121,
         ]
