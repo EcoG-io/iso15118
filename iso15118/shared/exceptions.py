@@ -213,3 +213,11 @@ class KeyTypeError(Exception):
 
 class PrivateKeyReadError(Exception):
     """Is thrown when an error occurs while trying to load a private key"""
+
+
+class NoSupportedProtocols(Exception):
+    """Is thrown when no supported protocols are configured"""
+
+
+class NoSupportedAuthenticationModes(Exception):
+    """Is thrown when no supported authentication modes are configured"""
