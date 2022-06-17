@@ -56,7 +56,7 @@ from iso15118.shared.messages.enums import (
     EVSEProcessing,
     IsolationLevel,
     Namespace,
-    Protocol,
+    Protocol, Contactor,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -644,6 +644,15 @@ class PowerDelivery(StateSECC):
                 "WeldingDetectionReq/SessionStopReq"
             )
             next_state = None
+            await self.comm_session.evse_controller.open_contactor()
+            contactor_state = await self.comm_session.evse_controller.open_contactor()
+            if contactor_state != Contactor.OPENED:
+                self.stop_state_machine(
+                    "Contactor didnt open",
+                    message,
+                    ResponseCode.FAILED_CONTACTOR_ERROR,
+                )
+                return
             await self.comm_session.evse_controller.stop_charger()
 
         dc_evse_status = await self.comm_session.evse_controller.get_dc_evse_status()

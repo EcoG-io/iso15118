@@ -1271,6 +1271,22 @@ class PowerDelivery(StateSECC):
         next_state: Type[State]
         if power_delivery_req.charge_progress == ChargeProgress.START:
             await self.comm_session.evse_controller.set_hlc_charging(True)
+            # [V2G2-847] - The EV shall signal CP State C or D no later than 250ms
+            # after sending the first PowerDeliveryReq with ChargeProgress equals
+            # "Start" within V2G Communication SessionPowerDeliveryReq.
+            # [V2G2-860] - If no error is detected, the SECC shall close the Contactor
+            # no later than 3s after measuring CP State C or D.
+            # Before closing the contactor, we may need to check to
+            # ensure the CP is in state C or D
+            contactor_state = await self.comm_session.evse_controller.close_contactor()
+            if contactor_state != Contactor.CLOSED:
+                self.stop_state_machine(
+                    "Contactor didnt close",
+                    message,
+                    ResponseCode.FAILED_CONTACTOR_ERROR,
+                )
+                return
+
             if self.comm_session.selected_charging_type_is_ac:
                 next_state = ChargingStatus
             else:
@@ -1279,14 +1295,20 @@ class PowerDelivery(StateSECC):
                 power_delivery_req.sa_schedule_tuple_id
             )
             self.comm_session.charge_progress_started = True
-        elif (
-            power_delivery_req.charge_progress == ChargeProgress.STOP
-            and self.comm_session.selected_charging_type_is_ac
-        ):
-            await self.comm_session.evse_controller.set_hlc_charging(False)
-            next_state = SessionStop
         elif power_delivery_req.charge_progress == ChargeProgress.STOP:
             next_state = None
+            if self.comm_session.selected_charging_type_is_ac:
+                await self.comm_session.evse_controller.set_hlc_charging(False)
+                next_state = SessionStop
+
+            contactor_state = await self.comm_session.evse_controller.open_contactor()
+            if contactor_state != Contactor.OPENED:
+                self.stop_state_machine(
+                    "Contactor didnt open",
+                    message,
+                    ResponseCode.FAILED_CONTACTOR_ERROR,
+                )
+                return
             await self.comm_session.evse_controller.stop_charger()
         else:
             # ChargeProgress only has three enum values: Start, Stop, and
@@ -1303,22 +1325,6 @@ class PowerDelivery(StateSECC):
                     ResponseCode.FAILED,
                 )
                 return
-
-        # [V2G2-847] - The EV shall signal CP State C or D no later than 250ms
-        # after sending the first PowerDeliveryReq with ChargeProgress equals
-        # "Start" within V2G Communication SessionPowerDeliveryReq.
-        # [V2G2-860] - If no error is detected, the SECC shall close the Contactor
-        # no later than 3s after measuring CP State C or D.
-        # Before closing the contactor, we may need to check to
-        # ensure the CP is in state C or D
-        contactor_state = await self.comm_session.evse_controller.close_contactor()
-        if contactor_state != Contactor.CLOSED:
-            self.stop_state_machine(
-                "Contactor didnt close",
-                message,
-                ResponseCode.FAILED_CONTACTOR_ERROR,
-            )
-            return
 
         ac_evse_status: Optional[ACEVSEStatus] = None
         dc_evse_status: Optional[DCEVSEStatus] = None
