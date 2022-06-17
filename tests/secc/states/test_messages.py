@@ -182,7 +182,7 @@ def get_dummy_v2g_message_power_delivery_req_charge_start():
 
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),
-        body=Body(power_delivery_req=power_delivery_req)
+        body=Body(power_delivery_req=power_delivery_req),
     )
 
 
@@ -194,5 +194,5 @@ def get_dummy_v2g_message_power_delivery_req_charge_stop():
 
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),
-        body=Body(power_delivery_req=power_delivery_req)
+        body=Body(power_delivery_req=power_delivery_req),
     )

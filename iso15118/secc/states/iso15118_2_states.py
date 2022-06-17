@@ -1314,7 +1314,7 @@ class PowerDelivery(StateSECC):
         contactor_state = await self.comm_session.evse_controller.close_contactor()
         if contactor_state != Contactor.CLOSED:
             self.stop_state_machine(
-                "Contactor is still open when about to send PowerDeliveryRes",
+                "Contactor didnt close",
                 message,
                 ResponseCode.FAILED_CONTACTOR_ERROR,
             )

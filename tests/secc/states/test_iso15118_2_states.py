@@ -16,9 +16,10 @@ from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
     get_dummy_v2g_message_authorization_req,
+    get_dummy_v2g_message_power_delivery_req_charge_start,
+    get_dummy_v2g_message_power_delivery_req_charge_stop,
     get_dummy_v2g_message_welding_detection_req,
     get_v2g_message_power_delivery_req,
-    get_dummy_v2g_message_power_delivery_req_charge_start, get_dummy_v2g_message_power_delivery_req_charge_stop,
 )
 
 
@@ -30,7 +31,7 @@ class TestEvScenarios:
         self.comm_session = comm_secc_session_mock
 
     async def test_current_demand_to_power_delivery_when_power_delivery_received(
-            self,
+        self,
     ):
         current_demand = CurrentDemand(self.comm_session)
         current_demand.expecting_current_demand_req = False
@@ -40,7 +41,7 @@ class TestEvScenarios:
         assert isinstance(self.comm_session.current_state, PowerDelivery)
 
     async def test_power_delivery_to_welding_detection_when_welding_detection_received(
-            self,
+        self,
     ):
         # V2G2-601 (to WeldingDetection)
         power_delivery = PowerDelivery(self.comm_session)
@@ -51,7 +52,7 @@ class TestEvScenarios:
         assert isinstance(self.comm_session.current_state, WeldingDetection)
 
     async def test_welding_detection_to_session_stop_when_session_stop_received(
-            self,
+        self,
     ):
         pass
         # V2G2-570
@@ -66,15 +67,15 @@ class TestEvScenarios:
                 Terminate,
                 marks=pytest.mark.xfail(
                     reason="REJECTED handling not implemented yet; "
-                           "see GitHub issue #54",
+                    "see GitHub issue #54",
                 ),
             ),
         ],
     )
     async def test_authorization_next_state_on_authorization_request(
-            self,
-            is_authorized_return_value: AuthorizationStatus,
-            expected_next_state: StateSECC,
+        self,
+        is_authorized_return_value: AuthorizationStatus,
+        expected_next_state: StateSECC,
     ):
         self.comm_session.selected_auth_option = AuthEnum.EIM
         mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
@@ -99,12 +100,12 @@ class TestEvScenarios:
 
         charging_duration = (
             charge_parameter_discovery_req_departure_time_set.body.charge_parameter_discovery_req.ac_ev_charge_parameter.departure_time
-        # noqa
+            # noqa
         )
 
         assert (
-                charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
-                is not None
+            charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
+            is not None
         )
         charge_parameter_discovery_res = (
             charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
@@ -131,8 +132,8 @@ class TestEvScenarios:
                     ].time_interval.duration
                 )
                 schedule_duration = (
-                                            last_entry_start_time - first_entry_start_time
-                                    ) + last_entry_schedule_duration
+                    last_entry_start_time - first_entry_start_time
+                ) + last_entry_schedule_duration
 
             assert schedule_duration == charging_duration
 
@@ -145,8 +146,8 @@ class TestEvScenarios:
             message=get_charge_parameter_discovery_req_message_no_departure_time()
         )
         assert (
-                charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
-                is not None
+            charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
+            is not None
         )
         charge_parameter_discovery_res = (
             charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
@@ -173,8 +174,8 @@ class TestEvScenarios:
                     ].time_interval.duration
                 )
                 schedule_duration = (
-                                            last_entry_start_time - first_entry_start_time
-                                    ) + last_entry_schedule_duration
+                    last_entry_start_time - first_entry_start_time
+                ) + last_entry_schedule_duration
             assert schedule_duration >= twenty_four_hours_in_seconds
 
     async def test_charge_parameter_discovery_res_v2g2_761(self):
@@ -185,8 +186,8 @@ class TestEvScenarios:
             message=get_charge_parameter_discovery_req_message_no_departure_time()
         )
         assert (
-                charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
-                is not None
+            charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
+            is not None
         )
         charge_parameter_discovery_res = (
             charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
@@ -208,7 +209,7 @@ class TestEvScenarios:
             assert found_entry_indicating_start_without_delay is True
 
     async def test_power_delivery_contactor_close(
-            self,
+        self,
     ):
         power_delivery = PowerDelivery(self.comm_session)
         await power_delivery.process_message(
@@ -217,7 +218,7 @@ class TestEvScenarios:
         assert self.comm_session.evse_controller.contactor is Contactor.CLOSED
 
     async def test_power_delivery_contactor_open(
-            self,
+        self,
     ):
         power_delivery = PowerDelivery(self.comm_session)
         await power_delivery.process_message(
@@ -226,10 +227,13 @@ class TestEvScenarios:
         assert self.comm_session.evse_controller.contactor is Contactor.OPENED
 
     async def test_power_delivery_contactor_get_state(
-            self,
+        self,
     ):
         power_delivery = PowerDelivery(self.comm_session)
         await power_delivery.process_message(
             message=get_dummy_v2g_message_power_delivery_req_charge_start()
         )
-        assert await self.comm_session.evse_controller.get_contactor_state() is Contactor.CLOSED
+        assert (
+            await self.comm_session.evse_controller.get_contactor_state()
+            is Contactor.CLOSED
+        )
