@@ -52,6 +52,7 @@ from iso15118.shared.messages.din_spec.timeouts import Timeouts
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
+    Contactor,
     DCEVErrorCode,
     EVSEProcessing,
     IsolationLevel,
@@ -644,6 +645,15 @@ class PowerDelivery(StateSECC):
                 "WeldingDetectionReq/SessionStopReq"
             )
             next_state = None
+            await self.comm_session.evse_controller.open_contactor()
+            contactor_state = await self.comm_session.evse_controller.open_contactor()
+            if contactor_state != Contactor.OPENED:
+                self.stop_state_machine(
+                    "Contactor didnt open",
+                    message,
+                    ResponseCode.FAILED_CONTACTOR_ERROR,
+                )
+                return
             await self.comm_session.evse_controller.stop_charger()
 
         dc_evse_status = await self.comm_session.evse_controller.get_dc_evse_status()

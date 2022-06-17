@@ -11,11 +11,13 @@ from iso15118.secc.states.iso15118_2_states import (
     WeldingDetection,
 )
 from iso15118.secc.states.secc_state import StateSECC
-from iso15118.shared.messages.enums import AuthEnum, AuthorizationStatus
+from iso15118.shared.messages.enums import AuthEnum, AuthorizationStatus, Contactor
 from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
     get_dummy_v2g_message_authorization_req,
+    get_dummy_v2g_message_power_delivery_req_charge_start,
+    get_dummy_v2g_message_power_delivery_req_charge_stop,
     get_dummy_v2g_message_welding_detection_req,
     get_v2g_message_power_delivery_req,
 )
@@ -204,3 +206,33 @@ class TestEvScenarios:
                     break
 
             assert found_entry_indicating_start_without_delay is True
+
+    async def test_power_delivery_contactor_close(
+        self,
+    ):
+        power_delivery = PowerDelivery(self.comm_session)
+        await power_delivery.process_message(
+            message=get_dummy_v2g_message_power_delivery_req_charge_start()
+        )
+        assert self.comm_session.evse_controller.contactor is Contactor.CLOSED
+
+    async def test_power_delivery_contactor_open(
+        self,
+    ):
+        power_delivery = PowerDelivery(self.comm_session)
+        await power_delivery.process_message(
+            message=get_dummy_v2g_message_power_delivery_req_charge_stop()
+        )
+        assert self.comm_session.evse_controller.contactor is Contactor.OPENED
+
+    async def test_power_delivery_contactor_get_state(
+        self,
+    ):
+        power_delivery = PowerDelivery(self.comm_session)
+        await power_delivery.process_message(
+            message=get_dummy_v2g_message_power_delivery_req_charge_start()
+        )
+        assert (
+            await self.comm_session.evse_controller.get_contactor_state()
+            is Contactor.CLOSED
+        )
