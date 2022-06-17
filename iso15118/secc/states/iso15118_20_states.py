@@ -980,7 +980,9 @@ class PowerDelivery(StateSECC):
                 # "Start" within V2G communication session.
                 # TODO: We may need to check the CP state is C or D before
                 #  closing the contactors.
-                contactor_state = await self.comm_session.evse_controller.close_contactor()
+                contactor_state = (
+                    await self.comm_session.evse_controller.close_contactor()
+                )
                 if contactor_state != Contactor.CLOSED:
                     self.stop_state_machine(
                         "Contactor didnt close",
