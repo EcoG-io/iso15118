@@ -99,8 +99,7 @@ class TestEvScenarios:
         )
 
         charging_duration = (
-            charge_parameter_discovery_req_departure_time_set.body
-                .charge_parameter_discovery_req.ac_ev_charge_parameter.departure_time  # noqa
+            charge_parameter_discovery_req_departure_time_set.body.charge_parameter_discovery_req.ac_ev_charge_parameter.departure_time  # noqa
         )
 
         assert (
