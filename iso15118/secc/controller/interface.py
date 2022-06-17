@@ -340,6 +340,7 @@ class EVSEControllerInterface(ABC):
     async def stop_charger(self) -> None:
         raise NotImplementedError
 
+    @abstractmethod
     async def open_contactor(self):
         """
         Sends a command to the SECC to open the contactor to terminate energy flow
