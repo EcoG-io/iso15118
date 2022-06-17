@@ -172,3 +172,27 @@ def get_charge_parameter_discovery_req_message_no_departure_time():
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(charge_parameter_discovery_req=charge_parameter_discovery_req),
     )
+
+
+def get_dummy_v2g_message_power_delivery_req_charge_start():
+    power_delivery_req = PowerDeliveryReq(
+        charge_progress=ChargeProgress.START,
+        sa_schedule_tuple_id=1,
+    )
+
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(power_delivery_req=power_delivery_req)
+    )
+
+
+def get_dummy_v2g_message_power_delivery_req_charge_stop():
+    power_delivery_req = PowerDeliveryReq(
+        charge_progress=ChargeProgress.STOP,
+        sa_schedule_tuple_id=1,
+    )
+
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(power_delivery_req=power_delivery_req)
+    )

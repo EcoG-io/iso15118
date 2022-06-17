@@ -1311,9 +1311,8 @@ class PowerDelivery(StateSECC):
         # no later than 3s after measuring CP State C or D.
         # Before closing the contactor, we may need to check to
         # ensure the CP is in state C or D
-        await self.comm_session.evse_controller.close_contactor()
-        contactor_state = await self.comm_session.evse_controller.get_contactor_state()
-        if contactor_state == Contactor.OPENED:
+        contactor_state = await self.comm_session.evse_controller.close_contactor()
+        if contactor_state != Contactor.CLOSED:
             self.stop_state_machine(
                 "Contactor is still open when about to send PowerDeliveryRes",
                 message,

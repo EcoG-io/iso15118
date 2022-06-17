@@ -522,13 +522,15 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.service_renegotiation_supported()."""
         return False
 
-    async def close_contactor(self):
+    async def close_contactor(self) -> Contactor:
         """Overrides EVSEControllerInterface.close_contactor()."""
         self.contactor = Contactor.CLOSED
+        return self.contactor
 
-    async def open_contactor(self):
+    async def open_contactor(self) -> Contactor:
         """Overrides EVSEControllerInterface.open_contactor()."""
         self.contactor = Contactor.OPENED
+        return self.contactor
 
     async def get_contactor_state(self) -> Contactor:
         """Overrides EVSEControllerInterface.get_contactor_state()."""
