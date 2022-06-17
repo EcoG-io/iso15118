@@ -52,11 +52,12 @@ from iso15118.shared.messages.din_spec.timeouts import Timeouts
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
+    Contactor,
     DCEVErrorCode,
     EVSEProcessing,
     IsolationLevel,
     Namespace,
-    Protocol, Contactor,
+    Protocol,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_types import (
