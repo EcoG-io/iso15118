@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import List, Coroutine
+from typing import Coroutine, List
 
 logger = logging.getLogger(__name__)
 
