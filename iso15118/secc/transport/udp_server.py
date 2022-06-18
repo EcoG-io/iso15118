@@ -11,7 +11,7 @@ from iso15118.shared.notifications import (
     ReceiveTimeoutNotification,
     UDPPacketNotification,
 )
-from iso15118.shared.utils import wait_till_finished
+from iso15118.shared.utils import wait_for_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ class UDPServer(asyncio.DatagramProtocol):
             f"and port {SDP_SERVER_PORT}"
         )
         tasks = [self.rcv_task()]
-        await wait_till_finished(tasks)
+        await wait_for_tasks(tasks)
 
     def connection_made(self, transport):
         """

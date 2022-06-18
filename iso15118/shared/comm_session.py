@@ -50,7 +50,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import Pause, State, Terminate
-from iso15118.shared.utils import wait_till_finished
+from iso15118.shared.utils import wait_for_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -338,7 +338,7 @@ class V2GCommunicationSession(SessionStateMachine):
 
         try:
             self._started = True
-            await wait_till_finished(tasks)
+            await wait_for_tasks(tasks)
         finally:
             self._started = False
 
