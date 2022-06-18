@@ -28,8 +28,8 @@ async def wait_for_tasks(
     https://docs.python.org/3/library/asyncio-task.html#waiting-primitives)
 
     Similar solutions for awaiting for several tasks can be found in:
-    * https://python.plainenglish.io/how-to-manage-exceptions-when-waiting-on-multiple-asyncio-tasks-a5530ac10f02
-    * https://stackoverflow.com/questions/63583822/asyncio-wait-on-multiple-tasks-with-timeout-and-cancellation
+    * https://python.plainenglish.io/how-to-manage-exceptions-when-waiting-on-multiple-asyncio-tasks-a5530ac10f02  # noqa: E501
+    * https://stackoverflow.com/questions/63583822/asyncio-wait-on-multiple-tasks-with-timeout-and-cancellation  # noqa: E501
 
     """
     tasks = []
