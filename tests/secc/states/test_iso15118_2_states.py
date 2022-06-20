@@ -207,6 +207,27 @@ class TestEvScenarios:
 
             assert found_entry_indicating_start_without_delay is True
 
+    async def test_power_delivery_set_hlc_charging(
+        self,
+    ):
+
+        power_delivery = PowerDelivery(self.comm_session)
+        self.comm_session.evse_controller.set_hlc_charging = AsyncMock()
+
+        # hlc is set to True
+        await power_delivery.process_message(
+            message=get_dummy_v2g_message_power_delivery_req_charge_start()
+        )
+
+        self.comm_session.evse_controller.set_hlc_charging.assert_called_with(True)
+
+        # hlc is set to False
+        await power_delivery.process_message(
+            message=get_dummy_v2g_message_power_delivery_req_charge_stop()
+        )
+
+        self.comm_session.evse_controller.set_hlc_charging.assert_called_with(False)
+
     async def test_power_delivery_contactor_close(
         self,
     ):

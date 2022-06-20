@@ -445,6 +445,17 @@ class CableCheck(StateSECC):
             return
 
         if not self.cable_check_req_was_received:
+            # Requirement in 6.4.3.106 of the IEC 61851-23
+            # Any relays in the DC output circuit of the DC station shall
+            # be closed during the insulation test
+            contactor_state = await self.comm_session.evse_controller.close_contactor()
+            if contactor_state != Contactor.CLOSED:
+                self.stop_state_machine(
+                    "Contactor didnt close for Cable Check",
+                    message,
+                    ResponseCode.FAILED,
+                )
+                return
             await self.comm_session.evse_controller.start_cable_check()
             self.cable_check_req_was_received = True
         self.comm_session.evse_controller.ev_data_context.soc = (
@@ -635,6 +646,12 @@ class PowerDelivery(StateSECC):
 
         next_state: Optional[Type[State]] = None
         if power_delivery_req.ready_to_charge:
+            # The High Level Controlled Charging concept (HLC-C), is
+            # only introduced in section 8.7.4 of the ISO 15118-2, and says that the
+            # EV enters into HLC-C once PowerDeliveryRes(ResponseCode=OK)
+            # is sent with a ChargeProgress=Start.
+            # This concept is also introduced in ISO 15118-20 in section 8.5.6
+            # For reasons of consistency, we also applied this concept in the DIN
             await self.comm_session.evse_controller.set_hlc_charging(True)
             next_state = CurrentDemand
             self.comm_session.charge_progress_started = True
@@ -644,10 +661,16 @@ class PowerDelivery(StateSECC):
                 "Stay in this state and expect "
                 "WeldingDetectionReq/SessionStopReq"
             )
-            await self.comm_session.evse_controller.set_hlc_charging(False)
             next_state = None
 
+            # According to section 8.7.4 in ISO 15118-2, the EV is out of the HLC-C
+            # (High Level Controlled Charging) once PowerDeliveryRes(ResponseCode=OK)
+            # is sent with a ChargeProgress=Stop
+            # Updates the upper layer with the info if the EV is under HLC-C
+            await self.comm_session.evse_controller.set_hlc_charging(False)
+
             # 1st a controlled stop is performed (specially important for DC charging)
+            # later on we may also need here some feedback on stopping the charger
             await self.comm_session.evse_controller.stop_charger()
             # 2nd once the energy transfer is properly interrupted,
             # the contactor(s) may open
@@ -659,7 +682,6 @@ class PowerDelivery(StateSECC):
                     ResponseCode.FAILED,
                 )
                 return
-            await self.comm_session.evse_controller.stop_charger()
 
         dc_evse_status = await self.comm_session.evse_controller.get_dc_evse_status()
         power_delivery_res = PowerDeliveryRes(

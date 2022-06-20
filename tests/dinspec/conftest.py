@@ -1,3 +1,5 @@
+import pytest
+
 from iso15118.shared.messages.datatypes import (
     DCEVChargeParams,
     PVEVEnergyCapacity,
@@ -9,7 +11,11 @@ from iso15118.shared.messages.datatypes import (
     PVRemainingTimeToBulkSOC,
     PVRemainingTimeToFullSOC,
 )
-from iso15118.shared.messages.din_spec.body import Body, CurrentDemandReq
+from iso15118.shared.messages.din_spec.body import (
+    Body,
+    CurrentDemandReq,
+    PowerDeliveryReq,
+)
 from iso15118.shared.messages.din_spec.datatypes import DCEVStatus
 from iso15118.shared.messages.din_spec.header import MessageHeader
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage
@@ -69,9 +75,34 @@ def build_dummy_current_demand_req() -> CurrentDemandReq:
     return current_demand_req
 
 
-def get_current_on_going_req():
+@pytest.fixture
+def current_on_going_req():
     current_demand_req = build_dummy_current_demand_req()
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(current_demand_req=current_demand_req),
+    )
+
+
+@pytest.fixture
+def power_delivery_req_charge_start():
+    power_delivery_req = PowerDeliveryReq(
+        ready_to_charge=True,
+    )
+
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(power_delivery_req=power_delivery_req),
+    )
+
+
+@pytest.fixture
+def power_delivery_req_charge_stop():
+    power_delivery_req = PowerDeliveryReq(
+        ready_to_charge=False,
+    )
+
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(power_delivery_req=power_delivery_req),
     )
