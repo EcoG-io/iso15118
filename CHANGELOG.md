@@ -5,37 +5,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2022-06-20
+
+### Added
+
+- CS contactor by @ikaratass in https://github.com/SwitchEV/iso15118/pull/63
+
+### Removed
+
+- removed unused functions and tasks from utils.py; added reference links by @tropxy in https://github.com/SwitchEV/iso15118/pull/64
+
+### F
+
+- fixed order of closing contactor and reformated the code by @tropxy in https://github.com/SwitchEV/iso15118/pull/65
+
 ## [0.6.0] - 2022-06-16
 
 ### Added
+
 - Make communication protocols configurable via .env file by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/60
- 
+
 ### Fixed
+
 - Schedule entry durations in ChargeParameterDiscoveryRes should add up to departure_time from EVCC (AB#2183) by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/59
 
 ### Changed
+
 - docs: fix formatting issues by @danielgordon-switch-ev in https://github.com/SwitchEV/iso15118/pull/53
 - fixed some technical terms in the readme by @tropxy in https://github.com/SwitchEV/iso15118/pull/50
 - converted all process_messages instances to async by @tropxy in https://github.com/SwitchEV/iso15118/pull/61
 - authorization state enum by @danielgordon-switch-ev in https://github.com/SwitchEV/iso15118/pull/52
 
-
 ## [0.5.0] - 2022-05-24
 
 ### Added
+
 - docs: add details discovered in running locally by @danielgordon-switch-ev in https://github.com/SwitchEV/iso15118/pull/43
 - added the apache license by @tropxy in https://github.com/SwitchEV/iso15118/pull/47
 
 ### Fixed
+
 - fixes for the issues found during the vector testival by @tropxy in https://github.com/SwitchEV/iso15118/pull/38
 - Fixed error while constructing PaymentDetailsReq message.(AB#1936) by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/41
 
 ### Changed
+
 - Updated README. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/36
 - docs: restructure readme by @danielgordon-switch-ev in https://github.com/SwitchEV/iso15118/pull/46
 - switch the upload to the public pypi server by @tropxy in https://github.com/SwitchEV/iso15118/pull/48
 - chore: use lockfile instead of poetry update by @danielgordon-switch-ev in https://github.com/SwitchEV/iso15118/pull/45
-
 
 ## [0.4.0] - 2022-04-30
 
