@@ -948,6 +948,21 @@ class PowerDelivery(StateSECC):
                 return
             elif power_delivery_req.charge_progress == ChargeProgress.STOP:
                 next_state = SessionStop
+                # 1st a controlled stop is performed (specially important for
+                # DC charging)
+                await self.comm_session.evse_controller.stop_charger()
+                # 2nd once the energy transfer is properly interrupted,
+                # the contactor(s) may open
+                contactor_state = (
+                    await self.comm_session.evse_controller.open_contactor()
+                )
+                if contactor_state != Contactor.OPENED:
+                    self.stop_state_machine(
+                        "Contactor didnt open",
+                        message,
+                        ResponseCode.FAILED_CONTACTOR_ERROR,
+                    )
+                    return
             else:
                 # The only ChargeProgress options left are START and
                 # SCHEDULE_RENEGOTIATION, although the latter is only allowed after we

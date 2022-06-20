@@ -1296,11 +1296,15 @@ class PowerDelivery(StateSECC):
             )
             self.comm_session.charge_progress_started = True
         elif power_delivery_req.charge_progress == ChargeProgress.STOP:
+            await self.comm_session.evse_controller.set_hlc_charging(False)
             next_state = None
             if self.comm_session.selected_charging_type_is_ac:
-                await self.comm_session.evse_controller.set_hlc_charging(False)
                 next_state = SessionStop
 
+            # 1st a controlled stop is performed (specially important for DC charging)
+            await self.comm_session.evse_controller.stop_charger()
+            # 2nd once the energy transfer is properly interrupted,
+            # the contactor(s) may open
             contactor_state = await self.comm_session.evse_controller.open_contactor()
             if contactor_state != Contactor.OPENED:
                 self.stop_state_machine(
@@ -1309,7 +1313,7 @@ class PowerDelivery(StateSECC):
                     ResponseCode.FAILED_CONTACTOR_ERROR,
                 )
                 return
-            await self.comm_session.evse_controller.stop_charger()
+
         else:
             # ChargeProgress only has three enum values: Start, Stop, and
             # Renegotiate. So this is the renegotiation case.
