@@ -1244,25 +1244,25 @@ class PowerDelivery(StateSECC):
             )
             return
 
-        if (
-            # power_delivery_req.charge_progress == ChargeProgress.START
-            # and not power_delivery_req.charging_profile
-            False  # Todo: set on False just for test-reason
-        ):
-            # Note Lukas Lombriser: I am not sure if I am correct:
-            # But there is hardly no EV that sends a profile (DC-Charging)
-            # According Table 40 and Table 104, ChargingProfile is optional
-
-            # Although the requirements don't make this 100% clear, it is
-            # the intention of ISO 15118-2 for the EVCC to always send a
-            # charging profile if ChargeProgress is set to 'Start'
-            self.stop_state_machine(
-                "No charge profile provided although "
-                "ChargeProgress was set to 'Start'",
-                message,
-                ResponseCode.FAILED_CHARGING_PROFILE_INVALID,
-            )
-            return
+        # TODO: Investigate this and reassess
+        # if (
+        #     power_delivery_req.charge_progress == ChargeProgress.START
+        #     and not power_delivery_req.charging_profile
+        # ):
+        #     # Note Lukas Lombriser: I am not sure if I am correct:
+        #     # But there is hardly no EV that sends a profile (DC-Charging)
+        #     # According Table 40 and Table 104, ChargingProfile is optional
+        #
+        #     # Although the requirements don't make this 100% clear, it is
+        #     # the intention of ISO 15118-2 for the EVCC to always send a
+        #     # charging profile if ChargeProgress is set to 'Start'
+        #     self.stop_state_machine(
+        #         "No charge profile provided although "
+        #         "ChargeProgress was set to 'Start'",
+        #         message,
+        #         ResponseCode.FAILED_CHARGING_PROFILE_INVALID,
+        #     )
+        #     return
 
         # TODO We should also do a more detailed check of the charging profile
 
@@ -1270,13 +1270,13 @@ class PowerDelivery(StateSECC):
 
         next_state: Type[State]
         if power_delivery_req.charge_progress == ChargeProgress.START:
-            await self.comm_session.evse_controller.set_hlc_charging(True)
+
             # [V2G2-847] - The EV shall signal CP State C or D no later than 250ms
             # after sending the first PowerDeliveryReq with ChargeProgress equals
             # "Start" within V2G Communication SessionPowerDeliveryReq.
             # [V2G2-860] - If no error is detected, the SECC shall close the Contactor
             # no later than 3s after measuring CP State C or D.
-            # Before closing the contactor, we may need to check to
+            # TODO: Before closing the contactor, we may need to check to
             # ensure the CP is in state C or D
             contactor_state = await self.comm_session.evse_controller.close_contactor()
             if contactor_state != Contactor.CLOSED:
@@ -1295,13 +1295,33 @@ class PowerDelivery(StateSECC):
                 power_delivery_req.sa_schedule_tuple_id
             )
             self.comm_session.charge_progress_started = True
+
+            # According to section 8.7.4 in ISO 15118-2, the EV enters into HLC-C
+            # (High Level Controlled Charging) once PowerDeliveryRes(ResponseCode=OK)
+            # is sent with a ChargeProgress=Start
+            # Updates the upper layer with the info if the EV is under HLC-C
+            # This is only called at the end of this block on purpose, as closing
+            # of the contactor can go wrong
+            await self.comm_session.evse_controller.set_hlc_charging(True)
         elif power_delivery_req.charge_progress == ChargeProgress.STOP:
             next_state = None
             if self.comm_session.selected_charging_type_is_ac:
-                await self.comm_session.evse_controller.set_hlc_charging(False)
                 next_state = SessionStop
 
+            # According to section 8.7.4 in ISO 15118-2, the EV is out of the HLC-C
+            # (High Level Controlled Charging) once PowerDeliveryRes(ResponseCode=OK)
+            # is sent with a ChargeProgress=Stop
+            # This needs to be called before any attempt to stop the charger/open the
+            # contactor as for every effect, the session will be stopped.
+            await self.comm_session.evse_controller.set_hlc_charging(False)
+
+            # 1st a controlled stop is performed (specially important for DC charging)
+            # later on we may also need here some feedback on stopping the charger
+            await self.comm_session.evse_controller.stop_charger()
+            # 2nd once the energy transfer is properly interrupted,
+            # the contactor(s) may open
             contactor_state = await self.comm_session.evse_controller.open_contactor()
+
             if contactor_state != Contactor.OPENED:
                 self.stop_state_machine(
                     "Contactor didnt open",
@@ -1309,7 +1329,7 @@ class PowerDelivery(StateSECC):
                     ResponseCode.FAILED_CONTACTOR_ERROR,
                 )
                 return
-            await self.comm_session.evse_controller.stop_charger()
+
         else:
             # ChargeProgress only has three enum values: Start, Stop, and
             # Renegotiate. So this is the renegotiation case.
@@ -1328,21 +1348,18 @@ class PowerDelivery(StateSECC):
 
         ac_evse_status: Optional[ACEVSEStatus] = None
         dc_evse_status: Optional[DCEVSEStatus] = None
+        evse_controller = self.comm_session.evse_controller
         if self.comm_session.selected_charging_type_is_ac:
-            ac_evse_status = (
-                await self.comm_session.evse_controller.get_ac_evse_status()
-            )
+            ac_evse_status = await evse_controller.get_ac_evse_status()
+
         else:
-            dc_evse_status = (
-                await self.comm_session.evse_controller.get_dc_evse_status()
-            )
+            dc_evse_status = await evse_controller.get_dc_evse_status()
+
         power_delivery_res = PowerDeliveryRes(
             response_code=ResponseCode.OK,
             ac_evse_status=ac_evse_status,
             dc_evse_status=dc_evse_status,
         )
-        # TODO Check if in AC or DC charging mode
-        # TODO Close contactor and check for closed contactor
 
         self.create_next_message(
             next_state,
@@ -1658,6 +1675,17 @@ class CableCheck(StateSECC):
             return
 
         if not self.cable_check_req_was_received:
+            # Requirement in 6.4.3.106 of the IEC 61851-23
+            # Any relays in the DC output circuit of the DC station shall
+            # be closed during the insulation test
+            contactor_state = await self.comm_session.evse_controller.close_contactor()
+            if contactor_state != Contactor.CLOSED:
+                self.stop_state_machine(
+                    "Contactor didnt close for Cable Check",
+                    message,
+                    ResponseCode.FAILED,
+                )
+                return
             await self.comm_session.evse_controller.start_cable_check()
             self.cable_check_req_was_received = True
         self.comm_session.evse_controller.ev_data_context.soc = (

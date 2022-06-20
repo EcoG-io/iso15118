@@ -157,6 +157,10 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         if self.config.use_tls:
             try:
                 supported_protocols.remove(Protocol.DIN_SPEC_70121)
+                logger.warning(
+                    "Removed DIN_SPEC from the list of supported Protocols as "
+                    "TLS is enabled"
+                )
             except ValueError:
                 pass
 

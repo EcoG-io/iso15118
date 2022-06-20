@@ -948,7 +948,29 @@ class PowerDelivery(StateSECC):
                 return
             elif power_delivery_req.charge_progress == ChargeProgress.STOP:
                 next_state = SessionStop
+                # According to section 8.5.6 in ISO 15118-20, the EV is out of the
+                # HLC-C (High Level Controlled Charging) once
+                # PowerDeliveryRes(ResponseCode=OK) is sent with a ChargeProgress=Stop
+                await self.comm_session.evse_controller.set_hlc_charging(False)
+
+                # 1st a controlled stop is performed (specially important for
+                # DC charging)
+                # later on we may also need here some feedback on stopping the charger
+                await self.comm_session.evse_controller.stop_charger()
+                # 2nd once the energy transfer is properly interrupted,
+                # the contactor(s) may open
+                contactor_state = (
+                    await self.comm_session.evse_controller.open_contactor()
+                )
+                if contactor_state != Contactor.OPENED:
+                    self.stop_state_machine(
+                        "Contactor didnt open",
+                        message,
+                        ResponseCode.FAILED_CONTACTOR_ERROR,
+                    )
+                    return
             else:
+
                 # The only ChargeProgress options left are START and
                 # SCHEDULE_RENEGOTIATION, although the latter is only allowed after we
                 # entered the charge loop
@@ -976,8 +998,8 @@ class PowerDelivery(StateSECC):
                 # first PowerDeliveryReq with ChargeProgress equals "Start" within V2G
                 # communication session.
                 # [V2G20 - 847] The EVCC shall signal CP State C or D no later than 250
-                # ms after sending the first PowerDeliveryReq with ChargeProgress equals
-                # "Start" within V2G communication session.
+                # ms after sending the first PowerDeliveryReq with ChargeProgress
+                # equals "Start" within V2G communication session.
                 # TODO: We may need to check the CP state is C or D before
                 #  closing the contactors.
                 contactor_state = (
@@ -990,6 +1012,11 @@ class PowerDelivery(StateSECC):
                         ResponseCode.FAILED_CONTACTOR_ERROR,
                     )
                     return
+
+                # According to section 8.5.6 in ISO 15118-20, the EV enters into HLC-C
+                # (High Level Controlled Charging) once
+                # PowerDeliveryRes(ResponseCode=OK) is sent with a ChargeProgress=Start
+                await self.comm_session.evse_controller.set_hlc_charging(True)
 
                 if self.comm_session.selected_energy_service.service in (
                     ServiceV20.AC,
