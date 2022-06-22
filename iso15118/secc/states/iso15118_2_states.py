@@ -1270,7 +1270,11 @@ class PowerDelivery(StateSECC):
 
         next_state: Type[State]
         if power_delivery_req.charge_progress == ChargeProgress.START:
-
+            # According to section 8.7.4 in ISO 15118-2, the EV enters into HLC-C
+            # (High Level Controlled Charging) once PowerDeliveryRes(ResponseCode=OK)
+            # is sent with a ChargeProgress=Start
+            # Updates the upper layer with the info if the EV is under HLC-C
+            await self.comm_session.evse_controller.set_hlc_charging(True)
             # [V2G2-847] - The EV shall signal CP State C or D no later than 250ms
             # after sending the first PowerDeliveryReq with ChargeProgress equals
             # "Start" within V2G Communication SessionPowerDeliveryReq.
@@ -1295,14 +1299,6 @@ class PowerDelivery(StateSECC):
                 power_delivery_req.sa_schedule_tuple_id
             )
             self.comm_session.charge_progress_started = True
-
-            # According to section 8.7.4 in ISO 15118-2, the EV enters into HLC-C
-            # (High Level Controlled Charging) once PowerDeliveryRes(ResponseCode=OK)
-            # is sent with a ChargeProgress=Start
-            # Updates the upper layer with the info if the EV is under HLC-C
-            # This is only called at the end of this block on purpose, as closing
-            # of the contactor can go wrong
-            await self.comm_session.evse_controller.set_hlc_charging(True)
         elif power_delivery_req.charge_progress == ChargeProgress.STOP:
             next_state = None
             if self.comm_session.selected_charging_type_is_ac:
