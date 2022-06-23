@@ -130,6 +130,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
                 "match certificate (certfile) or password for "
                 "private is key invalid. Returning None instead."
             )
+
             return None
         except FileNotFoundError:
             logger.exception("Can't find certfile or keyfile for SSL context")
@@ -189,7 +190,12 @@ def load_priv_key_pass(password_path: str = None) -> bytes:
         # This must be the same password as used for creating the private keys
         # and certificates. See create_certs.sh or request the password from
         # the providers of another test PKI (e.g. CharIN Testivals).
-        return "12345".encode(encoding="utf-8")
+        # return "12345".encode(encoding="utf-8")
+        logging.info(
+            "IMPORTANT: Using custom certificate password for CharIN Testival June-July"
+            " 2022"
+        )
+        return "V2GCaPass2022ZielonaGora".encode(encoding="utf-8")
 
 
 def load_priv_key(
