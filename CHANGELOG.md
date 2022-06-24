@@ -5,6 +5,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2] - 2022-06-24
+
+## Added
+- created a new env CERTS_GENERAL_PRIVATE_KEY_PASS_PATH to be able to d… by @tropxy in https://github.com/SwitchEV/iso15118/pull/71
+
+## [0.7.1] - 2022-06-22
+
+### Changed
+- feat: set hlc charging before closing contactor by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/67
+- Updated version_number by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/68
+
+
 ## [0.7.0] - 2022-06-20
 
 ### Added
@@ -15,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - removed unused functions and tasks from utils.py; added reference links by @tropxy in https://github.com/SwitchEV/iso15118/pull/64
 
-### F
+### Fixed
 
 - fixed order of closing contactor and reformated the code by @tropxy in https://github.com/SwitchEV/iso15118/pull/65
 
