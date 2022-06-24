@@ -66,7 +66,7 @@ from iso15118.shared.messages.xmldsig import (
     Transform,
     Transforms,
 )
-from iso15118.shared.settings import PKI_PATH, CERTS_GENERAL_PRIVATE_KEY_PASS_PATH
+from iso15118.shared.settings import CERTS_GENERAL_PRIVATE_KEY_PASS_PATH, PKI_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +164,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
 
 
 def load_priv_key_pass(
-        password_path: Optional[str] = CERTS_GENERAL_PRIVATE_KEY_PASS_PATH
+    password_path: Optional[str] = CERTS_GENERAL_PRIVATE_KEY_PASS_PATH,
 ) -> bytes:
     """
     Reads the password for the encrypted private key.
