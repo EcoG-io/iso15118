@@ -13,6 +13,9 @@ env = environs.Env(eager=False)
 env.read_env(path=ENV_PATH)  # read .env file, if it exists
 
 PKI_PATH = env.str("PKI_PATH", default=SHARED_CWD + "/pki/")
+CERTS_GENERAL_PRIVATE_KEY_PASS_PATH = env.str(
+    "CERTS_GENERAL_PRIVATE_KEY_PASS_PATH", default=None
+)
 MESSAGE_LOG_JSON = env.bool("MESSAGE_LOG_JSON", default=True)
 MESSAGE_LOG_EXI = env.bool("MESSAGE_LOG_EXI", default=False)
 
