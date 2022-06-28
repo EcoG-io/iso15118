@@ -83,9 +83,9 @@ class Reference(BaseModel):
     transforms: Transforms = Field(..., alias="Transforms")
     digest_method: DigestMethod = Field(..., alias="DigestMethod")
     digest_value: bytes = Field(..., alias="DigestValue")
-    # 'URI' is actually an XML attribute, but JSON (our serialisation method)
-    # doesn't have attributes. The EXI codec has to en-/decode accordingly.
-    uri: str = Field(..., alias="URI")
+    # id and uri are both attributes of the Reference element and not elements
+    id: str = Field(None, alias="Id")
+    uri: str = Field(None, alias="URI")
 
 
 class SignedInfo(BaseModel):
