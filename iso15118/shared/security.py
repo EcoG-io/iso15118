@@ -813,22 +813,24 @@ def verify_signature(
     # 2. Step: Checking signature value
     logger.debug("Verifying signature value for SignedInfo element")
     pub_key = load_der_x509_certificate(leaf_cert).public_key()
+    logger.debug(f"Pub Key from OEM Leaf Prov Certificate: {pub_key}")
     exi_encoded_signed_info = EXI().to_exi(signature.signed_info, Namespace.XML_DSIG)
+    logger.debug(f"Exi Encoded Signed Info: {exi_encoded_signed_info}")
 
     try:
         if isinstance(pub_key, EllipticCurvePublicKey):
             pub_key.verify(
-                signature.signature_value.value,
-                exi_encoded_signed_info,
-                ec.ECDSA(SHA256()),
+                signature=signature.signature_value.value,
+                data=exi_encoded_signed_info,
+                signature_algorithm=ec.ECDSA(SHA256()),
             )
         else:
             # TODO Add support for ISO 15118-20 public key types
             raise KeyTypeError(f"Unexpected public key type " f"{type(pub_key)}")
-    except InvalidSignature:
+    except InvalidSignature as e:
         logger.error(
-            "Signature verification failed for signature value "
-            f"\n{signature.signature_value.value.hex()}"
+            f"Signature verification failed for signature value "
+            f"\n{signature.signature_value.value.hex()} \n Error: {e}"
         )
         return False
 

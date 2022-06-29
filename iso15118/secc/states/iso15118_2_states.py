@@ -874,14 +874,14 @@ class Authorization(StateSECC):
                 return
 
             if not verify_signature(
-                msg.header.signature,
-                [
+                signature=msg.header.signature,
+                elements_to_sign=[
                     (
                         authorization_req.id,
                         EXI().to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
                     )
                 ],
-                self.comm_session.contract_cert_chain.certificate,
+                leaf_cert=self.comm_session.contract_cert_chain.certificate,
             ):
                 self.stop_state_machine(
                     "Unable to verify signature of AuthorizationReq",
