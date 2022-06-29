@@ -816,6 +816,8 @@ def verify_signature(
     logger.debug(f"Pub Key from OEM Leaf Prov Certificate: {pub_key}")
     exi_encoded_signed_info = EXI().to_exi(signature.signed_info, Namespace.XML_DSIG)
     logger.debug(f"Exi Encoded Signed Info: {exi_encoded_signed_info}")
+    logger.debug(f"Plain Signed Info: {signature.signed_info}")
+    logger.debug(f"Signature Value: {signature.signature_value.value}")
 
     try:
         if isinstance(pub_key, EllipticCurvePublicKey):
