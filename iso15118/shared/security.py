@@ -1,5 +1,6 @@
 import logging
 import secrets
+from binascii import hexlify
 from datetime import datetime
 from enum import Enum, auto
 from ssl import PROTOCOL_TLSv1_2, SSLContext, SSLError, VerifyMode
@@ -19,6 +20,8 @@ from cryptography.hazmat.primitives.kdf.concatkdf import ConcatKDFHash
 from cryptography.hazmat.primitives.serialization import (
     load_der_private_key,
     load_pem_private_key,
+    Encoding,
+    PublicFormat
 )
 from cryptography.x509 import (
     Certificate,
@@ -813,11 +816,12 @@ def verify_signature(
     # 2. Step: Checking signature value
     logger.debug("Verifying signature value for SignedInfo element")
     pub_key = load_der_x509_certificate(leaf_cert).public_key()
-    logger.debug(f"Pub Key from OEM Leaf Prov Certificate: {pub_key}")
+    pub_key_bytes = hexlify(pub_key.public_bytes(encoding=Encoding.DER, format=PublicFormat.UncompressedPoint))
+    logger.debug(f"Pub Key from OEM Leaf Prov Certificate: {pub_key_bytes}")
     exi_encoded_signed_info = EXI().to_exi(signature.signed_info, Namespace.XML_DSIG)
-    logger.debug(f"Exi Encoded Signed Info: {exi_encoded_signed_info}")
-    logger.debug(f"Plain Signed Info: {signature.signed_info}")
-    logger.debug(f"Signature Value: {signature.signature_value.value}")
+    logger.debug(f"Exi Encoded Signed Info: {hexlify(exi_encoded_signed_info)}")
+    logger.debug(f"Plain Signed Info: {signature.signed_info.reference}")
+    logger.debug(f"Signature Value: {hexlify(signature.signature_value.value)}")
 
     try:
         if isinstance(pub_key, EllipticCurvePublicKey):
