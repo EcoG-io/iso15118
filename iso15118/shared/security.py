@@ -832,6 +832,7 @@ def verify_signature(
 
     # 2. Step: Checking signature value
     logger.debug("Verifying signature value for SignedInfo element")
+    logger.debug("Extracting the Public Key")
     pub_key = load_der_x509_certificate(leaf_cert).public_key()
     pub_key_bytes = pub_key.public_numbers().encode_point()
     # pub_key_bytes = pub_key.public_bytes(
