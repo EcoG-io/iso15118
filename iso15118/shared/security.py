@@ -984,10 +984,12 @@ def encrypt_priv_key(
     # public_key().public_numbers().encode_point()
     # but this is deprecated in recent versions of Cryptography, so instead
     # public_bytes is used
-    ephemeral_ecdh_priv_key = ephemeral_ecdh_priv_key.public_key().public_numbers().encode_point() # noqa
-    #ephemeral_ecdh_pub_key = ephemeral_ecdh_priv_key.public_key().public_bytes(
+    ephemeral_ecdh_priv_key = (
+        ephemeral_ecdh_priv_key.public_key().public_numbers().encode_point()
+    )  # noqa
+    # ephemeral_ecdh_pub_key = ephemeral_ecdh_priv_key.public_key().public_bytes(
     #    encoding=Encoding.X962, format=PublicFormat.UncompressedPoint
-    #)
+    # )
     # 1.3: Generate shared secret using the new ECDH private key and the public
     #      key of the counterpart (OEM provisioning certificate's public key)
     oem_prov_cert_pub_key = load_der_x509_certificate(oem_prov_cert).public_key()
