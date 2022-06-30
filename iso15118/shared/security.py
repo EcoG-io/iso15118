@@ -734,16 +734,16 @@ def create_signature(
     der_encoded_signature_value = signature_key.sign(
         data=exi_encoded_signed_info, signature_algorithm=ec.ECDSA(SHA256())
     )
-    # The sign method from the cryptography library automatically DER encodes the signature
-    # However, in ISO 15118 DER encoding of the signature is not expected.
-    # Thus, in the next lines we extract the r and s points from the DER encoding, which
-    # correspond to the coordinates of the Elliptic Curve. Each of these coordinates have
-    # a 32 byte length number.
+    # The sign method from the cryptography library automatically DER encodes
+    # the signature. However, in ISO 15118 DER encoding of the signature
+    # is not expected. Thus, in the next lines we extract the r and s points
+    # from the DER encoding, which correspond to the coordinates of the
+    # Elliptic Curve. Each of these coordinates have a 32 byte length number.
     # The `decode_dss_signature` returns the r and s points in integer
     # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/utils/#cryptography.hazmat.primitives.asymmetric.utils.decode_dss_signature  # noqa
     (ec_r, ec_s) = decode_dss_signature(der_encoded_signature_value)
-    # As the signature value is sent as a full 64 bytes raw value, we need to convert
-    # each point to bytes in big endian format and concatenate both
+    # As the signature value is sent as a full 64 bytes raw value, we need
+    # to convert each point to bytes in big endian format and concatenate both
     raw_signature_value = bytearray(ec_r.to_bytes(32, "big") + ec_s.to_bytes(32, "big"))
     signature = Signature(
         signed_info=signed_info,
@@ -833,23 +833,24 @@ def verify_signature(
     # 2. Step: Checking signature value
     logger.debug("Verifying signature value for SignedInfo element")
     pub_key = load_der_x509_certificate(leaf_cert).public_key()
-    pub_key_bytes = pub_key.public_bytes(
-        encoding=Encoding.X962, format=PublicFormat.UncompressedPoint
-    )
-    logger.debug(
-        f"Pub Key from OEM Leaf Prov Certificate: {pub_key_bytes.hex().upper()}"
-    )
+    #pub_key_bytes = pub_key.public_bytes(
+    #    encoding=Encoding.X962, format=PublicFormat.UncompressedPoint
+    #)
+    #logger.debug(
+    #    f"Pub Key from OEM Leaf Prov Certificate: {pub_key_bytes.hex().upper()}"
+    #)
     exi_encoded_signed_info = EXI().to_exi(signature.signed_info, Namespace.XML_DSIG)
     logger.debug(f"Signature Value: {signature.signature_value.value.hex().upper()}")
 
-    # The verify method from cryptography expects the signature to be in DER encoded format. Please, check:
-    # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ec/#cryptography.hazmat.primitives.asymmetric.ec.EllipticCurvePublicKey.verify  # noqa
+    # The verify method from cryptography expects the signature to be in DER encoded
+    # format. Please, check: https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ec/#cryptography.hazmat.primitives.asymmetric.ec.EllipticCurvePublicKey.verify  # noqa
     # However, in ISO15118 the signature value is exchanged in raw format.
-    # In order to convert the signature value to DER format, it is possible to use the encode_dss_signature from
-    # cryptography, but we need to provide the r and s values of the signature as ints
+    # In order to convert the signature value to DER format, it is possible to use the
+    # encode_dss_signature from cryptography, but we need to provide the
+    # r and s values of the signature as ints.
     # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/utils/#cryptography.hazmat.primitives.asymmetric.utils.encode_dss_signature  # noqa
-    # The r and as values are both 32 bytes values that correspond to the coordinate in the Elliptic curve from where
-    # the public and private key are extracted
+    # The r and as values are both 32 bytes values that correspond to the coordinate in
+    # the Elliptic curve from where the public and private key are extracted
 
     ec_r = int.from_bytes(signature.signature_value.value[:32], "big")
     ec_s = int.from_bytes(signature.signature_value.value[32:], "big")
