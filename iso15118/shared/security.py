@@ -1,6 +1,5 @@
 import logging
 import secrets
-from binascii import hexlify
 from datetime import datetime
 from enum import Enum, auto
 from ssl import PROTOCOL_TLSv1_2, SSLContext, SSLError, VerifyMode
@@ -14,6 +13,7 @@ from cryptography.hazmat.primitives.asymmetric.ec import (
     EllipticCurvePrivateKey,
     EllipticCurvePublicKey,
 )
+from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature, decode_dss_signature
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.hashes import SHA256, Hash, HashAlgorithm
 from cryptography.hazmat.primitives.kdf.concatkdf import ConcatKDFHash
@@ -728,9 +728,21 @@ def create_signature(
 
     # 2. Step: Signature generation
     exi_encoded_signed_info = EXI().to_exi(signed_info, Namespace.XML_DSIG)
-    signature_value = signature_key.sign(exi_encoded_signed_info, ec.ECDSA(SHA256()))
+    der_encoded_signature_value = signature_key.sign(data=exi_encoded_signed_info,
+                                                     signature_algorithm=ec.ECDSA(SHA256()))
+    # The sign method from the cryptography library automatically DER encodes the signature
+    # However, in ISO 15118 DER encoding of the signature is not expected.
+    # Thus, in the next lines we extract the r and s points from the DER encoding, which
+    # correspond to the coordinates of the Elliptic Curve. Each of these coordinates have
+    # a 32 byte length number.
+    # The `decode_dss_signature` returns the r and s points in integer
+    # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/utils/#cryptography.hazmat.primitives.asymmetric.utils.decode_dss_signature  # noqa
+    (ec_r, ec_s) = decode_dss_signature(der_encoded_signature_value)
+    # As the signature value is sent as a full 64 bytes raw value, we need to convert
+    # each point to bytes in big endian format and concatenate both
+    raw_signature_value = bytearray(ec_r.to_bytes(32, "big") + ec_s.to_bytes(32, "big"))
     signature = Signature(
-        signed_info=signed_info, signature_value=SignatureValue(value=signature_value)
+        signed_info=signed_info, signature_value=SignatureValue(value=raw_signature_value)
     )
 
     return signature
@@ -816,21 +828,33 @@ def verify_signature(
     # 2. Step: Checking signature value
     logger.debug("Verifying signature value for SignedInfo element")
     pub_key = load_der_x509_certificate(leaf_cert).public_key()
-    pub_key_bytes = hexlify(
-        pub_key.public_bytes(
-            encoding=Encoding.DER, format=PublicFormat.UncompressedPoint
+    pub_key_bytes = pub_key.public_bytes(
+            encoding=Encoding.X962, format=PublicFormat.UncompressedPoint
         )
-    )
-    logger.debug(f"Pub Key from OEM Leaf Prov Certificate: {pub_key_bytes}")
+    logger.debug(f"Pub Key from OEM Leaf Prov Certificate: {pub_key_bytes.hex().upper()}")
     exi_encoded_signed_info = EXI().to_exi(signature.signed_info, Namespace.XML_DSIG)
-    logger.debug(f"Exi Encoded Signed Info: {hexlify(exi_encoded_signed_info)}")
-    logger.debug(f"Plain Signed Info: {signature.signed_info.reference}")
-    logger.debug(f"Signature Value: {hexlify(signature.signature_value.value)}")
+    logger.debug(f"Signature Value: {signature.signature_value.value.hex().upper()}")
+
+
+
+
+    # The verify method from cryptography expects the signature to be in DER encoded format. Please, check:
+    # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ec/#cryptography.hazmat.primitives.asymmetric.ec.EllipticCurvePublicKey.verify  # noqa
+    # However, in ISO15118 the signature value is exchanged in raw format.
+    # In order to convert the signature value to DER format, it is possible to use the encode_dss_signature from
+    # cryptography, but we need to provide the r and s values of the signature as ints
+    # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/utils/#cryptography.hazmat.primitives.asymmetric.utils.encode_dss_signature  # noqa
+    # The r and as values are both 32 bytes values that correspond to the coordinate in the Elliptic curve from where
+    # the public and private key are extracted
+
+    ec_r = int.from_bytes(signature.signature_value.value[:32], "big")
+    ec_s = int.from_bytes(signature.signature_value.value[32:], "big")
+    der_encoded_signature = encode_dss_signature(r=ec_r, s=ec_s)
 
     try:
         if isinstance(pub_key, EllipticCurvePublicKey):
             pub_key.verify(
-                signature=signature.signature_value.value,
+                signature=der_encoded_signature,
                 data=exi_encoded_signed_info,
                 signature_algorithm=ec.ECDSA(SHA256()),
             )
@@ -948,11 +972,15 @@ def encrypt_priv_key(
     #      indicator for the uncompressed format), followed by the x and y
     #      coordinates of the public key on the elliptic curve, each 32 bytes
     #      long. As a result, the ECDHE public key is 65 bytes long.
-    # TODO encode_point() is marked as deprecated. Use
-    #      EllipticCurvePublicKey.public_bytes to obtain both compressed and
-    #      uncompressed point encoding.
+
+    # Formerly, the public key in bytes would be obtained as:
+    # public_key().public_numbers().encode_point()
+    # but this is deprecated in recent versions of Cryptography, so instead
+    # public_bytes is used
     ephemeral_ecdh_pub_key = (
-        ephemeral_ecdh_priv_key.public_key().public_numbers().encode_point()
+        ephemeral_ecdh_priv_key.public_key().public_bytes(
+            encoding=Encoding.X962, format=PublicFormat.UncompressedPoint
+        )
     )
     # 1.3: Generate shared secret using the new ECDH private key and the public
     #      key of the counterpart (OEM provisioning certificate's public key)
