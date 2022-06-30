@@ -833,12 +833,14 @@ def verify_signature(
     # 2. Step: Checking signature value
     logger.debug("Verifying signature value for SignedInfo element")
     pub_key = load_der_x509_certificate(leaf_cert).public_key()
+    pub_key_bytes = pub_key.public_numbers().encode_point()
     # pub_key_bytes = pub_key.public_bytes(
     #    encoding=Encoding.X962, format=PublicFormat.UncompressedPoint
     # )
-    # logger.debug(
-    #    f"Pub Key from OEM Leaf Prov Certificate: {pub_key_bytes.hex().upper()}"
-    # )
+    logger.debug(
+        f"Pub Key from OEM Leaf Prov Certificate: {pub_key_bytes.hex().upper()}"
+    )
+    logger.debug("pubkey struc")
     exi_encoded_signed_info = EXI().to_exi(signature.signed_info, Namespace.XML_DSIG)
     logger.debug(f"Signature Value: {signature.signature_value.value.hex().upper()}")
 
@@ -982,9 +984,10 @@ def encrypt_priv_key(
     # public_key().public_numbers().encode_point()
     # but this is deprecated in recent versions of Cryptography, so instead
     # public_bytes is used
-    ephemeral_ecdh_pub_key = ephemeral_ecdh_priv_key.public_key().public_bytes(
-        encoding=Encoding.X962, format=PublicFormat.UncompressedPoint
-    )
+    ephemeral_ecdh_priv_key = ephemeral_ecdh_priv_key.public_key().public_numbers().encode_point() # noqa
+    #ephemeral_ecdh_pub_key = ephemeral_ecdh_priv_key.public_key().public_bytes(
+    #    encoding=Encoding.X962, format=PublicFormat.UncompressedPoint
+    #)
     # 1.3: Generate shared secret using the new ECDH private key and the public
     #      key of the counterpart (OEM provisioning certificate's public key)
     oem_prov_cert_pub_key = load_der_x509_certificate(oem_prov_cert).public_key()
