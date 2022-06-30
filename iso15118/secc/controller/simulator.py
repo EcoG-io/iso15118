@@ -51,6 +51,8 @@ from iso15118.shared.messages.din_spec.datatypes import (
 from iso15118.shared.messages.enums import (
     AuthorizationStatus,
     AuthorizationTokenType,
+    Contactor,
+    CpState,
     EnergyTransferModeEnum,
     IsolationLevel,
     Namespace,
@@ -537,6 +539,10 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def stop_charger(self) -> None:
         pass
+
+    async def get_cp_state(self) -> CpState:
+        """Overrides EVSEControllerInterface.set_cp_state()."""
+        return CpState.C2
 
     async def service_renegotiation_supported(self) -> bool:
         """Overrides EVSEControllerInterface.service_renegotiation_supported()."""

@@ -3,8 +3,8 @@ This module contains the SECC's States used to process the EVCC's incoming
 V2GMessage objects of the ISO 15118-2 protocol, from SessionSetupReq to
 SessionStopReq.
 """
-
 import base64
+import asyncio
 import logging
 import time
 from typing import List, Optional, Type, Union
@@ -36,7 +36,8 @@ from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDIN
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
-    AuthorizationTokenType,
+    Contactor,
+    CpState,
     DCEVErrorCode,
     EVSEProcessing,
     IsolationLevel,
@@ -1468,11 +1469,34 @@ class PowerDelivery(StateSECC):
             # [V2G2-847] - The EV shall signal CP State C or D no later than 250ms
             # after sending the first PowerDeliveryReq with ChargeProgress equals
             # "Start" within V2G Communication SessionPowerDeliveryReq.
+
             # [V2G2-860] - If no error is detected, the SECC shall close the Contactor
             # no later than 3s after measuring CP State C or D.
-            # TODO: Before closing the contactor, we may need to check to
+            # Before closing the contactor, we need to check to
             # ensure the CP is in state C or D
             if not await self.comm_session.evse_controller.is_contactor_closed():
+            cp_state = await self.comm_session.evse_controller.get_cp_state()
+            if cp_state not in [CpState.C2, CpState.D2]:
+                logger.info(
+                    f"Cp state is not C2 or D2, state is {cp_state} .waiting for "
+                    f"C2 or D2"
+                )
+                # wait for state C or D 250ms
+                await asyncio.sleep(0.25)
+                cp_state = await self.comm_session.evse_controller.get_cp_state()
+                if cp_state not in [CpState.C2, CpState.D2]:
+                    logger.error(
+                        f"Cp state is not C2 or D2 after 250ms, state is {cp_state}"
+                    )
+                    self.stop_state_machine(
+                        "State is not C or D",
+                        message,
+                        ResponseCode.FAILED,
+                    )
+                    return
+
+            contactor_state = await self.comm_session.evse_controller.close_contactor()
+            if contactor_state != Contactor.CLOSED:
                 self.stop_state_machine(
                     "Contactor didnt close",
                     message,

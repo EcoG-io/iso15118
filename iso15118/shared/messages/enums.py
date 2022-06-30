@@ -156,6 +156,7 @@ class DINPayloadTypes(IntEnum):
     EXI_ENCODED = 0x8001
     SDP_REQUEST = 0x9000
     SDP_RESPONSE = 0x9001
+
     # 0xA000 - 0xFFFF: Available for manufacturer specific use.
     # Uniqueness of those identifiers is not guaranteed.
     # All other values not mentioned are Reserved
@@ -174,6 +175,7 @@ class ISOV2PayloadTypes(IntEnum):
     EXI_ENCODED = 0x8001
     SDP_REQUEST = 0x9000
     SDP_RESPONSE = 0x9001
+
     # 0xA000 - 0xFFFF: Available for manufacturer specific use.
     # Uniqueness of those identifiers is not guaranteed.
     # All other values not mentioned are Reserved
@@ -202,6 +204,7 @@ class ISOV20PayloadTypes(IntEnum):
     SDP_RESPONSE = 0x9001
     SDP_REQUEST_WIRELESS = 0x9002  # Used e.g. for ACDP (ACD Pantograph)
     SDP_RESPONSE_WIRELESS = 0x9003  # Used e.g. for ACDP (ACD Pantograph)
+
     # 0x9004 - 0x9FFF: Reserved for future use
     # 0xA000 - 0xFFFF: Available for manufacturer specific use. Uniqueness of
     #                  those identifiers is not guaranteed.
@@ -419,3 +422,21 @@ class AuthorizationTokenType(str, Enum):
     EMAID = "eMAID"
     # TODO GitHub#95: Do we need to define this in a more complete way?
     EXTERNAL = "external"
+class Contactor(IntEnum):
+    ERROR = 0
+    OPENED = 1
+    CLOSED = 2
+
+
+class CpState(str, Enum):
+    A1 = "A1"
+    A2 = "A2"
+    B1 = "B1"
+    B2 = "B2"
+    C1 = "C1"
+    C2 = "C2"
+    D1 = "D1"
+    D2 = "D2"
+    E = "E"
+    F = "F"
+    UNKNOWN = "UNKNOWN"
