@@ -30,6 +30,7 @@ class SECCHandler(CommunicationSessionHandler):
 
     async def start(self):
         try:
+            logger.debug("VERSION Y")
             await self.start_session_handler()
         except Exception as exc:
             logger.error(f"SECC terminated: {exc}")
