@@ -610,8 +610,8 @@ class CertificateInstallation(StateSECC):
 
         try:
             dh_pub_key, encrypted_priv_key_bytes = encrypt_priv_key(
-                load_cert(CertPath.OEM_LEAF_DER),
-                load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
+                oem_prov_cert=load_cert(CertPath.OEM_LEAF_DER),
+                priv_key_to_encrypt=load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
             )
         except EncryptionError:
             self.stop_state_machine(

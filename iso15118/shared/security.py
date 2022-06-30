@@ -1000,14 +1000,6 @@ def encrypt_priv_key(
         shared_secret = ephemeral_ecdh_priv_key.exchange(
             ec.ECDH(), oem_prov_cert_pub_key
         )
-    # 1.3: Generate shared secret using the new ECDH private key and the public
-    #      key of the counterpart (OEM provisioning certificate's public key)
-    oem_prov_cert_pub_key = load_der_x509_certificate(oem_prov_cert).public_key()
-    shared_secret: Optional[bytes] = None
-    if isinstance(oem_prov_cert_pub_key, EllipticCurvePublicKey):
-        shared_secret = ephemeral_ecdh_priv_key.exchange(
-            ec.ECDH(), oem_prov_cert_pub_key
-        )
 
     if shared_secret:
         # 2. Step: Generate symmetric key using a key derivation function (KDF)
@@ -1031,9 +1023,7 @@ def encrypt_priv_key(
         symmetric_key = concat_kdf.derive(shared_secret)
 
         # 3. Step: Encrypt the private key
-        # See https://cryptography.io/en/latest/hazmat/primitives/
-        #     symmetric-encryption/?highlight=AES#cryptography.hazmat.
-        #     primitives.ciphers.Cipher
+        # See https://cryptography.io/en/latest/hazmat/primitives/symmetric-encryption/?highlight=AES#cryptography.hazmat.primitives.ciphers.Cipher  # noqa
         init_vector = get_random_bytes(16)
         cipher = Cipher(algorithms.AES(symmetric_key), modes.CBC(init_vector))
 
