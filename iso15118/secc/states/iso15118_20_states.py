@@ -460,11 +460,13 @@ class ServiceDiscovery(StateSECC):
             return
 
         service_discovery_req: ServiceDiscoveryReq = msg
-        # TODO: Filter services based on
+        #  Filter services based on
         #  SupportedServiceIDs field in ServiceDiscoveryReq
+
         offered_energy_services = (
             await self.comm_session.evse_controller.get_energy_service_list()
-        )
+        ) and service_discovery_req.supported_service_ids
+
         for energy_service in offered_energy_services.services:
             self.comm_session.matched_services_v20.append(
                 MatchedService(
