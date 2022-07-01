@@ -463,9 +463,12 @@ class ServiceDiscovery(StateSECC):
         #  Filter services based on
         #  SupportedServiceIDs field in ServiceDiscoveryReq
 
-        offered_energy_services = (
+        available_service_list = (
             await self.comm_session.evse_controller.get_energy_service_list()
-        ) and service_discovery_req.supported_service_ids
+        )
+
+        offered_energy_services = [value for value in available_service_list
+                                   if value in service_discovery_req.supported_service_ids]
 
         for energy_service in offered_energy_services.services:
             self.comm_session.matched_services_v20.append(
