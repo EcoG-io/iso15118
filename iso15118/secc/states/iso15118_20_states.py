@@ -56,6 +56,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SelectedService,
     SelectedServiceList,
     SelectedVAS,
+    Service,
     ServiceDetailReq,
     ServiceDetailRes,
     ServiceDiscoveryReq,
@@ -466,11 +467,14 @@ class ServiceDiscovery(StateSECC):
         available_service_list = (
             await self.comm_session.evse_controller.get_energy_service_list()
         )
+        offered_energy_services = [
+            service
+            for service in available_service_list.services
+            if service.service_id
+            in service_discovery_req.supported_service_ids.service_ids
+        ]
 
-        offered_energy_services = [value for value in available_service_list
-                                   if value in service_discovery_req.supported_service_ids]
-
-        for energy_service in offered_energy_services.services:
+        for energy_service in offered_energy_services:
             self.comm_session.matched_services_v20.append(
                 MatchedService(
                     service=ServiceV20.get_by_id(energy_service.service_id),
@@ -482,6 +486,10 @@ class ServiceDiscovery(StateSECC):
             )
 
         offered_vas = self.get_vas_list(service_discovery_req.supported_service_ids)
+
+        offered_energy_services_list = ServiceList(services=[])
+        for energy_service in offered_energy_services:
+            offered_energy_services_list.services.append(energy_service)
         if offered_vas:
             for vas in offered_vas.services:
                 self.comm_session.matched_services_v20.append(
@@ -499,8 +507,9 @@ class ServiceDiscovery(StateSECC):
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            service_renegotiation_supported=await self.comm_session.evse_controller.service_renegotiation_supported(),  # noqa: E501
-            energy_service_list=offered_energy_services,
+            service_renegotiation_supported=await self.comm_session.evse_controller.service_renegotiation_supported(),
+            # noqa: E501
+            energy_service_list=offered_energy_services_list,
             vas_list=offered_vas,
         )
 

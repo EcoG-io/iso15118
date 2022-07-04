@@ -49,10 +49,13 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ScheduleExchangeReq,
     ScheduleExchangeRes,
     SelectedService,
+    Service,
     ServiceDetailReq,
     ServiceDetailRes,
     ServiceDiscoveryReq,
     ServiceDiscoveryRes,
+    ServiceIDList,
+    ServiceList,
     ServiceSelectionReq,
     ServiceSelectionRes,
     SessionSetupRes,
@@ -337,11 +340,15 @@ class Authorization(StateEVCC):
         #      (and delete the # noqa: F841)
         # TODO: V2G20-2221 demands to send CertificateInstallationReq if necessary
 
+        service_ids = [1, 5]
+        service_list: ServiceIDList = ServiceIDList(service_ids=service_ids)
+
         service_discovery_req = ServiceDiscoveryReq(
             header=MessageHeader(
                 session_id=self.comm_session.session_id,
                 timestamp=time.time(),
-            )
+            ),
+            supported_service_ids=service_list
             # To limit the list of requested VAS services, set supported_service_ids
         )
 
