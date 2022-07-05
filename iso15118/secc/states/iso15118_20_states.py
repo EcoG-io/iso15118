@@ -469,7 +469,10 @@ class ServiceDiscovery(StateSECC):
         )
         offered_energy_services: ServiceList = ServiceList(services=[])
         for service in available_energy_services.services:
-            if service.service_id in service_discovery_req.supported_service_ids.service_ids:
+            if (
+                service.service_id
+                in service_discovery_req.supported_service_ids.service_ids
+            ):
                 offered_energy_services.services.append(service)
 
         for energy_service in offered_energy_services.services:
@@ -501,7 +504,7 @@ class ServiceDiscovery(StateSECC):
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            service_renegotiation_supported=await self.comm_session.evse_controller.service_renegotiation_supported(), # noqa: E501
+            service_renegotiation_supported=await self.comm_session.evse_controller.service_renegotiation_supported(),  # noqa: E501
             energy_service_list=offered_energy_services,
             vas_list=offered_vas,
         )
