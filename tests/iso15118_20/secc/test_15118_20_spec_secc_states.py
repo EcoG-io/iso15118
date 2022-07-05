@@ -1,24 +1,20 @@
 import time
 from typing import List
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.simulator import SimEVSEController
-from iso15118.secc.states.din_spec_states import CurrentDemand, PowerDelivery
 from iso15118.secc.states.iso15118_20_states import ServiceDiscovery
 from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol, ServiceV20
-from iso15118.shared.messages.iso15118_2.body import Body
 from iso15118.shared.messages.iso15118_20.common_messages import (
     MatchedService,
-    Service,
     ServiceDiscoveryReq,
     ServiceIDList,
 )
-from iso15118.shared.messages.iso15118_20.common_types import MessageHeader, V2GMessage
+from iso15118.shared.messages.iso15118_20.common_types import MessageHeader
 from iso15118.shared.notifications import StopNotification
-from tests.tools import MOCK_SESSION_ID
 
 
 class MockWriter:
@@ -62,9 +58,9 @@ class TestEvseScenarios:
         service_discovery: ServiceDiscovery = ServiceDiscovery(self.comm_session)
         service_discovery_req = self.service_discovery_req(service_ids)
         await service_discovery.process_message(message=service_discovery_req)
-        assert len(self.comm_session.matched_services_v20) is 2
-        assert self.comm_session.matched_services_v20[0].service is ServiceV20.AC
-        assert self.comm_session.matched_services_v20[1].service is ServiceV20.AC_BPT
+        assert len(self.comm_session.matched_services_v20) == 2
+        assert self.comm_session.matched_services_v20[0].service == ServiceV20.AC
+        assert self.comm_session.matched_services_v20[1].service == ServiceV20.AC_BPT
         assert service_discovery.next_state is None
 
         self.comm_session.matched_services_v20.clear()
@@ -73,5 +69,5 @@ class TestEvseScenarios:
         service_discovery_req = self.service_discovery_req(service_ids)
         await service_discovery.process_message(message=service_discovery_req)
         print(self.comm_session.matched_services_v20)
-        assert len(self.comm_session.matched_services_v20) is 0
+        assert len(self.comm_session.matched_services_v20) == 0
         assert service_discovery.next_state is None
