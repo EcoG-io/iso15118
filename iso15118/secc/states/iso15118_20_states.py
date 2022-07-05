@@ -501,8 +501,7 @@ class ServiceDiscovery(StateSECC):
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            service_renegotiation_supported=await self.comm_session.evse_controller.service_renegotiation_supported(),
-            # noqa: E501
+            service_renegotiation_supported=await self.comm_session.evse_controller.service_renegotiation_supported(), # noqa: E501
             energy_service_list=offered_energy_services,
             vas_list=offered_vas,
         )
