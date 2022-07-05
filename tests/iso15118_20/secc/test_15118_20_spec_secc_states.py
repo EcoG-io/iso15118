@@ -42,8 +42,7 @@ class TestEvseScenarios:
         self.comm_session.writer = MockWriter()
         self.comm_session.matched_services_v20: List[MatchedService] = []
 
-    def service_discovery_req(self):
-        service_ids = [1, 3, 5]
+    def service_discovery_req(self, service_ids):
         service_list: ServiceIDList = ServiceIDList(service_ids=service_ids)
 
         return ServiceDiscoveryReq(
@@ -55,9 +54,24 @@ class TestEvseScenarios:
         )
 
     async def test_energy_list(self):
+        service_ids = [
+            ServiceV20.AC.value,
+            ServiceV20.AC_BPT.value,
+            ServiceV20.DC_ACDP_BPT.value,
+        ]
         service_discovery: ServiceDiscovery = ServiceDiscovery(self.comm_session)
-        service_discovery_req = self.service_discovery_req()
+        service_discovery_req = self.service_discovery_req(service_ids)
         await service_discovery.process_message(message=service_discovery_req)
+        assert len(self.comm_session.matched_services_v20) is 2
         assert self.comm_session.matched_services_v20[0].service is ServiceV20.AC
         assert self.comm_session.matched_services_v20[1].service is ServiceV20.AC_BPT
+        assert service_discovery.next_state is None
+
+        self.comm_session.matched_services_v20.clear()
+        service_ids = [ServiceV20.DC.value, ServiceV20.DC_BPT.value]
+        service_discovery: ServiceDiscovery = ServiceDiscovery(self.comm_session)
+        service_discovery_req = self.service_discovery_req(service_ids)
+        await service_discovery.process_message(message=service_discovery_req)
+        print(self.comm_session.matched_services_v20)
+        assert len(self.comm_session.matched_services_v20) is 0
         assert service_discovery.next_state is None

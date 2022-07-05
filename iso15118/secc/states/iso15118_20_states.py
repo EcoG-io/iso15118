@@ -464,17 +464,15 @@ class ServiceDiscovery(StateSECC):
         #  Filter services based on
         #  SupportedServiceIDs field in ServiceDiscoveryReq
 
-        available_service_list = (
+        available_energy_services = (
             await self.comm_session.evse_controller.get_energy_service_list()
         )
-        offered_energy_services = [
-            service
-            for service in available_service_list.services
-            if service.service_id
-            in service_discovery_req.supported_service_ids.service_ids
-        ]
+        offered_energy_services: ServiceList = ServiceList(services=[])
+        for service in available_energy_services.services:
+            if service.service_id in service_discovery_req.supported_service_ids.service_ids:
+                offered_energy_services.services.append(service)
 
-        for energy_service in offered_energy_services:
+        for energy_service in offered_energy_services.services:
             self.comm_session.matched_services_v20.append(
                 MatchedService(
                     service=ServiceV20.get_by_id(energy_service.service_id),
@@ -486,10 +484,6 @@ class ServiceDiscovery(StateSECC):
             )
 
         offered_vas = self.get_vas_list(service_discovery_req.supported_service_ids)
-
-        offered_energy_services_list = ServiceList(services=[])
-        for energy_service in offered_energy_services:
-            offered_energy_services_list.services.append(energy_service)
         if offered_vas:
             for vas in offered_vas.services:
                 self.comm_session.matched_services_v20.append(
@@ -509,7 +503,7 @@ class ServiceDiscovery(StateSECC):
             response_code=ResponseCode.OK,
             service_renegotiation_supported=await self.comm_session.evse_controller.service_renegotiation_supported(),
             # noqa: E501
-            energy_service_list=offered_energy_services_list,
+            energy_service_list=offered_energy_services,
             vas_list=offered_vas,
         )
 
