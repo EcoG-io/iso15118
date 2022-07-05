@@ -38,6 +38,7 @@ class Config:
         "DIN_SPEC_70121",
         "ISO_15118_2",
         "ISO_15118_20_AC",
+        "ISO_15118_20_DC",
     ]
     default_auth_modes = [
         "EIM",
