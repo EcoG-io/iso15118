@@ -613,7 +613,6 @@ class CertificateInstallation(StateSECC):
             )
             return
 
-
         # TODO: Since there is no connection with a Certificate Authority (Hubject)
         # here we create the certificate ourselves as we have access to all certificates
         # and private keys needed. This is however not the real production case
@@ -624,13 +623,14 @@ class CertificateInstallation(StateSECC):
         # ("urn:iso:15118:2:2013:MsgDef" or "urn:iso:std:iso:15118:-20:CommonMessages"),
         # and the raw EXI CertificateInstallationReq message comming from the EV
 
-        ##### CertificateInstallationRes Message Generation #############
+        # +++++++++ CertificateInstallationRes Message Generation ++++++++++++ #
 
         try:
             dh_pub_key, encrypted_priv_key_bytes = encrypt_priv_key(
                 oem_prov_cert=load_cert(CertPath.OEM_LEAF_DER),
-                priv_key_to_encrypt=load_priv_key(KeyPath.CONTRACT_LEAF_PEM,
-                                                  KeyEncoding.PEM)
+                priv_key_to_encrypt=load_priv_key(
+                    KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM
+                ),
             )
         except EncryptionError:
             self.stop_state_machine(
@@ -728,7 +728,7 @@ class CertificateInstallation(StateSECC):
             )
             return
 
-        ##### CertificateInstallationRes Message Generation #############
+        # +++++++++ CertificateInstallationRes Message Generation ++++++++++++ #
 
 
 class PaymentDetails(StateSECC):
@@ -913,8 +913,9 @@ class Authorization(StateSECC):
 
         # TODO: is_authorized needs, in case of PnC, needs to accept as arguments
         # the EMAID, the contract certificate chain (leaf, MO-Sub-1 and MO-Sub-2,
-        # and the OCSP iso15118CertificateHashData as mentioned in OCPP 2.0.1 use case C07
-        # the contract chain is saved within self.comm_session.contract_cert_chain
+        # and the OCSP iso15118CertificateHashData as mentioned in OCPP 2.0.1
+        # use case C07 the contract chain is saved within
+        # self.comm_session.contract_cert_chain
         auth_status: EVSEProcessing = EVSEProcessing.ONGOING
         next_state: Type["State"] = Authorization
         if await self.comm_session.evse_controller.is_authorized() == (

@@ -840,14 +840,15 @@ def verify_signature(
     exi_encoded_signed_info = EXI().to_exi(signature.signed_info, Namespace.XML_DSIG)
 
     # The verify method from cryptography expects the signature to be in DER encoded
-    # format. Please, check: https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ec/#cryptography.hazmat.primitives.asymmetric.ec.EllipticCurvePublicKey.verify  # noqa
+    # format. Please, check: https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ec/#cryptography.hazmat.primitives.asymmetric.ec.EllipticCurvePublicKey.verify  # noqa: E501
     # However, in ISO15118 the signature value is exchanged in raw format.
     # In order to convert the signature value to DER format, it is possible to use the
     # encode_dss_signature from cryptography, but we need to provide the
     # r and s values of the signature as ints.
-    # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/utils/#cryptography.hazmat.primitives.asymmetric.utils.encode_dss_signature  # noqa
-    # The `r` and `s` values are both 32 bytes values that correspond to the coordinates in
-    # the Elliptic curve from where the public and private key are extracted
+    # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/utils/#cryptography.hazmat.primitives.asymmetric.utils.encode_dss_signature  # noqa: E501
+    # The `r` and `s` values are both 32 bytes values that correspond to the
+    # coordinates in the Elliptic curve from where the public and private key
+    # are extracted
 
     ec_r = int.from_bytes(signature.signature_value.value[:32], "big")
     ec_s = int.from_bytes(signature.signature_value.value[32:], "big")
