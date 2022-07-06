@@ -832,19 +832,12 @@ def verify_signature(
 
     # 2. Step: Checking signature value
     logger.debug("Verifying signature value for SignedInfo element")
-    logger.debug("Verifying signature value for SignedInfo element")
-    logger.debug("Extracting the Public Key")
     pub_key = load_der_x509_certificate(leaf_cert).public_key()
-    # pub_key_bytes = pub_key.public_numbers().encode_point()
-    pub_key_bytes = pub_key.public_bytes(
-        encoding=Encoding.X962, format=PublicFormat.UncompressedPoint
-    )
-    logger.debug(
-        f"Pub Key from OEM Leaf Prov Certificate: {pub_key_bytes.hex().upper()}"
-    )
-    logger.debug("pubkey struc")
+
+    # The signature value element corresponds to the encryption of the EXI encoded
+    # signed_info element.
+    # Signed Info -> EXI encoding -> Encryption with Private Key => Signature Value
     exi_encoded_signed_info = EXI().to_exi(signature.signed_info, Namespace.XML_DSIG)
-    logger.debug(f"Signature Value: {signature.signature_value.value.hex().upper()}")
 
     # The verify method from cryptography expects the signature to be in DER encoded
     # format. Please, check: https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ec/#cryptography.hazmat.primitives.asymmetric.ec.EllipticCurvePublicKey.verify  # noqa
@@ -853,7 +846,7 @@ def verify_signature(
     # encode_dss_signature from cryptography, but we need to provide the
     # r and s values of the signature as ints.
     # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/utils/#cryptography.hazmat.primitives.asymmetric.utils.encode_dss_signature  # noqa
-    # The r and as values are both 32 bytes values that correspond to the coordinate in
+    # The `r` and `s` values are both 32 bytes values that correspond to the coordinates in
     # the Elliptic curve from where the public and private key are extracted
 
     ec_r = int.from_bytes(signature.signature_value.value[:32], "big")
@@ -871,9 +864,14 @@ def verify_signature(
             # TODO Add support for ISO 15118-20 public key types
             raise KeyTypeError(f"Unexpected public key type " f"{type(pub_key)}")
     except InvalidSignature as e:
+        pub_key_bytes = pub_key.public_bytes(
+            encoding=Encoding.X962, format=PublicFormat.UncompressedPoint
+        )
         logger.error(
             f"Signature verification failed for signature value "
-            f"\n{signature.signature_value.value.hex()} \n Error: {e}"
+            f"\n{signature.signature_value.value.hex().upper()} \n"
+            f"Pub Key from Leaf Certificate: {pub_key_bytes.hex().upper()}"
+            f"\n Error: {e} "
         )
         return False
 

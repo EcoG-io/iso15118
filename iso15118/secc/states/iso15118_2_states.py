@@ -586,6 +586,11 @@ class CertificateInstallation(StateSECC):
             msg.body.certificate_installation_req
         )
 
+        # For the CertificateInstallation, the min the EVSE can do is
+        # to verify the message signature, using the OEM provisioning
+        # certificate (public key)
+        # The chain of certificates of the OEM Root can also be verified,
+        # if the SUB CA and root Certs are provided
         if not verify_signature(
             signature=msg.header.signature,
             elements_to_sign=[
@@ -608,10 +613,24 @@ class CertificateInstallation(StateSECC):
             )
             return
 
+
+        # TODO: Since there is no connection with a Certificate Authority (Hubject)
+        # here we create the certificate ourselves as we have access to all certificates
+        # and private keys needed. This is however not the real production case
+        # In a real scenario we need to call a get_iso15118_ev_certificate_install,
+        # which would be a direct mapping to the Getiso15118EVCertificateRequest
+        # message from OCPP 2.0.1 for the installation case, which accepts as
+        # arguments the `15118SchemaVersion`
+        # ("urn:iso:15118:2:2013:MsgDef" or "urn:iso:std:iso:15118:-20:CommonMessages"),
+        # and the raw EXI CertificateInstallationReq message comming from the EV
+
+        ##### CertificateInstallationRes Message Generation #############
+
         try:
             dh_pub_key, encrypted_priv_key_bytes = encrypt_priv_key(
                 oem_prov_cert=load_cert(CertPath.OEM_LEAF_DER),
-                priv_key_to_encrypt=load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
+                priv_key_to_encrypt=load_priv_key(KeyPath.CONTRACT_LEAF_PEM,
+                                                  KeyEncoding.PEM)
             )
         except EncryptionError:
             self.stop_state_machine(
@@ -709,6 +728,8 @@ class CertificateInstallation(StateSECC):
             )
             return
 
+        ##### CertificateInstallationRes Message Generation #############
+
 
 class PaymentDetails(StateSECC):
     """
@@ -725,7 +746,7 @@ class PaymentDetails(StateSECC):
 
     The SECC needs to verify the certificate chain (e.g. signature check and
     validity check of each certificate and store the certificate chain in the
-    communication session so it can later verify digitally signed messages
+    communication session, so it can later verify digitally signed messages
     (such as the AuthorizationReq) from the EVCC.
 
     In general, a CPO (charge point operator) can decide if they want the SECC
@@ -890,6 +911,10 @@ class Authorization(StateSECC):
                 )
                 return
 
+        # TODO: is_authorized needs, in case of PnC, needs to accept as arguments
+        # the EMAID, the contract certificate chain (leaf, MO-Sub-1 and MO-Sub-2,
+        # and the OCSP iso15118CertificateHashData as mentioned in OCPP 2.0.1 use case C07
+        # the contract chain is saved within self.comm_session.contract_cert_chain
         auth_status: EVSEProcessing = EVSEProcessing.ONGOING
         next_state: Type["State"] = Authorization
         if await self.comm_session.evse_controller.is_authorized() == (
