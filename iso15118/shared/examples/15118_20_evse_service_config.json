@@ -208,6 +208,35 @@
               "intValue": 1
             }
           ]
+        },
+        {
+          "ParameterSetID": 2,
+          "Parameter": [
+            {
+              "Name": "Connector",
+              "intValue": 2
+            },
+            {
+              "Name": "ControlMode",
+              "intValue": 2
+            },
+            {
+              "Name": "MobilityNeedsMode",
+              "intValue": 2
+            },
+            {
+              "Name": "Pricing",
+              "intValue": 0
+            },
+            {
+              "Name": "BPTChannel",
+              "intValue": 1
+            },
+            {
+              "Name": "GeneratorMode",
+              "intValue": 1
+            }
+          ]
         }
       ]
     }
