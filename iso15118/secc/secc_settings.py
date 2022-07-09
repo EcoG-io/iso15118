@@ -40,6 +40,7 @@ class Config:
         "ISO_15118_20_AC",
         "ISO_15118_20_DC",
     ]
+    # NOTE: ISO 15118 DC support is still under development
     default_auth_modes = [
         "EIM",
         "PNC",
