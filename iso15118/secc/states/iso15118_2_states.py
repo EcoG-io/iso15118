@@ -919,12 +919,15 @@ class Authorization(StateSECC):
                 )
                 return
 
-        # TODO: In case of PnC, `is_authorized` needs to accept as arguments
-        # the EMAID, the contract certificate chain (leaf, MO-Sub-1 and MO-Sub-2)
+        # TODO: The authorization process can start already in the PaymentDetailsReq.
+        # An evse_controller method must be crated to receive as arguments
+        # the eMAID, the contract certificate chain (leaf, MO-Sub-1 and MO-Sub-2)
         # and the OCSP iso15118CertificateHashData as mentioned in OCPP 2.0.1
         # use case C07.
-        # The contract chain is saved within the self.comm_session.contract_cert_chain
-        # attribute
+        # If the current `is_authorized` is to be used, then we need to modify
+        # it to add those arguments.
+        # Note: The contract chain is saved within the
+        # self.comm_session.contract_cert_chain attribute.
         auth_status: EVSEProcessing = EVSEProcessing.ONGOING
         next_state: Type["State"] = Authorization
         if await self.comm_session.evse_controller.is_authorized() == (
