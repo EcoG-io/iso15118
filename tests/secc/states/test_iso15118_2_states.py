@@ -7,20 +7,28 @@ from iso15118.secc.states.iso15118_2_states import (
     ChargeParameterDiscovery,
     CurrentDemand,
     PowerDelivery,
+    SessionStop,
     Terminate,
     WeldingDetection,
 )
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.messages.enums import AuthEnum, AuthorizationStatus, Contactor
+from iso15118.shared.states import Pause
 from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
     get_dummy_v2g_message_authorization_req,
+    get_dummy_v2g_message_charge_stop_pause,
     get_dummy_v2g_message_power_delivery_req_charge_start,
     get_dummy_v2g_message_power_delivery_req_charge_stop,
     get_dummy_v2g_message_welding_detection_req,
     get_v2g_message_power_delivery_req,
 )
+
+
+class MockWriter:
+    def get_extra_info(self, query_string: str):
+        return "not supported"
 
 
 @patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b"01"))
@@ -29,6 +37,7 @@ class TestEvScenarios:
     @pytest.fixture(autouse=True)
     def _comm_session(self, comm_secc_session_mock):
         self.comm_session = comm_secc_session_mock
+        self.comm_session.writer = MockWriter()
 
     async def test_current_demand_to_power_delivery_when_power_delivery_received(
         self,
@@ -257,3 +266,11 @@ class TestEvScenarios:
             await self.comm_session.evse_controller.get_contactor_state()
             is Contactor.CLOSED
         )
+
+    async def test_enter_sleep_mode(self):
+        # V2G2-718
+        session_stop = SessionStop(self.comm_session)
+        await session_stop.process_message(
+            message=get_dummy_v2g_message_charge_stop_pause()
+        )
+        assert session_stop.next_state == Pause

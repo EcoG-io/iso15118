@@ -751,3 +751,7 @@ class SimEVSEController(EVSEControllerInterface):
             evse_max_discharge_current=RationalNumber(exponent=0, value=11),
             evse_min_discharge_current=RationalNumber(exponent=0, value=0),
         )
+
+    async def enter_sleep_mode(self) -> None:
+        """Overrides EVControllerInterface.enter_sleep_mode()."""
+        pass

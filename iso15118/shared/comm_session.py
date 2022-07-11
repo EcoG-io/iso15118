@@ -375,8 +375,10 @@ class V2GCommunicationSession(SessionStateMachine):
         logger.info(f"Reason: {reason}")
 
         await asyncio.sleep(2)
-        # TODO Signal data link layer to either terminate or pause the data
+        # Signal data link layer to either terminate or pause the data
         #      link connection
+        if terminate_or_pause == "Pause":
+            await self.comm_session.evse_controller.enter_sleep_mode()
         logger.info(f"{terminate_or_pause}d the data link")
         await asyncio.sleep(3)
         self.writer.close()

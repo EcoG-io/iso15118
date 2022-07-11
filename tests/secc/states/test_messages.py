@@ -196,3 +196,12 @@ def get_dummy_v2g_message_power_delivery_req_charge_stop():
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(power_delivery_req=power_delivery_req),
     )
+
+
+def get_dummy_v2g_message_charge_stop_pause():
+    session_stop_req = SessionStopReq(charging_session=ChargingSession.PAUSE)
+
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(session_stop_req=session_stop_req),
+    )
