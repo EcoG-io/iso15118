@@ -310,8 +310,9 @@ class EVSEControllerInterface(ABC):
     async def enter_sleep_mode(self) -> None:
         """
         Notify that EVSE is going to enter sleep mode.
-        A sleep mode is used for energy saving. EV and EVSE can enter a sleep mode after negotiating a pause
-        through HLC protocol.On the EVSE side, a sleep mode means that the oscillator will be off
+        A sleep mode is used for energy saving. EV and EVSE can enter a sleep mode
+        after negotiating a pause through HLC protocol.On the EVSE side,
+        a sleep mode means that the oscillator will be off
         (X1 Control Pilot state), the +12V supply of the pilot line will stay on, and
         the low-layer communication module may be powered off.
 
