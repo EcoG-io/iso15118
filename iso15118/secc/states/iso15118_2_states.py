@@ -586,6 +586,13 @@ class CertificateInstallation(StateSECC):
             msg.body.certificate_installation_req
         )
 
+        # For the CertificateInstallation, the min. the SECC can do is
+        # to verify the message signature, using the OEM provisioning
+        # certificate (public key)
+        # The chain of signatures, from the signature in the
+        # CertificateInstallationReq's header all the way to the
+        # self-signed OEM/V2G root certificate, can be verified if the
+        # OEM Sub-CA and OEM/V2G root CA certificate are available.
         if not verify_signature(
             signature=msg.header.signature,
             elements_to_sign=[
@@ -608,10 +615,29 @@ class CertificateInstallation(StateSECC):
             )
             return
 
+        # TODO: Since there is no connection with a Certificate Authority (Hubject),
+        # here we create the CertificateInstallationRes message ourselves as we
+        # have access to all certificates and private keys needed.
+        # This is however not the real production case. In a real scenario we
+        # need to call a get_iso15118_ev_certificate_install method,
+        # which would be a direct mapping to the Get15118EVCertificateRequest
+        # message from OCPP 2.0.1 for the installation case, which accepts as
+        # arguments the `15118SchemaVersion`
+        # ("urn:iso:15118:2:2013:MsgDef" or "urn:iso:std:iso:15118:-20:CommonMessages"),
+        # and the raw EXI CertificateInstallationReq message coming from the EV,
+        # base64 encoded.
+
+        # Note: the Raw EXI encoded message that includes the Header and the Body of the
+        # CertificateInstallationReq must be used.
+
+        # +++++++++ CertificateInstallationRes Message Generation ++++++++++++ #
+
         try:
             dh_pub_key, encrypted_priv_key_bytes = encrypt_priv_key(
-                load_cert(CertPath.OEM_LEAF_DER),
-                load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
+                oem_prov_cert=load_cert(CertPath.OEM_LEAF_DER),
+                priv_key_to_encrypt=load_priv_key(
+                    KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM
+                ),
             )
         except EncryptionError:
             self.stop_state_machine(
@@ -700,6 +726,7 @@ class CertificateInstallation(StateSECC):
                 Namespace.ISO_V2_MSG_DEF,
                 signature=signature,
             )
+
         except PrivateKeyReadError as exc:
             self.stop_state_machine(
                 "Can't read private key needed to create signature "
@@ -708,6 +735,8 @@ class CertificateInstallation(StateSECC):
                 ResponseCode.FAILED,
             )
             return
+
+        # +++++++++ CertificateInstallationRes Message Generation ++++++++++++ #
 
 
 class PaymentDetails(StateSECC):
@@ -725,7 +754,7 @@ class PaymentDetails(StateSECC):
 
     The SECC needs to verify the certificate chain (e.g. signature check and
     validity check of each certificate and store the certificate chain in the
-    communication session so it can later verify digitally signed messages
+    communication session, so it can later verify digitally signed messages
     (such as the AuthorizationReq) from the EVCC.
 
     In general, a CPO (charge point operator) can decide if they want the SECC
@@ -874,14 +903,14 @@ class Authorization(StateSECC):
                 return
 
             if not verify_signature(
-                msg.header.signature,
-                [
+                signature=msg.header.signature,
+                elements_to_sign=[
                     (
                         authorization_req.id,
                         EXI().to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
                     )
                 ],
-                self.comm_session.contract_cert_chain.certificate,
+                leaf_cert=self.comm_session.contract_cert_chain.certificate,
             ):
                 self.stop_state_machine(
                     "Unable to verify signature of AuthorizationReq",
@@ -890,6 +919,15 @@ class Authorization(StateSECC):
                 )
                 return
 
+        # TODO: The authorization process can start already in the PaymentDetailsReq.
+        # An evse_controller method must be crated to receive as arguments
+        # the eMAID, the contract certificate chain (leaf, MO-Sub-1 and MO-Sub-2)
+        # and the OCSP iso15118CertificateHashData as mentioned in OCPP 2.0.1
+        # use case C07.
+        # If the current `is_authorized` is to be used, then we need to modify
+        # it to add those arguments.
+        # Note: The contract chain is saved within the
+        # self.comm_session.contract_cert_chain attribute.
         auth_status: EVSEProcessing = EVSEProcessing.ONGOING
         next_state: Type["State"] = Authorization
         if await self.comm_session.evse_controller.is_authorized() == (
