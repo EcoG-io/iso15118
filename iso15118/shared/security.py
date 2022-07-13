@@ -4,7 +4,7 @@ import secrets
 from datetime import datetime
 from enum import Enum, auto
 from ssl import PROTOCOL_TLSv1_2, SSLContext, SSLError, VerifyMode
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.backends.openssl.backend import Backend
@@ -1123,6 +1123,52 @@ def decrypt_priv_key(
 
     logger.error("Shared secret could not be generated")
     raise DecryptionError()
+
+
+def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
+    """Extract certificate hash data to be used in an OCPP AuthorizeRequest.
+
+    Args:
+        certificate: The certificate in binary form.
+
+    Returns:
+        A dictionary with all information required for an OCSPRequestDataType
+        (2.36. OCSPRequestDataType, p. 382, OCPP 2.0.1 Part 2)
+
+    Raises:
+        CertAttributeError: if a certificate is provided with a hash algorithm
+            that OCPP doesn't accept.
+            Only SHA256, SHA384, and SHA512 are allowed.
+            (3.42 HashAlgorithmEnumType, p. 403, OCPP 2.0.1 Part 2)
+    """
+    der_certificate = load_der_x509_certificate(certificate)
+    public_key = der_certificate.public_key()
+    public_key_bytes = public_key.public_bytes(
+        encoding=Encoding.X962,
+        format=PublicFormat.UncompressedPoint,
+    )
+    # TODO: maybe rfc4514_string?
+    distinguished_name = str(der_certificate.issuer)
+    serial_number = der_certificate.serial_number
+
+    # Convert to the naming used in OCPP.
+    hash_algorithm_for_ocpp = der_certificate.signature_hash_algorithm.name.upper()
+    if hash_algorithm_for_ocpp not in {"SHA256", "SHA384", "SHA512"}:
+        raise CertAttributeError("Unknown hash algorithm")
+
+    public_key_hasher = Hash(der_certificate.signature_hash_algorithm)
+    public_key_hasher.update(public_key_bytes)
+    issuer_name_hasher = Hash(der_certificate.signature_hash_algorithm)
+    issuer_name_hasher.update(distinguished_name)
+
+    return {
+        "hash_algorithm": hash_algorithm_for_ocpp,
+        "issuer_name_hash": issuer_name_hasher.finalize(),
+        "issuer_key_hash": public_key_hasher.finalize(),
+        "serial_number": serial_number,
+        # TODO: What is a real one of these?
+        "responder_url": "https://www.example.com/",
+    }
 
 
 class CertPath(str, Enum):
