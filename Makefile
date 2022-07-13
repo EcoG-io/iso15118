@@ -10,7 +10,7 @@ export PATH := ${HOME}/.local/bin:$(PATH)
 
 IS_POETRY := $(shell pip freeze | grep "poetry==")
 
-
+# Output descriptions of all commands
 help:
 	@echo "Please use 'make <target>', where <target> is one of"
 	@echo ""
@@ -30,23 +30,23 @@ help:
 	@echo ""
 	@echo "Check the Makefile to know exactly what each target is doing."
 
-
+# Install poetry with pip
 .install-poetry:
 	@if [ -z ${IS_POETRY} ]; then pip install poetry; fi
 
-docs: .install-poetry
-	# poetry run sphinx-build -b html docs/source docs/build
-
+# Run pytest with poetry
 tests: .install-poetry
-	#poetry run flake8 pytest -vv tests
 	poetry run pytest -vv tests
 
+# Generate test -2 certificates
 .generate_v2_certs:
 	cd iso15118/shared/pki; ./create_certs.sh -v iso-2
 
+# Generate test -20 certificates
 .generate_v20_certs:
 	cd iso15118/shared/pki; ./create_certs.sh -v iso-20
 
+# Build docker images
 build: .generate_v2_certs
 	@# `xargs` will copy the Dockerfile template, so that it can be individually
 	@# used by the secc and evcc services
@@ -58,42 +58,55 @@ build: .generate_v2_certs
 	@sed -i.bkp 's@/secc/g@/evcc/g@g' iso15118/evcc/Dockerfile
 	docker-compose build
 
+# Run using dev env vars
 dev:
 	# the dev file apply changes to the original compose file
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
+# Run using prod env vars
 run:
 	docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
 
+# Update dependencies with poetry
 poetry-update:
 	poetry update
 
+# Install dependencies with poetry
 install-local:
 	poetry install
 
+# Use poetry virtual environment
 poetry-shell:
 	poetry shell
 
+# Run evcc with python
 run-evcc:
 	$(shell which python) iso15118/evcc/main.py
 
+# Run secc with python
 run-secc:
 	$(shell which python) iso15118/secc/main.py
 
+# Run mypy checks
 mypy:
 	mypy --config-file mypy.ini iso15118 tests
 
+# Reformat with isort and black
 reformat:
 	isort iso15118 tests && black --line-length=88 iso15118 tests
 
+# Run black checks
 black:
 	black --check --diff --line-length=88 iso15118 tests
 
+# Run flake8 checks
 flake8:
 	flake8 --config .flake8 iso15118 tests
 
-code-quality: reformat mypy black flake8
+# Run black, isort, mypy, & flake8
+code-quality: reformat mypy flake8
 
+# Bump project version with poetry
 release: .install-poetry
 	@echo "Please remember to update the CHANGELOG.md, before tagging the release"
 	@poetry version ${version}
