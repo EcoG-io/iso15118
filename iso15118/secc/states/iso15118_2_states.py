@@ -115,6 +115,7 @@ from iso15118.shared.security import (
     KeyPasswordPath,
     KeyPath,
     create_signature,
+    derive_certificate_hash_data,
     encrypt_priv_key,
     get_cert_cn,
     get_random_bytes,
@@ -837,6 +838,16 @@ class PaymentDetails(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
+    def _get_contract_certificate_hash_data(
+        self,
+        certificate_chain: Optional[CertificateChain],
+    ) -> Optional[List[Dict[str, str]]]:
+        """Return a list of hash data for a contract certificate chain."""
+        return [
+            derive_certificate_hash_data(certificate)
+            for certificate in certificate_chain.sub_certificates.certificates
+        ]
+
     async def process_message(
         self,
         message: Union[
@@ -866,9 +877,25 @@ class PaymentDetails(StateSECC):
             #      to the PKI that is used.
             verify_certs(leaf_cert, sub_ca_certs, load_cert(CertPath.MO_ROOT_DER))
 
-            # TODO Check if EMAID has correct syntax
-
+            # TODO Check if EMAID has correct syntax -- is this accomplished by the
+            # constrained type in `datatypes.py`?
+            self.comm_session.emaid = payment_details_req.emaid
             self.comm_session.contract_cert_chain = payment_details_req.cert_chain
+
+            hash_data = self._get_contract_certificate_hash_data(
+                self.comm_session.contract_cert_chain
+            )
+
+            authorization_result = (
+                await self.comm_session.evse_controller.is_authorized(
+                    id_token=payment_details_req.emaid,
+                    id_token_type=self.comm_session.selected_auth_option,
+                    certificate_chain=self.comm_session.contract_cert_chain,
+                    hash_data=self._derive_certificate_hash_data(
+                        self.comm_session.contract_cert_chain
+                    ),
+                )
+            )
 
             payment_details_res = PaymentDetailsRes(
                 response_code=ResponseCode.OK,
@@ -1004,9 +1031,12 @@ class Authorization(StateSECC):
         # self.comm_session.contract_cert_chain attribute.
         auth_status: EVSEProcessing = EVSEProcessing.ONGOING
         next_state: Type["State"] = Authorization
-        if await self.comm_session.evse_controller.is_authorized() == (
-            AuthorizationStatus.ACCEPTED
-        ):
+        authorization_result = await self.comm_session.evse_controller.is_authorized(
+            # TODO: generalize this?
+            id_token=self.comm_session.emaid,
+            id_token_type=self.comm_session.selected_auth_option,
+        )
+        if authorization_result == (AuthorizationStatus.ACCEPTED):
             auth_status = EVSEProcessing.FINISHED
             next_state = ChargeParameterDiscovery
 
