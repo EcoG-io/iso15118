@@ -782,7 +782,7 @@ class SimEVSEController(EVSEControllerInterface):
         """
         For the simulator we simply mock the actions of the simulator.
         The code here is almost the same as what is done if USE_CPO_CERT_INSTALL_SERVICE
-         is set to False. Except that both the request and response is base64 encoded. 
+        is set to False. Except that both the request and response is base64 encoded.
         """
         cert_install_req_exi = base64.b64decode(base64_encoded_cert_installation_req)
         cert_install_req = EXI().from_exi(cert_install_req_exi, namespace)
