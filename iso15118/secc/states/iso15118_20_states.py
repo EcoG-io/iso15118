@@ -117,6 +117,7 @@ class SessionSetup(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, [SessionSetupReq])
         if not msg:
@@ -197,6 +198,7 @@ class AuthorizationSetup(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(
             message,
@@ -212,15 +214,17 @@ class AuthorizationSetup(StateSECC):
             return
 
         if isinstance(msg, CertificateInstallationReq):
-            await CertificateInstallation(self.comm_session).process_message(message)
+            await CertificateInstallation(self.comm_session).process_message(
+                message, message_exi
+            )
             return
 
         if isinstance(msg, AuthorizationReq):
-            await Authorization(self.comm_session).process_message(message)
+            await Authorization(self.comm_session).process_message(message, message_exi)
             return
 
         if isinstance(msg, SessionStopReq):
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         auth_options: List[AuthEnum] = []
@@ -288,6 +292,7 @@ class CertificateInstallation(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         raise NotImplementedError("CertificateInstallation not yet implemented")
 
@@ -327,6 +332,7 @@ class Authorization(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(
             message,
@@ -342,15 +348,19 @@ class Authorization(StateSECC):
             return
 
         if isinstance(msg, CertificateInstallationReq):
-            await CertificateInstallation(self.comm_session).process_message(message)
+            await CertificateInstallation(self.comm_session).process_message(
+                message, message_exi
+            )
             return
 
         if isinstance(msg, ServiceDiscoveryReq):
-            await ServiceDiscovery(self.comm_session).process_message(message)
+            await ServiceDiscovery(self.comm_session).process_message(
+                message, message_exi
+            )
             return
 
         if isinstance(msg, SessionStopReq):
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         auth_req: AuthorizationReq = msg
@@ -442,6 +452,7 @@ class ServiceDiscovery(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(
             message,
@@ -452,11 +463,11 @@ class ServiceDiscovery(StateSECC):
             return
 
         if isinstance(msg, ServiceDetailReq):
-            await ServiceDetail(self.comm_session).process_message(message)
+            await ServiceDetail(self.comm_session).process_message(message, message_exi)
             return
 
         if isinstance(msg, SessionStopReq):
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         service_discovery_req: ServiceDiscoveryReq = msg
@@ -559,6 +570,7 @@ class ServiceDetail(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(
             message,
@@ -572,11 +584,13 @@ class ServiceDetail(StateSECC):
             return
 
         if isinstance(msg, ServiceSelectionReq):
-            await ServiceSelection(self.comm_session).process_message(message)
+            await ServiceSelection(self.comm_session).process_message(
+                message, message_exi
+            )
             return
 
         if isinstance(msg, SessionStopReq):
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         service_detail_req: ServiceDetailReq = msg
@@ -629,13 +643,14 @@ class ServiceSelection(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, [ServiceSelectionReq, SessionStopReq], False)
         if not msg:
             return
 
         if isinstance(msg, SessionStopReq):
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         service_selection_req: ServiceSelectionReq = msg
@@ -805,6 +820,7 @@ class ScheduleExchange(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(
             message,
@@ -815,15 +831,15 @@ class ScheduleExchange(StateSECC):
             return
 
         if isinstance(msg, DCCableCheckReq):
-            await DCCableCheck(self.comm_session).process_message(message)
+            await DCCableCheck(self.comm_session).process_message(message, message_exi)
             return
 
         if isinstance(msg, PowerDeliveryReq):
-            await PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message, message_exi)
             return
 
         if isinstance(msg, SessionStopReq):
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         schedule_exchange_req: ScheduleExchangeReq = msg
@@ -900,13 +916,14 @@ class PowerDelivery(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, [PowerDeliveryReq, SessionStopReq], False)
         if not msg:
             return
 
         if isinstance(msg, SessionStopReq):
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         power_delivery_req: PowerDeliveryReq = msg
@@ -1074,6 +1091,7 @@ class SessionStop(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, [SessionStopReq], False)
         if not msg:
@@ -1152,6 +1170,7 @@ class ACChargeParameterDiscovery(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(
             message, [ACChargeParameterDiscoveryReq, SessionStopReq], False
@@ -1160,7 +1179,7 @@ class ACChargeParameterDiscovery(StateSECC):
             return
 
         if isinstance(msg, SessionStopReq):
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         ac_cpd_req: ACChargeParameterDiscoveryReq = msg
@@ -1233,6 +1252,7 @@ class ACChargeLoop(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(
             # TODO A MeteringConfirmationReq can come in using the multiplexed side
@@ -1245,11 +1265,11 @@ class ACChargeLoop(StateSECC):
             return
 
         if isinstance(msg, PowerDeliveryReq):
-            await PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message, message_exi)
             return
 
         if isinstance(msg, SessionStopReq):
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         ac_charge_loop_req: ACChargeLoopReq = msg
@@ -1337,6 +1357,7 @@ class DCChargeParameterDiscovery(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(
             message, [DCChargeParameterDiscoveryReq, SessionStopReq], False
@@ -1345,7 +1366,7 @@ class DCChargeParameterDiscovery(StateSECC):
             return
 
         if isinstance(msg, SessionStopReq):
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         dc_cpd_req: DCChargeParameterDiscoveryReq = msg
@@ -1418,6 +1439,7 @@ class DCCableCheck(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         raise NotImplementedError("DCCableCheck not yet implemented")
 
@@ -1440,6 +1462,7 @@ class DCPreCharge(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         raise NotImplementedError("DCPreCharge not yet implemented")
 
@@ -1462,6 +1485,7 @@ class DCChargeLoop(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         raise NotImplementedError("DCChargeLoop not yet implemented")
 
@@ -1484,5 +1508,6 @@ class DCWeldingDetection(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         raise NotImplementedError("DCWeldingDetection not yet implemented")

@@ -49,6 +49,7 @@ class SupportedAppProtocol(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg(
             message, SupportedAppProtocolReq, [SupportedAppProtocolReq]

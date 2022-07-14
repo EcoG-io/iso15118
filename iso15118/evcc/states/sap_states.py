@@ -68,6 +68,7 @@ class SupportedAppProtocol(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg(message, SupportedAppProtocolRes, SupportedAppProtocolRes)
         if not msg:

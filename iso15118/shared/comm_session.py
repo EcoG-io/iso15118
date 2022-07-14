@@ -213,7 +213,7 @@ class SessionStateMachine(ABC):
         # Step 3
         try:
             logger.info(f"{str(decoded_message)} received")
-            await self.current_state.process_message(decoded_message)
+            await self.current_state.process_message(decoded_message, v2gtp_msg.payload)
         except MessageProcessingError as exc:
             logger.exception(
                 f"{exc.__class__.__name__} while processing " f"{exc.message_name}"

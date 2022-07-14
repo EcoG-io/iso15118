@@ -642,3 +642,26 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-20
         """
         raise NotImplementedError
+
+    @abstractmethod
+    async def get_15118_ev_certificate(
+        self, base64_encoded_cert_installation_req: str, namespace: str
+    ) -> (str, bool, str):
+        """
+        Used to fetch base64 encoded CertificateInstallationRes from CPO backend.
+        Args:
+         base64_encoded_cert_installation_req : This is the CertificateInstallationReq
+         from the EV in base64 encoded form.
+         namespace: This would be the namespace to be passed to the backend and depends
+          on the protocol.
+         15118-2:  "urn:iso:15118:2:2013:MsgDef"
+         15118-20: "urn:iso:std:iso:15118:-20:CommonMessages"
+        Returns:
+         CertificateInstallationRes EXI stream in base64 encoded form.
+         Bool indicating if the request was successful
+         Status indicating any error that may have happened.
+
+        Relevant for:
+        - ISO 15118-20 and ISO 15118-2
+        """
+        raise NotImplementedError

@@ -1,3 +1,4 @@
+import base64
 import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional, Type, Union
@@ -41,6 +42,7 @@ from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.messages.xmldsig import Signature
 
 logger = logging.getLogger(__name__)
+Base64 = str
 
 if TYPE_CHECKING:
     # EVCCCommunicationSession and SECCCommunicationSession are used for
@@ -133,6 +135,7 @@ class State(ABC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         """
         Every State must implement this method to process the incoming message,
@@ -142,6 +145,7 @@ class State(ABC):
         Args:
             message: Either a DIN SPEC 70121, ISO 15118-2 message, or
                      ISO 15118-20 message
+            message_exi: EXI stream representation of the message
 
         At first, each state must check the incoming message with the method
         check_msg() before further processing the message's content.
@@ -163,6 +167,7 @@ class State(ABC):
             BodyBase,
             V2GMessageV20,
             BodyBaseDINSPEC,
+            Base64,
         ],
         next_msg_timeout: Union[float, int],
         namespace: Namespace,
@@ -264,6 +269,7 @@ class State(ABC):
             except ValidationError as exc:
                 logger.exception(exc)
                 raise exc
+            self.next_msg = to_be_exi_encoded
         elif isinstance(next_msg, BodyBase):
             note: Union[Notification, None] = None
             if (
@@ -290,10 +296,13 @@ class State(ABC):
             except ValidationError as exc:
                 logger.exception(exc)
                 raise exc
+            self.next_msg = to_be_exi_encoded
+        elif isinstance(next_msg, Base64):
+            # Incoming message is base64 encoded EXI message.
+            # So a base64 decode should retrieve the EXI stream.
+            next_msg = base64.b64decode(next_msg)
         else:
             to_be_exi_encoded = next_msg
-
-        self.next_msg = to_be_exi_encoded
 
         # If either next_msg or next_msg_payload_type are None, the state's
         # attribute next_v2gtp_msg will not be set. This causes the state
@@ -302,12 +311,17 @@ class State(ABC):
         if next_msg and next_msg_payload_type:
             # Step 3
             exi_payload: bytes = bytes(0)
-            try:
-                exi_payload = EXI().to_exi(to_be_exi_encoded, namespace)
-            except EXIEncodingError as exc:
-                logger.error(f"{exc}")
-                self.next_state = Terminate
-                raise
+            if isinstance(next_msg, bytes):
+                # Message already EXI encoded.
+                # Eg:-CertificateInstallationRes from backend
+                exi_payload = next_msg
+            else:
+                try:
+                    exi_payload = EXI().to_exi(to_be_exi_encoded, namespace)
+                except EXIEncodingError as exc:
+                    logger.error(f"{exc}")
+                    self.next_state = Terminate
+                    raise
 
             # Step 4
             try:
@@ -351,7 +365,9 @@ class Terminate(State):
             V2GMessageV2,
             V2GMessageV20,
             V2GMessageDINSPEC,
+            Base64,
         ],
+        message_exi: bytes = None,
     ):
         pass
 
@@ -371,6 +387,8 @@ class Pause(State):
             V2GMessageV2,
             V2GMessageV20,
             V2GMessageDINSPEC,
+            Base64,
         ],
+        message_exi: bytes = None,
     ):
         pass

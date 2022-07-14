@@ -4,7 +4,9 @@ V2GMessage objects of the ISO 15118-2 protocol, from SessionSetupReq to
 SessionStopReq.
 """
 
+import base64
 import logging
+import os.path
 import time
 from typing import List, Optional, Type, Union
 
@@ -106,6 +108,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
 from iso15118.shared.messages.timeouts import Timeouts
+from iso15118.shared.messages.xmldsig import Signature
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.security import (
     CertPath,
@@ -150,6 +153,7 @@ class SessionSetup(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, [SessionSetupReq])
         if not msg:
@@ -228,6 +232,7 @@ class ServiceDiscovery(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(
             message,
@@ -238,11 +243,13 @@ class ServiceDiscovery(StateSECC):
             return
 
         if msg.body.service_detail_req:
-            await ServiceDetail(self.comm_session).process_message(message)
+            await ServiceDetail(self.comm_session).process_message(message, message_exi)
             return
 
         if msg.body.payment_service_selection_req:
-            await PaymentServiceSelection(self.comm_session).process_message(message)
+            await PaymentServiceSelection(self.comm_session).process_message(
+                message, message_exi
+            )
             return
 
         service_discovery_req: ServiceDiscoveryReq = msg.body.service_discovery_req
@@ -376,6 +383,7 @@ class ServiceDetail(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(
             message,
@@ -386,7 +394,9 @@ class ServiceDetail(StateSECC):
             return
 
         if msg.body.payment_service_selection_req:
-            await PaymentServiceSelection(self.comm_session).process_message(message)
+            await PaymentServiceSelection(self.comm_session).process_message(
+                message, message_exi
+            )
             return
 
         service_detail_req: ServiceDetailReq = msg.body.service_detail_req
@@ -461,6 +471,7 @@ class PaymentServiceSelection(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(
             message,
@@ -476,15 +487,19 @@ class PaymentServiceSelection(StateSECC):
             return
 
         if msg.body.certificate_installation_req:
-            await CertificateInstallation(self.comm_session).process_message(message)
+            await CertificateInstallation(self.comm_session).process_message(
+                message, message_exi
+            )
             return
 
         if msg.body.payment_details_req:
-            await PaymentDetails(self.comm_session).process_message(message)
+            await PaymentDetails(self.comm_session).process_message(
+                message, message_exi
+            )
             return
 
         if msg.body.authorization_req:
-            await Authorization(self.comm_session).process_message(message)
+            await Authorization(self.comm_session).process_message(message, message_exi)
             return
 
         # passes_initial_check, ensures that one of the accepted messages
@@ -577,24 +592,93 @@ class CertificateInstallation(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, [CertificateInstallationReq])
         if not msg:
             return
 
-        cert_install_req: CertificateInstallationReq = (
-            msg.body.certificate_installation_req
+        if not self.validate_message_signature(msg):
+            self.stop_state_machine(
+                "Signature verification failed for " "CertificateInstallationReq",
+                message,
+                ResponseCode.FAILED_SIGNATURE_ERROR,
+            )
+
+        # In a real world scenario we need to fetch the certificate from the backend.
+        # We call get_15118_ev_certificate method, which would be a direct mapping
+        # to the Get15118EVCertificateRequest
+        # message from OCPP 2.0.1 for the installation case.
+        # This accepts 2 arguments:
+        # 1. The raw EXI CertificateInstallationReq message coming from the EV
+        # in base64 encoded form.
+        # 2. A string that specifies `15118SchemaVersion` which would be either of
+        # "urn:iso:15118:2:2013:MsgDef" or "urn:iso:std:iso:15118:-20:CommonMessages"
+        certificate_installation_res = None
+        signature = None
+        if self.comm_session.config.use_cpo_cert_install_service:
+            logger.info("Using CPO backend to fetch CertificateInstallationRes")
+            # b64encode returns byte[] - hence the .decode("utf-8")
+            base64_certificate_install_req = base64.b64encode(message_exi).decode(
+                "utf-8"
+            )
+            (
+                certificate_installation_res,
+                success,
+                status,
+            ) = await self.comm_session.evse_controller.get_15118_ev_certificate(
+                base64_certificate_install_req, Namespace.ISO_V2_MSG_DEF
+            )
+
+            if not success or certificate_installation_res is None:
+                logger.error(f"Error fetching certificate from CPO backend {status}")
+                self.stop_state_machine(
+                    status,
+                    message,
+                    ResponseCode.FAILED_NO_CERTIFICATE_AVAILABLE,
+                )
+        else:
+            (
+                certificate_installation_res,
+                signature,
+            ) = self.generate_certificate_installation_res(message)
+
+        self.create_next_message(
+            PaymentDetails,
+            certificate_installation_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+            signature=signature,
         )
 
+    def validate_message_signature(self, message: V2GMessageV2) -> bool:
         # For the CertificateInstallation, the min. the SECC can do is
         # to verify the message signature, using the OEM provisioning
-        # certificate (public key)
+        # certificate (public key) - this is available in the cert installation req.
         # The chain of signatures, from the signature in the
         # CertificateInstallationReq's header all the way to the
         # self-signed OEM/V2G root certificate, can be verified if the
         # OEM Sub-CA and OEM/V2G root CA certificate are available.
-        if not verify_signature(
-            signature=msg.header.signature,
+
+        cert_install_req: CertificateInstallationReq = (
+            message.body.certificate_installation_req
+        )
+
+        sub_ca_certificates_oem = None
+        root_ca_certificate_oem = None
+        if (
+            os.path.exists(CertPath.OEM_SUB_CA2_DER)
+            and os.path.exists(CertPath.OEM_SUB_CA1_DER)
+            and os.path.exists(CertPath.OEM_ROOT_DER)
+        ):
+            sub_ca_certificates_oem = [
+                load_cert(CertPath.OEM_SUB_CA2_DER),
+                load_cert(CertPath.OEM_SUB_CA1_DER),
+            ]
+            root_ca_certificate_oem = CertPath.OEM_ROOT_DER
+
+        return verify_signature(
+            signature=message.header.signature,
             elements_to_sign=[
                 (
                     cert_install_req.id,
@@ -602,36 +686,18 @@ class CertificateInstallation(StateSECC):
                 )
             ],
             leaf_cert=cert_install_req.oem_provisioning_cert,
-            sub_ca_certs=[
-                load_cert(CertPath.OEM_SUB_CA2_DER),
-                load_cert(CertPath.OEM_SUB_CA1_DER),
-            ],
-            root_ca_cert_path=CertPath.OEM_ROOT_DER,
-        ):
-            self.stop_state_machine(
-                "Signature verification failed for " "CertificateInstallationReq",
-                message,
-                ResponseCode.FAILED_SIGNATURE_ERROR,
-            )
-            return
+            sub_ca_certs=sub_ca_certificates_oem,
+            root_ca_cert_path=root_ca_certificate_oem,
+        )
 
-        # TODO: Since there is no connection with a Certificate Authority (Hubject),
-        # here we create the CertificateInstallationRes message ourselves as we
+    def generate_certificate_installation_res(
+        self, message
+    ) -> (CertificateInstallationRes, Signature):
+        # Here we create the CertificateInstallationRes message ourselves as we
         # have access to all certificates and private keys needed.
-        # This is however not the real production case. In a real scenario we
-        # need to call a get_iso15118_ev_certificate_install method,
-        # which would be a direct mapping to the Get15118EVCertificateRequest
-        # message from OCPP 2.0.1 for the installation case, which accepts as
-        # arguments the `15118SchemaVersion`
-        # ("urn:iso:15118:2:2013:MsgDef" or "urn:iso:std:iso:15118:-20:CommonMessages"),
-        # and the raw EXI CertificateInstallationReq message coming from the EV,
-        # base64 encoded.
-
+        # This is however not the real production case.
         # Note: the Raw EXI encoded message that includes the Header and the Body of the
         # CertificateInstallationReq must be used.
-
-        # +++++++++ CertificateInstallationRes Message Generation ++++++++++++ #
-
         try:
             dh_pub_key, encrypted_priv_key_bytes = encrypt_priv_key(
                 oem_prov_cert=load_cert(CertPath.OEM_LEAF_DER),
@@ -696,18 +762,25 @@ class CertificateInstallation(StateSECC):
         try:
             # Elements to sign, containing its id and the exi encoded stream
             contract_cert_tuple = (
-                contract_cert_chain.id,
-                EXI().to_exi(contract_cert_chain, Namespace.ISO_V2_MSG_DEF),
+                cert_install_res.contract_cert_chain.id,
+                EXI().to_exi(
+                    cert_install_res.contract_cert_chain, Namespace.ISO_V2_MSG_DEF
+                ),
             )
             encrypted_priv_key_tuple = (
-                encrypted_priv_key.id,
-                EXI().to_exi(encrypted_priv_key, Namespace.ISO_V2_MSG_DEF),
+                cert_install_res.encrypted_private_key.id,
+                EXI().to_exi(
+                    cert_install_res.encrypted_private_key, Namespace.ISO_V2_MSG_DEF
+                ),
             )
             dh_public_key_tuple = (
-                dh_public_key.id,
-                EXI().to_exi(dh_public_key, Namespace.ISO_V2_MSG_DEF),
+                cert_install_res.dh_public_key.id,
+                EXI().to_exi(cert_install_res.dh_public_key, Namespace.ISO_V2_MSG_DEF),
             )
-            emaid_tuple = (emaid.id, EXI().to_exi(emaid, Namespace.ISO_V2_MSG_DEF))
+            emaid_tuple = (
+                cert_install_res.emaid.id,
+                EXI().to_exi(cert_install_res.emaid, Namespace.ISO_V2_MSG_DEF),
+            )
 
             elements_to_sign = [
                 contract_cert_tuple,
@@ -719,24 +792,15 @@ class CertificateInstallation(StateSECC):
             signature_key = load_priv_key(KeyPath.CPS_LEAF_PEM, KeyEncoding.PEM)
 
             signature = create_signature(elements_to_sign, signature_key)
-            self.create_next_message(
-                PaymentDetails,
-                cert_install_res,
-                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                Namespace.ISO_V2_MSG_DEF,
-                signature=signature,
-            )
 
         except PrivateKeyReadError as exc:
             self.stop_state_machine(
                 "Can't read private key needed to create signature "
                 f"for CertificateInstallationRes: {exc}",
-                message,
                 ResponseCode.FAILED,
             )
             return
-
-        # +++++++++ CertificateInstallationRes Message Generation ++++++++++++ #
+        return cert_install_res, signature
 
 
 class PaymentDetails(StateSECC):
@@ -774,6 +838,7 @@ class PaymentDetails(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, [PaymentDetailsReq])
         if not msg:
@@ -884,6 +949,7 @@ class Authorization(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, [AuthorizationReq])
 
@@ -987,6 +1053,7 @@ class ChargeParameterDiscovery(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(
             message,
@@ -997,11 +1064,11 @@ class ChargeParameterDiscovery(StateSECC):
             return
 
         if msg.body.power_delivery_req:
-            await PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message, message_exi)
             return
 
         if msg.body.cable_check_req:
-            await CableCheck(self.comm_session).process_message(message)
+            await CableCheck(self.comm_session).process_message(message, message_exi)
             return
 
         charge_params_req: ChargeParameterDiscoveryReq = (
@@ -1247,6 +1314,7 @@ class PowerDelivery(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(
             message,
@@ -1261,11 +1329,13 @@ class PowerDelivery(StateSECC):
             return
 
         if msg.body.session_stop_req:
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         if msg.body.welding_detection_req:
-            await WeldingDetection(self.comm_session).process_message(message)
+            await WeldingDetection(self.comm_session).process_message(
+                message, message_exi
+            )
             return
 
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
@@ -1440,6 +1510,7 @@ class MeteringReceipt(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(
             message,
@@ -1450,15 +1521,17 @@ class MeteringReceipt(StateSECC):
             return
 
         if msg.body.power_delivery_req:
-            await PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message, message_exi)
             return
 
         if msg.body.charging_status_req:
-            await ChargingStatus(self.comm_session).process_message(message)
+            await ChargingStatus(self.comm_session).process_message(
+                message, message_exi
+            )
             return
 
         if msg.body.current_demand_req:
-            await CurrentDemand(self.comm_session).process_message(message)
+            await CurrentDemand(self.comm_session).process_message(message, message_exi)
             return
 
         metering_receipt_req: MeteringReceiptReq = msg.body.metering_receipt_req
@@ -1541,6 +1614,7 @@ class SessionStop(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, [SessionStopReq])
         if not msg:
@@ -1602,6 +1676,7 @@ class ChargingStatus(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(
             message,
@@ -1612,11 +1687,13 @@ class ChargingStatus(StateSECC):
             return
 
         if msg.body.power_delivery_req:
-            await PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message, message_exi)
             return
 
         if msg.body.metering_receipt_req:
-            await MeteringReceipt(self.comm_session).process_message(message)
+            await MeteringReceipt(self.comm_session).process_message(
+                message, message_exi
+            )
             return
 
         # We don't care about signed meter values from the EVCC, but if you
@@ -1692,6 +1769,7 @@ class CableCheck(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, [CableCheckReq])
         if not msg:
@@ -1788,6 +1866,7 @@ class PreCharge(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(
             message,
@@ -1798,7 +1877,7 @@ class PreCharge(StateSECC):
             return
 
         if msg.body.power_delivery_req:
-            await PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message, message_exi)
             return
 
         precharge_req: PreChargeReq = msg.body.pre_charge_req
@@ -1879,6 +1958,7 @@ class CurrentDemand(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(
             message,
@@ -1889,7 +1969,7 @@ class CurrentDemand(StateSECC):
             return
 
         if msg.body.power_delivery_req:
-            await PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message, message_exi)
             return
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
@@ -1977,6 +2057,7 @@ class WeldingDetection(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(
             message,
@@ -1990,7 +2071,7 @@ class WeldingDetection(StateSECC):
             return
 
         if msg.body.session_stop_req:
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         welding_detection_res = WeldingDetectionRes(

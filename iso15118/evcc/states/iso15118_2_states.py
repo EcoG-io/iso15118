@@ -131,6 +131,7 @@ class SessionSetup(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, SessionSetupRes)
         if not msg:
@@ -167,6 +168,7 @@ class ServiceDiscovery(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, ServiceDiscoveryRes)
         if not msg:
@@ -342,6 +344,7 @@ class ServiceDetail(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, ServiceDetailRes)
         if not msg:
@@ -399,6 +402,7 @@ class PaymentServiceSelection(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, PaymentServiceSelectionRes)
         if not msg:
@@ -498,6 +502,7 @@ class CertificateInstallation(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, CertificateInstallationRes)
         if not msg:
@@ -601,6 +606,7 @@ class PaymentDetails(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, PaymentDetailsRes)
         if not msg:
@@ -655,6 +661,7 @@ class Authorization(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, AuthorizationRes)
         if not msg:
@@ -724,6 +731,7 @@ class ChargeParameterDiscovery(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, ChargeParameterDiscoveryRes)
         if not msg:
@@ -834,6 +842,7 @@ class PowerDelivery(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, PowerDeliveryRes)
         if not msg:
@@ -945,6 +954,7 @@ class MeteringReceipt(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, MeteringReceiptRes)
         if not msg:
@@ -1042,6 +1052,7 @@ class SessionStop(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, SessionStopRes)
         if not msg:
@@ -1082,6 +1093,7 @@ class ChargingStatus(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, ChargingStatusRes)
         if not msg:
@@ -1191,6 +1203,7 @@ class CableCheck(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, CableCheckRes)
         if not msg:
@@ -1267,6 +1280,7 @@ class PreCharge(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, PreChargeRes)
         if not msg:
@@ -1340,6 +1354,7 @@ class CurrentDemand(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, CurrentDemandRes)
         if not msg:
@@ -1421,6 +1436,7 @@ class WeldingDetection(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v2(message, WeldingDetectionRes)
         if not msg:
