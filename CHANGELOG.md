@@ -5,9 +5,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2022-07-15
+
+### Fixed
+- Includes fixes for issues identified at the CharIN Testival July 2022 (signature verification issue in CertificateInstallation state with CertificateInstallationReq)
+  
+### Removed
+- Removed unused EXICodec.jar.bkp file
+
 ## [0.7.2] - 2022-06-24
 
-## Added
+### Added
 - created a new env CERTS_GENERAL_PRIVATE_KEY_PASS_PATH to be able to d… by @tropxy in https://github.com/SwitchEV/iso15118/pull/71
 
 ## [0.7.1] - 2022-06-22
