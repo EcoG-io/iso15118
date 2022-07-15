@@ -30,6 +30,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     SalesTariff,
     SalesTariffEntry,
     SAScheduleTuple,
+    SubCertificates,
 )
 from iso15118.shared.messages.iso15118_2.header import MessageHeader
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage
@@ -128,18 +129,20 @@ def get_dummy_v2g_message_authorization_req():
 
 
 def get_dummy_v2g_message_payment_details_req() -> V2GMessage:
-    with open("sample_certs/cpsLeafCert.pem", "rb") as leaf_file:
+    with open("sample_certs/contractLeafCert.der", "rb") as leaf_file:
         leaf_certificate = leaf_file.read()
-    with open("sample_certs/cpsSubCA1Cert.pem", "rb") as sub_ca_1_file:
+    with open("sample_certs/moSubCA1Cert.der", "rb") as sub_ca_1_file:
         sub_ca_1_certificate = sub_ca_1_file.read()
-    with open("sample_certs/cpsSubCA2Cert.pem", "rb") as sub_ca_2_file:
+    with open("sample_certs/moSubCA2Cert.der", "rb") as sub_ca_2_file:
         sub_ca_2_certificate = sub_ca_2_file.read()
 
     payment_details_req = PaymentDetailsReq(
         emaid="1234567890abcd",
         cert_chain=CertificateChain(
             certificate=leaf_certificate,
-            sub_certificates=[sub_ca_2_certificate, sub_ca_1_certificate]
+            sub_certificates=SubCertificates(
+                certificates=[sub_ca_2_certificate, sub_ca_1_certificate],
+            ),
         ),
     )
     return V2GMessage(

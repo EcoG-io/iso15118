@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -13,6 +14,7 @@ from iso15118.secc.states.iso15118_2_states import (
 )
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.messages.enums import AuthEnum, AuthorizationStatus, Contactor
+from iso15118.shared.messages.iso15118_2.datatypes import CertificateChain
 from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
@@ -59,7 +61,8 @@ class TestEvScenarios:
         pass
         # V2G2-570
 
-    async def test_payment_details_next_state_on_payment_details_req(self):
+    @patch.object(PaymentDetails, "_mobility_operator_root_cert_path", return_value=Path(__file__).parent.parent.parent / "sample_certs" / "moRootCACert.der")
+    async def test_payment_details_next_state_on_payment_details_req(self, mo_root_cert_path_mock):
         self.comm_session.selected_auth_option = AuthEnum.PNC_V2
 
         mock_is_authorized = AsyncMock(return_value=AuthorizationStatus.ACCEPTED)
@@ -67,12 +70,13 @@ class TestEvScenarios:
         await payment_details.process_message(
             get_dummy_v2g_message_payment_details_req()
         )
-        assert self.comm_session.certificate_chain == CertificateChain(
-            certificate=leaf_certificate,
-            sub_certificates=[sub_ca_2_certificate, sub_ca_1_certificate]
+
+        assert isinstance(self.comm_session.contract_cert_chain, CertificateChain), "Comm session certificate chain not populated"
+        assert (
+            payment_details.next_state == Authorization,
+            "State did not progress after PaymentDetailsReq",
         )
-        assert payment_details.next_state == Authorization
-        # TODO: 
+        # TODO: assert is_authorized is called with correct form?
 
     @pytest.mark.parametrize(
         "is_authorized_return_value, expected_next_state",

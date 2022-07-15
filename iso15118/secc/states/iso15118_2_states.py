@@ -849,6 +849,10 @@ class PaymentDetails(StateSECC):
             for certificate in all_certificates
         ]
 
+    def _mobility_operator_root_cert_path(self) -> str:
+        """Return the path to the MO root.  Included to be patched in tests."""
+        return CertPath.MO_ROOT_DER
+
     async def process_message(
         self,
         message: Union[
@@ -876,11 +880,14 @@ class PaymentDetails(StateSECC):
             # TODO Either an MO Root certificate or a V2G Root certificate
             #      could be used to verify, need to be flexible with regards
             #      to the PKI that is used.
-            verify_certs(leaf_cert, sub_ca_certs, load_cert(CertPath.MO_ROOT_DER))
+            verify_certs(
+                leaf_cert, sub_ca_certs, self._mobility_operator_root_cert_path()
+            )
 
             # TODO Check if EMAID has correct syntax -- is this accomplished by the
             # constrained type in `datatypes.py`?
             self.comm_session.emaid = payment_details_req.emaid
+            # TODO need concatenated PEM form for OCPP.
             self.comm_session.contract_cert_chain = payment_details_req.cert_chain
 
             hash_data = self._get_contract_certificate_hash_data(
@@ -892,9 +899,7 @@ class PaymentDetails(StateSECC):
                     id_token=payment_details_req.emaid,
                     id_token_type=self.comm_session.selected_auth_option,
                     certificate_chain=self.comm_session.contract_cert_chain,
-                    hash_data=self._derive_certificate_hash_data(
-                        self.comm_session.contract_cert_chain
-                    ),
+                    hash_data=hash_data,
                 )
             )
 

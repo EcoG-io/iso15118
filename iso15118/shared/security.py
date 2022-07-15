@@ -1129,7 +1129,7 @@ def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
     """Extract certificate hash data to be used in an OCPP AuthorizeRequest.
 
     Args:
-        certificate: The certificate in binary form.
+        certificate: The certificate in binary (DER) form.
 
     Returns:
         A dictionary with all information required for an OCSPRequestDataType
@@ -1141,24 +1141,27 @@ def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
             Only SHA256, SHA384, and SHA512 are allowed.
             (3.42 HashAlgorithmEnumType, p. 403, OCPP 2.0.1 Part 2)
     """
-    der_certificate = load_der_x509_certificate(certificate)
-    public_key = der_certificate.public_key()
+    certificate = load_der_x509_certificate(certificate)
+    public_key = certificate.public_key()
     public_key_bytes = public_key.public_bytes(
         encoding=Encoding.X962,
         format=PublicFormat.UncompressedPoint,
     )
-    # TODO: maybe rfc4514_string?
-    distinguished_name = der_certificate.issuer.rfc4514_string()
-    serial_number = der_certificate.serial_number
+    # TODO: is this correct?
+    # gives a name like:
+    # 'DC=MO,C=DE,O=Keysight Technologies,CN=PKI-1_CRT_MO_SUB2_VALID'
+    # Do we need this whole thing or only, say, O?
+    distinguished_name = certificate.issuer.rfc4514_string().encode()
+    serial_number = certificate.serial_number
 
     # Convert to the naming used in OCPP.
-    hash_algorithm_for_ocpp = der_certificate.signature_hash_algorithm.name.upper()
+    hash_algorithm_for_ocpp = certificate.signature_hash_algorithm.name.upper()
     if hash_algorithm_for_ocpp not in {"SHA256", "SHA384", "SHA512"}:
         raise CertAttributeError("Unknown hash algorithm")
 
-    public_key_hasher = Hash(der_certificate.signature_hash_algorithm)
+    public_key_hasher = Hash(certificate.signature_hash_algorithm)
     public_key_hasher.update(public_key_bytes)
-    issuer_name_hasher = Hash(der_certificate.signature_hash_algorithm)
+    issuer_name_hasher = Hash(certificate.signature_hash_algorithm)
     issuer_name_hasher.update(distinguished_name)
 
     return {
