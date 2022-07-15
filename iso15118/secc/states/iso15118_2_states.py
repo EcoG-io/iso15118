@@ -917,7 +917,6 @@ class PaymentDetails(StateSECC):
             # TODO Check if EMAID has correct syntax -- is this accomplished by the
             # constrained type in `datatypes.py`?
             self.comm_session.emaid = payment_details_req.emaid
-            # TODO need concatenated PEM form for OCPP.
             self.comm_session.contract_cert_chain = payment_details_req.cert_chain
 
             hash_data = self._get_contract_certificate_hash_data(
@@ -1091,7 +1090,6 @@ class Authorization(StateSECC):
             else None
         )
         authorization_result = await self.comm_session.evse_controller.is_authorized(
-            # TODO: generalize this?
             id_token=id_token,
             id_token_type=self.comm_session.selected_auth_option,
         )

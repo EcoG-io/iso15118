@@ -1169,7 +1169,7 @@ def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
         "issuer_name_hash": issuer_name_hasher.finalize(),
         "issuer_key_hash": public_key_hasher.finalize(),
         "serial_number": serial_number,
-        # TODO: What is a real one of these?
+        # TODO: Populate with a real-world verification server
         "responder_url": "https://www.example.com/",
     }
 
