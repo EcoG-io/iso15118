@@ -428,7 +428,6 @@ class SimEVSEController(EVSEControllerInterface):
         hash_data: Optional[List[Dict[str, str]]] = None,
     ) -> AuthorizationStatus:
         """Overrides EVSEControllerInterface.is_authorized()."""
-        # in reality emaid/cert_chain come from paymentdetailsreq but might be set by that
         return AuthorizationStatus.ACCEPTED
 
     async def get_sa_schedule_list_dinspec(

@@ -1174,6 +1174,20 @@ def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
     }
 
 
+def certificate_to_pem_string(certificate: bytes) -> str:
+    """Convert a certificate from a DER bytestring to a PEM string.
+
+    Args:
+        certificate: The certificate in binary (DER) form.
+
+    Returns:
+        The same certificate expressed as a PEM-format string.
+    """
+    certificate = load_der_x509_certificate(certificate)
+    pem_bytes = certificate.public_bytes(encoding=Encoding.PEM)
+    return pem_bytes.decode()
+
+
 class CertPath(str, Enum):
     """
     Provides the path to certificates used for Plug & Charge. The encoding
