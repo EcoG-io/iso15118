@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 from iso15118.shared.messages.datatypes import (
@@ -129,11 +130,13 @@ def get_dummy_v2g_message_authorization_req():
 
 
 def get_dummy_v2g_message_payment_details_req() -> V2GMessage:
-    with open("sample_certs/contractLeafCert.der", "rb") as leaf_file:
+    root_dir = Path(__file__).parent.parent.parent
+    cert_dir = root_dir / "sample_certs"
+    with open(cert_dir / "contractLeafCert.der", "rb") as leaf_file:
         leaf_certificate = leaf_file.read()
-    with open("sample_certs/moSubCA1Cert.der", "rb") as sub_ca_1_file:
+    with open(cert_dir / "moSubCA1Cert.der", "rb") as sub_ca_1_file:
         sub_ca_1_certificate = sub_ca_1_file.read()
-    with open("sample_certs/moSubCA2Cert.der", "rb") as sub_ca_2_file:
+    with open(cert_dir / "moSubCA2Cert.der", "rb") as sub_ca_2_file:
         sub_ca_2_certificate = sub_ca_2_file.read()
 
     payment_details_req = PaymentDetailsReq(
