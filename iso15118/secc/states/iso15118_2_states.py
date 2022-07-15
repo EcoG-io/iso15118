@@ -1037,9 +1037,11 @@ class Authorization(StateSECC):
         # self.comm_session.contract_cert_chain attribute.
         auth_status: EVSEProcessing = EVSEProcessing.ONGOING
         next_state: Type["State"] = Authorization
+        # TODO: how should we obtain/hold the token for EIM?  Other cases?
+        id_token = self.comm_session.emaid if self.comm_session.selected_auth_option == AuthEnum.PNC_V2 else None
         authorization_result = await self.comm_session.evse_controller.is_authorized(
             # TODO: generalize this?
-            id_token=self.comm_session.emaid,
+            id_token=id_token,
             id_token_type=self.comm_session.selected_auth_option,
         )
         if authorization_result == AuthorizationStatus.ACCEPTED:
