@@ -1148,7 +1148,7 @@ def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
         format=PublicFormat.UncompressedPoint,
     )
     # TODO: maybe rfc4514_string?
-    distinguished_name = str(der_certificate.issuer)
+    distinguished_name = der_certificate.issuer.rfc4514_string()
     serial_number = der_certificate.serial_number
 
     # Convert to the naming used in OCPP.
