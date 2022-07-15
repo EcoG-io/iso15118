@@ -6,6 +6,7 @@ from iso15118.secc.states.iso15118_2_states import (
     Authorization,
     ChargeParameterDiscovery,
     CurrentDemand,
+    PaymentDetails,
     PowerDelivery,
     Terminate,
     WeldingDetection,
@@ -16,6 +17,7 @@ from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
     get_dummy_v2g_message_authorization_req,
+    get_dummy_v2g_message_payment_details_req,
     get_dummy_v2g_message_power_delivery_req_charge_start,
     get_dummy_v2g_message_power_delivery_req_charge_stop,
     get_dummy_v2g_message_welding_detection_req,
@@ -56,6 +58,21 @@ class TestEvScenarios:
     ):
         pass
         # V2G2-570
+
+    async def test_payment_details_next_state_on_payment_details_req(self):
+        self.comm_session.selected_auth_option = AuthEnum.PNC_V2
+
+        mock_is_authorized = AsyncMock(return_value=AuthorizationStatus.ACCEPTED)
+        payment_details = PaymentDetails(self.comm_session)
+        await payment_details.process_message(
+            get_dummy_v2g_message_payment_details_req()
+        )
+        assert self.comm_session.certificate_chain == CertificateChain(
+            certificate=leaf_certificate,
+            sub_certificates=[sub_ca_2_certificate, sub_ca_1_certificate]
+        )
+        assert payment_details.next_state == Authorization
+        # TODO: 
 
     @pytest.mark.parametrize(
         "is_authorized_return_value, expected_next_state",
