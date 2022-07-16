@@ -197,7 +197,7 @@ The following table provides a few of the available variables:
 | MESSAGE_LOG_EXI                     | `False`                                                      | Whether or not to log the EXI Bytestream messages (only works if log level is set to DEBUG)                                                           |
 | PROTOCOLS                           | `DIN_SPEC_70121,ISO_15118_2,ISO_15118_20_AC,ISO_15118_20_DC` | Enabled communication protocols on SECC.  NOTE: ISO 15118 DC support is still under development                                                       |
 | AUTH_MODES                          | `EIM,PNC`                                                    | Selected authentication modes for SECC                                                                                                                |
-| USE_CPO_CERT_INSTALL_SERVICE        | `False`                                                      | Indicates if backend integration is available to fetch certificates                                                                                   |
+| USE_CPO_BACKEND                     | `False`                                                      | Indicates if backend integration is available to fetch certificates                                                                                   |
 
 
 ## License

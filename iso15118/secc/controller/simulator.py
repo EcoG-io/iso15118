@@ -777,11 +777,11 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def get_15118_ev_certificate(
         self, base64_encoded_cert_installation_req: str, namespace: str
-    ) -> (str, bool, str):
+    ) -> str:
         """Overrides EVSEControllerInterface.get_15118_ev_certificate()."""
         """
         For the simulator we simply mock the actions of the simulator.
-        The code here is almost the same as what is done if USE_CPO_CERT_INSTALL_SERVICE
+        The code here is almost the same as what is done if USE_CPO_BACKEND
         is set to False. Except that both the request and response is base64 encoded.
         """
         cert_install_req_exi = base64.b64decode(base64_encoded_cert_installation_req)
@@ -794,18 +794,14 @@ class SimEVSEController(EVSEControllerInterface):
                 ),
             )
         except EncryptionError:
-            return (
-                None,
-                False,
+            raise EncryptionError(
                 "EncryptionError while trying to encrypt the private key for the "
-                "contract certificate",
+                "contract certificate"
             )
         except PrivateKeyReadError as exc:
-            return (
-                None,
-                False,
-                f"Can't read private key to encrypt for "
-                f"CertificateInstallationRes: {exc}",
+            raise PrivateKeyReadError(
+                f"Can't read private key to encrypt for CertificateInstallationRes:"
+                f" {exc}"
             )
 
         # The elements that need to be part of the signature
@@ -880,12 +876,12 @@ class SimEVSEController(EVSEControllerInterface):
             signature = create_signature(elements_to_sign, signature_key)
 
         except PrivateKeyReadError as exc:
-            return (
-                None,
-                False,
+            raise Exception(
                 "Can't read private key needed to create signature "
                 f"for CertificateInstallationRes: {exc}",
             )
+        except Exception as exc:
+            raise Exception(f"Error creating signature {exc}")
 
         header = MessageHeaderV2(
             session_id=cert_install_req.header.session_id,
@@ -904,4 +900,4 @@ class SimEVSEController(EVSEControllerInterface):
             exi_encoded_cert_installation_res
         ).decode("utf-8")
 
-        return base64_encode_cert_install_res, True, None
+        return base64_encode_cert_install_res

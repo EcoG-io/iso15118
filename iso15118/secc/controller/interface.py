@@ -646,7 +646,7 @@ class EVSEControllerInterface(ABC):
     @abstractmethod
     async def get_15118_ev_certificate(
         self, base64_encoded_cert_installation_req: str, namespace: str
-    ) -> (str, bool, str):
+    ) -> str:
         """
         Used to fetch base64 encoded CertificateInstallationRes from CPO backend.
         Args:
@@ -658,8 +658,6 @@ class EVSEControllerInterface(ABC):
          15118-20: "urn:iso:std:iso:15118:-20:CommonMessages"
         Returns:
          CertificateInstallationRes EXI stream in base64 encoded form.
-         Bool indicating if the request was successful
-         Status indicating any error that may have happened.
 
         Relevant for:
         - ISO 15118-20 and ISO 15118-2

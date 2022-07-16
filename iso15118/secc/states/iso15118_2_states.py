@@ -614,34 +614,37 @@ class CertificateInstallation(StateSECC):
         # in base64 encoded form.
         # 2. A string that specifies `15118SchemaVersion` which would be either of
         # "urn:iso:15118:2:2013:MsgDef" or "urn:iso:std:iso:15118:-20:CommonMessages"
-        certificate_installation_res = None
         signature = None
-        if self.comm_session.config.use_cpo_cert_install_service:
-            logger.info("Using CPO backend to fetch CertificateInstallationRes")
-            # b64encode returns byte[] - hence the .decode("utf-8")
-            base64_certificate_install_req = base64.b64encode(message_exi).decode(
-                "utf-8"
-            )
-            (
-                certificate_installation_res,
-                success,
-                status,
-            ) = await self.comm_session.evse_controller.get_15118_ev_certificate(
-                base64_certificate_install_req, Namespace.ISO_V2_MSG_DEF
-            )
 
-            if not success or certificate_installation_res is None:
-                logger.error(f"Error fetching certificate from CPO backend {status}")
-                self.stop_state_machine(
-                    status,
-                    message,
-                    ResponseCode.FAILED_NO_CERTIFICATE_AVAILABLE,
+        try:
+            if self.comm_session.config.use_cpo_backend:
+                # CertificateInstallationReq must be base64 encoded before forwarding
+                # to backend.
+                # Call to b64encode returns byte[] - hence the .decode("utf-8")
+                base64_certificate_install_req = base64.b64encode(message_exi).decode(
+                    "utf-8"
                 )
-        else:
-            (
-                certificate_installation_res,
-                signature,
-            ) = self.generate_certificate_installation_res(message)
+
+                # The response received below is EXI response in base64 encoded form.
+                # Decoding to EXI happens later just before V2GTP packet is built.
+                certificate_installation_res = (
+                    await self.comm_session.evse_controller.get_15118_ev_certificate(
+                        base64_certificate_install_req, Namespace.ISO_V2_MSG_DEF
+                    )
+                )
+            else:
+                (
+                    certificate_installation_res,
+                    signature,
+                ) = self.generate_certificate_installation_res()
+        except Exception as e:
+            logger.error(f"Error building CertificateInstallationRes: {e}")
+            self.stop_state_machine(
+                str(e),
+                message,
+                ResponseCode.FAILED_NO_CERTIFICATE_AVAILABLE,
+            )
+            return
 
         self.create_next_message(
             PaymentDetails,
@@ -691,7 +694,7 @@ class CertificateInstallation(StateSECC):
         )
 
     def generate_certificate_installation_res(
-        self, message
+        self,
     ) -> (CertificateInstallationRes, Signature):
         # Here we create the CertificateInstallationRes message ourselves as we
         # have access to all certificates and private keys needed.
@@ -706,21 +709,15 @@ class CertificateInstallation(StateSECC):
                 ),
             )
         except EncryptionError:
-            self.stop_state_machine(
+            raise EncryptionError(
                 "EncryptionError while trying to encrypt the "
-                "private key for the contract certificate",
-                message,
-                ResponseCode.FAILED,
+                "private key for the contract certificate"
             )
-            return
         except PrivateKeyReadError as exc:
-            self.stop_state_machine(
+            raise PrivateKeyReadError(
                 "Can't read private key to encrypt for "
-                f"CertificateInstallationRes: {exc}",
-                message,
-                ResponseCode.FAILED,
+                f"CertificateInstallationRes: {exc}"
             )
-            return
 
         # The elements that need to be part of the signature
         contract_cert_chain = CertificateChain(
@@ -794,12 +791,12 @@ class CertificateInstallation(StateSECC):
             signature = create_signature(elements_to_sign, signature_key)
 
         except PrivateKeyReadError as exc:
-            self.stop_state_machine(
+            raise PrivateKeyReadError(
                 "Can't read private key needed to create signature "
                 f"for CertificateInstallationRes: {exc}",
                 ResponseCode.FAILED,
             )
-            return
+
         return cert_install_res, signature
 
 
