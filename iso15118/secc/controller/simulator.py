@@ -778,9 +778,10 @@ class SimEVSEController(EVSEControllerInterface):
     async def get_15118_ev_certificate(
         self, base64_encoded_cert_installation_req: str, namespace: str
     ) -> str:
-        """Overrides EVSEControllerInterface.get_15118_ev_certificate()."""
         """
-        For the simulator we simply mock the actions of the simulator.
+        Overrides EVSEControllerInterface.get_15118_ev_certificate().
+
+        Here we simply mock the actions of the backend.
         The code here is almost the same as what is done if USE_CPO_BACKEND
         is set to False. Except that both the request and response is base64 encoded.
         """
