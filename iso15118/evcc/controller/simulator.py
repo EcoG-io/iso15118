@@ -164,7 +164,7 @@ class SimEVController(EVControllerInterface):
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
         if protocol == Protocol.DIN_SPEC_70121:
             return EnergyTransferModeEnum.DC_EXTENDED
-        return EnergyTransferModeEnum.DC_EXTENDED
+        return EnergyTransferModeEnum.AC_THREE_PHASE_CORE
 
     async def get_supported_energy_services(self) -> List[ServiceV20]:
         """Overrides EVControllerInterface.get_energy_transfer_service()."""
