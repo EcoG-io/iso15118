@@ -42,7 +42,6 @@ from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.messages.xmldsig import Signature
 
 logger = logging.getLogger(__name__)
-Base64 = str
 
 if TYPE_CHECKING:
     # EVCCCommunicationSession and SECCCommunicationSession are used for
@@ -56,6 +55,21 @@ if TYPE_CHECKING:
     # https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
     from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
     from iso15118.secc.comm_session_handler import SECCCommunicationSession
+
+
+class Base64:
+    def __init__(self, payload: str, payload_type: str):
+        """
+        This was added to help indicate the type of payload for base64 encoded types.
+        Used for CertificateInstallationRes received from backend.
+        self.message = base64 encoded payload type
+        self.message_type = A string representing the type of the message.
+        """
+        self.message = payload
+        self.message_type = payload_type
+
+    def __str__(self):
+        return self.message_type
 
 
 class State(ABC):
@@ -103,12 +117,13 @@ class State(ABC):
         # a BodyBase instance of an ISO 15118-20 V2GMessage,
         # a BodyBase of DINSPEC V2G Message
         # or an instance of an ISO 15118-20 V2GMessage
-        self.next_msg: Union[
+        self.message: Union[
             SupportedAppProtocolReq,
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
             V2GMessageDINSPEC,
+            Base64,
             None,
         ] = None
         # Each V2GMessage (and SupportedAppProtocolReq and -Res)
@@ -186,8 +201,8 @@ class State(ABC):
         Steps to be done in this method:
         1. Set the next state and timeout for receiving the subsequent message
            in order for the state machine to proceed properly
-        2. Create the V2GMessage from the provided 'next_msg' parameter in case
-           it is an ISO 15118-2 V2GMessage (where the next_msg is actually the
+        2. Create the V2GMessage from the provided 'message' parameter in case
+           it is an ISO 15118-2 V2GMessage (where the message is actually the
            body element of the V2GMessage).
         3. EXI-encode the new message
         4. Create the next V2GTP message given the EXI-encoded message and the
@@ -223,7 +238,7 @@ class State(ABC):
                        (e.g. AuthorizationReq, CertificateInstallationReq,
                        CertificateInstallationRes).
                        In ISO 15118-20, the optional signature is already part
-                       of the next_msg object.
+                       of the message object.
 
         Raises:
             EXIEncodingError
@@ -234,7 +249,7 @@ class State(ABC):
 
         # Step 2
         if not next_msg:
-            logger.error("Parameter 'next_msg' of create_next_message() is " "None")
+            logger.error("Parameter 'message' of create_next_message() is " "None")
             return
         to_be_exi_encoded: Union[
             SupportedAppProtocolReq,
@@ -269,7 +284,7 @@ class State(ABC):
             except ValidationError as exc:
                 logger.exception(exc)
                 raise exc
-            self.next_msg = to_be_exi_encoded
+            self.message = to_be_exi_encoded
         elif isinstance(next_msg, BodyBase):
             note: Union[Notification, None] = None
             if (
@@ -296,15 +311,17 @@ class State(ABC):
             except ValidationError as exc:
                 logger.exception(exc)
                 raise exc
-            self.next_msg = to_be_exi_encoded
+            self.message = to_be_exi_encoded
         elif isinstance(next_msg, Base64):
             # Incoming message is base64 encoded EXI message.
             # So a base64 decode should retrieve the EXI stream.
-            next_msg = base64.b64decode(next_msg)
+            self.message = next_msg
+            next_msg = base64.b64decode(next_msg.message)
         else:
             to_be_exi_encoded = next_msg
+            self.message = to_be_exi_encoded
 
-        # If either next_msg or next_msg_payload_type are None, the state's
+        # If either message or next_msg_payload_type are None, the state's
         # attribute next_v2gtp_msg will not be set. This causes the state
         # machine to raise a FaultyStateImplementationError if next state is
         # not set to Terminate, so no need to raise anything here.

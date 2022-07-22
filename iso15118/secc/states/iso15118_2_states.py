@@ -123,7 +123,7 @@ from iso15118.shared.security import (
     verify_certs,
     verify_signature,
 )
-from iso15118.shared.states import State, Terminate
+from iso15118.shared.states import Base64, State, Terminate
 
 logger = logging.getLogger(__name__)
 
@@ -618,6 +618,7 @@ class CertificateInstallation(StateSECC):
 
         try:
             if self.comm_session.config.use_cpo_backend:
+                logger.info("Using CPO backend to fetch CertificateInstallationRes")
                 # CertificateInstallationReq must be base64 encoded before forwarding
                 # to backend.
                 # Call to b64encode returns byte[] - hence the .decode("utf-8")
@@ -627,10 +628,14 @@ class CertificateInstallation(StateSECC):
 
                 # The response received below is EXI response in base64 encoded form.
                 # Decoding to EXI happens later just before V2GTP packet is built.
-                certificate_installation_res = (
+                base64_certificate_installation_res = (
                     await self.comm_session.evse_controller.get_15118_ev_certificate(
                         base64_certificate_install_req, Namespace.ISO_V2_MSG_DEF
                     )
+                )
+                certificate_installation_res: Base64 = Base64(
+                    payload=base64_certificate_installation_res,
+                    payload_type=CertificateInstallationRes.__name__,
                 )
             else:
                 (

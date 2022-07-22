@@ -97,7 +97,7 @@ class SupportedAppProtocol(StateEVCC):
                 if protocol.protocol_ns == Protocol.ISO_15118_2.ns.value:
                     self.comm_session.protocol = Protocol.ISO_15118_2
                     self.comm_session.session_id = self.get_session_id()
-                    # next_msg is already set to SessionSetupReqV2 as default
+                    # message is already set to SessionSetupReqV2 as default
                     next_state = SessionSetupV2
                 elif protocol.protocol_ns == Protocol.DIN_SPEC_70121.ns.value:
                     self.comm_session.protocol = Protocol.DIN_SPEC_70121

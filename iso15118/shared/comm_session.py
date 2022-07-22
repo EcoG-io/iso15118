@@ -393,7 +393,7 @@ class V2GCommunicationSession(SessionStateMachine):
         Args:
             message: A V2GTPMessage
         """
-        logger.info(f"Sending {str(self.current_state.next_msg)}")
+        logger.info(f"Sending {str(self.current_state.message)}")
         # TODO: we may also check for writer exceptions
         self.writer.write(message.to_bytes())
         await self.writer.drain()
