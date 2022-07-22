@@ -246,6 +246,7 @@ class State(ABC):
         # Step 1
         self.next_state = next_state
         self.next_msg_timeout = next_msg_timeout
+        exi_payload: bytes = bytes(0)
 
         # Step 2
         if not next_msg:
@@ -257,7 +258,7 @@ class State(ABC):
             V2GMessageV2,
             V2GMessageV20,
             V2GMessageDINSPEC,
-        ]
+        ] = None
         if isinstance(next_msg, BodyBaseDINSPEC):
             note: Union[NotificationDINSPEC, None] = None
             if (
@@ -316,31 +317,28 @@ class State(ABC):
             # Incoming message is base64 encoded EXI message.
             # So a base64 decode should retrieve the EXI stream.
             self.message = next_msg
-            next_msg = base64.b64decode(next_msg.message)
+            exi_payload = base64.b64decode(next_msg.message)
         else:
             to_be_exi_encoded = next_msg
             self.message = to_be_exi_encoded
 
-        # If either message or next_msg_payload_type are None, the state's
-        # attribute next_v2gtp_msg will not be set. This causes the state
-        # machine to raise a FaultyStateImplementationError if next state is
-        # not set to Terminate, so no need to raise anything here.
-        if next_msg and next_msg_payload_type:
+        # If to_be_exi_encoded is None it is possible that exi_payload is already
+        # set (for eg:CertificateInstallationRes from backend).
+        # Otherwise, EXI encode the message.
+        if to_be_exi_encoded and next_msg_payload_type:
             # Step 3
-            exi_payload: bytes = bytes(0)
-            if isinstance(next_msg, bytes):
-                # Message already EXI encoded.
-                # Eg:-CertificateInstallationRes from backend
-                exi_payload = next_msg
-            else:
-                try:
-                    exi_payload = EXI().to_exi(to_be_exi_encoded, namespace)
-                except EXIEncodingError as exc:
-                    logger.error(f"{exc}")
-                    self.next_state = Terminate
-                    raise
+            try:
+                exi_payload = EXI().to_exi(to_be_exi_encoded, namespace)
+            except EXIEncodingError as exc:
+                logger.error(f"{exc}")
+                self.next_state = Terminate
+                raise
 
-            # Step 4
+        # If exi_payload is None, next_v2gtp_msg will not be set.
+        # This in turn, will raise FaultyStateImplementationError if next state is
+        # not set to Terminate, so no need to raise anything here.
+        # Step 4
+        if exi_payload:
             try:
                 # Each V2GMessage (and SupportedAppProtocolReq and -Res)
                 # is first EXI encoded and then placed as a payload in a
