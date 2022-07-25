@@ -333,24 +333,20 @@ class State(ABC):
                 logger.error(f"{exc}")
                 self.next_state = Terminate
                 raise
-
-        # If exi_payload is None, next_v2gtp_msg will not be set.
-        # This in turn, will raise FaultyStateImplementationError if next state is
-        # not set to Terminate, so no need to raise anything here.
+            
         # Step 4
-        if exi_payload:
-            try:
-                # Each V2GMessage (and SupportedAppProtocolReq and -Res)
-                # is first EXI encoded and then placed as a payload in a
-                # V2GTPMessage (V2G Transfer Protocol message)
-                self.next_v2gtp_msg = V2GTPMessage(
-                    self.comm_session.protocol, next_msg_payload_type, exi_payload
-                )
-            except (InvalidProtocolError, InvalidPayloadTypeError) as exc:
-                logger.exception(
-                    f"{exc.__class__.__name__} occurred while "
-                    f"creating a V2GTPMessage. {exc}"
-                )
+        try:
+            # Each V2GMessage (and SupportedAppProtocolReq and -Res)
+            # is first EXI encoded and then placed as a payload in a
+            # V2GTPMessage (V2G Transfer Protocol message)
+            self.next_v2gtp_msg = V2GTPMessage(
+                self.comm_session.protocol, next_msg_payload_type, exi_payload
+            )
+        except (InvalidProtocolError, InvalidPayloadTypeError) as exc:
+            logger.exception(
+                f"{exc.__class__.__name__} occurred while "
+                f"creating a V2GTPMessage. {exc}"
+            )
 
     def __repr__(self):
         """
