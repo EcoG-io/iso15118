@@ -333,7 +333,7 @@ class State(ABC):
                 logger.error(f"{exc}")
                 self.next_state = Terminate
                 raise
-            
+
         # Step 4
         try:
             # Each V2GMessage (and SupportedAppProtocolReq and -Res)
