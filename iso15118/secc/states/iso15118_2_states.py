@@ -681,7 +681,7 @@ class CertificateInstallation(StateSECC):
                 load_cert(CertPath.OEM_SUB_CA1_DER),
             ]
             root_ca_certificate_oem = load_cert(CertPath.OEM_ROOT_DER)
-        except: # noqa
+        except:  # noqa
             pass
 
         return verify_signature(
