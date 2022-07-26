@@ -217,7 +217,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
             ISOV2PayloadTypes.EXI_ENCODED,
             EXI().to_exi(sap_req, Namespace.SAP),
         )
-        self.current_state.next_msg = sap_req
+        self.current_state.message = sap_req
         await self.send(v2gtp_msg)
 
     def save_session_info(self):

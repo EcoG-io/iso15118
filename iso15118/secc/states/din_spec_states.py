@@ -93,6 +93,7 @@ class SessionSetup(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_dinspec(message, [SessionSetupReq])
         if not msg:
@@ -161,6 +162,7 @@ class ServiceDiscovery(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_dinspec(message, [ServiceDiscoveryReq])
         if not msg:
@@ -239,6 +241,7 @@ class ServicePaymentSelection(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_dinspec(message, [ServicePaymentSelectionReq])
         if not msg:
@@ -300,6 +303,7 @@ class ContractAuthentication(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_dinspec(message, [ContractAuthenticationReq])
         if not msg:
@@ -348,6 +352,7 @@ class ChargeParameterDiscovery(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_dinspec(message, [ChargeParameterDiscoveryReq])
         if not msg:
@@ -427,6 +432,7 @@ class CableCheck(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_dinspec(message, [CableCheckReq])
         if not msg:
@@ -521,6 +527,7 @@ class PreCharge(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_dinspec(
             message, [PreChargeReq, PowerDeliveryReq], self.expect_pre_charge_req
@@ -529,7 +536,7 @@ class PreCharge(StateSECC):
             return
 
         if msg.body.power_delivery_req:
-            await PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message, message_exi)
             return
 
         precharge_req: PreChargeReq = msg.body.pre_charge_req
@@ -616,6 +623,7 @@ class PowerDelivery(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_dinspec(
             message,
@@ -630,11 +638,13 @@ class PowerDelivery(StateSECC):
             return
 
         if msg.body.session_stop_req:
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         if msg.body.welding_detection_req:
-            await WeldingDetection(self.comm_session).process_message(message)
+            await WeldingDetection(self.comm_session).process_message(
+                message, message_exi
+            )
             return
 
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
@@ -719,6 +729,7 @@ class CurrentDemand(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_dinspec(
             message,
@@ -729,7 +740,7 @@ class CurrentDemand(StateSECC):
             return
 
         if msg.body.power_delivery_req:
-            await PowerDelivery(self.comm_session).process_message(message)
+            await PowerDelivery(self.comm_session).process_message(message, message_exi)
             return
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
@@ -790,6 +801,7 @@ class WeldingDetection(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_dinspec(
             message,
@@ -800,7 +812,7 @@ class WeldingDetection(StateSECC):
             return
 
         if msg.body.session_stop_req:
-            await SessionStop(self.comm_session).process_message(message)
+            await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
         self.expect_welding_detection = False
@@ -838,6 +850,7 @@ class SessionStop(StateSECC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_dinspec(message, [SessionStopReq])
         if not msg:

@@ -103,11 +103,11 @@ class TestEvScenarios:
         )
 
         assert (
-            charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res
             is not None
         )
         charge_parameter_discovery_res = (
-            charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res
         )
         assert charge_parameter_discovery_res.sa_schedule_list is not None
         sa_schedule_tuples = (
@@ -145,11 +145,11 @@ class TestEvScenarios:
             message=get_charge_parameter_discovery_req_message_no_departure_time()
         )
         assert (
-            charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res
             is not None
         )
         charge_parameter_discovery_res = (
-            charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res
         )
         assert charge_parameter_discovery_res.sa_schedule_list is not None
         sa_schedule_tuples = (
@@ -185,11 +185,11 @@ class TestEvScenarios:
             message=get_charge_parameter_discovery_req_message_no_departure_time()
         )
         assert (
-            charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res
             is not None
         )
         charge_parameter_discovery_res = (
-            charge_parameter_discovery.next_msg.body.charge_parameter_discovery_res
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res
         )
 
         assert charge_parameter_discovery_res.sa_schedule_list is not None

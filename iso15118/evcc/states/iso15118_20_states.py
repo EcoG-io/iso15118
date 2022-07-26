@@ -114,6 +114,7 @@ class SessionSetup(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, SessionSetupRes)
         if not msg:
@@ -157,6 +158,7 @@ class AuthorizationSetup(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, AuthorizationSetupRes)
         if not msg:
@@ -305,6 +307,7 @@ class CertificateInstallation(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         raise NotImplementedError("CertificateInstallation not yet implemented")
 
@@ -327,6 +330,7 @@ class Authorization(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, AuthorizationRes)
         if not msg:
@@ -372,6 +376,7 @@ class ServiceDiscovery(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, ServiceDiscoveryRes)
         if not msg:
@@ -480,6 +485,7 @@ class ServiceDetail(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, ServiceDetailRes)
         if not msg:
@@ -615,6 +621,7 @@ class ServiceSelection(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, ServiceSelectionRes)
         if not msg:
@@ -712,6 +719,7 @@ class ScheduleExchange(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, ScheduleExchangeRes)
         if not msg:
@@ -801,6 +809,7 @@ class PowerDelivery(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, PowerDeliveryRes)
         if not msg:
@@ -957,6 +966,7 @@ class SessionStop(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, SessionStopRes)
         if not msg:
@@ -1004,6 +1014,7 @@ class ACChargeParameterDiscovery(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, ACChargeParameterDiscoveryRes)
         if not msg:
@@ -1070,6 +1081,7 @@ class ACChargeLoop(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, ACChargeLoopRes)
         if not msg:
@@ -1197,6 +1209,7 @@ class DCChargeParameterDiscovery(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         msg = self.check_msg_v20(message, DCChargeParameterDiscoveryRes)
         if not msg:
@@ -1263,6 +1276,7 @@ class DCCableCheck(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         raise NotImplementedError("DCCableCheck not yet implemented")
 
@@ -1285,6 +1299,7 @@ class DCPreCharge(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         raise NotImplementedError("DCPreCharge not yet implemented")
 
@@ -1307,6 +1322,7 @@ class DCChargeLoop(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         raise NotImplementedError("DCChargeLoop not yet implemented")
 
@@ -1329,5 +1345,6 @@ class DCWeldingDetection(StateEVCC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         raise NotImplementedError("DCWeldingDetection not yet implemented")

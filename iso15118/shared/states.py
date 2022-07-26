@@ -1,3 +1,4 @@
+import base64
 import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional, Type, Union
@@ -56,6 +57,21 @@ if TYPE_CHECKING:
     from iso15118.secc.comm_session_handler import SECCCommunicationSession
 
 
+class Base64:
+    def __init__(self, message: str, message_name: str):
+        """
+        This was added to help indicate the type of payload for base64 encoded types.
+        Used for CertificateInstallationRes received from backend.
+        self.message = base64 encoded payload type
+        self.message_type = A string representing the type of the message.
+        """
+        self.message = message
+        self.message_name = message_name
+
+    def __str__(self):
+        return self.message_name
+
+
 class State(ABC):
     """
     State Base Class
@@ -101,12 +117,13 @@ class State(ABC):
         # a BodyBase instance of an ISO 15118-20 V2GMessage,
         # a BodyBase of DINSPEC V2G Message
         # or an instance of an ISO 15118-20 V2GMessage
-        self.next_msg: Union[
+        self.message: Union[
             SupportedAppProtocolReq,
             SupportedAppProtocolRes,
             V2GMessageV2,
             V2GMessageV20,
             V2GMessageDINSPEC,
+            Base64,
             None,
         ] = None
         # Each V2GMessage (and SupportedAppProtocolReq and -Res)
@@ -133,6 +150,7 @@ class State(ABC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
+        message_exi: bytes = None,
     ):
         """
         Every State must implement this method to process the incoming message,
@@ -142,6 +160,7 @@ class State(ABC):
         Args:
             message: Either a DIN SPEC 70121, ISO 15118-2 message, or
                      ISO 15118-20 message
+            message_exi: EXI stream representation of the message
 
         At first, each state must check the incoming message with the method
         check_msg() before further processing the message's content.
@@ -163,6 +182,7 @@ class State(ABC):
             BodyBase,
             V2GMessageV20,
             BodyBaseDINSPEC,
+            Base64,
         ],
         next_msg_timeout: Union[float, int],
         namespace: Namespace,
@@ -181,8 +201,8 @@ class State(ABC):
         Steps to be done in this method:
         1. Set the next state and timeout for receiving the subsequent message
            in order for the state machine to proceed properly
-        2. Create the V2GMessage from the provided 'next_msg' parameter in case
-           it is an ISO 15118-2 V2GMessage (where the next_msg is actually the
+        2. Create the V2GMessage from the provided 'message' parameter in case
+           it is an ISO 15118-2 V2GMessage (where the message is actually the
            body element of the V2GMessage).
         3. EXI-encode the new message
         4. Create the next V2GTP message given the EXI-encoded message and the
@@ -218,7 +238,7 @@ class State(ABC):
                        (e.g. AuthorizationReq, CertificateInstallationReq,
                        CertificateInstallationRes).
                        In ISO 15118-20, the optional signature is already part
-                       of the next_msg object.
+                       of the message object.
 
         Raises:
             EXIEncodingError
@@ -226,10 +246,11 @@ class State(ABC):
         # Step 1
         self.next_state = next_state
         self.next_msg_timeout = next_msg_timeout
+        exi_payload: bytes = bytes(0)
 
         # Step 2
         if not next_msg:
-            logger.error("Parameter 'next_msg' of create_next_message() is " "None")
+            logger.error("Parameter 'message' of create_next_message() is " "None")
             return
         to_be_exi_encoded: Union[
             SupportedAppProtocolReq,
@@ -237,7 +258,7 @@ class State(ABC):
             V2GMessageV2,
             V2GMessageV20,
             V2GMessageDINSPEC,
-        ]
+        ] = None
         if isinstance(next_msg, BodyBaseDINSPEC):
             note: Union[NotificationDINSPEC, None] = None
             if (
@@ -264,6 +285,7 @@ class State(ABC):
             except ValidationError as exc:
                 logger.exception(exc)
                 raise exc
+            self.message = to_be_exi_encoded
         elif isinstance(next_msg, BodyBase):
             note: Union[Notification, None] = None
             if (
@@ -290,18 +312,21 @@ class State(ABC):
             except ValidationError as exc:
                 logger.exception(exc)
                 raise exc
+            self.message = to_be_exi_encoded
+        elif isinstance(next_msg, Base64):
+            # Incoming message is base64 encoded EXI message.
+            # So a base64 decode should retrieve the EXI stream.
+            self.message = next_msg
+            exi_payload = base64.b64decode(next_msg.message)
         else:
             to_be_exi_encoded = next_msg
+            self.message = to_be_exi_encoded
 
-        self.next_msg = to_be_exi_encoded
-
-        # If either next_msg or next_msg_payload_type are None, the state's
-        # attribute next_v2gtp_msg will not be set. This causes the state
-        # machine to raise a FaultyStateImplementationError if next state is
-        # not set to Terminate, so no need to raise anything here.
-        if next_msg and next_msg_payload_type:
+        # If to_be_exi_encoded is None it is possible that exi_payload is already
+        # set (for eg:CertificateInstallationRes from backend).
+        # Otherwise, EXI encode the message.
+        if to_be_exi_encoded and next_msg_payload_type:
             # Step 3
-            exi_payload: bytes = bytes(0)
             try:
                 exi_payload = EXI().to_exi(to_be_exi_encoded, namespace)
             except EXIEncodingError as exc:
@@ -309,19 +334,19 @@ class State(ABC):
                 self.next_state = Terminate
                 raise
 
-            # Step 4
-            try:
-                # Each V2GMessage (and SupportedAppProtocolReq and -Res)
-                # is first EXI encoded and then placed as a payload in a
-                # V2GTPMessage (V2G Transfer Protocol message)
-                self.next_v2gtp_msg = V2GTPMessage(
-                    self.comm_session.protocol, next_msg_payload_type, exi_payload
-                )
-            except (InvalidProtocolError, InvalidPayloadTypeError) as exc:
-                logger.exception(
-                    f"{exc.__class__.__name__} occurred while "
-                    f"creating a V2GTPMessage. {exc}"
-                )
+        # Step 4
+        try:
+            # Each V2GMessage (and SupportedAppProtocolReq and -Res)
+            # is first EXI encoded and then placed as a payload in a
+            # V2GTPMessage (V2G Transfer Protocol message)
+            self.next_v2gtp_msg = V2GTPMessage(
+                self.comm_session.protocol, next_msg_payload_type, exi_payload
+            )
+        except (InvalidProtocolError, InvalidPayloadTypeError) as exc:
+            logger.exception(
+                f"{exc.__class__.__name__} occurred while "
+                f"creating a V2GTPMessage. {exc}"
+            )
 
     def __repr__(self):
         """
@@ -351,7 +376,9 @@ class Terminate(State):
             V2GMessageV2,
             V2GMessageV20,
             V2GMessageDINSPEC,
+            Base64,
         ],
+        message_exi: bytes = None,
     ):
         pass
 
@@ -371,6 +398,8 @@ class Pause(State):
             V2GMessageV2,
             V2GMessageV20,
             V2GMessageDINSPEC,
+            Base64,
         ],
+        message_exi: bytes = None,
     ):
         pass

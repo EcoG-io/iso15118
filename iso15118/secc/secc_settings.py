@@ -31,6 +31,7 @@ class Config:
     free_charging_service: bool = False
     free_cert_install_service: bool = True
     allow_cert_install_service: bool = True
+    use_cpo_backend: bool = False
     supported_protocols: Optional[List[Protocol]] = None
     supported_auth_options: Optional[List[AuthEnum]] = None
     standby_allowed: bool = False
@@ -80,6 +81,11 @@ class Config:
         self.free_cert_install_service = env.bool(
             "FREE_CERT_INSTALL_SERVICE", default=True
         )
+
+        # Indicates if CPO integration is available to perform contract
+        # certificate installation.
+        self.use_cpo_backend = env.bool("USE_CPO_BACKEND", default=False)
+        logger.info(f"Using CPO Backend: {self.use_cpo_backend}")
 
         # Indicates whether or not the installation/update of a contract certificate
         # shall be offered to the EV. Should be configurable via OCPP messages.
