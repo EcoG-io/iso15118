@@ -6,7 +6,6 @@ SessionStopReq.
 
 import base64
 import logging
-import os.path
 import time
 from typing import List, Optional, Type, Union
 
@@ -604,6 +603,7 @@ class CertificateInstallation(StateSECC):
                 message,
                 ResponseCode.FAILED_SIGNATURE_ERROR,
             )
+            return
 
         # In a real world scenario we need to fetch the certificate from the backend.
         # We call get_15118_ev_certificate method, which would be a direct mapping
@@ -634,8 +634,8 @@ class CertificateInstallation(StateSECC):
                     )
                 )
                 certificate_installation_res: Base64 = Base64(
-                    payload=base64_certificate_installation_res,
-                    payload_type=CertificateInstallationRes.__name__,
+                    message=base64_certificate_installation_res,
+                    message_name=CertificateInstallationRes.__name__,
                 )
             else:
                 (
@@ -674,16 +674,15 @@ class CertificateInstallation(StateSECC):
 
         sub_ca_certificates_oem = None
         root_ca_certificate_oem = None
-        if (
-            os.path.exists(CertPath.OEM_SUB_CA2_DER)
-            and os.path.exists(CertPath.OEM_SUB_CA1_DER)
-            and os.path.exists(CertPath.OEM_ROOT_DER)
-        ):
+
+        try:
             sub_ca_certificates_oem = [
                 load_cert(CertPath.OEM_SUB_CA2_DER),
                 load_cert(CertPath.OEM_SUB_CA1_DER),
             ]
-            root_ca_certificate_oem = CertPath.OEM_ROOT_DER
+            root_ca_certificate_oem = load_cert(CertPath.OEM_ROOT_DER)
+        except: # noqa
+            pass
 
         return verify_signature(
             signature=message.header.signature,
@@ -695,7 +694,7 @@ class CertificateInstallation(StateSECC):
             ],
             leaf_cert=cert_install_req.oem_provisioning_cert,
             sub_ca_certs=sub_ca_certificates_oem,
-            root_ca_cert_path=root_ca_certificate_oem,
+            root_ca_cert=root_ca_certificate_oem,
         )
 
     def generate_certificate_installation_res(
@@ -858,7 +857,7 @@ class PaymentDetails(StateSECC):
             # TODO Either an MO Root certificate or a V2G Root certificate
             #      could be used to verify, need to be flexible with regards
             #      to the PKI that is used.
-            verify_certs(leaf_cert, sub_ca_certs, CertPath.MO_ROOT_DER)
+            verify_certs(leaf_cert, sub_ca_certs, load_cert(CertPath.MO_ROOT_DER))
 
             # TODO Check if EMAID has correct syntax
 

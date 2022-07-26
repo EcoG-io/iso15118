@@ -540,7 +540,7 @@ class CertificateInstallation(StateEVCC):
             ],
             leaf_cert=cert_install_res.cps_cert_chain.certificate,
             sub_ca_certs=cert_install_res.cps_cert_chain.sub_certificates.certificates,
-            root_ca_cert_path=CertPath.V2G_ROOT_DER,
+            root_ca_cert=load_cert(CertPath.V2G_ROOT_DER),
         ):
             self.stop_state_machine(
                 "Signature verification of " "CertificateInstallationRes failed"

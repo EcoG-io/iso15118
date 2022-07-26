@@ -58,18 +58,18 @@ if TYPE_CHECKING:
 
 
 class Base64:
-    def __init__(self, payload: str, payload_type: str):
+    def __init__(self, message: str, message_name: str):
         """
         This was added to help indicate the type of payload for base64 encoded types.
         Used for CertificateInstallationRes received from backend.
         self.message = base64 encoded payload type
         self.message_type = A string representing the type of the message.
         """
-        self.message = payload
-        self.message_type = payload_type
+        self.message = message
+        self.message_name = message_name
 
     def __str__(self):
-        return self.message_type
+        return self.message_name
 
 
 class State(ABC):

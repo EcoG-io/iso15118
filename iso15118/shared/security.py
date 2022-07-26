@@ -312,11 +312,8 @@ def load_cert(cert_path: str) -> bytes:
     Raises:
         FileNotFoundError, IOError
     """
-    try:
-        with open(cert_path, "rb") as cert_file:
-            return cert_file.read()
-    except (FileNotFoundError, IOError) as exc:
-        raise exc
+    with open(cert_path, "rb") as cert_file:
+        return cert_file.read()
 
 
 def load_cert_chain(
@@ -395,7 +392,7 @@ def load_cert_chain(
 def verify_certs(
     leaf_cert_bytes: bytes,
     sub_ca_certs: List[bytes],
-    root_ca_cert_path: str,
+    root_ca_cert: bytes,
     private_environment: bool = False,
 ):
     """
@@ -419,9 +416,8 @@ def verify_certs(
                       a sub-CA 2 certificate as first list entry, íf two sub-CA
                       certificates are present.
                       No more than two sub-CA certificates are allowed.
-        root_ca_cert_path: The path to the root CA (certificate authority)
-                           certificate, which is used to verify the signature of
-                           the top-level sub-CA certificate
+        root_ca_cert: The root CA (certificate authority) certificate, which is used
+                      to verify the signature of the top-level sub-CA certificate
         private_environment: Whether or not the certificate chain to check is
                              that of a private environment (PE). In a PE, there
                              are no sub-CA certificates.
@@ -433,7 +429,7 @@ def verify_certs(
     leaf_cert = load_der_x509_certificate(leaf_cert_bytes)
     sub_ca2_cert = None
     sub_ca1_cert = None
-    root_ca_cert = load_der_x509_certificate(load_cert(root_ca_cert_path))
+    root_ca_cert = load_der_x509_certificate(root_ca_cert)
 
     sub_ca_der_certs: List[Certificate] = [
         load_der_x509_certificate(cert) for cert in sub_ca_certs
@@ -759,7 +755,7 @@ def verify_signature(
     elements_to_sign: List[Tuple[str, bytes]],
     leaf_cert: bytes,
     sub_ca_certs: List[bytes] = None,
-    root_ca_cert_path: str = None,
+    root_ca_cert: bytes = None,
 ) -> bool:
     """
     Verifies the signature contained in the Signature element of the V2GMessage
@@ -796,10 +792,9 @@ def verify_signature(
                           hashed SignedInfo element.
         sub_ca_certs: The sub-CA certificate(s) belonging to the verify_leaf_cert
                       If provided, then the root_cert_path must also be provided.
-        root_ca_cert_path: The path to the root CA certificate used to verify
-                           the signature of (one of) the sub-CA certificate(s).
-                           If provided, then the sub_ca_certs must also be
-                           provided.
+        root_ca_cert: Root CA certificate used to verify the signature of (one of)
+                           the sub-CA certificate(s). If provided, then the
+                           sub_ca_certs must also be provided.
 
     Returns:
         True, if the signature can be successfully verified, False otherwise.
@@ -882,9 +877,9 @@ def verify_signature(
         return False
 
     # 3. Step: Verify signatures along the certificate chain, if provided
-    if sub_ca_certs and root_ca_cert_path:
+    if sub_ca_certs and root_ca_cert:
         try:
-            verify_certs(leaf_cert, sub_ca_certs, root_ca_cert_path)
+            verify_certs(leaf_cert, sub_ca_certs, root_ca_cert)
         except (
             CertSignatureError,
             CertNotYetValidError,
