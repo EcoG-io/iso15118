@@ -1147,10 +1147,25 @@ def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
         encoding=Encoding.X962,
         format=PublicFormat.UncompressedPoint,
     )
-    # TODO: is this correct?
-    # gives a name like:
+    # Per https://www.ibm.com/docs/en/i/7.2?topic=concepts-distinguished-name :
+    # Distinguished name (DN) is a term that describes the identifying information
+    # in a certificate and is part of the certificate itself.
+    # A certificate contains DN information for both the owner or requestor
+    # of the certificate (called the Subject DN) and the CA that issues the certificate
+    # (called the Issuer DN). Depending on the identification policy of the CA
+    # that issues a certificate, the DN can include a variety of information.
+    #
+    # Each CA has a policy to determine what identifying information the CA requires
+    # to issue a certificate. Some public Internet Certificate Authorities may require
+    # little information, such as a name and e-mail address.
+    # Other public CAs may require more information and require stricter proof of that
+    # identifying information before issuing a certificate.
+    #
+    # https://www.ibm.com/docs/en/ibm-mq/7.5?topic=certificates-distinguished-names
+    # provides more information about the attributes which may be included in a DN.
+    #
+    # In this case, we will get a name like:
     # 'DC=MO,C=DE,O=Keysight Technologies,CN=PKI-1_CRT_MO_SUB2_VALID'
-    # Do we need this whole thing or only, say, O?
     distinguished_name = certificate.issuer.rfc4514_string().encode()
     serial_number = certificate.serial_number
 
@@ -1184,6 +1199,8 @@ def certificate_to_pem_string(certificate: bytes) -> str:
         The same certificate expressed as a PEM-format string.
     """
     certificate = load_der_x509_certificate(certificate)
+    # This conversion is done because OCPP requires that the certificate chain be
+    # PEM-encoded.
     pem_bytes = certificate.public_bytes(encoding=Encoding.PEM)
     return pem_bytes.decode()
 

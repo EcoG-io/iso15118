@@ -914,8 +914,9 @@ class PaymentDetails(StateSECC):
                 leaf_cert, sub_ca_certs, self._mobility_operator_root_cert_path()
             )
 
-            # TODO Check if EMAID has correct syntax -- is this accomplished by the
-            # constrained type in `datatypes.py`?
+            # Note that the eMAID format (14 or 15 characters) will be validated
+            # by the definition of the eMAID type in
+            # shared/messages/iso15118_2/datatypes.py
             self.comm_session.emaid = payment_details_req.emaid
             self.comm_session.contract_cert_chain = payment_details_req.cert_chain
 
