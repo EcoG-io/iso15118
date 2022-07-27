@@ -50,6 +50,9 @@ usage() {
    -v --version       ISO version to run the script for: 'iso-2' refers to ISO 15118-2,
                       whereas 'iso-20' refers to ISO 15118-20
    -p --password      The password to encrypt and decrypt the private keys
+   -k --keysight      Generate certificates to be used while pairing with Keysight test system,
+                      alongside this iso15118 project.
+
 
   Description:
     You can use this script to create all the private keys and public key certificates
@@ -97,6 +100,9 @@ while [ -n "$1" ]; do
         -p|--password)
             password=$2
             shift
+            ;;
+        -k|--keysight)
+            keysight_certs="1"
             ;;
          *)
             echo "Unknown option $1"
@@ -155,7 +161,7 @@ mkdir -p $KEY_PATH
 #	  'ec' utility command -> ec $SYMMETRIC_CIPHER
 # - the passphrase for the encryption of the private key is provided in a file
 #   -> -passout pass:$password
-#	- save the encrypted private key at the location provided -> -out 
+#	- save the encrypted private key at the location provided -> -out
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/v2gRootCA.key
 # 1.2) Create a certificate signing request (CSR)
 #	- new -> -new
@@ -180,7 +186,7 @@ openssl req -new -key $KEY_PATH/v2gRootCA.key -passin pass:$password -config con
 #	  signature (otherwise SHA1 would be used) -> $SHA
 #	- each issued certificate must contain a unique serial number assigned by the CA (must be unique within the issuers number range) -> -set_serial
 #	- save the certificate at the location provided -> -out
-# 	- make the certificate valid for 40 years (give in days) -> -days 
+# 	- make the certificate valid for 40 years (give in days) -> -days
 openssl x509 -req -in $CSR_PATH/v2gRootCA.csr -extfile configs/v2gRootCACert.cnf -extensions ext -signkey $KEY_PATH/v2gRootCA.key -passin pass:$password $SHA -set_serial 12345 -out $CERT_PATH/v2gRootCACert.pem -days $VALIDITY_V2G_ROOT_CERT
 
 
@@ -342,3 +348,72 @@ openssl x509 -inform PEM -in $CERT_PATH/contractLeafCert.pem -outform DER -out $
 openssl pkcs8 -topk8 -in $KEY_PATH/moSubCA2.key -inform PEM -passin pass:$password -passout pass:$password -outform DER -out $KEY_PATH/moSubCA2.pkcs8.der -v1 PBE-SHA1-3DES
 
 # Side notes for OCSP stapling in Java: see http://openjdk.java.net/jeps/249
+
+if [ "$keysight_certs" == "1" ];
+then
+  # The following portion of the script is to help convert the generated certificates work with Keysight test system.
+  # The certificates could be used to replace the PKI-Ext folder under "generated-pki" folder
+  # For SECC testing, only the certificates for sut_secc folder are generated.
+  # TODO: Add an option to generate iso15118 certificates from Keysight provided certs.
+  # This could be useful for future Testivals.
+
+  # Target folders
+  PKI_EXT="pki-ext"
+  SUT_SECC="sut_secc"
+  PREFIX="PKI-Ext_CRT"
+
+  # Create directory for Keysight certificates
+  CERTS_DIR_SECC=$PKI_EXT/certs/$SUT_SECC
+  PRIVATE_KEYS_DIR_SECC=$PKI_EXT/privateKeys/$SUT_SECC
+
+  mkdir -p $CERTS_DIR_SECC
+  mkdir -p $PRIVATE_KEYS_DIR_SECC
+
+  # Write passphrase to file.
+  echo $password > $PKI_EXT/privateKeys/passphrase.txt
+
+  # Copy all certificates to sut_secc folder. We could simply make a copy of the entire folder too.
+  # Leaving it like this so we could see what is going on.
+  cp -f $CERT_PATH/v2gRootCACert.pem $CERTS_DIR_SECC/${PREFIX}_V2G_ROOT_VALID.pem
+  cp -f $CERT_PATH/cpsSubCA1Cert.pem $CERTS_DIR_SECC/${PREFIX}_CPS_SUB1_VALID.pem
+  cp -f $CERT_PATH/cpsSubCA2Cert.pem $CERTS_DIR_SECC/${PREFIX}_CPS_SUB2_VALID.pem
+  cp -f $CERT_PATH/cpsLeafCert.pem $CERTS_DIR_SECC/${PREFIX}_CPS_LEAF_VALID.pem
+
+  cp -f $CERT_PATH/cpoSubCA1Cert.pem $CERTS_DIR_SECC/${PREFIX}_CPO_SUB1_VALID.pem
+  cp -f $CERT_PATH/cpoSubCA2Cert.pem $CERTS_DIR_SECC/${PREFIX}_CPO_SUB2_VALID.pem
+  cp -f $CERT_PATH/seccLeafCert.pem $CERTS_DIR_SECC/${PREFIX}_EVSE_LEAF_VALID.pem
+
+  cp -f $CERT_PATH/oemRootCACert.pem $CERTS_DIR_SECC/${PREFIX}_OEM_ROOT_VALID.pem
+  cp -f $CERT_PATH/oemSubCA1Cert.pem $CERTS_DIR_SECC/${PREFIX}_OEM_SUB1_VALID.pem
+  cp -f $CERT_PATH/oemSubCA2Cert.pem $CERTS_DIR_SECC/${PREFIX}_OEM_SUB2_VALID.pem
+  cp -f $CERT_PATH/oemLeafCert.pem $CERTS_DIR_SECC/${PREFIX}_OEM_LEAF_VALID.pem
+
+  cp -f $CERT_PATH/moRootCACert.pem $CERTS_DIR_SECC/${PREFIX}_MO_ROOT_VALID.pem
+  cp -f $CERT_PATH/moSubCA1Cert.pem $CERTS_DIR_SECC/${PREFIX}_MO_SUB1_VALID.pem
+  cp -f $CERT_PATH/moSubCA2Cert.pem $CERTS_DIR_SECC/${PREFIX}_MO_SUB2_VALID.pem
+  cp -f $CERT_PATH/contractLeafCert.pem $CERTS_DIR_SECC/${PREFIX}_CONTRACT_LEAF_VALID.pem
+
+  # Generate .der versions of the above certificates.
+  openssl x509 -inform PEM -in $CERT_PATH/v2gRootCACert.pem -outform DER -out $CERTS_DIR_SECC/${PREFIX}_V2G_ROOT_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/cpsSubCA1Cert.pem -outform DER -out $CERTS_DIR_SECC/${PREFIX}_CPS_SUB1_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/cpsSubCA2Cert.pem -outform DER -out $CERTS_DIR_SECC/${PREFIX}_CPS_SUB2_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/cpsLeafCert.pem 	-outform DER -out $CERTS_DIR_SECC/${PREFIX}_CPS_LEAF_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/cpoSubCA1Cert.pem -outform DER -out $CERTS_DIR_SECC/${PREFIX}_CPO_SUB1_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/cpoSubCA2Cert.pem -outform DER -out $CERTS_DIR_SECC/${PREFIX}_CPO_SUB2_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/seccLeafCert.pem  -outform DER -out $CERTS_DIR_SECC/${PREFIX}_EVSE_LEAF_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/oemRootCACert.pem -outform DER -out $CERTS_DIR_SECC/${PREFIX}_OEM_ROOT_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/oemSubCA1Cert.pem -outform DER -out $CERTS_DIR_SECC/${PREFIX}_OEM_SUB1_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/oemSubCA2Cert.pem -outform DER -out $CERTS_DIR_SECC/${PREFIX}_OEM_SUB2_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/oemLeafCert.pem   -outform DER -out $CERTS_DIR_SECC/${PREFIX}_OEM_LEAF_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/moRootCACert.pem  -outform DER -out $CERTS_DIR_SECC/${PREFIX}_MO_ROOT_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/moSubCA1Cert.pem  -outform DER -out $CERTS_DIR_SECC/${PREFIX}_MO_SUB1_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/moSubCA2Cert.pem  -outform DER -out $CERTS_DIR_SECC/${PREFIX}_MO_SUB2_VALID.der
+  openssl x509 -inform PEM -in $CERT_PATH/contractLeafCert.pem -outform DER -out $CERTS_DIR_SECC/${PREFIX}_CONTRACT_LEAF_VALID.der
+
+  # Keysight requires pkcs8 versions of the private keys.
+  openssl pkcs8 -topk8 -inform PEM -passin pass:$password -passout pass:$password -outform PEM -nocrypt -in $KEY_PATH/oemLeaf.key -out $PRIVATE_KEYS_DIR_SECC/${PREFIX}_OEM_LEAF_VALID_pkcs8.key
+  openssl pkcs8 -topk8 -inform PEM -passin pass:$password -passout pass:$password -outform PEM -nocrypt -in $KEY_PATH/seccLeaf.key -out $PRIVATE_KEYS_DIR_SECC/${PREFIX}_EVSE_LEAF_VALID_pkcs8.key
+  openssl pkcs8 -topk8 -inform PEM -passin pass:$password -passout pass:$password -outform PEM -nocrypt -in $KEY_PATH/contractLeaf.key -out $PRIVATE_KEYS_DIR_SECC/${PREFIX}_CONTRACT_LEAF_VALID_pkcs8.key
+
+  echo "Certificates for Keysight tests are generated under $PKI_EXT"
+fi
