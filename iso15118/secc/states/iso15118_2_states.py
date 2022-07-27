@@ -857,7 +857,7 @@ class PaymentDetails(StateSECC):
         certificate_chain: Optional[CertificateChain],
     ) -> Optional[List[Dict[str, str]]]:
         """Return a list of hash data for a contract certificate chain."""
-        if certificate_chain is not None:
+        if certificate_chain is None:
             return None
 
         return [
