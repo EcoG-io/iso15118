@@ -13,7 +13,12 @@ from iso15118.secc.states.iso15118_2_states import (
     WeldingDetection,
 )
 from iso15118.secc.states.secc_state import StateSECC
-from iso15118.shared.messages.enums import AuthEnum, AuthorizationStatus, Contactor
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    AuthorizationStatus,
+    AuthorizationTokenType,
+    Contactor,
+)
 from iso15118.shared.messages.iso15118_2.datatypes import CertificateChain
 from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
@@ -88,7 +93,9 @@ class TestEvScenarios:
         mock_is_authorized.assert_called_once()
         req_body = payment_details_req.body.payment_details_req
         assert mock_is_authorized.call_args[1]["id_token"] == req_body.emaid
-        assert mock_is_authorized.call_args[1]["id_token_type"] == AuthEnum.PNC_V2
+        assert mock_is_authorized.call_args[1]["id_token_type"] == (
+            AuthorizationTokenType.EMAID
+        )
         # TODO: could probably use testing on the technical functions
         # added in the security module to enable this
 

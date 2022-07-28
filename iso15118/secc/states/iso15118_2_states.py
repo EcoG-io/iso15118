@@ -36,6 +36,7 @@ from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDIN
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
+    AuthorizationTokenType,
     Contactor,
     DCEVErrorCode,
     EVSEProcessing,
@@ -930,7 +931,7 @@ class PaymentDetails(StateSECC):
             authorization_result = (
                 await self.comm_session.evse_controller.is_authorized(
                     id_token=payment_details_req.emaid,
-                    id_token_type=self.comm_session.selected_auth_option,
+                    id_token_type=AuthorizationTokenType.EMAID,
                     certificate_chain=pem_certificate_chain,
                     hash_data=hash_data,
                 )
