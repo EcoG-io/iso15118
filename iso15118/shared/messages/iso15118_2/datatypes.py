@@ -610,7 +610,7 @@ class EMAID(BaseModel):
     doesn't have attributes. The EXI codec has to en-/decode accordingly.
     """
 
-    id: str = Field(None, alias="Id")
+    id: str = Field(..., alias="Id")
     value: eMAID = Field(..., alias="value")
 
     def __str__(self):
