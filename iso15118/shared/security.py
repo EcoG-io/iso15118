@@ -28,7 +28,9 @@ from cryptography.hazmat.primitives.serialization import (
     load_pem_private_key,
 )
 from cryptography.x509 import (
+    AuthorityInformationAccessOID,
     Certificate,
+    ExtensionNotFound,
     ExtensionOID,
     NameOID,
     load_der_x509_certificate,
@@ -45,6 +47,7 @@ from iso15118.shared.exceptions import (
     EncryptionError,
     InvalidProtocolError,
     KeyTypeError,
+    OCSPServerNotFoundError,
     PrivateKeyReadError,
 )
 from iso15118.shared.exi_codec import EXI
@@ -1179,13 +1182,20 @@ def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
     issuer_name_hasher = Hash(certificate.signature_hash_algorithm)
     issuer_name_hasher.update(distinguished_name_bytes)
 
+    try:
+        responder_url = get_ocsp_url_for_certificate(certificate)
+    except (ExtensionNotFound, OCSPServerNotFoundError):
+        # TODO: This may just result in failure down the road.
+        # Should we let this fail on these exceptions, or is there
+        # another way to try to get a responder_url?
+        responder_url = "https://www.example.com/"
+
     return {
         "hash_algorithm": hash_algorithm_for_ocpp,
         "issuer_name_hash": issuer_name_hasher.finalize(),
         "issuer_key_hash": public_key_hasher.finalize(),
         "serial_number": serial_number,
-        # TODO: Populate with a real-world verification server
-        "responder_url": "https://www.example.com/",
+        "responder_url": responder_url,
     }
 
 
@@ -1203,6 +1213,41 @@ def certificate_to_pem_string(certificate: bytes) -> str:
     # PEM-encoded.
     pem_bytes = certificate.public_bytes(encoding=Encoding.PEM)
     return pem_bytes.decode()
+
+
+def get_ocsp_url_for_certificate(certificate: Certificate) -> str:
+    """Get the OCSP URL for a certificate.
+
+    Args:
+        certificate: A certificate object.
+
+    Returns:
+        The URL for a server to verify the certificate.
+
+    Raises:
+        ExtensionNotFound: if Authority Information Access extension is absent
+        OCSPServerNotFoundError: if OCSP server entry is not found
+    """
+    try:
+        auth_inf_access = certificate.extensions.get_extension_for_oid(
+            ExtensionOID.AUTHORITY_INFORMATION_ACCESS
+        ).value
+    except ExtensionNotFound:
+        logger.exception("Authority Information Access extension not found.")
+        raise
+
+    ocsps = [
+        access_descriptor
+        for access_descriptor in auth_inf_access
+        # If this is OCSP, the access location will be where to obtain
+        # OCSP information for the certificate.
+        if access_descriptor.access_method == AuthorityInformationAccessOID.OCSP
+    ]
+
+    if not ocsps:
+        raise OCSPServerNotFoundError
+
+    return ocsps[0].access_location.value
 
 
 class CertPath(str, Enum):

@@ -419,3 +419,7 @@ class Contactor(IntEnum):
     ERROR = 0
     OPENED = 1
     CLOSED = 2
+
+
+class AuthorizationTokenType(str, Enum):
+    EMAID = "eMAID"

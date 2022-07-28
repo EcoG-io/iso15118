@@ -221,3 +221,17 @@ class NoSupportedProtocols(Exception):
 
 class NoSupportedAuthenticationModes(Exception):
     """Is thrown when no supported authentication modes are configured"""
+
+
+class OCSPServerNotFoundError(Exception):
+    """Is thrown when no OCSP server entry is found.
+
+    The Authority Information Access extension field may not contain any OCSP
+    server entries.  If so, this exception is raised.
+    """
+
+    def __init__(self):
+        Exception.__init__(
+            self,
+            "No OCSP server entry in Authority Information Access extension field.",
+        )
