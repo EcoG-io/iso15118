@@ -1166,7 +1166,7 @@ def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
     #
     # In this case, we will get a name like:
     # 'DC=MO,C=DE,O=Keysight Technologies,CN=PKI-1_CRT_MO_SUB2_VALID'
-    distinguished_name = certificate.issuer.rfc4514_string().encode()
+    distinguished_name_bytes = certificate.issuer.public_bytes()
     serial_number = certificate.serial_number
 
     # Convert to the naming used in OCPP.
@@ -1177,7 +1177,7 @@ def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
     public_key_hasher = Hash(certificate.signature_hash_algorithm)
     public_key_hasher.update(public_key_bytes)
     issuer_name_hasher = Hash(certificate.signature_hash_algorithm)
-    issuer_name_hasher.update(distinguished_name)
+    issuer_name_hasher.update(distinguished_name_bytes)
 
     return {
         "hash_algorithm": hash_algorithm_for_ocpp,
