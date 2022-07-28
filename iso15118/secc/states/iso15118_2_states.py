@@ -911,9 +911,10 @@ class PaymentDetails(StateSECC):
             # TODO Either an MO Root certificate or a V2G Root certificate
             #      could be used to verify, need to be flexible with regards
             #      to the PKI that is used.
-            verify_certs(
-                leaf_cert, sub_ca_certs, self._mobility_operator_root_cert_path()
-            )
+            with open(self._mobility_operator_root_cert_path(), "rb") as root_cert_file:
+                root_cert = root_cert_file.read()
+
+            verify_certs(leaf_cert, sub_ca_certs, root_cert)
 
             # Note that the eMAID format (14 or 15 characters) will be validated
             # by the definition of the eMAID type in
