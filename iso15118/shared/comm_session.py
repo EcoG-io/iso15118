@@ -19,6 +19,7 @@ from iso15118.shared.exceptions import (
     FaultyStateImplementationError,
     InvalidV2GTPMessageError,
     MessageProcessingError,
+    V2GMessageValidationError,
 )
 from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
@@ -204,6 +205,15 @@ class SessionStateMachine(ABC):
                 f"{self.get_exi_ns(v2gtp_msg.payload_type).value}"
             )
 
+        except V2GMessageValidationError as exc:
+            self.comm_session.current_state.stop_state_machine(
+                exc.reason,
+                None,
+                exc.response_code,
+                exc.message,
+                self.get_exi_ns(v2gtp_msg.payload_type),
+            )
+            return
         except EXIDecodingError as exc:
             logger.exception(f"{exc}")
             raise exc

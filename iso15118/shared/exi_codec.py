@@ -6,7 +6,11 @@ from typing import Union
 
 from pydantic import ValidationError
 
-from iso15118.shared.exceptions import EXIDecodingError, EXIEncodingError
+from iso15118.shared.exceptions import (
+    EXIDecodingError,
+    EXIEncodingError,
+    V2GMessageValidationError,
+)
 from iso15118.shared.exificient_exi_codec import ExificientEXICodec
 from iso15118.shared.iexi_codec import IEXICodec
 from iso15118.shared.messages import BaseModel
@@ -14,8 +18,11 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
+from iso15118.shared.messages.din_spec.body import get_msg_type as get_msg_type_dinspec
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import Namespace
+from iso15118.shared.messages.iso15118_2.body import get_msg_type
+from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeLoopReq,
@@ -379,10 +386,28 @@ class EXI:
 
             raise EXIDecodingError("Can't identify protocol to use for decoding")
         except ValidationError as exc:
-            raise EXIDecodingError(
-                f"Error parsing the decoded EXI into a Pydantic class: {exc}. "
-                f"\n\nDecoded dict: {decoded_dict}"
+            if namespace == Namespace.ISO_V2_MSG_DEF:
+                msg_name = next(iter(decoded_dict["V2G_Message"]["Body"]))
+                msg_type = get_msg_type(msg_name)
+            elif namespace == Namespace.DIN_MSG_DEF:
+                msg_name = next(iter(decoded_dict["V2G_Message"]["Body"]))
+                msg_type = get_msg_type_dinspec(msg_name)
+            elif namespace.startswith(Namespace.ISO_V20_BASE):
+                msg_type = msg_class
+            elif namespace == Namespace.SAP:
+                if "supportedAppProtocolReq" in decoded_dict:
+                    msg_type = SupportedAppProtocolReq
+                elif "supportedAppProtocolRes" in decoded_dict:
+                    msg_type = SupportedAppProtocolRes
+
+            raise V2GMessageValidationError(
+                f"Validation error: {exc}. \n\nDecoded dict: " f"{decoded_dict}",
+                ResponseCode.FAILED,
+                msg_type,
             ) from exc
+
+        except V2GMessageValidationError as exc:
+            raise exc
         except EXIDecodingError as exc:
             raise EXIDecodingError(
                 f"EXI decoding error: {exc}. \n\nDecoded dict: " f"{decoded_dict}"
