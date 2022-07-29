@@ -1313,10 +1313,18 @@ class ChargeParameterDiscovery(StateSECC):
 
             p_max_sched = schedule_tuples.p_max_schedule
             if p_max_sched.schedule_entries is not None:
-                first_entry_start_time = p_max_sched.schedule_entries[0].time_interval.start
-                last_entry_start_time = p_max_sched.schedule_entries[-1].time_interval.start
-                last_entry_schedule_duration = p_max_sched.schedule_entries[-1].time_interval.duration
-                schedule_duration = (last_entry_start_time - first_entry_start_time) + last_entry_schedule_duration
+                first_entry_start_time = p_max_sched.schedule_entries[
+                    0
+                ].time_interval.start
+                last_entry_start_time = p_max_sched.schedule_entries[
+                    -1
+                ].time_interval.start
+                last_entry_schedule_duration = p_max_sched.schedule_entries[
+                    -1
+                ].time_interval.duration
+                schedule_duration = (
+                    last_entry_start_time - first_entry_start_time
+                ) + last_entry_schedule_duration
 
             # If departure time is not provided, schedule duration must be at least
             # 24 hours
