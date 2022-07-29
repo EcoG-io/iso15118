@@ -96,8 +96,6 @@ class TestEvScenarios:
         assert mock_is_authorized.call_args[1]["id_token_type"] == (
             AuthorizationTokenType.EMAID
         )
-        # TODO: could probably use testing on the technical functions
-        # added in the security module to enable this
 
     @pytest.mark.parametrize(
         "is_authorized_return_value, expected_next_state",
