@@ -1,4 +1,3 @@
-import base64
 import json
 import logging
 from base64 import b64decode, b64encode

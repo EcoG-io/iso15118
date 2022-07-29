@@ -228,9 +228,9 @@ DIN_TEST_MESSAGES = [
 
 
 class TestDinSpec_MessageCreation:
-    # Test data recorded 28.7.2022 with Comemso Multi Mobile DC Protocol Tester are showing exactly
-    # how CCS Protocol is implemented in real world. The Numbers for SOC are exceeding the limits
-    # defined in standard.
+    # Test data recorded 28.7.2022 with Comemso Multi Mobile DC Protocol Tester
+    # are showing exactly how CCS Protocol is implemented in real world.
+    # The Numbers for SOC are exceeding the limits defined in standard.
     PVRemainingTimeToFullSOC._max_limit = 32767000
     PVRemainingTimeToBulkSOC._max_limit = 32767000
 

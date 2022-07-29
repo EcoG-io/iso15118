@@ -10,7 +10,7 @@ from iso15118.shared.messages.app_protocol import (
 class TestAppProtocol_MessageCreation:
     def test_common_SupportedAppProtocolRes_messages_can_be_parsed(self):
         decoded_dict = json.loads(
-            '{"supportedAppProtocolRes": {"ResponseCode": "OK_SuccessfulNegotiation", '
+            '{"supportedAppProtocolRes": {"ResponseCode": "OK_SuccessfulNegotiation",'
             '"SchemaID": 0}}',
             cls=CustomJSONDecoder,
         )
@@ -22,9 +22,9 @@ class TestAppProtocol_MessageCreation:
 
     def test_common_SupportedAppProtocolReq_messages_can_be_parsed(self):
         decoded_dict = json.loads(
-            '{"supportedAppProtocolReq":{"AppProtocol":[{"ProtocolNamespace":"urn:iso:15118:2:'
-            '2013:MsgDef","VersionNumberMajor":2,"VersionNumberMinor":0,"SchemaID":0,"Priority"'
-            ":1}]}}",
+            '{"supportedAppProtocolReq":{"AppProtocol":[{"ProtocolNamespace":'
+            '"urn:iso:15118:2:2013:MsgDef","VersionNumberMajor":2,'
+            '"VersionNumberMinor":0,"SchemaID":0,"Priority":1}]}}',
             cls=CustomJSONDecoder,
         )
 
