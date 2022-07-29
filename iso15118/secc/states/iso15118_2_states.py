@@ -951,7 +951,7 @@ class PaymentDetails(StateSECC):
                     Namespace.ISO_V2_MSG_DEF,
                 )
             else:
-                # TODO: handle ONGOING case, and REJECTED more fully
+                # TODO GitHub#54: handle ONGOING case, and REJECTED more fully
                 payment_details_res = PaymentDetailsRes(
                     response_code=ResponseCode.FAILED,
                     evse_timestamp=time.time(),
