@@ -378,7 +378,7 @@ class DCEVPowerDeliveryParameter(BaseModel):
     """
 
     dc_ev_status: DCEVStatus = Field(..., alias="DC_EVStatus")
-    bulk_charging_complete: bool = Field(None, alis="BulkChargingComplete")
+    bulk_charging_complete: bool = Field(None, alias="BulkChargingComplete")
     charging_complete: bool = Field(..., alias="ChargingComplete")
 
 
