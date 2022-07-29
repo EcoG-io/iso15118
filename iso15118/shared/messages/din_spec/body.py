@@ -73,8 +73,9 @@ class SessionSetupReq(BodyBase):
     """See section 9.4.1.2.2 in DIN SPEC 70121"""
 
     """Refer Table 29 under section 9.4.1.2.2"""
-    # XSD type hexBinary with max 6 bytes
-    evcc_id: str = Field(..., max_length=12, alias="EVCCID")
+    # XSD type hexBinary with max 8 bytes
+    # (Spec is quite unclear here, but data from field show that 8bytes are used)
+    evcc_id: str = Field(..., max_length=16, alias="EVCCID")
 
     @validator("evcc_id")
     def check_sessionid_is_hexbinary(cls, value):
