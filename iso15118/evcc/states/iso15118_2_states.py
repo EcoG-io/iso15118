@@ -88,6 +88,7 @@ from iso15118.shared.notifications import StopNotification
 from iso15118.shared.security import (
     CertPath,
     KeyEncoding,
+    KeyPasswordPath,
     KeyPath,
     create_signature,
     decrypt_priv_key,
@@ -438,7 +439,11 @@ class PaymentServiceSelection(StateEVCC):
                                 ),
                             )
                         ],
-                        load_priv_key(KeyPath.OEM_LEAF_PEM, KeyEncoding.PEM),
+                        load_priv_key(
+                            KeyPath.OEM_LEAF_PEM,
+                            KeyEncoding.PEM,
+                            KeyPasswordPath.OEM_LEAF_KEY_PASSWORD,
+                        ),
                     )
 
                     self.create_next_message(
@@ -550,7 +555,11 @@ class CertificateInstallation(StateEVCC):
         try:
             decrypted_priv_key = decrypt_priv_key(
                 encrypted_priv_key_with_iv=cert_install_res.encrypted_private_key.value,
-                ecdh_priv_key=load_priv_key(KeyPath.OEM_LEAF_PEM, KeyEncoding.PEM),
+                ecdh_priv_key=load_priv_key(
+                    KeyPath.OEM_LEAF_PEM,
+                    KeyEncoding.PEM,
+                    KeyPasswordPath.OEM_LEAF_KEY_PASSWORD,
+                ),
                 ecdh_pub_key=to_ec_pub_key(cert_install_res.dh_public_key.value),
             )
 
@@ -626,7 +635,11 @@ class PaymentDetails(StateEVCC):
                         EXI().to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
                     )
                 ],
-                load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
+                load_priv_key(
+                    KeyPath.CONTRACT_LEAF_PEM,
+                    KeyEncoding.PEM,
+                    KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD,
+                ),
             )
 
             self.create_next_message(
@@ -1122,7 +1135,11 @@ class ChargingStatus(StateEVCC):
                             ),
                         )
                     ],
-                    load_priv_key(KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM),
+                    load_priv_key(
+                        KeyPath.CONTRACT_LEAF_PEM,
+                        KeyEncoding.PEM,
+                        KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD,
+                    ),
                 )
 
                 self.create_next_message(

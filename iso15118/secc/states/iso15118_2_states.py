@@ -112,6 +112,7 @@ from iso15118.shared.notifications import StopNotification
 from iso15118.shared.security import (
     CertPath,
     KeyEncoding,
+    KeyPasswordPath,
     KeyPath,
     create_signature,
     encrypt_priv_key,
@@ -709,7 +710,9 @@ class CertificateInstallation(StateSECC):
             dh_pub_key, encrypted_priv_key_bytes = encrypt_priv_key(
                 oem_prov_cert=load_cert(CertPath.OEM_LEAF_DER),
                 priv_key_to_encrypt=load_priv_key(
-                    KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM
+                    KeyPath.CONTRACT_LEAF_PEM,
+                    KeyEncoding.PEM,
+                    KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD,
                 ),
             )
         except EncryptionError:
@@ -719,7 +722,7 @@ class CertificateInstallation(StateSECC):
             )
         except PrivateKeyReadError as exc:
             raise PrivateKeyReadError(
-                "Can't read private key to encrypt for "
+                f"Can't read private key to encrypt for "
                 f"CertificateInstallationRes: {exc}"
             )
 
@@ -790,7 +793,11 @@ class CertificateInstallation(StateSECC):
                 emaid_tuple,
             ]
             # The private key to be used for the signature
-            signature_key = load_priv_key(KeyPath.CPS_LEAF_PEM, KeyEncoding.PEM)
+            signature_key = load_priv_key(
+                KeyPath.CPS_LEAF_PEM,
+                KeyEncoding.PEM,
+                KeyPasswordPath.CPS_LEAF_KEY_PASSWORD,
+            )
 
             signature = create_signature(elements_to_sign, signature_key)
 
@@ -1175,7 +1182,9 @@ class ChargeParameterDiscovery(StateSECC):
                             ),
                         )
                         signature_key = load_priv_key(
-                            KeyPath.MO_SUB_CA2_PEM, KeyEncoding.PEM
+                            KeyPath.MO_SUB_CA2_PEM,
+                            KeyEncoding.PEM,
+                            KeyPasswordPath.MO_SUB_CA2_PASSWORD,
                         )
                         signature = create_signature([element_to_sign], signature_key)
                     except PrivateKeyReadError as exc:

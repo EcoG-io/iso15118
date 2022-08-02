@@ -78,6 +78,7 @@ from iso15118.shared.notifications import StopNotification
 from iso15118.shared.security import (
     CertPath,
     KeyEncoding,
+    KeyPasswordPath,
     KeyPath,
     create_signature,
     get_cert_issuer_serial,
@@ -195,7 +196,11 @@ class AuthorizationSetup(StateEVCC):
                             ),
                         )
                     ],
-                    load_priv_key(KeyPath.OEM_LEAF_PEM, KeyEncoding.PEM),
+                    load_priv_key(
+                        KeyPath.OEM_LEAF_PEM,
+                        KeyEncoding.PEM,
+                        KeyPasswordPath.OEM_LEAF_KEY_PASSWORD,
+                    ),
                 )
 
                 cert_install_req = CertificateInstallationReq(
@@ -255,7 +260,9 @@ class AuthorizationSetup(StateEVCC):
             try:
                 # The private key to be used for the signature
                 signature_key = load_priv_key(
-                    KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM
+                    KeyPath.CONTRACT_LEAF_PEM,
+                    KeyEncoding.PEM,
+                    KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD,
                 )
                 signature = create_signature(elements_to_sign, signature_key)
             except PrivateKeyReadError as exc:
