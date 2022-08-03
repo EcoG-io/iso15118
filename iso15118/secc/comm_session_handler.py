@@ -283,6 +283,7 @@ class CommunicationSessionHandler:
                     port = self.tcp_server.port_tls
                 else:
                     port = self.tcp_server.port_no_tls
+
                 # convert IPv6 address from presentation to numeric format
                 ipv6_bytes = socket.inet_pton(
                     socket.AF_INET6, self.tcp_server.ipv6_address_host

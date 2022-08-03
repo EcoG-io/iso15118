@@ -478,7 +478,7 @@ class V2GCommunicationSession(SessionStateMachine):
                 MessageProcessingError,
                 FaultyStateImplementationError,
                 EXIDecodingError,
-                InvalidV2GTPMessageError
+                InvalidV2GTPMessageError,
             ) as exc:
                 message_name = ""
                 additional_info = ""
@@ -490,6 +490,7 @@ class V2GCommunicationSession(SessionStateMachine):
                     additional_info = f": {exc}"
                 if isinstance(exc, InvalidV2GTPMessageError):
                     additional_info = f": {exc}"
+
                 stop_reason: str = (
                     f"{exc.__class__.__name__} occurred while processing message "
                     f"{message_name} in state {str(self.current_state)}"
