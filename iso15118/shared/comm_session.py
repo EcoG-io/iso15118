@@ -183,7 +183,7 @@ class SessionStateMachine(ABC):
         except InvalidV2GTPMessageError as exc:
             logger.exception("Incoming TCPPacket is not a valid V2GTPMessage")
             # and then decode the bytearray into the message
-            raise MessageProcessingError from exc
+            raise MessageProcessingError("Invalid Message") from exc
 
         # Step 2
         decoded_message: Union[
