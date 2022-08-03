@@ -12,35 +12,45 @@ def test_derive_certificate_hash_data_root_certificate() -> None:
     certificate_path = Path(__file__).parent / "sample_certs" / "moRootCACert.der"
     with open(certificate_path, "rb") as f:
         certificate_bytes = f.read()
-    hash_data = derive_certificate_hash_data(certificate_bytes)
+
+    # A root certificate will be self_signed.
+    hash_data = derive_certificate_hash_data(certificate_bytes, certificate_bytes)
+
     # This hash data was derived by using the OCSPRequestBuilder.
     # This isn't used in the code because it requires the issuer certificate,
     # which we may not always have in practice (the root certificate may be absent).
     # Still, we will have enough information to populate this hash data.
     assert hash_data == {
         "hash_algorithm": "SHA256",
-        "issuer_name_hash": b"\xcf\x86'\xd5\xa3\x0c\xaf\xe6\x1dlf\x91q\x11EO\xfa\x81\x1d\xd6\x98I\x97PwN|\xe8\xcf\xb7\x1cq",  # noqa: E501
-        "issuer_key_hash": b'K\x85\x00H\x03\xda\xe2\xbc\xc3"\x08\xe9\xda.\xa9.\xf8s\x04\xe52\x87\xd4\xc6"\xf2^\x13\xea\x93,\xf4',  # noqa: E501
-        "serial_number": 11,
+        "issuer_name_hash": "z4Yn1aMMr-YdbGaRcRFFT_qBHdaYSZdQd0586M-3HHE=",  # noqa: E501
+        "issuer_key_hash": "S4UASAPa4rzDIgjp2i6pLvhzBOUyh9TGIvJeE-qTLPQ=",  # noqa: E501
+        "serial_number": "11",
         "responder_url": "https://www.example.com/",
     }
 
 
 def test_derive_certificate_hash_data_contract_certificate() -> None:
     """Test that correct certificate data is extracted for a contract certificate."""
-    certificate_path = Path(__file__).parent / "sample_certs" / "contractLeafCert.der"
-    with open(certificate_path, "rb") as f:
-        certificate_bytes = f.read()
-    hash_data = derive_certificate_hash_data(certificate_bytes)
+    cert_dir = Path(__file__).parent / "sample_certs"
+    contract_certificate_path = cert_dir / "contractLeafCert.der"
+    sub_ca_2_certificate_path = cert_dir / "moSubCA2Cert.der"
+    with open(contract_certificate_path, "rb") as contract_cert_file:
+        contract_certificate_bytes = contract_cert_file.read()
+    with open(sub_ca_2_certificate_path, "rb") as ca_2_cert_file:
+        sub_ca_2_certificate_bytes = ca_2_cert_file.read()
+    hash_data = derive_certificate_hash_data(
+        contract_certificate_bytes,
+        sub_ca_2_certificate_bytes,
+    )
     # This hash data was derived by using the OCSPRequestBuilder.
     # This isn't used in the code because it requires the issuer certificate,
     # which we may not always have in practice (the root certificate may be absent).
     # Still, we will have enough information to populate this hash data.
     assert hash_data == {
         "hash_algorithm": "SHA256",
-        "issuer_name_hash": b"\x05\x0eD>\xc5G\xbel\xfe\x8b.e}\t\x0b\xe0}\x86\xa2t\x00\xbb&\xfb\xf4\xa2_\xcb\xeb!e4",  # noqa: E501
-        "issuer_key_hash": b"\xb3|\xf7\xca<\x05\xb7\xfe5\xf4\x86\xc3-A\xcb\x86O.R\xec&I\xcf\x17\x91x%\xaf\x8a\xda-`",  # noqa: E501
-        "serial_number": 15,
+        "issuer_name_hash": "BQ5EPsVHvmz-iy5lfQkL4H2GonQAuyb79KJfy-shZTQ=",  # noqa: E501
+        "issuer_key_hash": "Xre37wLCZB7m4TflmE1DcRbucyVyN0BQTRdYR6buWgA=",  # noqa: E501
+        "serial_number": "15",
         "responder_url": "https://www.example.com/",
     }
 

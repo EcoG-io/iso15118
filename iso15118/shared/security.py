@@ -1,6 +1,7 @@
 import logging
 import os
 import secrets
+from base64 import urlsafe_b64encode
 from datetime import datetime
 from enum import Enum, auto
 from ssl import PROTOCOL_TLSv1_2, SSLContext, SSLError, VerifyMode
@@ -1128,11 +1129,14 @@ def decrypt_priv_key(
     raise DecryptionError()
 
 
-def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
+def derive_certificate_hash_data(certificate: bytes, issuer_certificate: bytes) -> Dict[str, str]:
     """Extract certificate hash data to be used in an OCPP AuthorizeRequest.
 
     Args:
         certificate: The certificate in binary (DER) form.
+        issuer_certificate: The certificate signing `certificate`,
+            in binary (DER) form.
+            For a self-signed certificate, these will be the same.
 
     Returns:
         A dictionary with all information required for an OCSPRequestDataType
@@ -1145,7 +1149,8 @@ def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
             (3.42 HashAlgorithmEnumType, p. 403, OCPP 2.0.1 Part 2)
     """
     certificate = load_der_x509_certificate(certificate)
-    public_key = certificate.public_key()
+    issuer_certificate = load_der_x509_certificate(issuer_certificate)
+    public_key = issuer_certificate.public_key()
     public_key_bytes = public_key.public_bytes(
         encoding=Encoding.X962,
         format=PublicFormat.UncompressedPoint,
@@ -1192,9 +1197,9 @@ def derive_certificate_hash_data(certificate: bytes) -> Dict[str, str]:
 
     return {
         "hash_algorithm": hash_algorithm_for_ocpp,
-        "issuer_name_hash": issuer_name_hasher.finalize(),
-        "issuer_key_hash": public_key_hasher.finalize(),
-        "serial_number": serial_number,
+        "issuer_name_hash": urlsafe_b64encode(issuer_name_hasher.finalize()).decode(),
+        "issuer_key_hash": urlsafe_b64encode(public_key_hasher.finalize()).decode(),
+        "serial_number": str(serial_number),
         "responder_url": responder_url,
     }
 
