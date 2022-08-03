@@ -1,4 +1,5 @@
 import logging
+import os
 import secrets
 from datetime import datetime
 from enum import Enum, auto
@@ -72,7 +73,7 @@ from iso15118.shared.messages.xmldsig import (
     Transform,
     Transforms,
 )
-from iso15118.shared.settings import CERTS_GENERAL_PRIVATE_KEY_PASS_PATH, PKI_PATH
+from iso15118.shared.settings import PKI_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +128,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             ssl_context.load_cert_chain(
                 certfile=CertPath.CPO_CERT_CHAIN_PEM,
                 keyfile=KeyPath.SECC_LEAF_PEM,
-                password=load_priv_key_pass(),
+                password=load_priv_key_pass(KeyPasswordPath.SECC_LEAF_KEY_PASSWORD),
             )
         except SSLError:
             logger.exception(
@@ -170,7 +171,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
 
 
 def load_priv_key_pass(
-    password_path: Optional[str] = CERTS_GENERAL_PRIVATE_KEY_PASS_PATH,
+    password_path: str,
 ) -> bytes:
     """
     Reads the password for the encrypted private key.
@@ -190,7 +191,15 @@ def load_priv_key_pass(
     if password_path:
         try:
             with open(password_path, "r") as password_file:
-                return password_file.readline().rstrip().encode(encoding="utf-8")
+                password = password_file.readline().rstrip().encode(encoding="utf-8")
+                if password == b"":
+                    # TODO: Check if it is possible to have a private key with empty
+                    #  password. Not without a password - but a password like this: ""
+                    # Returning None to represent cases where there is no
+                    # passphrase set.
+                    return None
+                else:
+                    return password
 
         except (FileNotFoundError, IOError) as exc:
             raise exc
@@ -202,7 +211,7 @@ def load_priv_key_pass(
 
 
 def load_priv_key(
-    key_path: str, key_encoding: KeyEncoding = KeyEncoding.PEM
+    key_path: str, key_encoding: KeyEncoding, key_password_file_path: str
 ) -> EllipticCurvePrivateKey:
     """
     Loads a PEM or DER encoded private key given the provided key_path and
@@ -211,7 +220,11 @@ def load_priv_key(
     Args:
         key_path: The file path to the DER encoded private key
         key_encoding: The encoding format (KeyEncoding) of the private key
-                      (PEM or DER). Default is PEM.
+                      (PEM or DER).
+        key_password_file_path: Path to the file where password is stored for the
+         private key. The file must exist even if there is no password to the private
+         key. The file maybe empty if there is no password.
+
 
     Returns:
         An EllipticCurvePrivateKey object corresponding to the private key read
@@ -224,11 +237,11 @@ def load_priv_key(
             try:
                 if key_encoding == KeyEncoding.PEM:
                     priv_key = load_pem_private_key(
-                        key_file.read(), load_priv_key_pass()
+                        key_file.read(), load_priv_key_pass(key_password_file_path)
                     )
                 else:
                     priv_key = load_der_private_key(
-                        key_file.read(), load_priv_key_pass()
+                        key_file.read(), load_priv_key_pass(key_password_file_path)
                     )
                 if isinstance(priv_key, EllipticCurvePrivateKey):
                     return priv_key
@@ -256,7 +269,7 @@ def load_priv_key(
                     "by the crypto library."
                 ) from exc
     except (FileNotFoundError, IOError) as exc:
-        raise PrivateKeyReadError("Key file not found at location {key_path}") from exc
+        raise PrivateKeyReadError(f"Key file not found at location {key_path}") from exc
 
 
 def to_ec_pub_key(public_key_bytes: bytes) -> EllipticCurvePublicKey:
@@ -1124,32 +1137,32 @@ class CertPath(str, Enum):
     """
 
     # Mobility operator (MO)
-    CONTRACT_LEAF_DER = PKI_PATH + "iso15118_2/certs/contractLeafCert.der"
-    MO_SUB_CA2_DER = PKI_PATH + "iso15118_2/certs/moSubCA2Cert.der"
-    MO_SUB_CA1_DER = PKI_PATH + "iso15118_2/certs/moSubCA1Cert.der"
-    MO_ROOT_DER = PKI_PATH + "iso15118_2/certs/moRootCACert.der"
+    CONTRACT_LEAF_DER = os.path.join(PKI_PATH, "iso15118_2/certs/contractLeafCert.der")
+    MO_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/moSubCA2Cert.der")
+    MO_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/moSubCA1Cert.der")
+    MO_ROOT_DER = os.path.join(PKI_PATH, "iso15118_2/certs/moRootCACert.der")
 
     # Charge point operator (CPO)
-    SECC_LEAF_DER = PKI_PATH + "iso15118_2/certs/seccLeafCert.der"
-    SECC_LEAF_PEM = PKI_PATH + "iso15118_2/certs/seccLeafCert.pem"
-    CPO_SUB_CA2_DER = PKI_PATH + "iso15118_2/certs/cpoSubCA2Cert.der"
-    CPO_SUB_CA1_DER = PKI_PATH + "iso15118_2/certs/cpoSubCA1Cert.der"
-    V2G_ROOT_DER = PKI_PATH + "iso15118_2/certs/v2gRootCACert.der"
-    V2G_ROOT_PEM = PKI_PATH + "iso15118_2/certs/v2gRootCACert.pem"
+    SECC_LEAF_DER = os.path.join(PKI_PATH, "iso15118_2/certs/seccLeafCert.der")
+    SECC_LEAF_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/seccLeafCert.pem")
+    CPO_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpoSubCA2Cert.der")
+    CPO_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpoSubCA1Cert.der")
+    V2G_ROOT_DER = os.path.join(PKI_PATH, "iso15118_2/certs/v2gRootCACert.der")
+    V2G_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/v2gRootCACert.pem")
     # Needed for the 'certfile' parameter in ssl_context.load_cert_chain()
-    CPO_CERT_CHAIN_PEM = PKI_PATH + "iso15118_2/certs/cpoCertChain.pem"
+    CPO_CERT_CHAIN_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/cpoCertChain.pem")
 
     # Certificate provisioning service (CPS)
-    CPS_LEAF_DER = PKI_PATH + "iso15118_2/certs/cpsLeafCert.der"
-    CPS_SUB_CA2_DER = PKI_PATH + "iso15118_2/certs/cpsSubCA2Cert.der"
-    CPS_SUB_CA1_DER = PKI_PATH + "iso15118_2/certs/cpsSubCA1Cert.der"
+    CPS_LEAF_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpsLeafCert.der")
+    CPS_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpsSubCA2Cert.der")
+    CPS_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpsSubCA1Cert.der")
     # The root is the V2G_ROOT
 
     # EV manufacturer (OEM)
-    OEM_LEAF_DER = PKI_PATH + "iso15118_2/certs/oemLeafCert.der"
-    OEM_SUB_CA2_DER = PKI_PATH + "iso15118_2/certs/oemSubCA2Cert.der"
-    OEM_SUB_CA1_DER = PKI_PATH + "iso15118_2/certs/oemSubCA1Cert.der"
-    OEM_ROOT_DER = PKI_PATH + "iso15118_2/certs/oemRootCACert.der"
+    OEM_LEAF_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemLeafCert.der")
+    OEM_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemSubCA2Cert.der")
+    OEM_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemSubCA1Cert.der")
+    OEM_ROOT_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemRootCACert.der")
 
 
 class KeyPath(str, Enum):
@@ -1162,25 +1175,53 @@ class KeyPath(str, Enum):
     """
 
     # Mobility operator (MO)
-    CONTRACT_LEAF_PEM = PKI_PATH + "iso15118_2/private_keys/contractLeaf.key"
-    MO_SUB_CA2_PEM = PKI_PATH + "iso15118_2/private_keys/moSubCA2.key"
-    MO_SUB_CA1_PEM = PKI_PATH + "iso15118_2/private_keys/moSubCA1.key"
-    MO_ROOT_PEM = PKI_PATH + "iso15118_2/private_keys/moRootCA.key"
+    CONTRACT_LEAF_PEM = os.path.join(
+        PKI_PATH, "iso15118_2/private_keys/contractLeaf" ".key"
+    )
+    MO_SUB_CA2_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/moSubCA2.key")
+    MO_SUB_CA1_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/moSubCA1.key")
+    MO_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/moRootCA.key")
 
     # Charge point operator (CPO)
-    SECC_LEAF_PEM = PKI_PATH + "iso15118_2/private_keys/seccLeaf.key"
-    CPO_SUB_CA2_PEM = PKI_PATH + "iso15118_2/private_keys/cpoSubCA2.key"
-    CPO_SUB_CA1_PEM = PKI_PATH + "iso15118_2/private_keys/cpoSubCA1.key"
-    V2G_ROOT_PEM = PKI_PATH + "iso15118_2/private_keys/v2gRootCA.key"
+    SECC_LEAF_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/seccLeaf.key")
+    CPO_SUB_CA2_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpoSubCA2.key")
+    CPO_SUB_CA1_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpoSubCA1.key")
+    V2G_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/v2gRootCA.key")
 
     # Certificate provisioning service (CPS)
-    CPS_LEAF_PEM = PKI_PATH + "iso15118_2/private_keys/cpsLeaf.key"
-    CPS_SUB_CA2_PEM = PKI_PATH + "iso15118_2/private_keys/cpsSubCA2.key"
-    CPS_SUB_CA1_PEM = PKI_PATH + "iso15118_2/private_keys/cpsSubCA1.key"
+    CPS_LEAF_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpsLeaf.key")
+    CPS_SUB_CA2_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpsSubCA2.key")
+    CPS_SUB_CA1_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpsSubCA1.key")
     # The root is the V2G_ROOT
 
     # EV manufacturer (OEM)
-    OEM_LEAF_PEM = PKI_PATH + "iso15118_2/private_keys/oemLeaf.key"
-    OEM_SUB_CA2_PEM = PKI_PATH + "iso15118_2/private_keys/oemSubCA2.key"
-    OEM_SUB_CA1_PEM = PKI_PATH + "iso15118_2/private_keys/oemSubCA1.key"
-    OEM_ROOT_PEM = PKI_PATH + "iso15118_2/private_keys/oemRootCA.key"
+    OEM_LEAF_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/oemLeaf.key")
+    OEM_SUB_CA2_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/oemSubCA2.key")
+    OEM_SUB_CA1_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/oemSubCA1.key")
+    OEM_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/oemRootCA.key")
+
+
+class KeyPasswordPath(str, Enum):
+    """
+    Provides the path to private key passwords used for Plug & Charge.
+
+    NOTE: In a production environment, the access to a private key passwords should be
+          managed in a secure way (e.g. through a hardware security module).
+    """
+
+    # Private key password paths
+    SECC_LEAF_KEY_PASSWORD = os.path.join(
+        PKI_PATH, "iso15118_2/private_keys/seccLeafPassword.txt"
+    )
+    OEM_LEAF_KEY_PASSWORD = os.path.join(
+        PKI_PATH, "iso15118_2/private_keys/oemLeafPassword.txt"
+    )
+    CONTRACT_LEAF_KEY_PASSWORD = os.path.join(
+        PKI_PATH, "iso15118_2/private_keys/contractLeafPassword.txt"
+    )
+    CPS_LEAF_KEY_PASSWORD = os.path.join(
+        PKI_PATH, "iso15118_2/private_keys/cpsLeafPassword.txt"
+    )
+    MO_SUB_CA2_PASSWORD = os.path.join(
+        PKI_PATH, "iso15118_2/private_keys/moSubCA2LeafPassword.txt"
+    )

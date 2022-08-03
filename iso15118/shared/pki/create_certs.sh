@@ -43,7 +43,7 @@ ISO_20="iso-20"
 
 usage() {
   echo "
-  Usage: "$0" [-h] [-v <iso-2|iso-20>] [-p password]
+  Usage: "$0" [-h] [-v <iso-2|iso-20>] [-p password] [-k]
 
   Options:
    -h --help          Returns this helper
@@ -348,6 +348,16 @@ openssl x509 -inform PEM -in $CERT_PATH/contractLeafCert.pem -outform DER -out $
 openssl pkcs8 -topk8 -in $KEY_PATH/moSubCA2.key -inform PEM -passin pass:$password -passout pass:$password -outform DER -out $KEY_PATH/moSubCA2.pkcs8.der -v1 PBE-SHA1-3DES
 
 # Side notes for OCSP stapling in Java: see http://openjdk.java.net/jeps/249
+
+# 18) Place all passwords to generated private keys in separate text files.
+#     In this script, even though we use a single password for all certificates,
+#     certificates from a different source could have been generated with a different
+#     passphrase/passkey/password altogether. Leave them empty if no password is required.
+echo $password > $KEY_PATH/seccLeafPassword.txt
+echo $password > $KEY_PATH/oemLeafPassword.txt
+echo $password > $KEY_PATH/contractLeafPassword.txt
+echo $password > $KEY_PATH/cpsLeafPassword.txt
+echo $password > $KEY_PATH/moSubCA2LeafPassword.txt
 
 if [ "$keysight_certs" == "1" ];
 then
