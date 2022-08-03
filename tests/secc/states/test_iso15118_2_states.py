@@ -73,7 +73,7 @@ class TestEvScenarios:
         / "sample_certs"
         / "moRootCACert.der",
     )
-    async def test_payment_details_next_state_on_payment_details_req(
+    async def test_payment_details_next_state_on_payment_details_req_auth_success(
         self, mo_root_cert_path_mock
     ):
         self.comm_session.selected_auth_option = AuthEnum.PNC_V2
@@ -89,6 +89,39 @@ class TestEvScenarios:
         ), "Comm session certificate chain not populated"
         assert (
             payment_details.next_state == Authorization
+        ), "State did not progress after PaymentDetailsReq"
+        mock_is_authorized.assert_called_once()
+        req_body = payment_details_req.body.payment_details_req
+        assert mock_is_authorized.call_args[1]["id_token"] == req_body.emaid
+        assert mock_is_authorized.call_args[1]["id_token_type"] == (
+            AuthorizationTokenType.EMAID
+        )
+
+    @patch.object(
+        PaymentDetails,
+        "_mobility_operator_root_cert_path",
+        return_value=Path(__file__).parent.parent.parent
+        / "sample_certs"
+        / "moRootCACert.der",
+    )
+    async def test_payment_details_next_state_on_payment_details_req_auth_failed(
+        self, mo_root_cert_path_mock
+    ):
+        self.comm_session.selected_auth_option = AuthEnum.PNC_V2
+
+        mock_is_authorized = AsyncMock(return_value=AuthorizationStatus.REJECTED)
+        self.comm_session.evse_controller.is_authorized = mock_is_authorized
+        self.comm_session.writer = Mock()
+        self.comm_session.writer.get_extra_info = Mock()
+        payment_details = PaymentDetails(self.comm_session)
+        payment_details_req = get_dummy_v2g_message_payment_details_req()
+        await payment_details.process_message(payment_details_req)
+
+        assert isinstance(
+            self.comm_session.contract_cert_chain, CertificateChain
+        ), "Comm session certificate chain not populated"
+        assert (
+            payment_details.next_state == Terminate
         ), "State did not progress after PaymentDetailsReq"
         mock_is_authorized.assert_called_once()
         req_body = payment_details_req.body.payment_details_req
