@@ -1129,7 +1129,9 @@ def decrypt_priv_key(
     raise DecryptionError()
 
 
-def derive_certificate_hash_data(certificate: bytes, issuer_certificate: bytes) -> Dict[str, str]:
+def derive_certificate_hash_data(
+    certificate: bytes, issuer_certificate: bytes
+) -> Dict[str, str]:
     """Extract certificate hash data to be used in an OCPP AuthorizeRequest.
 
     Args:
