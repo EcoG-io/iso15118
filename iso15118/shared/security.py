@@ -1203,8 +1203,7 @@ class KeyPath(str, Enum):
 
 class KeyPasswordPath(str, Enum):
     """
-    Provides the path to private key passwords used for Plug & Charge. The encoding
-    format is indicated by the latter part of the enum name (_DER or _PEM)
+    Provides the path to private key passwords used for Plug & Charge.
 
     NOTE: In a production environment, the access to a private key passwords should be
           managed in a secure way (e.g. through a hardware security module).
