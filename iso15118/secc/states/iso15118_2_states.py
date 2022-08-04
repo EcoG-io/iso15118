@@ -909,7 +909,6 @@ class PaymentDetails(StateSECC):
                     evse_timestamp=time.time(),
                 )
 
-                # TODO: Should the next message really be Authorization?  If so why?
                 self.create_next_message(
                     Authorization,
                     payment_details_res,
