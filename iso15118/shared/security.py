@@ -4,7 +4,7 @@ import secrets
 from base64 import urlsafe_b64encode
 from datetime import datetime
 from enum import Enum, auto
-from ssl import PROTOCOL_TLSv1_2, SSLContext, SSLError, VerifyMode
+from ssl import DER_cert_to_PEM_cert, PROTOCOL_TLSv1_2, SSLContext, SSLError, VerifyMode
 from typing import Dict, List, Optional, Tuple, Union
 
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
@@ -1207,17 +1207,16 @@ def derive_certificate_hash_data(
 def certificate_to_pem_string(certificate: bytes) -> str:
     """Convert a certificate from a DER bytestring to a PEM string.
 
+    This conversion is done because OCPP requires that the certificate chain
+    be PEM-encoded.
+
     Args:
         certificate: The certificate in binary (DER) form.
 
     Returns:
         The same certificate expressed as a PEM-format string.
     """
-    certificate = load_der_x509_certificate(certificate)
-    # This conversion is done because OCPP requires that the certificate chain be
-    # PEM-encoded.
-    pem_bytes = certificate.public_bytes(encoding=Encoding.PEM)
-    return pem_bytes.decode()
+    return DER_cert_to_PEM_cert(certificate)
 
 
 def get_ocsp_url_for_certificate(certificate: Certificate) -> str:
