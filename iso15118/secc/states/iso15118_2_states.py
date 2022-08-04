@@ -7,7 +7,7 @@ SessionStopReq.
 import base64
 import logging
 import time
-from typing import Dict, List, Optional, Type, Union
+from typing import List, Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.interface import EVChargeParamsLimits
@@ -85,7 +85,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
     AuthOptionList,
-    Certificate,
     CertificateChain,
     ChargeProgress,
     ChargeService,
@@ -117,9 +116,7 @@ from iso15118.shared.security import (
     KeyPasswordPath,
     KeyPath,
     build_pem_certificate_chain,
-    certificate_to_pem_string,
     create_signature,
-    derive_certificate_hash_data,
     get_certificate_hash_data,
     encrypt_priv_key,
     get_cert_cn,
