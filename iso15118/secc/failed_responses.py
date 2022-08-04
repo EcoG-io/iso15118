@@ -5,11 +5,13 @@ from iso15118.shared.messages.datatypes import (
     EVSENotification,
     PVEVSECurrentRegulationTolerance,
     PVEVSEEnergyToBeDelivered,
+    PVEVSEMaxCurrent,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
     PVEVSEMaxVoltageLimit,
     PVEVSEMinCurrentLimit,
     PVEVSEMinVoltageLimit,
+    PVEVSENominalVoltage,
     PVEVSEPeakCurrentRipple,
     PVEVSEPresentCurrent,
     PVEVSEPresentVoltage,
@@ -167,7 +169,11 @@ from iso15118.shared.messages.iso15118_2.body import (
 from iso15118.shared.messages.iso15118_2.body import (
     WeldingDetectionRes as WeldingDetectionResV2,
 )
-from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEStatus, AuthOptionList
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    ACEVSEChargeParameter,
+    ACEVSEStatus,
+    AuthOptionList,
+)
 from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain as CertificateChainV2,
 )
@@ -475,14 +481,31 @@ def init_failed_responses_iso_v2() -> dict:
         AuthorizationReqV2: AuthorizationResV2(
             response_code=ResponseCodeV2.FAILED, evse_processing=EVSEProcessing.FINISHED
         ),
-        ChargeParameterDiscoveryReq:
-        # TODO: Need to find a way to circumvent the root_validator
-        ChargeParameterDiscoveryRes(
-            response_code=ResponseCodeV2.FAILED, evse_processing=EVSEProcessing.FINISHED
+        ChargeParameterDiscoveryReq: ChargeParameterDiscoveryRes(
+            response_code=ResponseCodeV2.FAILED,
+            evse_processing=EVSEProcessing.FINISHED,
+            ac_evse_charge_parameter=ACEVSEChargeParameter(
+                ac_evse_status=ACEVSEStatus(
+                    notification_max_delay=0,
+                    evse_notification=EVSENotification.NONE,
+                    rcd=False,
+                ),
+                evse_nominal_voltage=PVEVSENominalVoltage(
+                    multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
+                ),
+                evse_max_current=PVEVSEMaxCurrent(
+                    multiplier=0, value=32, unit=UnitSymbol.AMPERE
+                ),
+            ),
         ),
-        PowerDeliveryReqV2:
-        # TODO: Need to find a way to circumvent the root_validator
-        PowerDeliveryResV2(response_code=ResponseCodeV2.FAILED),
+        PowerDeliveryReqV2: PowerDeliveryResV2(
+            response_code=ResponseCodeV2.FAILED,
+            ac_evse_status=ACEVSEStatus(
+                notification_max_delay=0,
+                evse_notification=EVSENotification.NONE,
+                rcd=False,
+            ),
+        ),
         ChargingStatusReq: ChargingStatusRes(
             response_code=ResponseCodeV2.FAILED,
             evse_id="1234567",
