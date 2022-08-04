@@ -5,7 +5,7 @@ This module contains the abstract class for an SECC to retrieve data from the EV
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
@@ -26,6 +26,7 @@ from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.enums import (
+    AuthEnum,
     AuthorizationStatus,
     Contactor,
     EnergyTransferModeEnum,
@@ -180,7 +181,13 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def is_authorized(self) -> AuthorizationStatus:
+    async def is_authorized(
+        self,
+        id_token: Optional[str] = None,
+        id_token_type: Optional[AuthEnum] = None,
+        certificate_chain: Optional[bytes] = None,
+        hash_data: Optional[List[Dict[str, str]]] = None,
+    ) -> AuthorizationStatus:
         """
         Provides the information on whether or not the user is authorized to charge at
         this EVSE. The auth token could be an RFID card, a whitelisted MAC address

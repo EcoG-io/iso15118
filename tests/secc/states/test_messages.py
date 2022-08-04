@@ -11,6 +11,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     AuthorizationReq,
     Body,
     ChargeParameterDiscoveryReq,
+    PaymentDetailsReq,
     PowerDeliveryReq,
     SessionStopReq,
     WeldingDetectionReq,
@@ -31,6 +32,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 )
 from iso15118.shared.messages.iso15118_2.header import MessageHeader
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage
+from tests.sample_certs.load_certs import load_certificate_chain
 from tests.tools import MOCK_SESSION_ID
 
 
@@ -122,6 +124,17 @@ def get_dummy_v2g_message_authorization_req():
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(authorization_req=authorization_req),
+    )
+
+
+def get_dummy_v2g_message_payment_details_req() -> V2GMessage:
+    payment_details_req = PaymentDetailsReq(
+        emaid="1234567890abcd",
+        cert_chain=load_certificate_chain(),
+    )
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(payment_details_req=payment_details_req),
     )
 
 

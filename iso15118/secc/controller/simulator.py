@@ -7,7 +7,7 @@ import logging
 import math
 import time
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from aiofile import async_open
 from pydantic import BaseModel, Field
@@ -49,6 +49,7 @@ from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.enums import (
+    AuthEnum,
     AuthorizationStatus,
     Contactor,
     EnergyTransferModeEnum,
@@ -419,7 +420,13 @@ class SimEVSEController(EVSEControllerInterface):
 
         return service_list
 
-    async def is_authorized(self) -> AuthorizationStatus:
+    async def is_authorized(
+        self,
+        id_token: Optional[str] = None,
+        id_token_type: Optional[AuthEnum] = None,
+        certificate_chain: Optional[bytes] = None,
+        hash_data: Optional[List[Dict[str, str]]] = None,
+    ) -> AuthorizationStatus:
         """Overrides EVSEControllerInterface.is_authorized()."""
         return AuthorizationStatus.ACCEPTED
 
