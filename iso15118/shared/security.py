@@ -1254,6 +1254,94 @@ def get_ocsp_url_for_certificate(certificate: Certificate) -> str:
     return ocsps[0].access_location.value
 
 
+def all_certificates_from_chain(
+    certificate_chain: CertificateChainV2, root_cert: Optional[Certificate]
+) -> List[Certificate]:
+    """Return all certificates from a certificate chain as a list.
+
+    The order should be: leaf certificate, sub-CA 2, sub-CA 1, root,
+    if all are present.
+
+    Args:
+        certificate_chain: The certificate chain object.
+            Contains contract and sub-CA certificates.
+        root_cert: The certificate used to sign the top sub-CA certificate.
+
+    Returns:
+        A list of certificates, in order.
+    """
+    chain = [
+        certificate_chain.certificate
+    ] + certificate_chain.sub_certificates.certificates
+    if root_cert is not None:
+        chain.append(root_cert)
+    return chain
+
+
+def get_certificate_hash_data(
+    certificate_chain: Optional[CertificateChainV2],
+    root_cert: Optional[Certificate],
+) -> Optional[List[Dict[str, str]]]:
+    """Return a list of hash data for a contract certificate chain.
+
+    Args:
+        certificate_chain: The certificate chain object.
+            Contains contract and sub-CA certificates.
+        root_cert: The certificate used to sign the top sub-CA certificate.
+
+    Returns:
+        A list of hash data objects for each certificate, or None if either
+        the chain or root certificate is not present.
+
+        Without the root certificate, or any other one within the chain, the
+        chain cannot be verified.
+    """
+    # If we do not have all certificates, we cannot create all the hash data.
+    # This is because the hash data requires the public key of a certificate's
+    # issuer.  Thus, lacking the root certificate makes it impossible to construct
+    # the hash data.
+    #
+    # In this case, we will ultimately send the certificates we do have -- the
+    # CSMS may be able to obtain the corresponding root certificate from a
+    # root certificate pool.
+    if certificate_chain is None or root_cert is None:
+        return None
+
+    all_certificates = all_certificates_from_chain(certificate_chain, root_cert)
+    # Each certificate is followed by its issuer, except for the root,
+    # which is self-signed.
+    certificate_and_issuer_pairs = [
+        (all_certificates[i], all_certificates[i + 1])
+        for i in range(len(all_certificates) - 1)
+    ] + [(root_cert, root_cert)]
+
+    return [
+        derive_certificate_hash_data(certificate, issuer)
+        for certificate, issuer in certificate_and_issuer_pairs
+    ]
+
+
+def build_pem_certificate_chain(
+    certificate_chain: Optional[CertificateChainV2], root_cert: Optional[Certificate]
+) -> Optional[str]:
+    """Return a string of certificates in PEM form concatenated together."""
+    if certificate_chain is None:
+        return None
+
+    # If we do not have the root certificate, we can still include all the
+    # certificates we do have.
+
+    return "".join(
+        [
+            certificate_to_pem_string(certificate)
+            for certificate in all_certificates_from_chain(
+                certificate_chain,
+                root_cert,
+            )
+        ]
+    )
+
+
 class CertPath(str, Enum):
     """
     Provides the path to certificates used for Plug & Charge. The encoding
