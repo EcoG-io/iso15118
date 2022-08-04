@@ -874,6 +874,10 @@ class PaymentDetails(StateSECC):
             # TODO Either an MO Root certificate or a V2G Root certificate
             #      could be used to verify, need to be flexible with regards
             #      to the PKI that is used.
+            # TODO GitHub#94: If root_cert is not present, we should
+            #      fall back to sending the leaf and sub-CA certificates,
+            #      allowing the CSMS to attempt to retrieve the root certificate
+            #      and construct the OCSP data itself.
             root_cert_path = self._mobility_operator_root_cert_path()
             root_cert = load_cert(root_cert_path)
             verify_certs(leaf_cert, sub_ca_certs, root_cert)

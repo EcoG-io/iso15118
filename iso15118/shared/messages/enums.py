@@ -423,5 +423,5 @@ class Contactor(IntEnum):
 
 class AuthorizationTokenType(str, Enum):
     EMAID = "eMAID"
-    # TODO: Do we need to define this in a more complete way?
+    # TODO GitHub#95: Do we need to define this in a more complete way?
     EXTERNAL = "external"

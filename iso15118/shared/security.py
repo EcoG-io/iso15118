@@ -1168,7 +1168,7 @@ def derive_certificate_hash_data(
     try:
         responder_url = get_ocsp_url_for_certificate(certificate)
     except (ExtensionNotFound, OCSPServerNotFoundError):
-        # TODO: This may just result in failure down the road.
+        # TODO GitHub#96: This may just result in failure down the road.
         # Should we let this fail on these exceptions, or is there
         # another way to try to get a responder_url?
         responder_url = "https://www.example.com/"
