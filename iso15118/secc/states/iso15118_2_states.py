@@ -116,9 +116,11 @@ from iso15118.shared.security import (
     KeyEncoding,
     KeyPasswordPath,
     KeyPath,
+    build_pem_certificate_chain,
     certificate_to_pem_string,
     create_signature,
     derive_certificate_hash_data,
+    get_certificate_hash_data,
     encrypt_priv_key,
     get_cert_cn,
     get_random_bytes,
@@ -841,70 +843,6 @@ class PaymentDetails(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def _all_certificates_from_chain(
-        self, certificate_chain: CertificateChain, root_cert: Certificate
-    ) -> List[Certificate]:
-        """Return all certificates from a certificate chain as a list.
-
-        The order should be: leaf certificate, sub-CA 2, sub-CA 1, root,
-        if all are present.
-        """
-        chain = [
-            certificate_chain.certificate
-        ] + certificate_chain.sub_certificates.certificates
-        if root_cert is not None:
-            chain.append(root_cert)
-        return chain
-
-    def _get_certificate_hash_data(
-        self,
-        certificate_chain: Optional[CertificateChain],
-        root_cert: Optional[Certificate],
-    ) -> Optional[List[Dict[str, str]]]:
-        """Return a list of hash data for a contract certificate chain."""
-        # If we do not have all certificates, we cannot create all the hash data.
-        # This is because the hash data requires the public key of a certificate's
-        # issuer.  Thus, lacking the root certificate makes it impossible to construct
-        # the hash data.
-        #
-        # In this case, we will ultimately send the certificates we do have -- the
-        # CSMS may be able to obtain the corresponding root certificate from a
-        # root certificate pool.
-        if certificate_chain is None or root_cert is None:
-            return None
-
-        all_certificates = self._all_certificates_from_chain(
-            certificate_chain, root_cert
-        )
-        # Each certificate is followed by its issuer, except for the root,
-        # which is self-signed.
-        certificate_and_issuer_pairs = [
-            (all_certificates[i], all_certificates[i + 1])
-            for i in range(len(all_certificates) - 1)
-        ] + [(root_cert, root_cert)]
-
-        return [
-            derive_certificate_hash_data(certificate, issuer)
-            for certificate, issuer in certificate_and_issuer_pairs
-        ]
-
-    def _build_pem_certificate_chain(
-        self, certificate_chain: Optional[CertificateChain], root_cert: Certificate
-    ) -> Optional[str]:
-        """Return a string of certificates in PEM form concatenated together."""
-        if certificate_chain is None:
-            return None
-
-        return "".join(
-            [
-                certificate_to_pem_string(certificate)
-                for certificate in self._all_certificates_from_chain(
-                    certificate_chain,
-                    root_cert,
-                )
-            ]
-        )
-
     def _mobility_operator_root_cert_path(self) -> str:
         """Return the path to the MO root.  Included to be patched in tests."""
         return CertPath.MO_ROOT_DER
@@ -946,10 +884,10 @@ class PaymentDetails(StateSECC):
             self.comm_session.emaid = payment_details_req.emaid
             self.comm_session.contract_cert_chain = payment_details_req.cert_chain
 
-            hash_data = self._get_certificate_hash_data(
+            hash_data = get_certificate_hash_data(
                 self.comm_session.contract_cert_chain, root_cert
             )
-            pem_certificate_chain = self._build_pem_certificate_chain(
+            pem_certificate_chain = build_pem_certificate_chain(
                 self.comm_session.contract_cert_chain, root_cert
             )
 
