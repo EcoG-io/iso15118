@@ -36,6 +36,7 @@ from cryptography.x509 import (
     NameOID,
     load_der_x509_certificate,
 )
+from cryptography.x509.ocsp import OCSPRequestBuilder
 
 from iso15118.shared.exceptions import (
     CertAttributeError,
@@ -1135,8 +1136,8 @@ def derive_certificate_hash_data(
     """Extract certificate hash data to be used in an OCPP AuthorizeRequest.
 
     Args:
-        certificate: The certificate in binary (DER) form.
-        issuer_certificate: The certificate signing `certificate`,
+        certificate: A certificate in binary (DER) form.
+        issuer_certificate: The certificate used for signing `certificate`,
             in binary (DER) form.
             For a self-signed certificate, these will be the same.
 
@@ -1152,12 +1153,28 @@ def derive_certificate_hash_data(
     """
     certificate = load_der_x509_certificate(certificate)
     issuer_certificate = load_der_x509_certificate(issuer_certificate)
-    public_key = issuer_certificate.public_key()
-    public_key_bytes = public_key.public_bytes(
-        encoding=Encoding.X962,
-        format=PublicFormat.UncompressedPoint,
+    builder = OCSPRequestBuilder().add_certificate(
+        certificate, issuer_certificate, certificate.signature_hash_algorithm
     )
-    # Per https://www.ibm.com/docs/en/i/7.2?topic=concepts-distinguished-name :
+
+    ocsp_request = builder.build()
+
+    # For the hash algorithm, convert to the naming used in OCPP.
+    # Only SHA256, SHA384, and SHA512 are allowed in OCPP 2.0.1.
+    hash_algorithm_for_ocpp = certificate.signature_hash_algorithm.name.upper()
+    if hash_algorithm_for_ocpp not in {"SHA256", "SHA384", "SHA512"}:
+        raise CertAttributeError("Unknown hash algorithm")
+
+    try:
+        responder_url = get_ocsp_url_for_certificate(certificate)
+    except (ExtensionNotFound, OCSPServerNotFoundError):
+        # TODO: This may just result in failure down the road.
+        # Should we let this fail on these exceptions, or is there
+        # another way to try to get a responder_url?
+        responder_url = "https://www.example.com/"
+
+    # Some further details on distinguished names,
+    # per https://www.ibm.com/docs/en/i/7.2?topic=concepts-distinguished-name :
     # Distinguished name (DN) is a term that describes the identifying information
     # in a certificate and is part of the certificate itself.
     # A certificate contains DN information for both the owner or requestor
@@ -1174,34 +1191,15 @@ def derive_certificate_hash_data(
     # https://www.ibm.com/docs/en/ibm-mq/7.5?topic=certificates-distinguished-names
     # provides more information about the attributes which may be included in a DN.
     #
-    # In this case, we will get a name like:
+    # In this case, a certificate will have a name like:
     # 'DC=MO,C=DE,O=Keysight Technologies,CN=PKI-1_CRT_MO_SUB2_VALID'
-    distinguished_name_bytes = certificate.issuer.public_bytes()
-    serial_number = certificate.serial_number
-
-    # Convert to the naming used in OCPP.
-    hash_algorithm_for_ocpp = certificate.signature_hash_algorithm.name.upper()
-    if hash_algorithm_for_ocpp not in {"SHA256", "SHA384", "SHA512"}:
-        raise CertAttributeError("Unknown hash algorithm")
-
-    public_key_hasher = Hash(certificate.signature_hash_algorithm)
-    public_key_hasher.update(public_key_bytes)
-    issuer_name_hasher = Hash(certificate.signature_hash_algorithm)
-    issuer_name_hasher.update(distinguished_name_bytes)
-
-    try:
-        responder_url = get_ocsp_url_for_certificate(certificate)
-    except (ExtensionNotFound, OCSPServerNotFoundError):
-        # TODO: This may just result in failure down the road.
-        # Should we let this fail on these exceptions, or is there
-        # another way to try to get a responder_url?
-        responder_url = "https://www.example.com/"
+    # It will be hashed by the OCSP request builder.
 
     return {
         "hash_algorithm": hash_algorithm_for_ocpp,
-        "issuer_name_hash": urlsafe_b64encode(issuer_name_hasher.finalize()).decode(),
-        "issuer_key_hash": urlsafe_b64encode(public_key_hasher.finalize()).decode(),
-        "serial_number": str(serial_number),
+        "issuer_name_hash": urlsafe_b64encode(ocsp_request.issuer_name_hash).decode(),
+        "issuer_key_hash": urlsafe_b64encode(ocsp_request.issuer_key_hash).decode(),
+        "serial_number": str(ocsp_request.serial_number),
         "responder_url": responder_url,
     }
 
