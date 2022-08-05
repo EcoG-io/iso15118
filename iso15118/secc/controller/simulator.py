@@ -7,7 +7,7 @@ import logging
 import math
 import time
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from aiofile import async_open
 from pydantic import BaseModel, Field
@@ -49,6 +49,7 @@ from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.enums import (
+    AuthEnum,
     AuthorizationStatus,
     Contactor,
     EnergyTransferModeEnum,
@@ -132,6 +133,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
 from iso15118.shared.security import (
     CertPath,
     KeyEncoding,
+    KeyPasswordPath,
     KeyPath,
     create_signature,
     encrypt_priv_key,
@@ -418,7 +420,13 @@ class SimEVSEController(EVSEControllerInterface):
 
         return service_list
 
-    async def is_authorized(self) -> AuthorizationStatus:
+    async def is_authorized(
+        self,
+        id_token: Optional[str] = None,
+        id_token_type: Optional[AuthEnum] = None,
+        certificate_chain: Optional[bytes] = None,
+        hash_data: Optional[List[Dict[str, str]]] = None,
+    ) -> AuthorizationStatus:
         """Overrides EVSEControllerInterface.is_authorized()."""
         return AuthorizationStatus.ACCEPTED
 
@@ -791,7 +799,9 @@ class SimEVSEController(EVSEControllerInterface):
             dh_pub_key, encrypted_priv_key_bytes = encrypt_priv_key(
                 oem_prov_cert=load_cert(CertPath.OEM_LEAF_DER),
                 priv_key_to_encrypt=load_priv_key(
-                    KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM
+                    KeyPath.CONTRACT_LEAF_PEM,
+                    KeyEncoding.PEM,
+                    KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD,
                 ),
             )
         except EncryptionError:
@@ -872,7 +882,11 @@ class SimEVSEController(EVSEControllerInterface):
                 emaid_tuple,
             ]
             # The private key to be used for the signature
-            signature_key = load_priv_key(KeyPath.CPS_LEAF_PEM, KeyEncoding.PEM)
+            signature_key = load_priv_key(
+                KeyPath.CPS_LEAF_PEM,
+                KeyEncoding.PEM,
+                KeyPasswordPath.CPS_LEAF_KEY_PASSWORD,
+            )
 
             signature = create_signature(elements_to_sign, signature_key)
 

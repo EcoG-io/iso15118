@@ -36,6 +36,7 @@ from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDIN
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
+    AuthorizationTokenType,
     Contactor,
     DCEVErrorCode,
     EVSEProcessing,
@@ -112,8 +113,11 @@ from iso15118.shared.notifications import StopNotification
 from iso15118.shared.security import (
     CertPath,
     KeyEncoding,
+    KeyPasswordPath,
     KeyPath,
+    build_pem_certificate_chain,
     create_signature,
+    get_certificate_hash_data,
     encrypt_priv_key,
     get_cert_cn,
     get_random_bytes,
@@ -709,7 +713,9 @@ class CertificateInstallation(StateSECC):
             dh_pub_key, encrypted_priv_key_bytes = encrypt_priv_key(
                 oem_prov_cert=load_cert(CertPath.OEM_LEAF_DER),
                 priv_key_to_encrypt=load_priv_key(
-                    KeyPath.CONTRACT_LEAF_PEM, KeyEncoding.PEM
+                    KeyPath.CONTRACT_LEAF_PEM,
+                    KeyEncoding.PEM,
+                    KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD,
                 ),
             )
         except EncryptionError:
@@ -719,7 +725,7 @@ class CertificateInstallation(StateSECC):
             )
         except PrivateKeyReadError as exc:
             raise PrivateKeyReadError(
-                "Can't read private key to encrypt for "
+                f"Can't read private key to encrypt for "
                 f"CertificateInstallationRes: {exc}"
             )
 
@@ -790,7 +796,11 @@ class CertificateInstallation(StateSECC):
                 emaid_tuple,
             ]
             # The private key to be used for the signature
-            signature_key = load_priv_key(KeyPath.CPS_LEAF_PEM, KeyEncoding.PEM)
+            signature_key = load_priv_key(
+                KeyPath.CPS_LEAF_PEM,
+                KeyEncoding.PEM,
+                KeyPasswordPath.CPS_LEAF_KEY_PASSWORD,
+            )
 
             signature = create_signature(elements_to_sign, signature_key)
 
@@ -830,6 +840,10 @@ class PaymentDetails(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
+    def _mobility_operator_root_cert_path(self) -> str:
+        """Return the path to the MO root.  Included to be patched in tests."""
+        return CertPath.MO_ROOT_DER
+
     async def process_message(
         self,
         message: Union[
@@ -857,24 +871,65 @@ class PaymentDetails(StateSECC):
             # TODO Either an MO Root certificate or a V2G Root certificate
             #      could be used to verify, need to be flexible with regards
             #      to the PKI that is used.
-            verify_certs(leaf_cert, sub_ca_certs, load_cert(CertPath.MO_ROOT_DER))
+            # TODO GitHub#94: If root_cert is not present, we should
+            #      fall back to sending the leaf and sub-CA certificates,
+            #      allowing the CSMS to attempt to retrieve the root certificate
+            #      and construct the OCSP data itself.
+            root_cert_path = self._mobility_operator_root_cert_path()
+            root_cert = load_cert(root_cert_path)
+            verify_certs(leaf_cert, sub_ca_certs, root_cert)
 
-            # TODO Check if EMAID has correct syntax
-
+            # Note that the eMAID format (14 or 15 characters) will be validated
+            # by the definition of the eMAID type in
+            # shared/messages/iso15118_2/datatypes.py
+            self.comm_session.emaid = payment_details_req.emaid
             self.comm_session.contract_cert_chain = payment_details_req.cert_chain
 
-            payment_details_res = PaymentDetailsRes(
-                response_code=ResponseCode.OK,
-                gen_challenge=get_random_bytes(16),
-                evse_timestamp=time.time(),
+            hash_data = get_certificate_hash_data(
+                self.comm_session.contract_cert_chain, root_cert
+            )
+            pem_certificate_chain = build_pem_certificate_chain(
+                self.comm_session.contract_cert_chain, root_cert
             )
 
-            self.create_next_message(
-                Authorization,
-                payment_details_res,
-                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                Namespace.ISO_V2_MSG_DEF,
+            authorization_result = (
+                await self.comm_session.evse_controller.is_authorized(
+                    id_token=payment_details_req.emaid,
+                    id_token_type=AuthorizationTokenType.EMAID,
+                    certificate_chain=pem_certificate_chain,
+                    hash_data=hash_data,
+                )
             )
+
+            if authorization_result == AuthorizationStatus.ACCEPTED:
+
+                payment_details_res = PaymentDetailsRes(
+                    response_code=ResponseCode.OK,
+                    gen_challenge=get_random_bytes(16),
+                    evse_timestamp=time.time(),
+                )
+
+                self.create_next_message(
+                    Authorization,
+                    payment_details_res,
+                    Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+                    Namespace.ISO_V2_MSG_DEF,
+                )
+            else:
+                # TODO GitHub#54: handle ONGOING case, and REJECTED more fully
+                payment_details_res = PaymentDetailsRes(
+                    response_code=ResponseCode.FAILED,
+                    gen_challenge=get_random_bytes(16),
+                    evse_timestamp=time.time(),
+                )
+
+                self.create_next_message(
+                    Terminate,
+                    SessionStopRes(response_code=ResponseCode.FAILED),
+                    Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+                    Namespace.ISO_V2_MSG_DEF,
+                )
+
         except (
             CertSignatureError,
             CertNotYetValidError,
@@ -997,9 +1052,22 @@ class Authorization(StateSECC):
         # self.comm_session.contract_cert_chain attribute.
         auth_status: EVSEProcessing = EVSEProcessing.ONGOING
         next_state: Type["State"] = Authorization
-        if await self.comm_session.evse_controller.is_authorized() == (
-            AuthorizationStatus.ACCEPTED
-        ):
+        # TODO: how should we obtain/hold the token for EIM?  Other cases?
+        id_token = (
+            self.comm_session.emaid
+            if self.comm_session.selected_auth_option == AuthEnum.PNC_V2
+            else None
+        )
+        authorization_result = await self.comm_session.evse_controller.is_authorized(
+            id_token=id_token,
+            id_token_type=(
+                AuthorizationTokenType.EMAID
+                if self.comm_session.selected_auth_option == AuthEnum.PNC_V2
+                else AuthorizationTokenType.EXTERNAL
+            ),
+        )
+
+        if authorization_result == AuthorizationStatus.ACCEPTED:
             auth_status = EVSEProcessing.FINISHED
             next_state = ChargeParameterDiscovery
 
@@ -1175,7 +1243,9 @@ class ChargeParameterDiscovery(StateSECC):
                             ),
                         )
                         signature_key = load_priv_key(
-                            KeyPath.MO_SUB_CA2_PEM, KeyEncoding.PEM
+                            KeyPath.MO_SUB_CA2_PEM,
+                            KeyEncoding.PEM,
+                            KeyPasswordPath.MO_SUB_CA2_PASSWORD,
                         )
                         signature = create_signature([element_to_sign], signature_key)
                     except PrivateKeyReadError as exc:

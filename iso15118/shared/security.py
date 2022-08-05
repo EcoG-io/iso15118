@@ -1,9 +1,11 @@
 import logging
+import os
 import secrets
+from base64 import urlsafe_b64encode
 from datetime import datetime
 from enum import Enum, auto
-from ssl import PROTOCOL_TLSv1_2, SSLContext, SSLError, VerifyMode
-from typing import List, Optional, Tuple, Union
+from ssl import DER_cert_to_PEM_cert, PROTOCOL_TLSv1_2, SSLContext, SSLError, VerifyMode
+from typing import Dict, List, Optional, Tuple, Union
 
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.backends.openssl.backend import Backend
@@ -27,11 +29,14 @@ from cryptography.hazmat.primitives.serialization import (
     load_pem_private_key,
 )
 from cryptography.x509 import (
+    AuthorityInformationAccessOID,
     Certificate,
+    ExtensionNotFound,
     ExtensionOID,
     NameOID,
     load_der_x509_certificate,
 )
+from cryptography.x509.ocsp import OCSPRequestBuilder
 
 from iso15118.shared.exceptions import (
     CertAttributeError,
@@ -44,6 +49,7 @@ from iso15118.shared.exceptions import (
     EncryptionError,
     InvalidProtocolError,
     KeyTypeError,
+    OCSPServerNotFoundError,
     PrivateKeyReadError,
 )
 from iso15118.shared.exi_codec import EXI
@@ -72,7 +78,7 @@ from iso15118.shared.messages.xmldsig import (
     Transform,
     Transforms,
 )
-from iso15118.shared.settings import CERTS_GENERAL_PRIVATE_KEY_PASS_PATH, PKI_PATH
+from iso15118.shared.settings import PKI_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +133,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             ssl_context.load_cert_chain(
                 certfile=CertPath.CPO_CERT_CHAIN_PEM,
                 keyfile=KeyPath.SECC_LEAF_PEM,
-                password=load_priv_key_pass(),
+                password=load_priv_key_pass(KeyPasswordPath.SECC_LEAF_KEY_PASSWORD),
             )
         except SSLError:
             logger.exception(
@@ -170,7 +176,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
 
 
 def load_priv_key_pass(
-    password_path: Optional[str] = CERTS_GENERAL_PRIVATE_KEY_PASS_PATH,
+    password_path: str,
 ) -> bytes:
     """
     Reads the password for the encrypted private key.
@@ -190,7 +196,15 @@ def load_priv_key_pass(
     if password_path:
         try:
             with open(password_path, "r") as password_file:
-                return password_file.readline().rstrip().encode(encoding="utf-8")
+                password = password_file.readline().rstrip().encode(encoding="utf-8")
+                if password == b"":
+                    # TODO: Check if it is possible to have a private key with empty
+                    #  password. Not without a password - but a password like this: ""
+                    # Returning None to represent cases where there is no
+                    # passphrase set.
+                    return None
+                else:
+                    return password
 
         except (FileNotFoundError, IOError) as exc:
             raise exc
@@ -202,7 +216,7 @@ def load_priv_key_pass(
 
 
 def load_priv_key(
-    key_path: str, key_encoding: KeyEncoding = KeyEncoding.PEM
+    key_path: str, key_encoding: KeyEncoding, key_password_file_path: str
 ) -> EllipticCurvePrivateKey:
     """
     Loads a PEM or DER encoded private key given the provided key_path and
@@ -211,7 +225,11 @@ def load_priv_key(
     Args:
         key_path: The file path to the DER encoded private key
         key_encoding: The encoding format (KeyEncoding) of the private key
-                      (PEM or DER). Default is PEM.
+                      (PEM or DER).
+        key_password_file_path: Path to the file where password is stored for the
+         private key. The file must exist even if there is no password to the private
+         key. The file maybe empty if there is no password.
+
 
     Returns:
         An EllipticCurvePrivateKey object corresponding to the private key read
@@ -224,11 +242,11 @@ def load_priv_key(
             try:
                 if key_encoding == KeyEncoding.PEM:
                     priv_key = load_pem_private_key(
-                        key_file.read(), load_priv_key_pass()
+                        key_file.read(), load_priv_key_pass(key_password_file_path)
                     )
                 else:
                     priv_key = load_der_private_key(
-                        key_file.read(), load_priv_key_pass()
+                        key_file.read(), load_priv_key_pass(key_password_file_path)
                     )
                 if isinstance(priv_key, EllipticCurvePrivateKey):
                     return priv_key
@@ -256,7 +274,7 @@ def load_priv_key(
                     "by the crypto library."
                 ) from exc
     except (FileNotFoundError, IOError) as exc:
-        raise PrivateKeyReadError("Key file not found at location {key_path}") from exc
+        raise PrivateKeyReadError(f"Key file not found at location {key_path}") from exc
 
 
 def to_ec_pub_key(public_key_bytes: bytes) -> EllipticCurvePublicKey:
@@ -1112,6 +1130,218 @@ def decrypt_priv_key(
     raise DecryptionError()
 
 
+def derive_certificate_hash_data(
+    certificate: bytes, issuer_certificate: bytes
+) -> Dict[str, str]:
+    """Extract certificate hash data to be used in an OCPP AuthorizeRequest.
+
+    Args:
+        certificate: A certificate in binary (DER) form.
+        issuer_certificate: The certificate used for signing `certificate`,
+            in binary (DER) form.
+            For a self-signed certificate, these will be the same.
+
+    Returns:
+        A dictionary with all information required for an OCSPRequestDataType
+        (2.36. OCSPRequestDataType, p. 382, OCPP 2.0.1 Part 2)
+
+    Raises:
+        CertAttributeError: if a certificate is provided with a hash algorithm
+            that OCPP doesn't accept.
+            Only SHA256, SHA384, and SHA512 are allowed.
+            (3.42 HashAlgorithmEnumType, p. 403, OCPP 2.0.1 Part 2)
+    """
+    certificate = load_der_x509_certificate(certificate)
+    issuer_certificate = load_der_x509_certificate(issuer_certificate)
+    builder = OCSPRequestBuilder().add_certificate(
+        certificate, issuer_certificate, certificate.signature_hash_algorithm
+    )
+
+    ocsp_request = builder.build()
+
+    # For the hash algorithm, convert to the naming used in OCPP.
+    # Only SHA256, SHA384, and SHA512 are allowed in OCPP 2.0.1.
+    hash_algorithm_for_ocpp = certificate.signature_hash_algorithm.name.upper()
+    if hash_algorithm_for_ocpp not in {"SHA256", "SHA384", "SHA512"}:
+        raise CertAttributeError("Unknown hash algorithm")
+
+    try:
+        responder_url = get_ocsp_url_for_certificate(certificate)
+    except (ExtensionNotFound, OCSPServerNotFoundError):
+        # TODO GitHub#96: This may just result in failure down the road.
+        # Should we let this fail on these exceptions, or is there
+        # another way to try to get a responder_url?
+        responder_url = "https://www.example.com/"
+
+    # Some further details on distinguished names,
+    # per https://www.ibm.com/docs/en/i/7.2?topic=concepts-distinguished-name :
+    # Distinguished name (DN) is a term that describes the identifying information
+    # in a certificate and is part of the certificate itself.
+    # A certificate contains DN information for both the owner or requestor
+    # of the certificate (called the Subject DN) and the CA that issues the certificate
+    # (called the Issuer DN). Depending on the identification policy of the CA
+    # that issues a certificate, the DN can include a variety of information.
+    #
+    # Each CA has a policy to determine what identifying information the CA requires
+    # to issue a certificate. Some public Internet Certificate Authorities may require
+    # little information, such as a name and e-mail address.
+    # Other public CAs may require more information and require stricter proof of that
+    # identifying information before issuing a certificate.
+    #
+    # https://www.ibm.com/docs/en/ibm-mq/7.5?topic=certificates-distinguished-names
+    # provides more information about the attributes which may be included in a DN.
+    #
+    # In this case, a certificate will have a name like:
+    # 'DC=MO,C=DE,O=Keysight Technologies,CN=PKI-1_CRT_MO_SUB2_VALID'
+    # It will be hashed by the OCSP request builder.
+
+    return {
+        "hash_algorithm": hash_algorithm_for_ocpp,
+        "issuer_name_hash": urlsafe_b64encode(ocsp_request.issuer_name_hash).decode(),
+        "issuer_key_hash": urlsafe_b64encode(ocsp_request.issuer_key_hash).decode(),
+        "serial_number": str(ocsp_request.serial_number),
+        "responder_url": responder_url,
+    }
+
+
+def certificate_to_pem_string(certificate: bytes) -> str:
+    """Convert a certificate from a DER bytestring to a PEM string.
+
+    This conversion is done because OCPP requires that the certificate chain
+    be PEM-encoded.
+
+    Args:
+        certificate: The certificate in binary (DER) form.
+
+    Returns:
+        The same certificate expressed as a PEM-format string.
+    """
+    return DER_cert_to_PEM_cert(certificate)
+
+
+def get_ocsp_url_for_certificate(certificate: Certificate) -> str:
+    """Get the OCSP URL for a certificate.
+
+    Args:
+        certificate: A certificate object.
+
+    Returns:
+        The URL for a server to verify the certificate.
+
+    Raises:
+        ExtensionNotFound: if Authority Information Access extension is absent
+        OCSPServerNotFoundError: if OCSP server entry is not found
+    """
+    try:
+        auth_inf_access = certificate.extensions.get_extension_for_oid(
+            ExtensionOID.AUTHORITY_INFORMATION_ACCESS
+        ).value
+    except ExtensionNotFound:
+        logger.exception("Authority Information Access extension not found.")
+        raise
+
+    ocsps = [
+        access_descriptor
+        for access_descriptor in auth_inf_access
+        # If this is OCSP, the access location will be where to obtain
+        # OCSP information for the certificate.
+        if access_descriptor.access_method == AuthorityInformationAccessOID.OCSP
+    ]
+
+    if not ocsps:
+        raise OCSPServerNotFoundError
+
+    return ocsps[0].access_location.value
+
+
+def all_certificates_from_chain(
+    certificate_chain: CertificateChainV2, root_cert: Optional[Certificate]
+) -> List[Certificate]:
+    """Return all certificates from a certificate chain as a list.
+
+    The order should be: leaf certificate, sub-CA 2, sub-CA 1, root,
+    if all are present.
+
+    Args:
+        certificate_chain: The certificate chain object.
+            Contains contract and sub-CA certificates.
+        root_cert: The certificate used to sign the top sub-CA certificate.
+
+    Returns:
+        A list of certificates, in order.
+    """
+    chain = [
+        certificate_chain.certificate
+    ] + certificate_chain.sub_certificates.certificates
+    if root_cert is not None:
+        chain.append(root_cert)
+    return chain
+
+
+def get_certificate_hash_data(
+    certificate_chain: Optional[CertificateChainV2],
+    root_cert: Optional[Certificate],
+) -> Optional[List[Dict[str, str]]]:
+    """Return a list of hash data for a contract certificate chain.
+
+    Args:
+        certificate_chain: The certificate chain object.
+            Contains contract and sub-CA certificates.
+        root_cert: The certificate used to sign the top sub-CA certificate.
+
+    Returns:
+        A list of hash data objects for each certificate, or None if either
+        the chain or root certificate is not present.
+
+        Without the root certificate, or any other one within the chain, the
+        chain cannot be verified.
+    """
+    # If we do not have all certificates, we cannot create all the hash data.
+    # This is because the hash data requires the public key of a certificate's
+    # issuer.  Thus, lacking the root certificate makes it impossible to construct
+    # the hash data.
+    #
+    # In this case, we will ultimately send the certificates we do have -- the
+    # CSMS may be able to obtain the corresponding root certificate from a
+    # root certificate pool.
+    if certificate_chain is None or root_cert is None:
+        return None
+
+    all_certificates = all_certificates_from_chain(certificate_chain, root_cert)
+    # Each certificate is followed by its issuer, except for the root,
+    # which is self-signed.
+    certificate_and_issuer_pairs = [
+        (all_certificates[i], all_certificates[i + 1])
+        for i in range(len(all_certificates) - 1)
+    ] + [(root_cert, root_cert)]
+
+    return [
+        derive_certificate_hash_data(certificate, issuer)
+        for certificate, issuer in certificate_and_issuer_pairs
+    ]
+
+
+def build_pem_certificate_chain(
+    certificate_chain: Optional[CertificateChainV2], root_cert: Optional[Certificate]
+) -> Optional[str]:
+    """Return a string of certificates in PEM form concatenated together."""
+    if certificate_chain is None:
+        return None
+
+    # If we do not have the root certificate, we can still include all the
+    # certificates we do have.
+
+    return "".join(
+        [
+            certificate_to_pem_string(certificate)
+            for certificate in all_certificates_from_chain(
+                certificate_chain,
+                root_cert,
+            )
+        ]
+    )
+
+
 class CertPath(str, Enum):
     """
     Provides the path to certificates used for Plug & Charge. The encoding
@@ -1124,32 +1354,32 @@ class CertPath(str, Enum):
     """
 
     # Mobility operator (MO)
-    CONTRACT_LEAF_DER = PKI_PATH + "iso15118_2/certs/contractLeafCert.der"
-    MO_SUB_CA2_DER = PKI_PATH + "iso15118_2/certs/moSubCA2Cert.der"
-    MO_SUB_CA1_DER = PKI_PATH + "iso15118_2/certs/moSubCA1Cert.der"
-    MO_ROOT_DER = PKI_PATH + "iso15118_2/certs/moRootCACert.der"
+    CONTRACT_LEAF_DER = os.path.join(PKI_PATH, "iso15118_2/certs/contractLeafCert.der")
+    MO_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/moSubCA2Cert.der")
+    MO_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/moSubCA1Cert.der")
+    MO_ROOT_DER = os.path.join(PKI_PATH, "iso15118_2/certs/moRootCACert.der")
 
     # Charge point operator (CPO)
-    SECC_LEAF_DER = PKI_PATH + "iso15118_2/certs/seccLeafCert.der"
-    SECC_LEAF_PEM = PKI_PATH + "iso15118_2/certs/seccLeafCert.pem"
-    CPO_SUB_CA2_DER = PKI_PATH + "iso15118_2/certs/cpoSubCA2Cert.der"
-    CPO_SUB_CA1_DER = PKI_PATH + "iso15118_2/certs/cpoSubCA1Cert.der"
-    V2G_ROOT_DER = PKI_PATH + "iso15118_2/certs/v2gRootCACert.der"
-    V2G_ROOT_PEM = PKI_PATH + "iso15118_2/certs/v2gRootCACert.pem"
+    SECC_LEAF_DER = os.path.join(PKI_PATH, "iso15118_2/certs/seccLeafCert.der")
+    SECC_LEAF_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/seccLeafCert.pem")
+    CPO_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpoSubCA2Cert.der")
+    CPO_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpoSubCA1Cert.der")
+    V2G_ROOT_DER = os.path.join(PKI_PATH, "iso15118_2/certs/v2gRootCACert.der")
+    V2G_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/v2gRootCACert.pem")
     # Needed for the 'certfile' parameter in ssl_context.load_cert_chain()
-    CPO_CERT_CHAIN_PEM = PKI_PATH + "iso15118_2/certs/cpoCertChain.pem"
+    CPO_CERT_CHAIN_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/cpoCertChain.pem")
 
     # Certificate provisioning service (CPS)
-    CPS_LEAF_DER = PKI_PATH + "iso15118_2/certs/cpsLeafCert.der"
-    CPS_SUB_CA2_DER = PKI_PATH + "iso15118_2/certs/cpsSubCA2Cert.der"
-    CPS_SUB_CA1_DER = PKI_PATH + "iso15118_2/certs/cpsSubCA1Cert.der"
+    CPS_LEAF_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpsLeafCert.der")
+    CPS_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpsSubCA2Cert.der")
+    CPS_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpsSubCA1Cert.der")
     # The root is the V2G_ROOT
 
     # EV manufacturer (OEM)
-    OEM_LEAF_DER = PKI_PATH + "iso15118_2/certs/oemLeafCert.der"
-    OEM_SUB_CA2_DER = PKI_PATH + "iso15118_2/certs/oemSubCA2Cert.der"
-    OEM_SUB_CA1_DER = PKI_PATH + "iso15118_2/certs/oemSubCA1Cert.der"
-    OEM_ROOT_DER = PKI_PATH + "iso15118_2/certs/oemRootCACert.der"
+    OEM_LEAF_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemLeafCert.der")
+    OEM_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemSubCA2Cert.der")
+    OEM_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemSubCA1Cert.der")
+    OEM_ROOT_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemRootCACert.der")
 
 
 class KeyPath(str, Enum):
@@ -1162,25 +1392,53 @@ class KeyPath(str, Enum):
     """
 
     # Mobility operator (MO)
-    CONTRACT_LEAF_PEM = PKI_PATH + "iso15118_2/private_keys/contractLeaf.key"
-    MO_SUB_CA2_PEM = PKI_PATH + "iso15118_2/private_keys/moSubCA2.key"
-    MO_SUB_CA1_PEM = PKI_PATH + "iso15118_2/private_keys/moSubCA1.key"
-    MO_ROOT_PEM = PKI_PATH + "iso15118_2/private_keys/moRootCA.key"
+    CONTRACT_LEAF_PEM = os.path.join(
+        PKI_PATH, "iso15118_2/private_keys/contractLeaf" ".key"
+    )
+    MO_SUB_CA2_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/moSubCA2.key")
+    MO_SUB_CA1_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/moSubCA1.key")
+    MO_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/moRootCA.key")
 
     # Charge point operator (CPO)
-    SECC_LEAF_PEM = PKI_PATH + "iso15118_2/private_keys/seccLeaf.key"
-    CPO_SUB_CA2_PEM = PKI_PATH + "iso15118_2/private_keys/cpoSubCA2.key"
-    CPO_SUB_CA1_PEM = PKI_PATH + "iso15118_2/private_keys/cpoSubCA1.key"
-    V2G_ROOT_PEM = PKI_PATH + "iso15118_2/private_keys/v2gRootCA.key"
+    SECC_LEAF_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/seccLeaf.key")
+    CPO_SUB_CA2_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpoSubCA2.key")
+    CPO_SUB_CA1_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpoSubCA1.key")
+    V2G_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/v2gRootCA.key")
 
     # Certificate provisioning service (CPS)
-    CPS_LEAF_PEM = PKI_PATH + "iso15118_2/private_keys/cpsLeaf.key"
-    CPS_SUB_CA2_PEM = PKI_PATH + "iso15118_2/private_keys/cpsSubCA2.key"
-    CPS_SUB_CA1_PEM = PKI_PATH + "iso15118_2/private_keys/cpsSubCA1.key"
+    CPS_LEAF_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpsLeaf.key")
+    CPS_SUB_CA2_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpsSubCA2.key")
+    CPS_SUB_CA1_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpsSubCA1.key")
     # The root is the V2G_ROOT
 
     # EV manufacturer (OEM)
-    OEM_LEAF_PEM = PKI_PATH + "iso15118_2/private_keys/oemLeaf.key"
-    OEM_SUB_CA2_PEM = PKI_PATH + "iso15118_2/private_keys/oemSubCA2.key"
-    OEM_SUB_CA1_PEM = PKI_PATH + "iso15118_2/private_keys/oemSubCA1.key"
-    OEM_ROOT_PEM = PKI_PATH + "iso15118_2/private_keys/oemRootCA.key"
+    OEM_LEAF_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/oemLeaf.key")
+    OEM_SUB_CA2_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/oemSubCA2.key")
+    OEM_SUB_CA1_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/oemSubCA1.key")
+    OEM_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/oemRootCA.key")
+
+
+class KeyPasswordPath(str, Enum):
+    """
+    Provides the path to private key passwords used for Plug & Charge.
+
+    NOTE: In a production environment, the access to a private key passwords should be
+          managed in a secure way (e.g. through a hardware security module).
+    """
+
+    # Private key password paths
+    SECC_LEAF_KEY_PASSWORD = os.path.join(
+        PKI_PATH, "iso15118_2/private_keys/seccLeafPassword.txt"
+    )
+    OEM_LEAF_KEY_PASSWORD = os.path.join(
+        PKI_PATH, "iso15118_2/private_keys/oemLeafPassword.txt"
+    )
+    CONTRACT_LEAF_KEY_PASSWORD = os.path.join(
+        PKI_PATH, "iso15118_2/private_keys/contractLeafPassword.txt"
+    )
+    CPS_LEAF_KEY_PASSWORD = os.path.join(
+        PKI_PATH, "iso15118_2/private_keys/cpsLeafPassword.txt"
+    )
+    MO_SUB_CA2_PASSWORD = os.path.join(
+        PKI_PATH, "iso15118_2/private_keys/moSubCA2LeafPassword.txt"
+    )
