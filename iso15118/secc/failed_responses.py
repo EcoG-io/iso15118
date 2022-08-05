@@ -491,10 +491,10 @@ def init_failed_responses_iso_v2() -> dict:
                     rcd=False,
                 ),
                 evse_nominal_voltage=PVEVSENominalVoltage(
-                    multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
+                    multiplier=0, value=0, unit=UnitSymbol.VOLTAGE
                 ),
                 evse_max_current=PVEVSEMaxCurrent(
-                    multiplier=0, value=32, unit=UnitSymbol.AMPERE
+                    multiplier=0, value=0, unit=UnitSymbol.AMPERE
                 ),
             ),
         ),
