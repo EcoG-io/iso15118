@@ -112,9 +112,11 @@ venv.bak/
 
 .idea/*
 
-# Generated X.509 certificates, private keys, and PKCS12 container files
+# Generated X.509 certificates, private keys, and PKCS12 container files,
+# except sample certs used in tests
 *.pem
 *.der
+!tests/sample_certs/*.der
 *.key
 *.p12
 iso15118/shared/pki/iso15118_2

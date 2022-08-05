@@ -42,6 +42,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfo
 from iso15118.shared.messages.iso15118_2.datatypes import (
     SAScheduleTuple,
     ServiceDetails,
+    eMAID,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import ScheduleTuple
 from iso15118.shared.messages.sdp import SDPRequest, Security, create_sdp_response
@@ -109,6 +110,8 @@ class SECCCommunicationSession(V2GCommunicationSession):
         # the AuthorizationReq's signature
         # TODO Add support for ISO 15118-20 CertificateChain
         self.contract_cert_chain: Optional[CertificateChainV2] = None
+        # The eMAID used in plug and charge authorization.
+        self.emaid: Optional[eMAID] = None
         # Initialise the failed possible responses per request message for a
         # faster lookup later when needed
         self.failed_responses_din_spec = init_failed_responses_din_spec_70121()
