@@ -484,7 +484,7 @@ def init_failed_responses_iso_v2() -> dict:
         ChargeParameterDiscoveryReq: ChargeParameterDiscoveryRes(
             response_code=ResponseCodeV2.FAILED,
             evse_processing=EVSEProcessing.FINISHED,
-            ac_evse_charge_parameter=ACEVSEChargeParameter(
+            ac_charge_parameter=ACEVSEChargeParameter(
                 ac_evse_status=ACEVSEStatus(
                     notification_max_delay=0,
                     evse_notification=EVSENotification.NONE,
