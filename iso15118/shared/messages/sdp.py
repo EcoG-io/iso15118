@@ -272,4 +272,7 @@ def create_sdp_response(
     else:
         logger.error("Invalid SDP request, will ignore")
 
+    logger.info(
+        f"SECC session {security} protocol at port {port} ..."
+    )
     return sdp_response

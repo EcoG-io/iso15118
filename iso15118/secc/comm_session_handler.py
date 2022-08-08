@@ -42,7 +42,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfo
 from iso15118.shared.messages.iso15118_2.datatypes import (
     SAScheduleTuple,
     ServiceDetails,
-    eMAID,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import ScheduleTuple
 from iso15118.shared.messages.sdp import SDPRequest, Security, create_sdp_response
@@ -110,8 +109,6 @@ class SECCCommunicationSession(V2GCommunicationSession):
         # the AuthorizationReq's signature
         # TODO Add support for ISO 15118-20 CertificateChain
         self.contract_cert_chain: Optional[CertificateChainV2] = None
-        # The eMAID used in plug and charge authorization.
-        self.emaid: Optional[eMAID] = None
         # Initialise the failed possible responses per request message for a
         # faster lookup later when needed
         self.failed_responses_din_spec = init_failed_responses_din_spec_70121()
@@ -286,7 +283,6 @@ class CommunicationSessionHandler:
                     port = self.tcp_server.port_tls
                 else:
                     port = self.tcp_server.port_no_tls
-
                 # convert IPv6 address from presentation to numeric format
                 ipv6_bytes = socket.inet_pton(
                     socket.AF_INET6, self.tcp_server.ipv6_address_host
@@ -320,6 +316,6 @@ class CommunicationSessionHandler:
             ISOV2PayloadTypes.SDP_RESPONSE,
             sdp_response.to_payload(),
         )
-        logger.debug(f"Sending SDPResponse: {sdp_response}")
+        logger.info(f"Sending SDPResponse: {sdp_response}")
 
         self.udp_server.send(v2gtp_msg, message.addr)
