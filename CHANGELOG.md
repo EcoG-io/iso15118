@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2022-08-08
+
+### Fixed
+- ChargeParameterDiscoveryRes must be ac_charge_parameter and not ac_ev… by @ikaratass in https://github.com/SwitchEV/iso15118/pull/99
+- Added more EXI debug (AB#2580) by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/100
+
 ## [0.8.0] - 2022-08-05
 
 ### Added
