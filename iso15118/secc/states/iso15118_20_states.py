@@ -977,15 +977,19 @@ class PowerDelivery(StateSECC):
                 # 2nd once the energy transfer is properly interrupted,
                 # the contactor(s) may open
                 contactor_state = (
-                    await self.comm_session.evse_controller.open_contactor()
+                    await self.comm_session.evse_controller.get_contactor_state()
                 )
                 if contactor_state != Contactor.OPENED:
-                    self.stop_state_machine(
-                        "Contactor didnt open",
-                        message,
-                        ResponseCode.FAILED_CONTACTOR_ERROR,
+                    contactor_state = (
+                        await self.comm_session.evse_controller.open_contactor()
                     )
-                    return
+                    if contactor_state != Contactor.OPENED:
+                        self.stop_state_machine(
+                            "Contactor didnt open",
+                            message,
+                            ResponseCode.FAILED_CONTACTOR_ERROR,
+                        )
+                        return
             else:
 
                 # The only ChargeProgress options left are START and
@@ -1020,15 +1024,19 @@ class PowerDelivery(StateSECC):
                 # TODO: We may need to check the CP state is C or D before
                 #  closing the contactors.
                 contactor_state = (
-                    await self.comm_session.evse_controller.close_contactor()
+                    await self.comm_session.evse_controller.get_contactor_state()
                 )
                 if contactor_state != Contactor.CLOSED:
-                    self.stop_state_machine(
-                        "Contactor didnt close",
-                        message,
-                        ResponseCode.FAILED_CONTACTOR_ERROR,
+                    contactor_state = (
+                        await self.comm_session.evse_controller.close_contactor()
                     )
-                    return
+                    if contactor_state != Contactor.CLOSED:
+                        self.stop_state_machine(
+                            "Contactor didnt close",
+                            message,
+                            ResponseCode.FAILED_CONTACTOR_ERROR,
+                        )
+                        return
 
                 # According to section 8.5.6 in ISO 15118-20, the EV enters into HLC-C
                 # (High Level Controlled Charging) once

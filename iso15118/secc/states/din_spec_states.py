@@ -454,14 +454,20 @@ class CableCheck(StateSECC):
             # Requirement in 6.4.3.106 of the IEC 61851-23
             # Any relays in the DC output circuit of the DC station shall
             # be closed during the insulation test
-            contactor_state = await self.comm_session.evse_controller.close_contactor()
+            contactor_state = (
+                await self.comm_session.evse_controller.get_contactor_state()
+            )
             if contactor_state != Contactor.CLOSED:
-                self.stop_state_machine(
-                    "Contactor didnt close for Cable Check",
-                    message,
-                    ResponseCode.FAILED,
+                contactor_state = (
+                    await self.comm_session.evse_controller.close_contactor()
                 )
-                return
+                if contactor_state != Contactor.CLOSED:
+                    self.stop_state_machine(
+                        "Contactor is not closed for Cable Check",
+                        message,
+                        ResponseCode.FAILED,
+                    )
+                    return
             await self.comm_session.evse_controller.start_cable_check()
             self.cable_check_req_was_received = True
         self.comm_session.evse_controller.ev_data_context.soc = (
@@ -684,14 +690,20 @@ class PowerDelivery(StateSECC):
             await self.comm_session.evse_controller.stop_charger()
             # 2nd once the energy transfer is properly interrupted,
             # the contactor(s) may open
-            contactor_state = await self.comm_session.evse_controller.open_contactor()
+            contactor_state = (
+                await self.comm_session.evse_controller.get_contactor_state()
+            )
             if contactor_state != Contactor.OPENED:
-                self.stop_state_machine(
-                    "Contactor didnt open",
-                    message,
-                    ResponseCode.FAILED,
+                contactor_state = (
+                    await self.comm_session.evse_controller.open_contactor()
                 )
-                return
+                if contactor_state != Contactor.OPENED:
+                    self.stop_state_machine(
+                        "Contactor didnt open",
+                        message,
+                        ResponseCode.FAILED,
+                    )
+                    return
 
         dc_evse_status = await self.comm_session.evse_controller.get_dc_evse_status()
         power_delivery_res = PowerDeliveryRes(

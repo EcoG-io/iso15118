@@ -1461,14 +1461,20 @@ class PowerDelivery(StateSECC):
             # no later than 3s after measuring CP State C or D.
             # TODO: Before closing the contactor, we may need to check to
             # ensure the CP is in state C or D
-            contactor_state = await self.comm_session.evse_controller.close_contactor()
+            contactor_state = (
+                await self.comm_session.evse_controller.get_contactor_state()
+            )
             if contactor_state != Contactor.CLOSED:
-                self.stop_state_machine(
-                    "Contactor didnt close",
-                    message,
-                    ResponseCode.FAILED_CONTACTOR_ERROR,
+                contactor_state = (
+                    await self.comm_session.evse_controller.close_contactor()
                 )
-                return
+                if contactor_state != Contactor.CLOSED:
+                    self.stop_state_machine(
+                        "Contactor didnt close",
+                        message,
+                        ResponseCode.FAILED_CONTACTOR_ERROR,
+                    )
+                    return
 
             if self.comm_session.selected_charging_type_is_ac:
                 next_state = ChargingStatus
@@ -1495,15 +1501,20 @@ class PowerDelivery(StateSECC):
             await self.comm_session.evse_controller.stop_charger()
             # 2nd once the energy transfer is properly interrupted,
             # the contactor(s) may open
-            contactor_state = await self.comm_session.evse_controller.open_contactor()
-
+            contactor_state = (
+                await self.comm_session.evse_controller.get_contactor_state()
+            )
             if contactor_state != Contactor.OPENED:
-                self.stop_state_machine(
-                    "Contactor didnt open",
-                    message,
-                    ResponseCode.FAILED_CONTACTOR_ERROR,
+                contactor_state = (
+                    await self.comm_session.evse_controller.open_contactor()
                 )
-                return
+                if contactor_state != Contactor.OPENED:
+                    self.stop_state_machine(
+                        "Contactor didnt open",
+                        message,
+                        ResponseCode.FAILED_CONTACTOR_ERROR,
+                    )
+                    return
 
         else:
             # ChargeProgress only has three enum values: Start, Stop, and
@@ -1861,14 +1872,20 @@ class CableCheck(StateSECC):
             # Requirement in 6.4.3.106 of the IEC 61851-23
             # Any relays in the DC output circuit of the DC station shall
             # be closed during the insulation test
-            contactor_state = await self.comm_session.evse_controller.close_contactor()
+            contactor_state = (
+                await self.comm_session.evse_controller.get_contactor_state()
+            )
             if contactor_state != Contactor.CLOSED:
-                self.stop_state_machine(
-                    "Contactor didnt close for Cable Check",
-                    message,
-                    ResponseCode.FAILED,
+                contactor_state = (
+                    await self.comm_session.evse_controller.close_contactor()
                 )
-                return
+                if contactor_state != Contactor.CLOSED:
+                    self.stop_state_machine(
+                        "Contactor didnt close for Cable Check",
+                        message,
+                        ResponseCode.FAILED,
+                    )
+                    return
             await self.comm_session.evse_controller.start_cable_check()
             self.cable_check_req_was_received = True
         self.comm_session.evse_controller.ev_data_context.soc = (

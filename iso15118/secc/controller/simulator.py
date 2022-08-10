@@ -189,6 +189,10 @@ class SimEVSEController(EVSEControllerInterface):
     A simulated version of an EVSE controller
     """
 
+    def __init__(self):
+        super().__init__()
+        self.contactor = None
+
     @classmethod
     async def create(cls):
         self = SimEVSEController()
