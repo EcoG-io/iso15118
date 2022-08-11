@@ -85,7 +85,7 @@ run-evcc:
 
 # Run secc with python
 run-secc:
-	$(shell which python) iso15118/secc/main.py
+	$(shell which python) iso15118/secc/main.py $(config)
 
 # Run pytest on evcc
 test-evcc:
