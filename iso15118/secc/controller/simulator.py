@@ -189,12 +189,13 @@ class SimEVSEController(EVSEControllerInterface):
     """
 
     @classmethod
-    async def create(cls):
+    async def create(cls, config_param):
         self = SimEVSEController()
         self.ev_data_context = EVDataContext()
         self.v20_service_id_parameter_mapping = (
             await read_service_id_parameter_mappings()
         )
+        self.config_param = config_param
         return self
 
     def reset_ev_data_context(self):
@@ -232,10 +233,18 @@ class SimEVSEController(EVSEControllerInterface):
 
         # It's not valid to have mixed energy transfer modes associated with
         # a single EVSE. Providing this here only for simulation purposes.
-        # ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
+        ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
         ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
         dc_extended = EnergyTransferModeEnum.DC_EXTENDED
-        return [dc_extended, ac_three_phase]
+
+        configured_energy_transfer_mode = self.get_cfg_parameter("energy_transfer_mode","NA")
+        if "DC" in configured_energy_transfer_mode:
+            return [dc_extended]
+        elif "AC_3Ph" in configured_energy_transfer_mode:
+            return [ac_three_phase]
+        elif "AC_1Ph" in configured_energy_transfer_mode:
+            return [ac_single_phase]
+        return [dc_extended]
 
     async def get_scheduled_se_params(
         self,
@@ -580,10 +589,14 @@ class SimEVSEController(EVSEControllerInterface):
     async def get_ac_charge_params_v2(self) -> ACEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_ac_evse_charge_parameter()."""
         evse_nominal_voltage = PVEVSENominalVoltage(
-            multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
+            multiplier=self.get_cfg_parameter("evse_nominal_voltage_mul", 0), 
+            value=self.get_cfg_parameter("evse_nominal_voltage_val", 400), 
+            unit=UnitSymbol.VOLTAGE
         )
         evse_max_current = PVEVSEMaxCurrent(
-            multiplier=0, value=32, unit=UnitSymbol.AMPERE
+            multiplier=self.get_cfg_parameter("evse_max_current_mul", 0), 
+            value=self.get_cfg_parameter("evse_max_current_val", 32), 
+            unit=UnitSymbol.AMPERE
         )
         return ACEVSEChargeParameter(
             ac_evse_status=await self.get_ac_evse_status(),
@@ -688,32 +701,52 @@ class SimEVSEController(EVSEControllerInterface):
                 evse_status_code=DCEVSEStatusCode.EVSE_READY,
             ),
             evse_maximum_power_limit=PVEVSEMaxPowerLimit(
-                multiplier=1, value=230, unit="W"
-            ),
+                multiplier=self.get_cfg_parameter("evse_maximum_power_limit_mul", 1), 
+                value=self.get_cfg_parameter("evse_maximum_power_limit_val", 237), 
+                unit="W"
+            ),            
             evse_maximum_current_limit=PVEVSEMaxCurrentLimit(
-                multiplier=1, value=4, unit="A"
+                multiplier=self.get_cfg_parameter("evse_maximum_current_limit_mul", 1), 
+                value=self.get_cfg_parameter("evse_maximum_current_limit_val", 4), 
+                unit="A"
             ),
             evse_maximum_voltage_limit=PVEVSEMaxVoltageLimit(
-                multiplier=1, value=4, unit="V"
+                multiplier=self.get_cfg_parameter("evse_maximum_voltage_limit_mul", 1), 
+                value=self.get_cfg_parameter("evse_maximum_voltage_limit_val", 50), 
+                unit="V"
             ),
             evse_minimum_current_limit=PVEVSEMinCurrentLimit(
-                multiplier=1, value=2, unit="A"
+                multiplier=self.get_cfg_parameter("evse_minimum_current_limit_mul", 1),
+                value=self.get_cfg_parameter("evse_minimum_current_limit_val", 2),
+                unit="A"
             ),
             evse_minimum_voltage_limit=PVEVSEMinVoltageLimit(
-                multiplier=1, value=4, unit="V"
+                multiplier=self.get_cfg_parameter("evse_minimum_voltage_limit_mul", 1), 
+                value=self.get_cfg_parameter("evse_minimum_voltage_limit_val", 4), 
+                unit="V"
             ),
             evse_peak_current_ripple=PVEVSEPeakCurrentRipple(
-                multiplier=1, value=4, unit="A"
+                multiplier=self.get_cfg_parameter("evse_peak_current_ripple_mul", 1), 
+                value=self.get_cfg_parameter("evse_peak_current_ripple_val", 4), 
+                unit="A"
             ),
         )
 
     async def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
         """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
-        return PVEVSEPresentVoltage(multiplier=0, value=230, unit="V")
+        return PVEVSEPresentVoltage(
+            multiplier=self.get_cfg_parameter("evse_present_voltage_mul", 0), 
+            value=self.get_cfg_parameter("evse_present_voltage_val", 230), 
+            unit="V"
+            )
 
     async def get_evse_present_current(self) -> PVEVSEPresentCurrent:
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
-        return PVEVSEPresentCurrent(multiplier=0, value=1, unit="A")
+        return PVEVSEPresentCurrent(
+            multiplier=self.get_cfg_parameter("evse_present_current_mul", 0), 
+            value=self.get_cfg_parameter("evse_present_current_val", 1), 
+            unit="A"
+            )
 
     async def start_cable_check(self):
         pass
@@ -737,14 +770,26 @@ class SimEVSEController(EVSEControllerInterface):
     async def is_evse_power_limit_achieved(self) -> bool:
         return True
 
-    async def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
-        return PVEVSEMaxVoltageLimit(multiplier=0, value=600, unit="V")
+    def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
+        return PVEVSEMaxVoltageLimit(
+            multiplier=self.get_cfg_parameter("evse_maximum_voltage_limit_mul", 0), 
+            value=self.get_cfg_parameter("evse_maximum_voltage_limit_val", 600), 
+            unit="V"
+            )
 
-    async def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
-        return PVEVSEMaxCurrentLimit(multiplier=0, value=300, unit="A")
+    def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
+        return PVEVSEMaxCurrentLimit(
+            multiplier=self.get_cfg_parameter("evse_maximum_current_limit_mul", 0), 
+            value=self.get_cfg_parameter("evse_maximum_current_limit_val", 300), 
+            unit="A"
+            )
 
-    async def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
-        return PVEVSEMaxPowerLimit(multiplier=1, value=1000, unit="W")
+    def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
+        return PVEVSEMaxPowerLimit(
+            multiplier=self.get_cfg_parameter("evse_maximum_power_limit_mul", 1), 
+            value=self.get_cfg_parameter("evse_maximum_power_limit_val", 1000), 
+            unit="W"
+            )
 
     async def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryResParams:
         """Overrides EVSEControllerInterface.get_dc_charge_params_v20()."""
@@ -908,3 +953,15 @@ class SimEVSEController(EVSEControllerInterface):
         ).decode("utf-8")
 
         return base64_encode_cert_install_res
+
+    def get_cfg_parameter(self, string, default):
+        try:
+                if self.config_param[string] is None:                      
+                        raise Exception("revert to default")
+                logger.error(f"No valid configuration for {string}, revert to default")                  
+                return self.config_param[string]
+        except:
+                return default
+        
+        
+        

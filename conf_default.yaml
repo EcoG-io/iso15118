@@ -1,0 +1,51 @@
+---
+
+#supported protocols : 
+supported_protocols:
+ DIN_SPEC_70121
+ ISO_15118_2
+ ISO_15118_20_AC
+ ISO_15118_20_DC
+
+#energy transfer mode : AC_3Ph / AC_1Ph / DC
+energy_transfer_mode: DC
+
+#authentication mode : EIM / PNC
+authentication_modes: EIM
+
+###
+#DC EVSE Charge Parameters
+#for DIN and ISO_v2
+evse_maximum_power_limit_mul: 1
+evse_maximum_power_limit_val: 321
+
+evse_maximum_current_limit_mul: 2
+evse_maximum_current_limit_val: 3
+
+evse_maximum_voltage_limit_mul: 0
+evse_maximum_voltage_limit_val: 900
+
+evse_minimum_current_limit_mul: 1
+evse_minimum_current_limit_val: 2
+
+evse_minimum_voltage_limit_mul: 1
+evse_minimum_voltage_limit_val: 4
+
+evse_peak_current_ripple_mul: 1
+evse_peak_current_ripple_val: 4
+
+evse_present_voltage_mul: 0
+evse_present_voltage_val: 230
+
+evse_present_current_mul: 0
+evse_present_current_val: 1
+
+
+###
+#AC EVSE Charge parameters
+#For ISO_v2
+evse_nominal_voltage_mul: 0
+evse_nominal_voltage_val: 400
+
+evse_max_current_mul: 0
+evse_max_current_val: 32
