@@ -19,14 +19,17 @@ async def main():
 
     global args
 
+    default_config_file = "conf_default.yaml"
+
     try:
         with open(args[1]) as f:
             config_param = yaml.load(f, Loader=yaml.FullLoader)
         print("Loading configuration parameters from " + args[1])
+        logger.info(f"Loaded configuration parameters from: {args[1]}")
     except:
-        with open("conf_default.yaml") as f:
+        with open(default_config_file) as f:
             config_param = yaml.load(f, Loader=yaml.FullLoader)
-        print("Loading default configuration parameters")                        
+        logger.info(f"Loaded default configuration parameters from {default_config_file}")                   
 
     sim_evse_controller = await SimEVSEController.create(config_param=config_param)
     await SECCHandler(
