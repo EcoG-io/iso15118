@@ -125,7 +125,7 @@ class Config:
 
     def load_requested_protocols(self, read_protocols: Optional[List[str]]):
         protocols = format_list(read_protocols)
-        valid_protocols = list(set(protocols).intersection(self.default_protocols))
+        valid_protocols = sorted(set(protocols).intersection(self.default_protocols), key=protocols.index)
         if not valid_protocols:
             raise NoSupportedProtocols(
                 f"No supported protocols configured. Supported protocols are "
@@ -137,7 +137,7 @@ class Config:
 
     def load_requested_auth_modes(self, read_auth_modes: Optional[List[str]]):
         auth_modes = format_list(read_auth_modes)
-        valid_auth_options = list(set(auth_modes).intersection(self.default_auth_modes))
+        valid_auth_options = sorted(set(auth_modes).intersection(self.default_auth_modes), key=auth_modes.index)
         if not valid_auth_options:
             raise NoSupportedAuthenticationModes(
                 f"No supported authentication modes configured. Supported auth modes"
