@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 def format_list(read_settings: List[str]) -> List[str]:
     read_settings = list(filter(None, read_settings))
     read_settings = [setting.strip().upper() for setting in read_settings]
-    read_settings = list(set(read_settings))
     return read_settings
 
 
