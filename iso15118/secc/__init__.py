@@ -18,9 +18,10 @@ class SECCHandler(CommunicationSessionHandler):
         exi_codec: IEXICodec,
         evse_controller: EVSEControllerInterface,
         env_path: Optional[str] = None,
+        config_param: Optional[dict] = None,
     ):
         config = Config()
-        config.load_envs(env_path)
+        config.load_envs(env_path, config_param)
         CommunicationSessionHandler.__init__(
             self,
             config,
