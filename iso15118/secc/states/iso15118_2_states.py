@@ -1056,7 +1056,9 @@ class Authorization(StateSECC):
         id_token = (
             self.comm_session.emaid
             if self.comm_session.selected_auth_option == AuthEnum.PNC_V2
-            else None
+            else await self.comm_session.evse_controller.get_evse_id(
+                Protocol.ISO_15118_2
+            )
         )
         authorization_result = await self.comm_session.evse_controller.is_authorized(
             id_token=id_token,
