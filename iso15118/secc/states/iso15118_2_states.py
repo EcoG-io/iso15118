@@ -647,9 +647,10 @@ class CertificateInstallation(StateSECC):
                     signature,
                 ) = self.generate_certificate_installation_res()
         except Exception as e:
-            logger.error(f"Error building CertificateInstallationRes: {e}")
+            error = f"Error building CertificateInstallationRes: {e}"
+            logger.error(error)
             self.stop_state_machine(
-                str(e),
+                error,
                 message,
                 ResponseCode.FAILED_NO_CERTIFICATE_AVAILABLE,
             )
