@@ -6,6 +6,7 @@ from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.controller.simulator import SimEVController
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.simulator import SimEVSEController
+from iso15118.secc.failed_responses import init_failed_responses_iso_v2
 from iso15118.shared.messages.enums import Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.notifications import StopNotification
@@ -29,6 +30,7 @@ def comm_evcc_session_mock():
 @pytest.fixture
 def comm_secc_session_mock():
     comm_session_mock = Mock(spec=SECCCommunicationSession)
+    comm_session_mock.failed_responses_isov2 = init_failed_responses_iso_v2()
     comm_session_mock.session_id = MOCK_SESSION_ID
     comm_session_mock.offered_schedules = get_sa_schedule_list()
     comm_session_mock.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED

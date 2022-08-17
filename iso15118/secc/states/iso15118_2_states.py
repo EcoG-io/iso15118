@@ -902,7 +902,10 @@ class PaymentDetails(StateSECC):
                 )
             )
 
-            if authorization_result in [AuthorizationStatus.ACCEPTED, AuthorizationStatus.ONGOING]:
+            if authorization_result in [
+                AuthorizationStatus.ACCEPTED,
+                AuthorizationStatus.ONGOING,
+            ]:
 
                 payment_details_res = PaymentDetailsRes(
                     response_code=ResponseCode.OK,

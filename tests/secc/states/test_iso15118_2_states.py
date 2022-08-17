@@ -134,7 +134,7 @@ class TestEvScenarios:
         "is_authorized_return_value, expected_next_state",
         [
             (AuthorizationStatus.ACCEPTED, ChargeParameterDiscovery),
-            (AuthorizationStatus.ONGOING, Authorization),
+            (AuthorizationStatus.ONGOING, None),
             pytest.param(
                 AuthorizationStatus.REJECTED,
                 Terminate,

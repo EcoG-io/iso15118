@@ -49,8 +49,8 @@ from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.enums import (
-    AuthorizationTokenType,
     AuthorizationStatus,
+    AuthorizationTokenType,
     Contactor,
     EnergyTransferModeEnum,
     IsolationLevel,
