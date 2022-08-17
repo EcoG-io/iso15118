@@ -902,7 +902,10 @@ class PaymentDetails(StateSECC):
                 )
             )
 
-            if authorization_result == AuthorizationStatus.ACCEPTED:
+            if authorization_result in [
+                AuthorizationStatus.ACCEPTED,
+                AuthorizationStatus.ONGOING,
+            ]:
 
                 payment_details_res = PaymentDetailsRes(
                     response_code=ResponseCode.OK,
@@ -917,18 +920,12 @@ class PaymentDetails(StateSECC):
                     Namespace.ISO_V2_MSG_DEF,
                 )
             else:
-                # TODO GitHub#54: handle ONGOING case, and REJECTED more fully
-                payment_details_res = PaymentDetailsRes(
-                    response_code=ResponseCode.FAILED,
-                    gen_challenge=get_random_bytes(16),
-                    evse_timestamp=time.time(),
-                )
-
-                self.create_next_message(
-                    Terminate,
-                    SessionStopRes(response_code=ResponseCode.FAILED),
-                    Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
-                    Namespace.ISO_V2_MSG_DEF,
+                # TODO: investigate if it is feasible to get a more detailed
+                # response code error
+                self.stop_state_machine(
+                    "Authorization was rejected",
+                    message,
+                    ResponseCode.FAILED_CERTIFICATE_NOT_ALLOWED_AT_THIS_EVSE,
                 )
 
         except (
@@ -983,19 +980,16 @@ class Authorization(StateSECC):
     and the state machine can move on to the `ChargeParameterDiscovery` state,
     otherwise will stay in this state and answer to the EV with
     `EVSEProcessing=Ongoing`.
-
-    TODO: This method is incomplete, as it wont allow answering with a Failed
-          response, for a rejected authorization. `is_authorized` shall return
-          one out of three responses: `Ongoing`, `Accepted` or `Rejected`.
-          In case of Rejected and according to table 112 from ISO 15118-2, the
-          errors allowed to be used are: FAILED, FAILED_Challenge_Invalid or
-          FAILED_Certificate_Revoked.
-          Please check: https://dev.azure.com/switch-ev/Josev/_backlogs/backlog/Josev%20Team/Stories/?workitem=1049  # noqa: E501
-
     """
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+        # According to requirement [V2G2-684], in case of PnC,
+        # the first AuthorizationReq will contain the message
+        # signature in the header, but if the EVSEProcessing result is Ongoing
+        # then the upcoming requests won't contain the signature. Thus, we
+        # only do the signature validation once
+        self.signature_verified_once = False
 
     async def process_message(
         self,
@@ -1025,40 +1019,35 @@ class Authorization(StateSECC):
                 )
                 return
 
-            if not verify_signature(
-                signature=msg.header.signature,
-                elements_to_sign=[
-                    (
-                        authorization_req.id,
-                        EXI().to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
+            if not self.signature_verified_once:
+                self.signature_verified_once = True
+                if not verify_signature(
+                    signature=msg.header.signature,
+                    elements_to_sign=[
+                        (
+                            authorization_req.id,
+                            EXI().to_exi(authorization_req, Namespace.ISO_V2_MSG_DEF),
+                        )
+                    ],
+                    leaf_cert=self.comm_session.contract_cert_chain.certificate,
+                ):
+                    self.stop_state_machine(
+                        "Unable to verify signature of AuthorizationReq",
+                        message,
+                        ResponseCode.FAILED_SIGNATURE_ERROR,
                     )
-                ],
-                leaf_cert=self.comm_session.contract_cert_chain.certificate,
-            ):
-                self.stop_state_machine(
-                    "Unable to verify signature of AuthorizationReq",
-                    message,
-                    ResponseCode.FAILED_SIGNATURE_ERROR,
-                )
-                return
+                    return
 
-        # TODO: The authorization process can start already in the PaymentDetailsReq.
-        # An evse_controller method must be crated to receive as arguments
-        # the eMAID, the contract certificate chain (leaf, MO-Sub-1 and MO-Sub-2)
-        # and the OCSP iso15118CertificateHashData as mentioned in OCPP 2.0.1
-        # use case C07.
-        # If the current `is_authorized` is to be used, then we need to modify
-        # it to add those arguments.
-        # Note: The contract chain is saved within the
-        # self.comm_session.contract_cert_chain attribute.
         auth_status: EVSEProcessing = EVSEProcessing.ONGOING
-        next_state: Type["State"] = Authorization
+        next_state: Optional[Type["State"]] = Authorization
         # TODO: how should we obtain/hold the token for EIM?  Other cases?
         id_token = (
             self.comm_session.emaid
             if self.comm_session.selected_auth_option == AuthEnum.PNC_V2
             else None
         )
+        # note that the certificate_chain and hashed_data are empty here
+        # as they were already send previously in the PaymentDetails state
         authorization_result = await self.comm_session.evse_controller.is_authorized(
             id_token=id_token,
             id_token_type=(
@@ -1071,10 +1060,30 @@ class Authorization(StateSECC):
         if authorization_result == AuthorizationStatus.ACCEPTED:
             auth_status = EVSEProcessing.FINISHED
             next_state = ChargeParameterDiscovery
-
-        # TODO GitHub#54: handle REJECTED case
-        # TODO Need to distinguish between ONGOING and
-        #      ONGOING_WAITING_FOR_CUSTOMER
+        elif authorization_result == AuthorizationStatus.REJECTED:
+            # according to table 112 of ISO 15118-2, the Response code
+            # for this message can only be one of the following:
+            # FAILED, FAILED_Challenge_Invalid,
+            # Failed_SEQUENCE_ERROR, Failed_SIGNATURE_ERROR,
+            # FAILED_Certificate_Revoked and Failed_UNKNOWN_SESSION
+            self.stop_state_machine(
+                "Authorization was rejected",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
+        else:
+            # this means we fall into the ongoing case
+            auth_status = EVSEProcessing.ONGOING
+            next_state = None
+            # According to requirement [V2G2-854]
+            # If identification mode EIM has been selected by the
+            # parameter SelectedPaymentOption equal to "External Payment"
+            # in message ServicePaymentSelectReq and no positive EIM information
+            # is available an SECC shall set the parameter EVSEProcessing to
+            # „Ongoing_WaitingForCustomerInteraction“ in AuthorizationRes.
+            if self.comm_session.selected_auth_option == AuthEnum.EIM_V2:
+                auth_status = EVSEProcessing.ONGOING_WAITING_FOR_CUSTOMER
 
         authorization_res = AuthorizationRes(
             response_code=ResponseCode.OK, evse_processing=auth_status

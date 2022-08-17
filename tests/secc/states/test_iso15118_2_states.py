@@ -18,7 +18,9 @@ from iso15118.shared.messages.enums import (
     AuthorizationStatus,
     AuthorizationTokenType,
     Contactor,
+    EVSEProcessing,
 )
+from iso15118.shared.messages.iso15118_2.body import ResponseCode
 from iso15118.shared.messages.iso15118_2.datatypes import CertificateChain
 from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
@@ -73,46 +75,26 @@ class TestEvScenarios:
         / "sample_certs"
         / "moRootCACert.der",
     )
-    async def test_payment_details_next_state_on_payment_details_req_auth_success(
-        self, mo_root_cert_path_mock
-    ):
-        self.comm_session.selected_auth_option = AuthEnum.PNC_V2
-
-        mock_is_authorized = AsyncMock(return_value=AuthorizationStatus.ACCEPTED)
-        self.comm_session.evse_controller.is_authorized = mock_is_authorized
-        payment_details = PaymentDetails(self.comm_session)
-        payment_details_req = get_dummy_v2g_message_payment_details_req()
-        await payment_details.process_message(payment_details_req)
-
-        assert isinstance(
-            self.comm_session.contract_cert_chain, CertificateChain
-        ), "Comm session certificate chain not populated"
-        assert (
-            payment_details.next_state == Authorization
-        ), "State did not progress after PaymentDetailsReq"
-        mock_is_authorized.assert_called_once()
-        req_body = payment_details_req.body.payment_details_req
-        assert mock_is_authorized.call_args[1]["id_token"] == req_body.emaid
-        assert mock_is_authorized.call_args[1]["id_token_type"] == (
-            AuthorizationTokenType.EMAID
-        )
-
-    @patch.object(
-        PaymentDetails,
-        "_mobility_operator_root_cert_path",
-        return_value=Path(__file__).parent.parent.parent
-        / "sample_certs"
-        / "moRootCACert.der",
+    @pytest.mark.parametrize(
+        "is_authorized_return_value, expected_next_state",
+        [
+            (AuthorizationStatus.ACCEPTED, Authorization),
+            (AuthorizationStatus.ONGOING, Authorization),
+            (AuthorizationStatus.REJECTED, Terminate),
+        ],
     )
-    async def test_payment_details_next_state_on_payment_details_req_auth_failed(
-        self, mo_root_cert_path_mock
+    async def test_payment_details_next_state_on_payment_details_req_auth(
+        self,
+        mo_root_cert_path_mock,
+        is_authorized_return_value: AuthorizationStatus,
+        expected_next_state: StateSECC,
     ):
-        self.comm_session.selected_auth_option = AuthEnum.PNC_V2
-
-        mock_is_authorized = AsyncMock(return_value=AuthorizationStatus.REJECTED)
-        self.comm_session.evse_controller.is_authorized = mock_is_authorized
         self.comm_session.writer = Mock()
         self.comm_session.writer.get_extra_info = Mock()
+
+        self.comm_session.selected_auth_option = AuthEnum.PNC_V2
+        mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
+        self.comm_session.evse_controller.is_authorized = mock_is_authorized
         payment_details = PaymentDetails(self.comm_session)
         payment_details_req = get_dummy_v2g_message_payment_details_req()
         await payment_details.process_message(payment_details_req)
@@ -121,7 +103,7 @@ class TestEvScenarios:
             self.comm_session.contract_cert_chain, CertificateChain
         ), "Comm session certificate chain not populated"
         assert (
-            payment_details.next_state == Terminate
+            payment_details.next_state == expected_next_state
         ), "State did not progress after PaymentDetailsReq"
         mock_is_authorized.assert_called_once()
         req_body = payment_details_req.body.payment_details_req
@@ -131,33 +113,86 @@ class TestEvScenarios:
         )
 
     @pytest.mark.parametrize(
-        "is_authorized_return_value, expected_next_state",
+        "auth_type, is_authorized_return_value, expected_next_state,"
+        "expected_response_code, expected_evse_processing",
         [
-            (AuthorizationStatus.ACCEPTED, ChargeParameterDiscovery),
-            (AuthorizationStatus.ONGOING, Authorization),
-            pytest.param(
+            (
+                AuthEnum.EIM,
+                AuthorizationStatus.ACCEPTED,
+                ChargeParameterDiscovery,
+                ResponseCode.OK,
+                EVSEProcessing.FINISHED,
+            ),
+            (
+                AuthEnum.EIM,
+                AuthorizationStatus.ONGOING,
+                None,
+                ResponseCode.OK,
+                EVSEProcessing.ONGOING,
+            ),
+            (
+                AuthEnum.EIM,
                 AuthorizationStatus.REJECTED,
                 Terminate,
-                marks=pytest.mark.xfail(
-                    reason="REJECTED handling not implemented yet; "
-                    "see GitHub issue #54",
-                ),
+                ResponseCode.FAILED,
+                EVSEProcessing.FINISHED,
+            ),
+            (
+                AuthEnum.PNC_V2,
+                AuthorizationStatus.ACCEPTED,
+                ChargeParameterDiscovery,
+                ResponseCode.OK,
+                EVSEProcessing.FINISHED,
+            ),
+            (
+                AuthEnum.PNC_V2,
+                AuthorizationStatus.ONGOING,
+                None,
+                ResponseCode.OK,
+                EVSEProcessing.ONGOING,
+            ),
+            (
+                AuthEnum.PNC_V2,
+                AuthorizationStatus.REJECTED,
+                Terminate,
+                ResponseCode.FAILED,
+                EVSEProcessing.FINISHED,
             ),
         ],
     )
     async def test_authorization_next_state_on_authorization_request(
         self,
+        auth_type: AuthEnum,
         is_authorized_return_value: AuthorizationStatus,
         expected_next_state: StateSECC,
+        expected_response_code: ResponseCode,
+        expected_evse_processing: EVSEProcessing,
     ):
-        self.comm_session.selected_auth_option = AuthEnum.EIM
+        self.comm_session.writer = Mock()
+        self.comm_session.writer.get_extra_info = Mock()
+
+        self.comm_session.selected_auth_option = auth_type
         mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
         self.comm_session.evse_controller.is_authorized = mock_is_authorized
+        # TODO: Include a real CertificateChain object and a message header
+        #       with a signature that must be return by
+        #      `get_dummy_v2g_message_authorization_req`
+        self.comm_session.contract_cert_chain = Mock()
+        self.comm_session.emaid = "dummy"
         authorization = Authorization(self.comm_session)
+        authorization.signature_verified_once = True
         await authorization.process_message(
             message=get_dummy_v2g_message_authorization_req()
         )
         assert authorization.next_state == expected_next_state
+        assert (
+            authorization.message.body.authorization_res.response_code
+            == expected_response_code
+        )
+        assert (
+            authorization.message.body.authorization_res.evse_processing
+            == expected_evse_processing
+        )
 
     async def test_charge_parameter_discovery_res_v2g2_303(self):
         # V2G2-303 : Sum of individual time intervals shall match the period of time

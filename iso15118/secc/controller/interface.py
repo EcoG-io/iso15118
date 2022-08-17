@@ -26,8 +26,8 @@ from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.enums import (
-    AuthEnum,
     AuthorizationStatus,
+    AuthorizationTokenType,
     Contactor,
     EnergyTransferModeEnum,
     Protocol,
@@ -184,7 +184,7 @@ class EVSEControllerInterface(ABC):
     async def is_authorized(
         self,
         id_token: Optional[str] = None,
-        id_token_type: Optional[AuthEnum] = None,
+        id_token_type: Optional[AuthorizationTokenType] = None,
         certificate_chain: Optional[bytes] = None,
         hash_data: Optional[List[Dict[str, str]]] = None,
     ) -> AuthorizationStatus:
