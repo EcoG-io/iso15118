@@ -113,7 +113,8 @@ class TestEvScenarios:
         )
 
     @pytest.mark.parametrize(
-        "auth_type, is_authorized_return_value, expected_next_state, expected_response_code, expected_evse_processing",
+        "auth_type, is_authorized_return_value, expected_next_state,"
+        "expected_response_code, expected_evse_processing",
         [
             (
                 AuthEnum.EIM,
