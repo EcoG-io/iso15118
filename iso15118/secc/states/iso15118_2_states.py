@@ -1071,6 +1071,7 @@ class Authorization(StateSECC):
                 message,
                 ResponseCode.FAILED,
             )
+            return
         else:
             # this means we fall into the ongoing case
             auth_status = EVSEProcessing.ONGOING

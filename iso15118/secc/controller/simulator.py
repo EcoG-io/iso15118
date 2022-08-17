@@ -428,7 +428,7 @@ class SimEVSEController(EVSEControllerInterface):
         hash_data: Optional[List[Dict[str, str]]] = None,
     ) -> AuthorizationStatus:
         """Overrides EVSEControllerInterface.is_authorized()."""
-        return AuthorizationStatus.ONGOING
+        return AuthorizationStatus.ACCEPTED
 
     async def get_sa_schedule_list_dinspec(
         self, max_schedule_entries: Optional[int], departure_time: int = 0
