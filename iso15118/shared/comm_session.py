@@ -245,7 +245,7 @@ class SessionStateMachine(ABC):
                 "next state is not Terminate"
             )
 
-    async def go_to_next_state(self):
+    def go_to_next_state(self):
         """
         This method assures that the communication session's current state is
         always up-to-date, which is something other parts of the code rely on.
@@ -479,7 +479,7 @@ class V2GCommunicationSession(SessionStateMachine):
                     return
 
                 timeout = self.current_state.next_msg_timeout
-                await self.go_to_next_state()
+                self.go_to_next_state()
             except (
                 MessageProcessingError,
                 FaultyStateImplementationError,

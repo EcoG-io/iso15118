@@ -98,7 +98,7 @@ class State(ABC):
                      process before raising a timeout
         """
         self.comm_session: Union[
-            EVCCCommunicationSession, SECCCommunicationSession
+            "EVCCCommunicationSession", "SECCCommunicationSession"
         ] = comm_session
         self.comm_session.current_state = self
         # The amount of seconds to wait for an incoming message
@@ -135,6 +135,7 @@ class State(ABC):
         self.next_msg_timeout: Union[float, int] = 0
 
         logger.info(f"Entered state {str(self)}")
+
         if timeout > 0:
             self.timeout = timeout
             logger.info(f"Waiting for up to {timeout} s")

@@ -11,7 +11,6 @@ at once, i.e. creating, storing, and deleting those sessions as needed.
 """
 
 import asyncio
-import functools
 import logging
 import socket
 from asyncio.streams import StreamReader, StreamWriter
