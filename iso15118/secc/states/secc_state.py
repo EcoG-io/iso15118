@@ -2,7 +2,7 @@
 This module contains the abstract class for an SECC-specific state,
 which extends the state shared between the EVCC and SECC.
 """
-
+import functools
 import logging
 from abc import ABC
 from typing import List, Optional, Type, TypeVar, Union
@@ -349,3 +349,14 @@ class StateSECC(State, ABC):
                 "Something's off here: the faulty_request and response_code "
                 "are not of the expected type"
             )
+
+
+def notify_state(f):
+    async def wrapper(*args):
+        print("KARATAS")
+        await args[0].comm_session.evse_controller.notify_state_changed(
+            str(args[0].comm_session.current_state)
+        )
+        return await f(*args)
+
+    return wrapper

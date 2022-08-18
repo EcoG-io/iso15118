@@ -916,3 +916,7 @@ class SimEVSEController(EVSEControllerInterface):
         ).decode("utf-8")
 
         return base64_encode_cert_install_res
+
+    async def notify_state_changed(self, state_name: str):
+        """Overrides EVSEControllerInterface.notify_state_changed()."""
+        logger.info(f"SECC iso15118 state: {state_name}")

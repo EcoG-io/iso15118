@@ -670,3 +670,12 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-20 and ISO 15118-2
         """
         raise NotImplementedError
+
+    async def notify_state_changed(self, state_name: str):
+        """
+        notifies the states if any changes on 15118 states.
+
+        Relevant for:
+        - ISO 15118-2
+        """
+        raise NotImplementedError
