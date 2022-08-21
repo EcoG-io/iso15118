@@ -72,6 +72,16 @@ class Base64:
         return self.message_name
 
 
+def notify_secc_state(f):
+    async def wrapper(*args, **kwargs):
+        await args[0].comm_session.evse_controller.notify_state_changed(
+            str(args[0].comm_session.current_state)
+        )
+        return await f(*args, **kwargs)
+
+    return wrapper
+
+
 class State(ABC):
     """
     State Base Class
@@ -369,6 +379,7 @@ class Terminate(State):
     ):
         super().__init__(comm_session)
 
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -391,6 +402,7 @@ class Pause(State):
     ):
         super().__init__(comm_session)
 
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[

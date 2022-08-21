@@ -9,7 +9,7 @@ import time
 from typing import List, Optional, Tuple, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.states.secc_state import StateSECC, notify_state
+from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
@@ -87,7 +87,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.security import get_random_bytes, verify_signature
-from iso15118.shared.states import Terminate
+from iso15118.shared.states import Terminate, notify_secc_state
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ class SessionSetup(StateSECC):
         #       SDPRequest and SupportedAppProtocolReq
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -190,7 +190,7 @@ class AuthorizationSetup(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_auth_setup_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -285,7 +285,7 @@ class CertificateInstallation(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -326,7 +326,7 @@ class Authorization(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_authorization_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -447,7 +447,7 @@ class ServiceDiscovery(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_service_discovery_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -566,7 +566,7 @@ class ServiceDetail(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.expecting_service_detail_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -640,7 +640,7 @@ class ServiceSelection(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -818,7 +818,7 @@ class ScheduleExchange(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -915,7 +915,7 @@ class PowerDelivery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1091,7 +1091,7 @@ class SessionStop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1171,7 +1171,7 @@ class ACChargeParameterDiscovery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1254,7 +1254,7 @@ class ACChargeLoop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1360,7 +1360,7 @@ class DCChargeParameterDiscovery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1443,7 +1443,7 @@ class DCCableCheck(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1467,7 +1467,7 @@ class DCPreCharge(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1491,7 +1491,7 @@ class DCChargeLoop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1515,7 +1515,7 @@ class DCWeldingDetection(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[

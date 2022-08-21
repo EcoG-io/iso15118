@@ -330,3 +330,19 @@ class TestEvScenarios:
             await self.comm_session.evse_controller.get_contactor_state()
             is Contactor.CLOSED
         )
+
+    async def test_secc_state_notify(self):
+        power_delivery = PowerDelivery(self.comm_session)
+        await power_delivery.process_message(
+            message=get_dummy_v2g_message_power_delivery_req_charge_start()
+        )
+        assert self.comm_session.evse_controller.state == "PowerDelivery"
+        charge_parameter_discovery = ChargeParameterDiscovery(self.comm_session)
+
+        charge_parameter_discovery_req_departure_time_set = (
+            get_charge_parameter_discovery_req_message_departure_time_one_hour()
+        )
+        await charge_parameter_discovery.process_message(
+            message=charge_parameter_discovery_req_departure_time_set
+        )
+        assert self.comm_session.evse_controller.state == "ChargeParameterDiscovery"

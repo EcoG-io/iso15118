@@ -9,7 +9,7 @@ import time
 from typing import Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.states.secc_state import StateSECC, notify_state
+from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
@@ -65,7 +65,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.security import get_random_bytes
-from iso15118.shared.states import State, Terminate
+from iso15118.shared.states import State, Terminate, notify_secc_state
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ class SessionSetup(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATIONSETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -154,7 +154,7 @@ class ServiceDiscovery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -234,7 +234,7 @@ class ServicePaymentSelection(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -297,7 +297,7 @@ class ContractAuthentication(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -347,7 +347,7 @@ class ChargeParameterDiscovery(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -428,7 +428,7 @@ class CableCheck(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.cable_check_req_was_received = False
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -524,7 +524,7 @@ class PreCharge(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expect_pre_charge_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -621,7 +621,7 @@ class PowerDelivery(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_power_delivery_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -728,7 +728,7 @@ class CurrentDemand(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_current_demand_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -801,7 +801,7 @@ class WeldingDetection(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expect_welding_detection = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -851,7 +851,7 @@ class SessionStop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[

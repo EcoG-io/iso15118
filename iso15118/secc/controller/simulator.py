@@ -189,6 +189,10 @@ class SimEVSEController(EVSEControllerInterface):
     A simulated version of an EVSE controller
     """
 
+    def __init__(self):
+        super().__init__()
+        self.state = None
+
     @classmethod
     async def create(cls):
         self = SimEVSEController()
@@ -919,4 +923,5 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def notify_state_changed(self, state_name: str):
         """Overrides EVSEControllerInterface.notify_state_changed()."""
-        logger.info(f"SECC iso15118 state: {state_name}")
+        logger.info(f"SECC state: {state_name}")
+        self.state = state_name

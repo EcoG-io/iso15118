@@ -25,7 +25,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
 from iso15118.shared.messages.timeouts import Timeouts
-from iso15118.shared.states import State, Terminate
+from iso15118.shared.states import State, Terminate, notify_secc_state
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ class SupportedAppProtocol(StateSECC):
         # TODO: less the time used for waiting for and processing the SDPRequest
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[

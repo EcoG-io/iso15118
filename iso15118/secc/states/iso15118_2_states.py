@@ -11,7 +11,7 @@ from typing import List, Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.interface import EVChargeParamsLimits
-from iso15118.secc.states.secc_state import StateSECC, notify_state
+from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
     CertAttributeError,
     CertChainLengthError,
@@ -126,7 +126,7 @@ from iso15118.shared.security import (
     verify_certs,
     verify_signature,
 )
-from iso15118.shared.states import Base64, State, Terminate
+from iso15118.shared.states import Base64, State, Terminate, notify_secc_state
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ class SessionSetup(StateSECC):
         #       SDPRequest and SupportedAppProtocolReq
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -227,7 +227,7 @@ class ServiceDiscovery(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_service_discovery_req: bool = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -379,7 +379,7 @@ class ServiceDetail(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_service_detail_req: bool = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -467,7 +467,7 @@ class PaymentServiceSelection(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_service_selection_req: bool = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -589,7 +589,7 @@ class CertificateInstallation(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -849,7 +849,7 @@ class PaymentDetails(StateSECC):
         """Return the path to the MO root.  Included to be patched in tests."""
         return CertPath.MO_ROOT_DER
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1002,7 +1002,7 @@ class Authorization(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1120,7 +1120,7 @@ class ChargeParameterDiscovery(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_charge_parameter_discovery_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1384,7 +1384,7 @@ class PowerDelivery(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_power_delivery_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1581,7 +1581,7 @@ class MeteringReceipt(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_metering_receipt_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1686,7 +1686,7 @@ class SessionStop(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1749,7 +1749,7 @@ class ChargingStatus(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_charging_status_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1843,7 +1843,7 @@ class CableCheck(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.cable_check_req_was_received = False
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -1941,7 +1941,7 @@ class PreCharge(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.precharge_req_was_reveived = False
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -2034,7 +2034,7 @@ class CurrentDemand(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_current_demand_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
@@ -2134,7 +2134,7 @@ class WeldingDetection(StateSECC):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.expecting_welding_detection_req = True
 
-    @notify_state
+    @notify_secc_state
     async def process_message(
         self,
         message: Union[
