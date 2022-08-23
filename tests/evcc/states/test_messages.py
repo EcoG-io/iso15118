@@ -8,13 +8,27 @@ from iso15118.shared.messages.datatypes import (
     PVEVSEPresentCurrent,
     PVEVSEPresentVoltage,
 )
-from iso15118.shared.messages.enums import IsolationLevel
+from iso15118.shared.messages.enums import (
+    IsolationLevel,
+    AuthEnum,
+    EnergyTransferModeEnum
+)
 from iso15118.shared.messages.iso15118_2.body import (
     Body,
     CurrentDemandRes,
     PowerDeliveryRes,
+    ServiceDiscoveryRes,
+    AuthOptionList
 )
-from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    ResponseCode,
+    ChargeService,
+    ServiceID,
+    ServiceCategory,
+    EnergyTransferModeList,
+    ServiceDetails,
+    ServiceList
+)
 from iso15118.shared.messages.iso15118_2.header import MessageHeader
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage
 from tests.tools import MOCK_SESSION_ID
@@ -68,3 +82,58 @@ def get_v2g_message_power_delivery_res():
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(power_delivery_res=power_delivery_res),
     )
+
+
+def get_service_details():
+    return ServiceDetails(
+        service_id=ServiceID.CERTIFICATE,
+        service_category=ServiceCategory.CERTIFICATE,
+        free_service=False
+        )
+
+
+def get_v2g_message_service_discovery_res_without_service_list():
+    charge_service = ChargeService(
+        service_id=ServiceID.CHARGING,
+        service_category=ServiceCategory.CHARGING,
+        free_service=False,
+        supported_energy_transfer_mode=EnergyTransferModeList(energy_modes=[EnergyTransferModeEnum.DC_EXTENDED])
+    )
+    service_discovery_res = ServiceDiscoveryRes(
+        response_code=ResponseCode.OK,
+        auth_option_list=AuthOptionList(auth_options=[AuthEnum.PNC_V2]),
+        charge_service=charge_service,
+        service_list=None
+    )
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(service_discovery_res=service_discovery_res)
+    )
+
+
+def get_v2g_message_service_discovery_res_with_service_list():
+
+    charge_service = ChargeService(
+        service_id=ServiceID.CERTIFICATE,
+        service_category=ServiceCategory.CERTIFICATE,
+        free_service=False,
+        supported_energy_transfer_mode=EnergyTransferModeList(energy_modes=[EnergyTransferModeEnum.DC_EXTENDED])
+    )
+    service_discovery_res = ServiceDiscoveryRes(
+        response_code=ResponseCode.OK,
+        auth_option_list=AuthOptionList(auth_options=[AuthEnum.PNC_V2]),
+        charge_service=charge_service,
+        service_list=ServiceList(services=[get_service_details()])
+    )
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(service_discovery_res=service_discovery_res)
+    )
+
+
+def get_service_discovery_response_code_not_ok():
+    temp = get_v2g_message_service_discovery_res_without_service_list()
+    temp.body.service_discovery_res.response_code = (
+        ResponseCode.FAILED
+    )
+    return temp

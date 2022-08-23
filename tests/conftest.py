@@ -24,6 +24,11 @@ def comm_evcc_session_mock():
     comm_session_mock.selected_schedule = 1
     comm_session_mock.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
     comm_session_mock.selected_charging_type_is_ac = False
+    comm_session_mock.is_tls = True
+    comm_session_mock.selected_services = []
+    comm_session_mock.service_details_to_request = []
+    comm_session_mock.writer = Mock()
+    comm_session_mock.writer.get_extra_info = Mock()
     return comm_session_mock
 
 
