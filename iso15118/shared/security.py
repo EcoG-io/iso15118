@@ -1,10 +1,11 @@
 import logging
 import os
 import secrets
+import ssl
 from base64 import urlsafe_b64encode
 from datetime import datetime
 from enum import Enum, auto
-from ssl import DER_cert_to_PEM_cert, PROTOCOL_TLSv1_2, SSLContext, SSLError, VerifyMode
+from ssl import DER_cert_to_PEM_cert, Purpose, SSLContext, SSLError, VerifyMode
 from typing import Dict, List, Optional, Tuple, Union
 
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
@@ -78,7 +79,7 @@ from iso15118.shared.messages.xmldsig import (
     Transform,
     Transforms,
 )
-from iso15118.shared.settings import PKI_PATH
+from iso15118.shared.settings import ENABLE_TLS_1_3, PKI_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -125,8 +126,14 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
          Need to figure out a way to securely store those certs and keys
          as well as read the password.
     """
-    # TODO In ISO 15118-20, we use TLS 1.3. Need to adapt that later
-    ssl_context = SSLContext(protocol=PROTOCOL_TLSv1_2)
+
+    if ENABLE_TLS_1_3:
+        ssl_context = ssl.create_default_context(
+            purpose=Purpose.CLIENT_AUTH if server_side else Purpose.SERVER_AUTH,
+            cafile=CertPath.OEM_ROOT_PEM if server_side else CertPath.V2G_ROOT_PEM,
+        )
+    else:
+        ssl_context = SSLContext(protocol=ssl.PROTOCOL_TLSv1_2)
 
     if server_side:
         try:
@@ -137,7 +144,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             )
         except SSLError:
             logger.exception(
-                "SSLError, can't load certificate chain for SSL "
+                "SSLError, can't load SECC certificate chain for SSL "
                 "context. Private key (keyfile) probably doesn't "
                 "match certificate (certfile) or password for "
                 "private is key invalid. Returning None instead."
@@ -150,24 +157,68 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             logger.exception(exc)
             return None
 
-        # In ISO 15118-2, we only verify the SECC's certificates
-        # TODO In ISO 15118-20 also verify the EVCC's certificates, but at the
-        #      point in time when the TLS session is established, we don't know
-        #      yet which protocol to use because the SupportedAppProtocolReq/Res
-        #      comes after the TLS handshake. Need to figure that out later.
-        ssl_context.verify_mode = VerifyMode.CERT_NONE
-        # The SECC must support both ciphers defined in ISO 15118-2
-        # TODO Support ciphers for ISO 15118-20 as well
-        ssl_context.set_ciphers("ECDH-ECDSA-AES128-SHA256:" "ECDHE-ECDSA-AES128-SHA256")
+        if ENABLE_TLS_1_3:
+            # In 15118-20 we should also verify EVCC's certificate chain.
+            # The spec however says TLS 1.3 should also support 15118-2
+            # (Table 5 in V2G20 specification)
+            # Marc/André - this suggests we will need mutual auth 15118-2 if
+            # TLS1.3 is enabled.
+            ssl_context.load_verify_locations(cafile=CertPath.OEM_ROOT_PEM)
+            ssl_context.verify_mode = VerifyMode.CERT_REQUIRED
+        else:
+            # In ISO 15118-2, we only verify the SECC's certificates
+            ssl_context.verify_mode = VerifyMode.CERT_NONE
+        # The SECC must support both ciphers defined in ISO 15118-20
+        # OpenSSL 1.3 supports TLS 1.3 cipher suites by default.
+        # Calling .set_ciphers to be more evident about what is available.
+        # Cipher suites for both 15118-20 and 15118-2 are provided to be compatible with
+        # both 15118 families [V2G20-2059]. The order is as specified in the
+        # specification [V2G20-1856]
+        # TODO: A configuration mechanism could be provided to add/remove cipher
+        #  suite in case where a vulnerability is identified with any of them
+        ssl_context.set_ciphers(
+            "TLS_AES_256_GCM_SHA384:"
+            "TLS_CHACHA20_POLY1305_SHA256:"
+            "ECDH-ECDSA-AES128-SHA256:"
+            "ECDHE-ECDSA-AES128-SHA256"
+        )
     else:
         # Load the V2G Root CA certificate(s) to validate the SECC's leaf and
         # Sub-CA CPO certificates. The cafile string is the path to a file of
         # concatenated (if several exist) V2G Root CA certificates in PEM format
         ssl_context.load_verify_locations(cafile=CertPath.V2G_ROOT_PEM)
+        ssl_context.check_hostname = False
         ssl_context.verify_mode = VerifyMode.CERT_REQUIRED
-        # The EVCC must support only one cipher suite, so let's choose the
+        # In 15118-20, the EVCC must support all cipher suites in the spec [V2G20-2459]
+        # In 15118-2, the EVCC must support only one cipher suite, so let's choose the
         # more secure one (ECDHE enables perfect forward secrecy)
-        ssl_context.set_ciphers("ECDHE-ECDSA-AES128-SHA256")
+        ssl_context.set_ciphers(
+            "TLS_AES_256_GCM_SHA384:"
+            "TLS_CHACHA20_POLY1305_SHA256:"
+            "ECDHE-ECDSA-AES128-SHA256"
+        )
+
+        if ENABLE_TLS_1_3:
+            try:
+                ssl_context.load_cert_chain(
+                    certfile=CertPath.OEM_CERT_CHAIN_PEM,
+                    keyfile=KeyPath.OEM_LEAF_PEM,
+                    password=load_priv_key_pass(KeyPasswordPath.OEM_LEAF_KEY_PASSWORD),
+                )
+            except SSLError:
+                logger.exception(
+                    "SSLError, can't load OEM certificate chain for SSL "
+                    "context. Private key (keyfile) probably doesn't "
+                    "match certificate (certfile) or password for "
+                    "private is key invalid. Returning None instead."
+                )
+                return None
+            except FileNotFoundError:
+                logger.exception("Can't find OEM certfile or keyfile for SSL context")
+                return None
+            except Exception as exc:
+                logger.exception(exc)
+                return None
 
     # The OpenSSL name for ECDH curve secp256r1 is prime256v1
     ssl_context.set_ecdh_curve("prime256v1")
@@ -1380,6 +1431,8 @@ class CertPath(str, Enum):
     OEM_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemSubCA2Cert.der")
     OEM_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemSubCA1Cert.der")
     OEM_ROOT_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemRootCACert.der")
+    OEM_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/oemRootCACert.pem")
+    OEM_CERT_CHAIN_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/oemCertChain.pem")
 
 
 class KeyPath(str, Enum):
