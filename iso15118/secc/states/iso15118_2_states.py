@@ -2032,11 +2032,12 @@ class PreCharge(StateSECC):
             )
             return
 
-        if not self.precharge_req_was_reveived:
-            await self.comm_session.evse_controller.set_precharge(
-                precharge_req.ev_target_voltage, precharge_req.ev_target_current
-            )
-            self.precharge_req_was_reveived = True
+        # Set precharge voltage in every loop.
+        # Because there are EVs that send a wrong Precharge-Voltage in the first message (example: BMW i3 Rex 2018)
+        await self.comm_session.evse_controller.set_precharge(
+            precharge_req.ev_target_voltage, precharge_req.ev_target_current
+        )
+        self.precharge_req_was_reveived = True
 
         dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
         evse_present_voltage = (
