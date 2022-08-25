@@ -1471,8 +1471,7 @@ class PowerDelivery(StateSECC):
             # no later than 3s after measuring CP State C or D.
             # TODO: Before closing the contactor, we may need to check to
             # ensure the CP is in state C or D
-            contactor_state = await self.comm_session.evse_controller.close_contactor()
-            if contactor_state != Contactor.CLOSED:
+            if not await self.comm_session.evse_controller.is_contactor_closed():
                 self.stop_state_machine(
                     "Contactor didnt close",
                     message,
@@ -1505,9 +1504,8 @@ class PowerDelivery(StateSECC):
             await self.comm_session.evse_controller.stop_charger()
             # 2nd once the energy transfer is properly interrupted,
             # the contactor(s) may open
-            contactor_state = await self.comm_session.evse_controller.open_contactor()
 
-            if contactor_state != Contactor.OPENED:
+            if not await self.comm_session.evse_controller.is_contactor_opened():
                 self.stop_state_machine(
                     "Contactor didnt open",
                     message,
@@ -1871,8 +1869,7 @@ class CableCheck(StateSECC):
             # Requirement in 6.4.3.106 of the IEC 61851-23
             # Any relays in the DC output circuit of the DC station shall
             # be closed during the insulation test
-            contactor_state = await self.comm_session.evse_controller.close_contactor()
-            if contactor_state != Contactor.CLOSED:
+            if not await self.comm_session.evse_controller.is_contactor_closed():
                 self.stop_state_machine(
                     "Contactor didnt close for Cable Check",
                     message,

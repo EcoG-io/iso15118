@@ -976,10 +976,8 @@ class PowerDelivery(StateSECC):
                 await self.comm_session.evse_controller.stop_charger()
                 # 2nd once the energy transfer is properly interrupted,
                 # the contactor(s) may open
-                contactor_state = (
-                    await self.comm_session.evse_controller.open_contactor()
-                )
-                if contactor_state != Contactor.OPENED:
+
+                if not await self.comm_session.evse_controller.is_contactor_opened():
                     self.stop_state_machine(
                         "Contactor didnt open",
                         message,
@@ -1019,10 +1017,7 @@ class PowerDelivery(StateSECC):
                 # equals "Start" within V2G communication session.
                 # TODO: We may need to check the CP state is C or D before
                 #  closing the contactors.
-                contactor_state = (
-                    await self.comm_session.evse_controller.close_contactor()
-                )
-                if contactor_state != Contactor.CLOSED:
+                if not await self.comm_session.evse_controller.is_contactor_closed():
                     self.stop_state_machine(
                         "Contactor didnt close",
                         message,

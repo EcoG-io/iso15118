@@ -348,9 +348,10 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def open_contactor(self) -> Contactor:
+    async def is_contactor_opened(self) -> bool:
         """
-        Sends a command to the SECC to open the contactor to terminate energy flow
+        Sends a command to the SECC to get the contactor status is opened to terminate
+        energy flow
 
         Relevant for:
         - all protocols
@@ -358,19 +359,9 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def close_contactor(self) -> Contactor:
+    async def is_contactor_closed(self) -> bool:
         """
-        Sends a command to the SECC to open the contactor to initiate energy flow
-
-        Relevant for:
-        - all protocols
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_contactor_state(self) -> Contactor:
-        """
-        Informs whether the contactor is opened or closed
+        Sends a command to the SECC to get the contactor status is closed
 
         Relevant for:
         - all protocols
