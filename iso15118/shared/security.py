@@ -407,6 +407,21 @@ def load_cert_chain(
     raise InvalidProtocolError(f"'{protocol}' is not a valid Protocol enum")
 
 
+def log_certs_details(certs: List[bytes]):
+    for cert in certs:
+        der_cert = load_der_x509_certificate(cert)
+        logger.debug(f"Subject: {der_cert.subject}")
+        logger.debug(f"Issuer: {der_cert.issuer}")
+        logger.debug(f"Serial number: {der_cert.serial_number}")
+        logger.debug(
+            f"Validity: {der_cert.not_valid_before} - {der_cert.not_valid_after}"
+        )
+        logger.debug(
+            f"Fingerprint: {der_cert.fingerprint(der_cert.signature_hash_algorithm).hex(':')}"  # noqa
+        )
+        logger.debug("===")
+
+
 def verify_certs(
     leaf_cert_bytes: bytes,
     sub_ca_certs: List[bytes],
