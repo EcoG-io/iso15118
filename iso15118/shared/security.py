@@ -128,7 +128,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
     """
 
     if ENABLE_TLS_1_3:
-        ssl_context = ssl.SSLContext()
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
     else:
         # Specifying protocol as `PROTOCOL_TLS` does best effort.
         # TLSv1.3 will be attempted and would fallback to 1.2 if not possible.
