@@ -128,11 +128,13 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
     """
 
     if ENABLE_TLS_1_3:
-        ssl_context = ssl.create_default_context(
-            purpose=Purpose.CLIENT_AUTH if server_side else Purpose.SERVER_AUTH,
-            cafile=CertPath.OEM_ROOT_PEM if server_side else CertPath.V2G_ROOT_PEM,
-        )
+        ssl_context = ssl.SSLContext()
     else:
+        # Specifying protocol as `PROTOCOL_TLS` does best effort.
+        # TLSv1.3 will be attempted and would fallback to 1.2 if not possible.
+        # However, there may be TLS clients that can't perform
+        # 1.2 fallback, here we explicitly set the TLS version
+        # to 1.2, to be sure we won't fall into connection issues
         ssl_context = SSLContext(protocol=ssl.PROTOCOL_TLSv1_2)
 
     if server_side:
