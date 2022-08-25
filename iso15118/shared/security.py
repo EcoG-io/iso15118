@@ -5,7 +5,7 @@ import ssl
 from base64 import urlsafe_b64encode
 from datetime import datetime
 from enum import Enum, auto
-from ssl import DER_cert_to_PEM_cert, Purpose, SSLContext, SSLError, VerifyMode
+from ssl import DER_cert_to_PEM_cert, SSLContext, SSLError, VerifyMode
 from typing import Dict, List, Optional, Tuple, Union
 
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
