@@ -353,4 +353,3 @@ class TestEvScenarios:
             message=get_dummy_v2g_message_power_delivery_req_charge_stop()
         )
         assert self.comm_session.evse_controller.contactor is Contactor.OPENED
-
