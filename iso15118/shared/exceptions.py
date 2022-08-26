@@ -1,5 +1,7 @@
 from typing import Any
 
+from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode
+
 
 class InvalidInterfaceError(Exception):
     """
@@ -235,3 +237,13 @@ class OCSPServerNotFoundError(Exception):
             self,
             "No OCSP server entry in Authority Information Access extension field.",
         )
+
+
+class V2GMessageValidationError(Exception):
+    """Is thrown if message validation is failed"""
+
+    def __init__(self, reason: str, response_code: ResponseCode, message: Any):
+        Exception.__init__(self)
+        self.reason = reason
+        self.response_code = response_code
+        self.message = message
