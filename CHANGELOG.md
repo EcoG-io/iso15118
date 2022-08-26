@@ -5,6 +5,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2022-08-26
+
+### Fixed
+- Empty string field causes EXI encoding error by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/106
+- fix: wrong message parameters will return FAILED_WRONG_CHARGE_PARAMETER by @ikaratass in https://github.com/SwitchEV/iso15118/pull/87
+
+### Added
+* Feat/complete pnc auth by @tropxy in https://github.com/SwitchEV/iso15118/pull/107
+* feat: Enable TLS 1.3 with mutual auth (AB:2378) by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/115
+* Log MO cert details to help with debugging. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/116
+
 ## [0.8.1] - 2022-08-08
 
 ### Fixed
