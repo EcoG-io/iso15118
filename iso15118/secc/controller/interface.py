@@ -12,10 +12,10 @@ from iso15118.shared.messages.datatypes import (
     DCEVSEStatus,
     PVEAmount,
     PVEVEnergyRequest,
-    PVEVMaxCurrentLimit,
     PVEVMaxCurrent,
-    PVEVMaxVoltageLimit,
+    PVEVMaxCurrentLimit,
     PVEVMaxVoltage,
+    PVEVMaxVoltageLimit,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
     PVEVSEMaxVoltageLimit,
@@ -75,12 +75,8 @@ class EVDataContext:
 
 @dataclass
 class EVChargeParamsLimits:
-    ev_max_voltage: Optional[
-        Union[PVEVMaxVoltageLimit, PVEVMaxVoltage]
-    ] = None
-    ev_max_current: Optional[
-        Union[PVEVMaxCurrentLimit, PVEVMaxCurrent]
-    ] = None
+    ev_max_voltage: Optional[Union[PVEVMaxVoltageLimit, PVEVMaxVoltage]] = None
+    ev_max_current: Optional[Union[PVEVMaxCurrentLimit, PVEVMaxCurrent]] = None
     e_amount: Optional[PVEAmount] = None
     ev_energy_request: Optional[PVEVEnergyRequest] = None
 
