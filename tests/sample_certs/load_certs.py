@@ -41,6 +41,19 @@ def load_root_certificate() -> Certificate:
     return root_certificate
 
 
+def load_no_ocsp_root_certificate() -> Certificate:
+    """Load the sample root certificate.
+
+    Returns:
+        The sample root certificate in DER (binary) form.
+    """
+    cert_dir = get_cert_dir()
+    with open(cert_dir / "moRootCACert_no_ocsp.der", "rb") as root_file:
+        root_certificate = root_file.read()
+
+    return root_certificate
+
+
 def load_sub_ca_1_certificate() -> Certificate:
     """Load the sample sub-CA 1 certificate.
 

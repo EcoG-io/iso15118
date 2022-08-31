@@ -1,4 +1,7 @@
 """Tests for the iso15118 security module."""
+import pytest
+from cryptography.x509 import ExtensionNotFound
+
 from iso15118.shared.security import (
     all_certificates_from_chain,
     certificate_to_pem_string,
@@ -8,6 +11,7 @@ from iso15118.shared.security import (
 from tests.sample_certs.load_certs import (
     load_certificate_chain,
     load_contract_certificate,
+    load_no_ocsp_root_certificate,
     load_root_certificate,
     load_sub_ca_2_certificate,
 )
@@ -27,6 +31,17 @@ def test_derive_certificate_hash_data_root_certificate() -> None:
         "serial_number": "12353",
         "responder_url": "http://ca.myown.com/",
     }
+
+
+def test_no_hash_data_with_no_ocsp() -> None:
+    """Tests no hash data is derived without OCSP data"""
+    # An ExtensionNotFound is raised in this case,
+    # because the field "Authority Information Access"
+    # does not exist in the Certificate
+    certificate_bytes = load_no_ocsp_root_certificate()
+
+    with pytest.raises(ExtensionNotFound):
+        derive_certificate_hash_data(certificate_bytes, certificate_bytes)
 
 
 def test_derive_certificate_hash_data_contract_certificate() -> None:
