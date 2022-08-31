@@ -12,4 +12,5 @@ domainComponent			= MO
 basicConstraints		= critical,CA:true,pathlen:0
 keyUsage				= critical,digitalSignature,nonRepudiation,keyCertSign,cRLSign
 subjectKeyIdentifier	= hash
+authorityInfoAccess = OCSP;URI:http://ca.myown.com/, caIssuers;URI:http://ca.myown.com/Intermediate-CA.cer
 

@@ -13,3 +13,4 @@ basicConstraints		= critical,CA:true
 keyUsage				= critical,keyCertSign,cRLSign
 subjectKeyIdentifier	= hash
 
+authorityInfoAccess = OCSP;URI:http://ca.myown.com/, caIssuers;URI:http://ca.myown.com/Intermediate-CA.cer

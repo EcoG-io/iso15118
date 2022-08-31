@@ -22,10 +22,10 @@ def test_derive_certificate_hash_data_root_certificate() -> None:
 
     assert hash_data == {
         "hash_algorithm": "SHA256",
-        "issuer_name_hash": "z4Yn1aMMr-YdbGaRcRFFT_qBHdaYSZdQd0586M-3HHE=",
-        "issuer_key_hash": "S4UASAPa4rzDIgjp2i6pLvhzBOUyh9TGIvJeE-qTLPQ=",
-        "serial_number": "11",
-        "responder_url": "https://www.example.com/",
+        "issuer_name_hash": "nYwcUlDO5yz8nuq_z8h5WhCkhcQA5RCWds-otYxz92g=",
+        "issuer_key_hash": "Jrz-QyKqpYx94HmEHgGCiFuTA_nC_34X9XufAQwWAsI=",
+        "serial_number": "12353",
+        "responder_url": "http://ca.myown.com/",
     }
 
 
@@ -38,10 +38,10 @@ def test_derive_certificate_hash_data_contract_certificate() -> None:
 
     assert hash_data == {
         "hash_algorithm": "SHA256",
-        "issuer_name_hash": "BQ5EPsVHvmz-iy5lfQkL4H2GonQAuyb79KJfy-shZTQ=",
-        "issuer_key_hash": "Xre37wLCZB7m4TflmE1DcRbucyVyN0BQTRdYR6buWgA=",
-        "serial_number": "15",
-        "responder_url": "https://www.example.com/",
+        "issuer_name_hash": "ZycWQ1dc_5ZgLYpfcQPBFfiSwfH925lgYXu_ZmpDuWg=",
+        "issuer_key_hash": "a7mphV66rCFJ5YoOqhReENHt78yrJzxitGxerv-FU54=",
+        "serial_number": "12356",
+        "responder_url": "http://ca.myown.com/",
     }
 
 
@@ -53,7 +53,7 @@ def test_certificate_to_pem_string() -> None:
     # very informative, so we just check the PEM format and a small part of the string.
     # It's unlikely that any reasonable implementation of certificate_to_pem_string
     # will violate this.
-    assert pem_string.startswith("-----BEGIN CERTIFICATE-----\nMIIB3jCCAYSg")
+    assert pem_string.startswith("-----BEGIN CERTIFICATE-----\nMIICSTCCAfCg")
     assert "-----END CERTIFICATE-----" in pem_string
 
 
@@ -94,31 +94,31 @@ def test_get_certificate_hash_data():
     assert hash_data == [
         {
             "hash_algorithm": "SHA256",
-            "issuer_name_hash": "BQ5EPsVHvmz-iy5lfQkL4H2GonQAuyb79KJfy-shZTQ=",
-            "issuer_key_hash": "Xre37wLCZB7m4TflmE1DcRbucyVyN0BQTRdYR6buWgA=",
-            "serial_number": "15",
-            "responder_url": "https://www.example.com/",
+            "issuer_name_hash": "ZycWQ1dc_5ZgLYpfcQPBFfiSwfH925lgYXu_ZmpDuWg=",
+            "issuer_key_hash": "a7mphV66rCFJ5YoOqhReENHt78yrJzxitGxerv-FU54=",
+            "serial_number": "12356",
+            "responder_url": "http://ca.myown.com/",
         },
         {
             "hash_algorithm": "SHA256",
-            "issuer_name_hash": "btnbzKuhBDrHRQx10P_aItU5RBDQtOcxmI_i08ntkVs=",
-            "issuer_key_hash": "CyRfoEzBwIG-hQAUZeE0KZw8tCzMYSiMgDlRy3m3Cxk=",
-            "serial_number": "13",
-            "responder_url": "https://www.example.com/",
+            "issuer_name_hash": "EmoLeXDvkq6gXNIj6788YfEhtuBM6JY-ftm44q3LZrs=",
+            "issuer_key_hash": "kEWx6E4JL3N6pYWk0R2LpvRnyXhu5uF2Xg9mH1OtdLI=",
+            "serial_number": "12355",
+            "responder_url": "http://ca.myown.com/",
         },
         {
             "hash_algorithm": "SHA256",
-            "issuer_name_hash": "z4Yn1aMMr-YdbGaRcRFFT_qBHdaYSZdQd0586M-3HHE=",
-            "issuer_key_hash": "S4UASAPa4rzDIgjp2i6pLvhzBOUyh9TGIvJeE-qTLPQ=",
-            "serial_number": "12",
-            "responder_url": "https://www.example.com/",
+            "issuer_name_hash": "nYwcUlDO5yz8nuq_z8h5WhCkhcQA5RCWds-otYxz92g=",
+            "issuer_key_hash": "Jrz-QyKqpYx94HmEHgGCiFuTA_nC_34X9XufAQwWAsI=",
+            "serial_number": "12354",
+            "responder_url": "http://ca.myown.com/",
         },
         {
             "hash_algorithm": "SHA256",
-            "issuer_name_hash": "z4Yn1aMMr-YdbGaRcRFFT_qBHdaYSZdQd0586M-3HHE=",
-            "issuer_key_hash": "S4UASAPa4rzDIgjp2i6pLvhzBOUyh9TGIvJeE-qTLPQ=",
-            "serial_number": "11",
-            "responder_url": "https://www.example.com/",
+            "issuer_name_hash": "nYwcUlDO5yz8nuq_z8h5WhCkhcQA5RCWds-otYxz92g=",
+            "issuer_key_hash": "Jrz-QyKqpYx94HmEHgGCiFuTA_nC_34X9XufAQwWAsI=",
+            "serial_number": "12353",
+            "responder_url": "http://ca.myown.com/",
         },
     ]
 

@@ -12,4 +12,4 @@ domainComponent			= MO
 basicConstraints		= critical,CA:false
 keyUsage				= critical,digitalSignature,nonRepudiation,keyEncipherment,keyAgreement
 subjectKeyIdentifier	= hash
-
+authorityInfoAccess = OCSP;URI:http://ca.myown.com/, caIssuers;URI:http://ca.myown.com/Intermediate-CA.cer

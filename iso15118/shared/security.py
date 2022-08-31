@@ -1235,11 +1235,8 @@ def derive_certificate_hash_data(
 
     try:
         responder_url = get_ocsp_url_for_certificate(certificate)
-    except (ExtensionNotFound, OCSPServerNotFoundError):
-        # TODO GitHub#96: This may just result in failure down the road.
-        # Should we let this fail on these exceptions, or is there
-        # another way to try to get a responder_url?
-        responder_url = "https://www.example.com/"
+    except (ExtensionNotFound, OCSPServerNotFoundError) as e:
+        raise e
 
     # Some further details on distinguished names,
     # per https://www.ibm.com/docs/en/i/7.2?topic=concepts-distinguished-name :
@@ -1323,8 +1320,8 @@ def get_ocsp_url_for_certificate(certificate: Certificate) -> str:
 
 
 def all_certificates_from_chain(
-    certificate_chain: CertificateChainV2, root_cert: Optional[Certificate]
-) -> List[Certificate]:
+    certificate_chain: CertificateChainV2, root_cert: Optional[bytes]
+) -> List[bytes]:
     """Return all certificates from a certificate chain as a list.
 
     The order should be: leaf certificate, sub-CA 2, sub-CA 1, root,
@@ -1348,7 +1345,7 @@ def all_certificates_from_chain(
 
 def get_certificate_hash_data(
     certificate_chain: Optional[CertificateChainV2],
-    root_cert: Optional[Certificate],
+    root_cert: Optional[bytes],
 ) -> Optional[List[Dict[str, str]]]:
     """Return a list of hash data for a contract certificate chain.
 
@@ -1376,21 +1373,29 @@ def get_certificate_hash_data(
         return None
 
     all_certificates = all_certificates_from_chain(certificate_chain, root_cert)
-    # Each certificate is followed by its issuer, except for the root,
+    # The `all_certificates` list will have the following line-up
+    # [leaf, subca2, subca1, root]
+    # Thus, each certificate is followed by its issuer, except for the root,
     # which is self-signed.
-    certificate_and_issuer_pairs = [
-        (all_certificates[i], all_certificates[i + 1])
-        for i in range(len(all_certificates) - 1)
-    ] + [(root_cert, root_cert)]
-
-    return [
-        derive_certificate_hash_data(certificate, issuer)
-        for certificate, issuer in certificate_and_issuer_pairs
-    ]
+    hash_data: List[Dict[str, str]] = []
+    for idx, certificate in enumerate(all_certificates):
+        try:
+            if idx < len(all_certificates) - 1:
+                hash_data.append(
+                    derive_certificate_hash_data(certificate, all_certificates[idx + 1])
+                )
+            else:
+                # the last entry of the list contains the root_cert which
+                # is a self-signed certificate
+                hash_data.append(derive_certificate_hash_data(root_cert, root_cert))
+        except (ExtensionNotFound, OCSPServerNotFoundError):
+            # if we cant extract the OCSP data, then we ignore it and move on
+            continue
+    return hash_data
 
 
 def build_pem_certificate_chain(
-    certificate_chain: Optional[CertificateChainV2], root_cert: Optional[Certificate]
+    certificate_chain: Optional[CertificateChainV2], root_cert: Optional[bytes]
 ) -> Optional[str]:
     """Return a string of certificates in PEM form concatenated together."""
     if certificate_chain is None:
