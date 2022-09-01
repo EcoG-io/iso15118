@@ -1219,7 +1219,7 @@ def derive_certificate_hash_data(
             Only SHA256, SHA384, and SHA512 are allowed.
             (3.42 HashAlgorithmEnumType, p. 403, OCPP 2.0.1 Part 2)
     """
-    certificate = load_der_x509_certificate(certificate)
+    certificate: Certificate = load_der_x509_certificate(certificate)
     issuer_certificate = load_der_x509_certificate(issuer_certificate)
     builder = OCSPRequestBuilder().add_certificate(
         certificate, issuer_certificate, certificate.signature_hash_algorithm
@@ -1231,7 +1231,11 @@ def derive_certificate_hash_data(
     # Only SHA256, SHA384, and SHA512 are allowed in OCPP 2.0.1.
     hash_algorithm_for_ocpp = certificate.signature_hash_algorithm.name.upper()
     if hash_algorithm_for_ocpp not in {"SHA256", "SHA384", "SHA512"}:
-        raise CertAttributeError("Unknown hash algorithm")
+        raise CertAttributeError(
+            subject=certificate.subject.__str__(),
+            attr="HashAlgorithm",
+            invalid_value=hash_algorithm_for_ocpp
+        )
 
     try:
         responder_url = get_ocsp_url_for_certificate(certificate)
