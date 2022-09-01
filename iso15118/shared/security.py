@@ -1306,8 +1306,10 @@ def get_ocsp_url_for_certificate(certificate: Certificate) -> str:
             ExtensionOID.AUTHORITY_INFORMATION_ACCESS
         ).value
     except ExtensionNotFound:
-        logger.debug(f"Authority Information Access extension not "
-                     f"found for {certificate.subject.__str__()}.")
+        logger.debug(
+            f"Authority Information Access extension not "
+            f"found for {certificate.subject.__str__()}."
+        )
         raise
 
     ocsps = [
