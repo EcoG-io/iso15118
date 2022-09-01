@@ -395,8 +395,11 @@ class V2GCommunicationSession(SessionStateMachine):
         #      link connection
         logger.info(f"{terminate_or_pause}d the data link")
         await asyncio.sleep(3)
-        self.writer.close()
-        await self.writer.wait_closed()
+        try:
+            self.writer.close()
+            await self.writer.wait_closed()
+        except ConnectionResetError as exc:
+            logger.info(str(exc))
         logger.info(
             "TCP connection closed to peer with address "
             f"{self.writer.get_extra_info('peername')}"
