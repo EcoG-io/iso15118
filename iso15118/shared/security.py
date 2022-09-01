@@ -1234,7 +1234,7 @@ def derive_certificate_hash_data(
         raise CertAttributeError(
             subject=certificate.subject.__str__(),
             attr="HashAlgorithm",
-            invalid_value=hash_algorithm_for_ocpp
+            invalid_value=hash_algorithm_for_ocpp,
         )
 
     try:
