@@ -1306,7 +1306,8 @@ def get_ocsp_url_for_certificate(certificate: Certificate) -> str:
             ExtensionOID.AUTHORITY_INFORMATION_ACCESS
         ).value
     except ExtensionNotFound:
-        logger.debug("Authority Information Access extension not found.")
+        logger.debug(f"Authority Information Access extension not "
+                     f"found for {certificate.subject.__str__()}.")
         raise
 
     ocsps = [
@@ -1395,7 +1396,7 @@ def get_certificate_hash_data(
     except (ExtensionNotFound, OCSPServerNotFoundError):
         # if we cant extract the OCSP from one of the certificates,
         # then there is no point of building the hash data
-        return
+        return None
     return hash_data
 
 
