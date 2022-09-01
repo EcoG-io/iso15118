@@ -138,6 +138,15 @@ def test_get_certificate_hash_data():
     ]
 
 
+def test_no_hash_data_with_no_ocsp_cert():
+    """If a cert has no OCSP data, then the hash data is not generated"""
+    cert_chain = load_certificate_chain()
+    root_cert = load_no_ocsp_root_certificate()
+    hash_data = get_certificate_hash_data(cert_chain, root_cert)
+
+    assert hash_data is None
+
+
 def test_get_certificate_hash_data_no_chain():
     """Test that get_certificate_hash_data returns None with no chain."""
     cert_chain = None

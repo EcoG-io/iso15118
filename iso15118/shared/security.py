@@ -1382,19 +1382,20 @@ def get_certificate_hash_data(
     # Thus, each certificate is followed by its issuer, except for the root,
     # which is self-signed.
     hash_data: List[Dict[str, str]] = []
-    for idx, certificate in enumerate(all_certificates):
-        try:
+    try:
+        for idx, certificate in enumerate(all_certificates):
             if idx < len(all_certificates) - 1:
                 hash_data.append(
                     derive_certificate_hash_data(certificate, all_certificates[idx + 1])
                 )
             else:
-                # the last entry of the list contains the root_cert which
+                # the last entry of the list contains the root_cert, which
                 # is a self-signed certificate
                 hash_data.append(derive_certificate_hash_data(root_cert, root_cert))
-        except (ExtensionNotFound, OCSPServerNotFoundError):
-            # if we cant extract the OCSP data, then we ignore it and move on
-            continue
+    except (ExtensionNotFound, OCSPServerNotFoundError):
+        # if we cant extract the OCSP from one of the certificates,
+        # then there is no point of building the hash data
+        return
     return hash_data
 
 
