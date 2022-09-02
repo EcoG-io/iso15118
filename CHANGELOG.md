@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat: update python to 3.10 in pyproject toml by @mdwcrft in https://github.com/SwitchEV/iso15118/pull/111
 - feat: add make test command by @mdwcrft in https://github.com/SwitchEV/iso15118/pull/110
 
-### A
+### Added
 
 - Imp/get contactor state by @ikaratass in https://github.com/SwitchEV/iso15118/pull/123
 
