@@ -73,7 +73,7 @@ class V2GMessage(BaseModel, ABC):
     """See section 8.3 in ISO 15118-20
     This class model follows the schemas, where the
     V2GMessage type is defined, in the V2G_CI_CommonTypes.xsd schema.
-    This type is the base of all messages and contains the the Header
+    This type is the base of all messages and contains the Header
 
     This is a tiny but quite important difference in respect to ISO 15118-2 payload
     structure, where the header is not included within each Request and Response message

@@ -21,4 +21,6 @@ V20_EVSE_SERVICES_CONFIG = env.str(
     "V20_SERVICE_CONFIG",
     default=SHARED_CWD + "/examples/15118_20_evse_service_config.json",
 )
+
+ENABLE_TLS_1_3 = env.bool("ENABLE_TLS_1_3", default=False)
 env.seal()  # raise all errors at once, if any

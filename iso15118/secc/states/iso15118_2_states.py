@@ -122,6 +122,7 @@ from iso15118.shared.security import (
     get_random_bytes,
     load_cert,
     load_priv_key,
+    log_certs_details,
     verify_certs,
     verify_signature,
 )
@@ -864,6 +865,10 @@ class PaymentDetails(StateSECC):
         try:
             leaf_cert = payment_details_req.cert_chain.certificate
             sub_ca_certs = payment_details_req.cert_chain.sub_certificates.certificates
+
+            # Logging MO certificate and chain details to help with debugging.
+            log_certs_details([leaf_cert])
+            log_certs_details(sub_ca_certs)
             # TODO There should be an OCPP setting that determines whether
             #      or not the charging station should verify (is in
             #      possession of MO or V2G Root certificates) or if it

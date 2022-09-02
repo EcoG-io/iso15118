@@ -15,6 +15,7 @@ from typing import Optional, Tuple, Type
 
 from pydantic import Field, root_validator, validator
 
+from iso15118.shared.exceptions import V2GMessageValidationError
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
@@ -251,15 +252,9 @@ class ChargeParameterDiscoveryReq(BodyBase):
 
         Pydantic validators are "class methods",
         see https://pydantic-docs.helpmanual.io/usage/validators/
-        TODO We need to actually send FAILED_WrongChargeParameter or
-             FAILED_WrongEnergyTransferMode if the wrong parameter set is
-             provided, one or multiple parameters can not be interpreted
-             (see [V2G2-477]). Need to check how to not just bury
-             that information in a pydantic validation error.
         """
         # pylint: disable=no-self-argument
         # pylint: disable=no-self-use
-
         requested_energy_mode, ac_params, dc_params = (
             values.get("requested_energy_mode"),
             values.get("ac_ev_charge_parameter"),
@@ -268,10 +263,13 @@ class ChargeParameterDiscoveryReq(BodyBase):
         if ("AC_" in requested_energy_mode and dc_params) or (
             "DC_" in requested_energy_mode and ac_params
         ):
-            raise ValueError(
-                "Wrong charge parameters for requested energy "
-                f"transfer mode {requested_energy_mode}"
+            raise V2GMessageValidationError(
+                "[V2G2-477] Wrong charge parameters for requested energy "
+                f"transfer mode {requested_energy_mode}",
+                ResponseCode.FAILED_WRONG_CHARGE_PARAMETER,
+                cls,
             )
+
         return values
 
 

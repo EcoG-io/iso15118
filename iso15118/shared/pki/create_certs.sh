@@ -261,6 +261,10 @@ openssl x509 -req -in $CSR_PATH/oemSubCA2.csr -extfile configs/oemSubCA2Cert.cnf
 openssl ecparam -genkey -name $EC_CURVE | openssl ec $SYMMETRIC_CIPHER -passout pass:$password -out $KEY_PATH/oemLeaf.key
 openssl req -new -key $KEY_PATH/oemLeaf.key -passin pass:$password -config configs/oemLeafCert.cnf -out $CSR_PATH/oemLeafCert.csr
 openssl x509 -req -in $CSR_PATH/oemLeafCert.csr -extfile configs/oemLeafCert.cnf -extensions ext -CA $CERT_PATH/oemSubCA2Cert.pem -CAkey $KEY_PATH/oemSubCA2.key -passin pass:$password -set_serial 12352 -days $VALIDITY_OEM_LEAF_CERT -out $CERT_PATH/oemLeafCert.pem
+# 8.1) Concatenate the OEM certificate with the OEM Sub-2 and Sub-1 certificates to
+#      provide a certificate chain that can be used for an SSL context when
+#      implementing the TLS handshake. This applies only to TLS 1.3 for 15118-20
+cat $CERT_PATH/oemLeafCert.pem $CERT_PATH/oemSubCA2Cert.pem $CERT_PATH/oemSubCA1Cert.pem > $CERT_PATH/oemCertChain.pem
 
 
 # 9) Create a self-signed MORootCA (mobility operator) certificate
