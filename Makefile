@@ -87,6 +87,18 @@ run-evcc:
 run-secc:
 	$(shell which python) iso15118/secc/main.py
 
+# Run pytest on evcc
+test-evcc:
+	pytest tests/evcc
+
+# Run pytest on secc
+test-secc:
+	pytest tests/secc
+
+# Run pytest
+test:
+	pytest tests
+
 # Run mypy checks
 mypy:
 	mypy --config-file mypy.ini iso15118 tests
