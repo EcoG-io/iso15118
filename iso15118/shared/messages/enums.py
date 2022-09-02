@@ -415,12 +415,6 @@ class PriceAlgorithm(str, Enum):
     STACKED_POWER = "urn:iso:std:iso:15118:-20:PriceAlgorithm:3-StackedEnergy"
 
 
-class Contactor(IntEnum):
-    ERROR = 0
-    OPENED = 1
-    CLOSED = 2
-
-
 class AuthorizationTokenType(str, Enum):
     EMAID = "eMAID"
     # TODO GitHub#95: Do we need to define this in a more complete way?

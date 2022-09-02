@@ -51,7 +51,6 @@ from iso15118.shared.messages.din_spec.datatypes import (
 from iso15118.shared.messages.enums import (
     AuthorizationStatus,
     AuthorizationTokenType,
-    Contactor,
     EnergyTransferModeEnum,
     IsolationLevel,
     Namespace,
@@ -192,7 +191,6 @@ class SimEVSEController(EVSEControllerInterface):
     @classmethod
     async def create(cls):
         self = SimEVSEController()
-        self.contactor = Contactor.OPENED
         self.ev_data_context = EVDataContext()
         self.v20_service_id_parameter_mapping = (
             await read_service_id_parameter_mappings()
@@ -553,19 +551,13 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.service_renegotiation_supported()."""
         return False
 
-    async def close_contactor(self) -> Contactor:
-        """Overrides EVSEControllerInterface.close_contactor()."""
-        self.contactor = Contactor.CLOSED
-        return self.contactor
+    async def is_contactor_closed(self) -> bool:
+        """Overrides EVSEControllerInterface.is_contactor_closed()."""
+        return True
 
-    async def open_contactor(self) -> Contactor:
-        """Overrides EVSEControllerInterface.open_contactor()."""
-        self.contactor = Contactor.OPENED
-        return self.contactor
-
-    async def get_contactor_state(self) -> Contactor:
-        """Overrides EVSEControllerInterface.get_contactor_state()."""
-        return self.contactor
+    async def is_contactor_opened(self) -> bool:
+        """Overrides EVSEControllerInterface.is_contactor_opened()."""
+        return True
 
     async def get_evse_status(self) -> EVSEStatus:
         """Overrides EVSEControllerInterface.get_evse_status()."""

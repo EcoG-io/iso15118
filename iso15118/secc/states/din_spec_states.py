@@ -52,7 +52,6 @@ from iso15118.shared.messages.din_spec.timeouts import Timeouts
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
-    Contactor,
     DCEVErrorCode,
     EVSEProcessing,
     IsolationLevel,
@@ -454,8 +453,7 @@ class CableCheck(StateSECC):
             # Requirement in 6.4.3.106 of the IEC 61851-23
             # Any relays in the DC output circuit of the DC station shall
             # be closed during the insulation test
-            contactor_state = await self.comm_session.evse_controller.close_contactor()
-            if contactor_state != Contactor.CLOSED:
+            if not await self.comm_session.evse_controller.is_contactor_closed():
                 self.stop_state_machine(
                     "Contactor didnt close for Cable Check",
                     message,
@@ -684,8 +682,7 @@ class PowerDelivery(StateSECC):
             await self.comm_session.evse_controller.stop_charger()
             # 2nd once the energy transfer is properly interrupted,
             # the contactor(s) may open
-            contactor_state = await self.comm_session.evse_controller.open_contactor()
-            if contactor_state != Contactor.OPENED:
+            if not await self.comm_session.evse_controller.is_contactor_opened():
                 self.stop_state_machine(
                     "Contactor didnt open",
                     message,
