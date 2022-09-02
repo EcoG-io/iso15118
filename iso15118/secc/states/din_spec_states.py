@@ -52,7 +52,6 @@ from iso15118.shared.messages.din_spec.timeouts import Timeouts
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
-    Contactor,
     DCEVErrorCode,
     EVSEProcessing,
     IsolationLevel,

@@ -19,7 +19,6 @@ from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDIN
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
-    Contactor,
     ControlMode,
     ISOV20PayloadTypes,
     Namespace,

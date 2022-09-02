@@ -51,7 +51,6 @@ from iso15118.shared.messages.din_spec.datatypes import (
 from iso15118.shared.messages.enums import (
     AuthorizationStatus,
     AuthorizationTokenType,
-    Contactor,
     EnergyTransferModeEnum,
     IsolationLevel,
     Namespace,

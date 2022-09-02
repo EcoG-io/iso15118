@@ -37,7 +37,6 @@ from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
     AuthorizationTokenType,
-    Contactor,
     DCEVErrorCode,
     EVSEProcessing,
     IsolationLevel,
