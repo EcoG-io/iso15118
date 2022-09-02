@@ -335,21 +335,3 @@ class TestEvScenarios:
         )
 
         self.comm_session.evse_controller.set_hlc_charging.assert_called_with(False)
-
-    async def test_power_delivery_contactor_close(
-        self,
-    ):
-        power_delivery = PowerDelivery(self.comm_session)
-        await power_delivery.process_message(
-            message=get_dummy_v2g_message_power_delivery_req_charge_start()
-        )
-        assert self.comm_session.evse_controller.contactor is Contactor.CLOSED
-
-    async def test_power_delivery_contactor_is_opened(
-        self,
-    ):
-        power_delivery = PowerDelivery(self.comm_session)
-        await power_delivery.process_message(
-            message=get_dummy_v2g_message_power_delivery_req_charge_stop()
-        )
-        assert self.comm_session.evse_controller.contactor is Contactor.OPENED
