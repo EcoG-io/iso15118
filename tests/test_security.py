@@ -1,4 +1,7 @@
 """Tests for the iso15118 security module."""
+import pytest
+from cryptography.x509 import ExtensionNotFound
+
 from iso15118.shared.security import (
     all_certificates_from_chain,
     certificate_to_pem_string,
@@ -8,6 +11,7 @@ from iso15118.shared.security import (
 from tests.sample_certs.load_certs import (
     load_certificate_chain,
     load_contract_certificate,
+    load_no_ocsp_root_certificate,
     load_root_certificate,
     load_sub_ca_2_certificate,
 )
@@ -22,11 +26,22 @@ def test_derive_certificate_hash_data_root_certificate() -> None:
 
     assert hash_data == {
         "hash_algorithm": "SHA256",
-        "issuer_name_hash": "z4Yn1aMMr-YdbGaRcRFFT_qBHdaYSZdQd0586M-3HHE=",
-        "issuer_key_hash": "S4UASAPa4rzDIgjp2i6pLvhzBOUyh9TGIvJeE-qTLPQ=",
-        "serial_number": "11",
+        "issuer_name_hash": "nYwcUlDO5yz8nuq_z8h5WhCkhcQA5RCWds-otYxz92g=",
+        "issuer_key_hash": "sB_ugYa6EuIbiu8qiK8BueX2bB74WwFiUnPiaoRlK8k=",
+        "serial_number": "12353",
         "responder_url": "https://www.example.com/",
     }
+
+
+def test_no_hash_data_with_no_ocsp() -> None:
+    """Tests no hash data is derived without OCSP data"""
+    # An ExtensionNotFound is raised in this case,
+    # because the field "Authority Information Access"
+    # does not exist in the Certificate
+    certificate_bytes = load_no_ocsp_root_certificate()
+
+    with pytest.raises(ExtensionNotFound):
+        derive_certificate_hash_data(certificate_bytes, certificate_bytes)
 
 
 def test_derive_certificate_hash_data_contract_certificate() -> None:
@@ -38,9 +53,9 @@ def test_derive_certificate_hash_data_contract_certificate() -> None:
 
     assert hash_data == {
         "hash_algorithm": "SHA256",
-        "issuer_name_hash": "BQ5EPsVHvmz-iy5lfQkL4H2GonQAuyb79KJfy-shZTQ=",
-        "issuer_key_hash": "Xre37wLCZB7m4TflmE1DcRbucyVyN0BQTRdYR6buWgA=",
-        "serial_number": "15",
+        "issuer_name_hash": "ZycWQ1dc_5ZgLYpfcQPBFfiSwfH925lgYXu_ZmpDuWg=",
+        "issuer_key_hash": "2t1s_HMWXEZ3XCHc62k7szeq2SgB1jEOeOMizgydw0c=",
+        "serial_number": "12356",
         "responder_url": "https://www.example.com/",
     }
 
@@ -53,7 +68,7 @@ def test_certificate_to_pem_string() -> None:
     # very informative, so we just check the PEM format and a small part of the string.
     # It's unlikely that any reasonable implementation of certificate_to_pem_string
     # will violate this.
-    assert pem_string.startswith("-----BEGIN CERTIFICATE-----\nMIIB3jCCAYSg")
+    assert pem_string.startswith("-----BEGIN CERTIFICATE-----\nMIICUTCCAfig")
     assert "-----END CERTIFICATE-----" in pem_string
 
 
@@ -94,33 +109,42 @@ def test_get_certificate_hash_data():
     assert hash_data == [
         {
             "hash_algorithm": "SHA256",
-            "issuer_name_hash": "BQ5EPsVHvmz-iy5lfQkL4H2GonQAuyb79KJfy-shZTQ=",
-            "issuer_key_hash": "Xre37wLCZB7m4TflmE1DcRbucyVyN0BQTRdYR6buWgA=",
-            "serial_number": "15",
+            "issuer_name_hash": "ZycWQ1dc_5ZgLYpfcQPBFfiSwfH925lgYXu_ZmpDuWg=",
+            "issuer_key_hash": "2t1s_HMWXEZ3XCHc62k7szeq2SgB1jEOeOMizgydw0c=",
+            "serial_number": "12356",
             "responder_url": "https://www.example.com/",
         },
         {
             "hash_algorithm": "SHA256",
-            "issuer_name_hash": "btnbzKuhBDrHRQx10P_aItU5RBDQtOcxmI_i08ntkVs=",
-            "issuer_key_hash": "CyRfoEzBwIG-hQAUZeE0KZw8tCzMYSiMgDlRy3m3Cxk=",
-            "serial_number": "13",
+            "issuer_name_hash": "EmoLeXDvkq6gXNIj6788YfEhtuBM6JY-ftm44q3LZrs=",
+            "issuer_key_hash": "iwBpLgtEjxsmCqlluNckS4FJ30rAAJZgbv6bNmq6GSw=",
+            "serial_number": "12355",
             "responder_url": "https://www.example.com/",
         },
         {
             "hash_algorithm": "SHA256",
-            "issuer_name_hash": "z4Yn1aMMr-YdbGaRcRFFT_qBHdaYSZdQd0586M-3HHE=",
-            "issuer_key_hash": "S4UASAPa4rzDIgjp2i6pLvhzBOUyh9TGIvJeE-qTLPQ=",
-            "serial_number": "12",
+            "issuer_name_hash": "nYwcUlDO5yz8nuq_z8h5WhCkhcQA5RCWds-otYxz92g=",
+            "issuer_key_hash": "sB_ugYa6EuIbiu8qiK8BueX2bB74WwFiUnPiaoRlK8k=",
+            "serial_number": "12354",
             "responder_url": "https://www.example.com/",
         },
         {
             "hash_algorithm": "SHA256",
-            "issuer_name_hash": "z4Yn1aMMr-YdbGaRcRFFT_qBHdaYSZdQd0586M-3HHE=",
-            "issuer_key_hash": "S4UASAPa4rzDIgjp2i6pLvhzBOUyh9TGIvJeE-qTLPQ=",
-            "serial_number": "11",
+            "issuer_name_hash": "nYwcUlDO5yz8nuq_z8h5WhCkhcQA5RCWds-otYxz92g=",
+            "issuer_key_hash": "sB_ugYa6EuIbiu8qiK8BueX2bB74WwFiUnPiaoRlK8k=",
+            "serial_number": "12353",
             "responder_url": "https://www.example.com/",
         },
     ]
+
+
+def test_no_hash_data_with_no_ocsp_cert():
+    """If a cert has no OCSP data, then the hash data is not generated"""
+    cert_chain = load_certificate_chain()
+    root_cert = load_no_ocsp_root_certificate()
+    hash_data = get_certificate_hash_data(cert_chain, root_cert)
+
+    assert hash_data is None
 
 
 def test_get_certificate_hash_data_no_chain():

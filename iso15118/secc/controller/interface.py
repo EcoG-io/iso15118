@@ -5,14 +5,16 @@ This module contains the abstract class for an SECC to retrieve data from the EV
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
     PVEAmount,
     PVEVEnergyRequest,
+    PVEVMaxCurrent,
     PVEVMaxCurrentLimit,
+    PVEVMaxVoltage,
     PVEVMaxVoltageLimit,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
@@ -73,8 +75,8 @@ class EVDataContext:
 
 @dataclass
 class EVChargeParamsLimits:
-    ev_max_voltage: Optional[PVEVMaxVoltageLimit] = None
-    ev_max_current: Optional[PVEVMaxCurrentLimit] = None
+    ev_max_voltage: Optional[Union[PVEVMaxVoltageLimit, PVEVMaxVoltage]] = None
+    ev_max_current: Optional[Union[PVEVMaxCurrentLimit, PVEVMaxCurrent]] = None
     e_amount: Optional[PVEAmount] = None
     ev_energy_request: Optional[PVEVEnergyRequest] = None
 

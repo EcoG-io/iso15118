@@ -294,10 +294,13 @@ class StateSECC(State, ABC):
             V2GMessageV2,
             V2GMessageV20,
             V2GMessageDINSPEC,
+            None,
         ],
         response_code: Union[
             ResponseCodeSAP, ResponseCodeV2, ResponseCodeV20, ResponseCodeDINSPEC
         ],
+        message_body_type: Optional[type] = None,
+        namespace: Optional[Namespace] = None,
     ):
         """
         In case the processing of a message from the EVCC fails, the SECC needs
@@ -317,31 +320,44 @@ class StateSECC(State, ABC):
 
         if isinstance(faulty_request, V2GMessageV2):
             msg_type = get_msg_type(str(faulty_request))
+            msg_namespace = Namespace.ISO_V2_MSG_DEF
+        elif isinstance(faulty_request, V2GMessageDINSPEC):
+            msg_type = get_msg_type_dinspec(str(faulty_request))
+            msg_namespace = Namespace.DIN_MSG_DEF
+        elif isinstance(faulty_request, V2GMessageV20):
+            msg_type = type(faulty_request)
+            msg_namespace = Namespace.ISO_V20_BASE
+        elif isinstance(faulty_request, SupportedAppProtocolReq):
+            msg_namespace = Namespace.SAP
+            msg_type = faulty_request
+        else:
+            msg_type = message_body_type
+            msg_namespace = namespace
+
+        if msg_namespace == Namespace.ISO_V2_MSG_DEF:
             error_res = self.comm_session.failed_responses_isov2.get(msg_type)
             error_res.response_code = response_code
             self.create_next_message(Terminate, error_res, 0, Namespace.ISO_V2_MSG_DEF)
-        elif isinstance(faulty_request, V2GMessageDINSPEC):
-            msg_type = get_msg_type_dinspec(str(faulty_request))
+        elif msg_namespace == Namespace.DIN_MSG_DEF:
             error_res = self.comm_session.failed_responses_din_spec.get(msg_type)
             error_res.response_code = response_code
             self.create_next_message(Terminate, error_res, 0, Namespace.DIN_MSG_DEF)
         # Here we could have been more specific and check if it is a V2GRequestV20,
         # but to be consistent with the other if clauses and since there is no negative
         # consequences in the behavior of the code, we check if it is a V2GMessageV20
-        elif isinstance(faulty_request, V2GMessageV20):
+        elif msg_namespace.startswith(Namespace.ISO_V20_BASE):
             (
                 error_res,
                 namespace,
                 payload_type,
-            ) = self.comm_session.failed_responses_isov20.get(type(faulty_request))
+            ) = self.comm_session.failed_responses_isov20.get(msg_type)
             # As the Header in the case of -20 is part of the -20 message payload,
-            # we need to set the session id of the the current session to it
+            # we need to set the session id of the current session to it
             error_res.header.session_id = self.comm_session.session_id
             error_res.response_code = response_code
             self.create_next_message(Terminate, error_res, 0, namespace, payload_type)
-        elif isinstance(faulty_request, SupportedAppProtocolReq):
+        elif msg_namespace == Namespace.SAP:
             error_res = SupportedAppProtocolRes(response_code=response_code)
-
             self.create_next_message(Terminate, error_res, 0, Namespace.SAP)
         else:
             # Should actually never happen
