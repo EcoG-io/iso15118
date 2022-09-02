@@ -5,20 +5,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2022-09-2
+
+### Fixed
+
+- fixed the data type expected in EVChargeParamsLimits by @tropxy in https://github.com/SwitchEV/iso15118/pull/118
+- Fix/ocsp extraction error raised by @tropxy in https://github.com/SwitchEV/iso15118/pull/120
+- exception added for close TCP connection by @ikaratass in https://github.com/SwitchEV/iso15118/pull/121
+
+### Changed
+
+- feat: update python to 3.10 in pyproject toml by @mdwcrft in https://github.com/SwitchEV/iso15118/pull/111
+- feat: add make test command by @mdwcrft in https://github.com/SwitchEV/iso15118/pull/110
+
+### A
+
+- Imp/get contactor state by @ikaratass in https://github.com/SwitchEV/iso15118/pull/123
+
 ## [0.9.0] - 2022-08-26
 
 ### Fixed
+
 - Empty string field causes EXI encoding error by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/106
 - fix: wrong message parameters will return FAILED_WRONG_CHARGE_PARAMETER by @ikaratass in https://github.com/SwitchEV/iso15118/pull/87
 
 ### Added
-* Feat/complete pnc auth by @tropxy in https://github.com/SwitchEV/iso15118/pull/107
-* feat: Enable TLS 1.3 with mutual auth (AB:2378) by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/115
-* Log MO cert details to help with debugging. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/116
+
+- Feat/complete pnc auth by @tropxy in https://github.com/SwitchEV/iso15118/pull/107
+- feat: Enable TLS 1.3 with mutual auth (AB:2378) by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/115
+- Log MO cert details to help with debugging. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/116
 
 ## [0.8.1] - 2022-08-08
 
 ### Fixed
+
 - ChargeParameterDiscoveryRes must be ac_charge_parameter and not ac_ev… by @ikaratass in https://github.com/SwitchEV/iso15118/pull/99
 - Added more EXI debug (AB#2580) by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/100
 
@@ -41,22 +61,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.7.3] - 2022-07-15
 
 ### Fixed
+
 - Includes fixes for issues identified at the CharIN Testival July 2022 (signature verification issue in CertificateInstallation state with CertificateInstallationReq)
-  
+
 ### Removed
+
 - Removed unused EXICodec.jar.bkp file
 
 ## [0.7.2] - 2022-06-24
 
 ### Added
+
 - created a new env CERTS_GENERAL_PRIVATE_KEY_PASS_PATH to be able to d… by @tropxy in https://github.com/SwitchEV/iso15118/pull/71
 
 ## [0.7.1] - 2022-06-22
 
 ### Changed
+
 - feat: set hlc charging before closing contactor by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/67
 - Updated version_number by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/68
-
 
 ## [0.7.0] - 2022-06-20
 
