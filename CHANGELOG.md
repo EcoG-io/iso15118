@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2022-09-6
+
+### Changed
+- Reverted min Python version to 3.9 in pyproject.toml
+
+
 ## [0.10.0] - 2022-09-2
 
 ### Fixed

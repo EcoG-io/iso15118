@@ -13,7 +13,7 @@ The primary dependencies to install the project are the following:
 >    * Other non-Linux operating systems are not supported
 >
 > - Poetry [^3]
-> - Python >= 3.10
+> - Python >= 3.9
 
 There are two recommended ways of running the project:
 
