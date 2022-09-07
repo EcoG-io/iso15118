@@ -15,6 +15,7 @@ from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDIN
 class TestMessage:
     message_name: str
     json_str: str
+    description: str = ""
 
 
 # Test strings recorded 28.7.2022 with Comemso Multi Mobile DC Protocol Tester
@@ -227,6 +228,21 @@ DIN_TEST_MESSAGES = [
 ]
 
 
+DIN_REAL_WORLD_MESSAGES = [
+    TestMessage(
+        message_name="ChargeParameterDiscoveryReq",
+        json_str='{"V2G_Message": {"Header": {"SessionID": "C427C77F5FAA1DD5"}, "Body": '
+                 '{"ChargeParameterDiscoveryReq": {"EVRequestedEnergyTransferType": "DC_extended", '
+                 '"DC_EVChargeParameter": {"DC_EVStatus": {"EVReady": False, "EVErrorCode": "NO_ERROR", '
+                 '"EVRESSSOC": 43}, "EVMaximumCurrentLimit": {"Multiplier": -1, "Value": 3500}, '
+                 '"EVMaximumVoltageLimit": {"Multiplier": -1, "Value": 4690}, "EVEnergyRequest": '
+                 '{"Multiplier": 0, "Value": 500}}}}}}',
+        description="EV: VW ID3; Date: 06.09.2022; Element 'Unit' in PhysicalValuetype in DIN is optional. "
+                    "In ISO it is mandatory."
+    ),
+]
+
+
 class TestDinSpec_MessageCreation:
     # Test data recorded 28.7.2022 with Comemso Multi Mobile DC Protocol Tester
     # are showing exactly how CCS Protocol is implemented in real world.
@@ -240,6 +256,22 @@ class TestDinSpec_MessageCreation:
         ids=[f"parse_and_create_{msg.message_name}" for msg in DIN_TEST_MESSAGES],
     )
     def test_common_v2g_messages_can_be_parsed_and_created(self, message: TestMessage):
+        decoded_dict = json.loads(message.json_str, cls=CustomJSONDecoder)
+
+        message = V2GMessageDINSPEC.parse_obj(decoded_dict["V2G_Message"])
+        assert isinstance(message, V2GMessageDINSPEC)
+
+
+class TestDinSpec_RealWorldMessageCreation:
+    # This test is used to ensure the compatibility with vehicles in field which might behave not always according to
+    # standard
+
+    @pytest.mark.parametrize(
+        "message",
+        DIN_REAL_WORLD_MESSAGES,
+        ids=[f"parse_and_create_{msg.message_name}" for msg in DIN_REAL_WORLD_MESSAGES],
+    )
+    def test_real_world_v2g_messages_can_be_parsed_and_created(self, message: TestMessage):
         decoded_dict = json.loads(message.json_str, cls=CustomJSONDecoder)
 
         message = V2GMessageDINSPEC.parse_obj(decoded_dict["V2G_Message"])
