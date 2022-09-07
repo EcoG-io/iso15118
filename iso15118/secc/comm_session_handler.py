@@ -229,7 +229,10 @@ class CommunicationSessionHandler:
                     try:
                         comm_session, task = self.comm_sessions[notification.ip_address]
                         comm_session.resume()
-                    except KeyError:
+                    except (KeyError, ConnectionResetError) as e:
+                        if isinstance(e, ConnectionResetError):
+                            logger.debug("Can't resume session. End and start new one.")
+                            await self.end_current_session(notification.ip_address)
                         comm_session = SECCCommunicationSession(
                             notification.transport,
                             self._rcv_queue,
@@ -245,10 +248,7 @@ class CommunicationSessionHandler:
                     self.comm_sessions[notification.ip_address] = (comm_session, task)
                 elif isinstance(notification, StopNotification):
                     try:
-                        await cancel_task(
-                            self.comm_sessions[notification.peer_ip_address][1]
-                        )
-                        del self.comm_sessions[notification.peer_ip_address]
+                        await self.end_current_session(notification.peer_ip_address)
                     except KeyError:
                         # TODO Need to check why this KeyError happens
                         pass
@@ -261,6 +261,11 @@ class CommunicationSessionHandler:
             # TODO: What about an except here?
             finally:
                 queue.task_done()
+
+    async def end_current_session(self, peer_ip_address: str):
+        await cancel_task(self.comm_sessions[peer_ip_address][1])
+        del self.comm_sessions[peer_ip_address]
+        logger.debug(f"Existing session with {peer_ip_address} ended.")
 
     async def process_incoming_udp_packet(self, message: UDPPacketNotification):
         """
