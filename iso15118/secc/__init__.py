@@ -1,7 +1,7 @@
 import logging
-from optparse import Option
 from typing import Optional
 
+from iso15118 import __version__
 from iso15118.secc.comm_session_handler import CommunicationSessionHandler
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.secc.secc_settings import Config
@@ -30,6 +30,7 @@ class SECCHandler(CommunicationSessionHandler):
 
     async def start(self):
         try:
+            logger.info(f"Starting 15118 version: {__version__}")
             await self.start_session_handler()
         except Exception as exc:
             logger.error(f"SECC terminated: {exc}")
