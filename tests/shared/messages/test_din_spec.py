@@ -233,7 +233,7 @@ DIN_REAL_WORLD_MESSAGES = [
         message_name="ChargeParameterDiscoveryReq",
         json_str='{"V2G_Message": {"Header": {"SessionID": "C427C77F5FAA1DD5"}, "Body": '
                  '{"ChargeParameterDiscoveryReq": {"EVRequestedEnergyTransferType": "DC_extended", '
-                 '"DC_EVChargeParameter": {"DC_EVStatus": {"EVReady": False, "EVErrorCode": "NO_ERROR", '
+                 '"DC_EVChargeParameter": {"DC_EVStatus": {"EVReady": false, "EVErrorCode": "NO_ERROR", '
                  '"EVRESSSOC": 43}, "EVMaximumCurrentLimit": {"Multiplier": -1, "Value": 3500}, '
                  '"EVMaximumVoltageLimit": {"Multiplier": -1, "Value": 4690}, "EVEnergyRequest": '
                  '{"Multiplier": 0, "Value": 500}}}}}}',
