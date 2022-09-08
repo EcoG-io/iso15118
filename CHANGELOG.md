@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.2] - 2022-09-8
+
+### Fixed
+- End current session if can't resume by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/128
+
+
 ## [0.10.1] - 2022-09-6
 
 ### Changed
