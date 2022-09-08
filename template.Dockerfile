@@ -69,6 +69,6 @@ RUN /venv/bin/pip install dist/*.whl
 # This is not the ideal way to provide the certificate chain to the container, but for now it works
 COPY --from=build /usr/src/app/iso15118/shared/pki/ /usr/src/app/iso15118/shared/pki/
 
-
+RUN /venv/bin/pip install aiofile
 # This will run the entrypoint script defined in the pyproject.toml
 CMD /venv/bin/iso15118
