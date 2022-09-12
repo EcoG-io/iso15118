@@ -122,7 +122,6 @@ from iso15118.shared.security import (
     get_random_bytes,
     load_cert,
     load_priv_key,
-    log_certs_details,
     verify_certs,
     verify_signature,
 )
@@ -865,10 +864,6 @@ class PaymentDetails(StateSECC):
         try:
             leaf_cert = payment_details_req.cert_chain.certificate
             sub_ca_certs = payment_details_req.cert_chain.sub_certificates.certificates
-
-            # Logging MO certificate and chain details to help with debugging.
-            log_certs_details([leaf_cert])
-            log_certs_details(sub_ca_certs)
             # TODO There should be an OCPP setting that determines whether
             #      or not the charging station should verify (is in
             #      possession of MO or V2G Root certificates) or if it
@@ -881,8 +876,12 @@ class PaymentDetails(StateSECC):
             #      allowing the CSMS to attempt to retrieve the root certificate
             #      and construct the OCSP data itself.
             root_cert_path = self._mobility_operator_root_cert_path()
-            root_cert = load_cert(root_cert_path)
-            verify_certs(leaf_cert, sub_ca_certs, root_cert)
+            try:
+                root_cert = load_cert(root_cert_path)
+                verify_certs(leaf_cert, sub_ca_certs, root_cert)
+            except FileNotFoundError:
+                logger.warning(f"MO root cert not found {root_cert_path}")
+                root_cert = None
 
             # Note that the eMAID format (14 or 15 characters) will be validated
             # by the definition of the eMAID type in
