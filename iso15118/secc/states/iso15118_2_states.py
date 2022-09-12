@@ -881,8 +881,12 @@ class PaymentDetails(StateSECC):
             #      allowing the CSMS to attempt to retrieve the root certificate
             #      and construct the OCSP data itself.
             root_cert_path = self._mobility_operator_root_cert_path()
-            root_cert = load_cert(root_cert_path)
-            verify_certs(leaf_cert, sub_ca_certs, root_cert)
+            try:
+                root_cert = load_cert(root_cert_path)
+                verify_certs(leaf_cert, sub_ca_certs, root_cert)
+            except FileNotFoundError:
+                logger.warning(f"MO Root Cert can not be found {root_cert_path}")
+                root_cert = None
 
             # Note that the eMAID format (14 or 15 characters) will be validated
             # by the definition of the eMAID type in
