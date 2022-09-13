@@ -429,5 +429,32 @@ then
   openssl pkcs8 -topk8 -inform PEM -passin pass:$password -passout pass:$password -outform PEM -nocrypt -in $KEY_PATH/seccLeaf.key -out $PRIVATE_KEYS_DIR_SECC/${PREFIX}_EVSE_LEAF_VALID_pkcs8.key
   openssl pkcs8 -topk8 -inform PEM -passin pass:$password -passout pass:$password -outform PEM -nocrypt -in $KEY_PATH/contractLeaf.key -out $PRIVATE_KEYS_DIR_SECC/${PREFIX}_CONTRACT_LEAF_VALID_pkcs8.key
 
+  # Some Keysight systems expect the certificates in java keystore (.jks) format.
+  # The remainder of the script is to generate this.
+  KEYSTORE="keystore"
+  KEYSTORE_DIR=$PKI_EXT/$KEYSTORE
+  mkdir -p $KEYSTORE_DIR
+
+  # This is not the passphrase from the private key. This password is required to open the keystore
+  # This should be a minimum of 6 characters which is why we are not reusing the passphrase used above.
+  password_keystore=123456
+  echo $password_keystore > $KEYSTORE_DIR/password.txt
+
+  # The alias provided is based on certificates received from Keysight in the past
+  keytool -import -keystore $KEYSTORE_DIR/truststore.jks -alias v2g_root_ca -file $CERT_PATH/v2gRootCACert.der -storepass:file $KEYSTORE_DIR/password.txt -noprompt
+
+  # 1. To import a certificate with key and chain, first concatenate the sub2 and sub1 in pem format
+  # 2. Export the key, corresponding cert and the chain built in step 1 in pkcs12 format. Now we have the entire chain until the leaf node.
+  # 3. This can be imported to the keystore. The password required to open the chain is specified in srcstorepass.
+  #    The destination - .jks files needs a password and this has to be at least 6 chars.
+  # This chain is required by EVCC to build PaymentDetailsReq in 15118-2
+  cat $CERT_PATH/moSubCA2Cert.pem $CERT_PATH/moSubCA1Cert.pem > $KEYSTORE_DIR/IntermediateMOCACerts.pem
+  openssl pkcs12 -export -inkey $KEY_PATH/contractLeaf.key -in $CERT_PATH/contractLeafCert.pem -name contract_cert -certfile $KEYSTORE_DIR/IntermediateMOCACerts.pem -caname mo_subca_2 -caname mo_subca_1 -aes128 -passin pass:$password -passout pass:$password -out $KEYSTORE_DIR/moCertChain.p12
+  keytool -importkeystore -srckeystore $KEYSTORE_DIR/moCertChain.p12 -srcstoretype pkcs12 -srcstorepass $password -srcalias contract_cert -destalias contract_cert -destkeystore $KEYSTORE_DIR/keystore.jks -storepass $password_keystore -noprompt
+
+  cat $CERT_PATH/oemSubCA2Cert.pem $CERT_PATH/oemSubCA1Cert.pem > $KEYSTORE_DIR/IntermediateOEMCACerts.pem
+  openssl pkcs12 -export -inkey $KEY_PATH/oemLeaf.key -in $CERT_PATH/oemLeafCert.pem -name oem_leaf -certfile $KEYSTORE_DIR/IntermediateOEMCACerts.pem -caname oem_subca_2 -caname oem_subca_1 -aes128 -passin pass:$password -passout pass:$password -out $KEYSTORE_DIR/oemCertChain.p12
+  keytool -importkeystore -srckeystore $KEYSTORE_DIR/oemCertChain.p12 -srcstoretype pkcs12 -srcstorepass $password -srcalias oem_leaf -destalias oem_leaf -destkeystore $KEYSTORE_DIR/keystore.jks -storepass $password_keystore -noprompt
+
   echo "Certificates for Keysight tests are generated under $PKI_EXT"
 fi
