@@ -6,8 +6,7 @@ import base64
 import logging
 import math
 import time
-from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import List, Optional, Dict
 
 from aiofile import async_open
 from pydantic import BaseModel, Field
@@ -15,6 +14,7 @@ from pydantic import BaseModel, Field
 from iso15118.secc.controller.interface import (
     EVChargeParamsLimits,
     EVSEControllerInterface,
+    EVDataContext,
 )
 from iso15118.shared.exceptions import EncryptionError, PrivateKeyReadError
 from iso15118.shared.exi_codec import EXI
@@ -145,17 +145,8 @@ from iso15118.shared.settings import V20_EVSE_SERVICES_CONFIG
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class EVDataContext:
-    dc_current: Optional[int] = None
-    dc_voltage: Optional[int] = None
-    ac_current: Optional[dict] = None  # {"l1": 10, "l2": 10, "l3": 10}
-    ac_voltage: Optional[dict] = None  # {"l1": 230, "l2": 230, "l3": 230}
-    soc: Optional[int] = None  # 0-100
-
-
 class V20ServiceParamMapping(BaseModel):
-    service_id_parameter_set_mapping: dict[int, ServiceParameterList] = Field(
+    service_id_parameter_set_mapping: Dict[int, ServiceParameterList] = Field(
         ..., alias="service_id_parameter_set_mapping"
     )
 

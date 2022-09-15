@@ -390,15 +390,17 @@ class ChargeParameterDiscovery(StateSECC):
 
         evse_processing: EVSEProcessing = EVSEProcessing.ONGOING
         next_state: Type["State"] = None
+        sa_schedules = None
         if sa_schedule_list:
             evse_processing = EVSEProcessing.FINISHED
             next_state = CableCheck
+            sa_schedules = SAScheduleList(values=sa_schedule_list)
 
         charge_parameter_discovery_res: ChargeParameterDiscoveryRes = (
             ChargeParameterDiscoveryRes(
                 response_code=ResponseCode.OK,
                 evse_processing=evse_processing,
-                sa_schedule_list=SAScheduleList(values=sa_schedule_list),
+                sa_schedule_list=sa_schedules,
                 dc_charge_parameter=dc_evse_charge_params,
             )
         )
