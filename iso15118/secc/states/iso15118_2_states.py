@@ -1311,20 +1311,17 @@ class ChargeParameterDiscovery(StateSECC):
         for schedule_tuples in sa_schedules:
             schedule_duration = 0
 
-            if schedule_tuples.p_max_schedule.schedule_entries is not None:
-                first_entry_start_time = (
-                    schedule_tuples.p_max_schedule.schedule_entries[
-                        0
-                    ].time_interval.start
-                )
-                last_entry_start_time = schedule_tuples.p_max_schedule.schedule_entries[
+            p_max_sched = schedule_tuples.p_max_schedule
+            if p_max_sched.schedule_entries is not None:
+                first_entry_start_time = p_max_sched.schedule_entries[
+                    0
+                ].time_interval.start
+                last_entry_start_time = p_max_sched.schedule_entries[
                     -1
                 ].time_interval.start
-                last_entry_schedule_duration = (
-                    schedule_tuples.p_max_schedule.schedule_entries[
-                        -1
-                    ].time_interval.duration
-                )
+                last_entry_schedule_duration = p_max_sched.schedule_entries[
+                    -1
+                ].time_interval.duration
                 schedule_duration = (
                     last_entry_start_time - first_entry_start_time
                 ) + last_entry_schedule_duration

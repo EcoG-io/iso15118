@@ -1,4 +1,3 @@
-import base64
 import json
 import logging
 from base64 import b64decode, b64encode
@@ -243,9 +242,7 @@ class EXI:
             ) from exc
 
         if MESSAGE_LOG_JSON:
-            logger.debug(
-                f"Message to encode: \n{msg_content} " f"\nXSD namespace: {protocol_ns}"
-            )
+            logger.debug(f"Message to encode (ns={protocol_ns}): {msg_content}")
 
         try:
             exi_stream = self.exi_codec.encode(msg_content, protocol_ns)
@@ -256,11 +253,7 @@ class EXI:
             ) from exc
 
         if MESSAGE_LOG_EXI:
-            logger.debug(f"EXI-encoded message: \n{exi_stream.hex()}")
-            logger.debug(
-                "EXI-encoded message (Base64):"
-                f"\n{base64.b64encode(exi_stream).hex()}"
-            )
+            logger.debug(f"EXI-encoded message: {exi_stream.hex()}")
 
         return exi_stream
 
@@ -286,14 +279,7 @@ class EXI:
             EXIDecodingError
         """
         if MESSAGE_LOG_EXI:
-            logger.debug(
-                f"EXI-encoded message: \n{exi_message.hex()}"
-                f"\nXSD namespace: {namespace}"
-            )
-            logger.debug(
-                "EXI-encoded message (Base64):"
-                f"\n{base64.b64encode(exi_message).hex()}"
-            )
+            logger.debug(f"EXI-encoded message (ns={namespace}): {exi_message.hex()}")
 
         try:
             exi_decoded = self.exi_codec.decode(exi_message, namespace)
@@ -310,9 +296,7 @@ class EXI:
             ) from exc
 
         if MESSAGE_LOG_JSON:
-            logger.debug(
-                f"Decoded message: \n{decoded_dict}" f"\n XSD namespace: {namespace}"
-            )
+            logger.debug(f"Decoded message (ns={namespace}): {exi_decoded}")
 
         try:
             if namespace == Namespace.SAP and "supportedAppProtocolReq" in decoded_dict:
