@@ -948,8 +948,8 @@ class SimEVSEController(EVSEControllerInterface):
     def get_cfg_parameter(self, string, default):
         try:
                 if self.config_param[string] is None:                      
-                        raise Exception("revert to default")
-                logger.error(f"No valid configuration for {string}, revert to default")                  
+                        logger.info(f"No valid configuration for {string}, revert to default")   
+                        return default               
                 return self.config_param[string]
         except:
                 return default

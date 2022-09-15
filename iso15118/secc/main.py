@@ -24,7 +24,6 @@ async def main():
     try:
         with open(args[1]) as f:
             config_param = yaml.load(f, Loader=yaml.FullLoader)
-        print("Loading configuration parameters from " + args[1])
         logger.info(f"Loaded configuration parameters from: {args[1]}")
     except:
         with open(default_config_file) as f:
