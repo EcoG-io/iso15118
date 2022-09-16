@@ -389,6 +389,19 @@ class EVSEControllerInterface(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def set_present_protocol_state(
+        self, state_name: str
+    ):
+        """
+        This method sets the present state of the charging protocol.
+
+        Relevant for:
+        - DIN SPEC 70121
+        - ISO 15118-2
+        """
+        raise NotImplementedError
+
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================

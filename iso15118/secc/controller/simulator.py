@@ -561,6 +561,9 @@ class SimEVSEController(EVSEControllerInterface):
             notification_max_delay=0, evse_notification=EVSENotificationV20.TERMINATE
         )
 
+    def set_present_protocol_state(self, state_name: str):
+        pass
+
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
