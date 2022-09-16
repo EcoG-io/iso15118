@@ -390,9 +390,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set_present_protocol_state(
-        self, state_name: str
-    ):
+    def set_present_protocol_state(self, state_name: str):
         """
         This method sets the present state of the charging protocol.
 

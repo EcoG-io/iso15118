@@ -396,7 +396,9 @@ class PreChargeRes(Response):
     """See section 9.4.2.3.3 in DIN SPEC 70121"""
 
     dc_evse_status: DCEVSEStatus = Field(..., alias="DC_EVSEStatus")
-    evse_present_voltage: PVEVSEPresentVoltageDin = Field(..., alias="EVSEPresentVoltage")
+    evse_present_voltage: PVEVSEPresentVoltageDin = Field(
+        ..., alias="EVSEPresentVoltage"
+    )
 
 
 class CurrentDemandReq(BodyBase):
@@ -426,8 +428,12 @@ class CurrentDemandRes(Response):
     """See section 9.4.2.4.3 in DIN SPEC 70121"""
 
     dc_evse_status: DCEVSEStatus = Field(..., alias="DC_EVSEStatus")
-    evse_present_voltage: PVEVSEPresentVoltageDin = Field(..., alias="EVSEPresentVoltage")
-    evse_present_current: PVEVSEPresentCurrentDin = Field(..., alias="EVSEPresentCurrent")
+    evse_present_voltage: PVEVSEPresentVoltageDin = Field(
+        ..., alias="EVSEPresentVoltage"
+    )
+    evse_present_current: PVEVSEPresentCurrentDin = Field(
+        ..., alias="EVSEPresentCurrent"
+    )
     evse_current_limit_achieved: bool = Field(..., alias="EVSECurrentLimitAchieved")
     evse_voltage_limit_achieved: bool = Field(..., alias="EVSEVoltageLimitAchieved")
     evse_power_limit_achieved: bool = Field(..., alias="EVSEPowerLimitAchieved")
@@ -452,7 +458,9 @@ class WeldingDetectionRes(Response):
     """See section 9.4.2.5.3 in DIN SPEC 70121"""
 
     dc_evse_status: DCEVSEStatus = Field(..., alias="DC_EVSEStatus")
-    evse_present_voltage: PVEVSEPresentVoltageDin = Field(..., alias="EVSEPresentVoltage")
+    evse_present_voltage: PVEVSEPresentVoltageDin = Field(
+        ..., alias="EVSEPresentVoltage"
+    )
 
 
 class SessionStopReq(BodyBase):

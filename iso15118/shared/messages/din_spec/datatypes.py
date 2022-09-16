@@ -360,7 +360,9 @@ class DCEVChargeParameter(EVChargeParameter):
     is contained in the message ChargeParameterDiscoveryReq, this allows the
     EVSE to compute suitable PMaxSchedules.
      """
-    ev_maximum_power_limit: PVEVMaxPowerLimitDin = Field(None, alias="EVMaximumPowerLimit")
+    ev_maximum_power_limit: PVEVMaxPowerLimitDin = Field(
+        None, alias="EVMaximumPowerLimit"
+    )
     ev_maximum_voltage_limit: PVEVMaxVoltageLimitDin = Field(
         ..., alias="EVMaximumVoltageLimit"
     )
