@@ -329,135 +329,192 @@ class PVStartValue(PhysicalValue):
 
 
 class PVEVEnergyCapacityDin(PVEVEnergyCapacity):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVEnergyCapacity)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(None, alias="Unit")
 
 
 class PVEVEnergyRequestDin(PVEVEnergyRequest):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVEnergyRequest)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(None, alias="Unit")
 
 
 class PVEVMaxCurrentLimitDin(PVEVMaxCurrentLimit):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVMaxCurrentLimit)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
 
 
 class PVEVMaxPowerLimitDin(PVEVMaxPowerLimit):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVMaxPowerLimit)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.WATT] = Field(None, alias="Unit")
 
 
 class PVEVMaxVoltageLimitDin(PVEVMaxVoltageLimit):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVMaxVoltageLimit)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.VOLTAGE] = Field(None, alias="Unit")
 
 
 class PVEVSECurrentRegulationToleranceDin(PVEVSECurrentRegulationTolerance):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVSECurrentRegulationTolerance)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
 
 
 class PVEVSEEnergyToBeDeliveredDin(PVEVSEEnergyToBeDelivered):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVSEEnergyToBeDelivered)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.WATT_HOURS] = Field(None, alias="Unit")
 
 
 class PVEVSEMaxCurrentLimitDin(PVEVSEMaxCurrentLimit):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVSEMaxCurrentLimit)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
 
 
 class PVEVSEMaxPowerLimitDin(PVEVSEMaxPowerLimit):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVSEMaxPowerLimit)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.WATT] = Field(None, alias="Unit")
 
 
 class PVEVSEMaxVoltageLimitDin(PVEVSEMaxVoltageLimit):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVSEMaxVoltageLimit)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.VOLTAGE] = Field(None, alias="Unit")
 
 
 class PVEVSEMinCurrentLimitDin(PVEVSEMinCurrentLimit):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVSEMinCurrentLimit)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
 
 
 class PVEVSEMinVoltageLimitDin(PVEVSEMinVoltageLimit):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVSEMinVoltageLimit)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.VOLTAGE] = Field(None, alias="Unit")
 
 
 class PVEVSEPeakCurrentRippleDin(PVEVSEPeakCurrentRipple):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVSEPeakCurrentRipple)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
 
 
 class PVEVSEPresentCurrentDin(PVEVSEPresentCurrent):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVSEPresentCurrent)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
 
 
 class PVEVSEPresentVoltageDin(PVEVSEPresentVoltage):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVSEPresentVoltage)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.VOLTAGE] = Field(None, alias="Unit")
 
 
 class PVEVTargetCurrentDin(PVEVTargetCurrent):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVTargetCurrent)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
 
 
 class PVEVTargetVoltageDin(PVEVTargetVoltage):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVEVTargetVoltage)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.VOLTAGE] = Field(None, alias="Unit")
 
 
 class PVRemainingTimeToFullSOCDin(PVRemainingTimeToFullSOC):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVRemainingTimeToFullSOC)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.SECONDS] = Field(None, alias="Unit")
 
 
 class PVRemainingTimeToBulkSOCDin(PVRemainingTimeToBulkSOC):
-    """See section 9.5.2.4 in DIN SPEC 70121"""
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
 
-    super(PVRemainingTimeToBulkSOC)
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
     unit: Literal[UnitSymbol.SECONDS] = Field(None, alias="Unit")
 
 

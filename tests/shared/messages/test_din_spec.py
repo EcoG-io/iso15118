@@ -225,10 +225,6 @@ DIN_TEST_MESSAGES = [
         json_str='{"V2G_Message": {"Header": {"SessionID": "4FF877E9B597CC1C"},'
         '"Body": {"SessionStopRes": {"ResponseCode": "OK"}}}}',
     ),
-]
-
-
-DIN_REAL_WORLD_MESSAGES = [
     TestMessage(
         message_name="ChargeParameterDiscoveryReq",
         json_str='{"V2G_Message": {"Header": {"SessionID": "C427C77F5FAA1DD5"},'
@@ -259,24 +255,6 @@ class TestDinSpec_MessageCreation:
         ids=[f"parse_and_create_{msg.message_name}" for msg in DIN_TEST_MESSAGES],
     )
     def test_common_v2g_messages_can_be_parsed_and_created(self, message: TestMessage):
-        decoded_dict = json.loads(message.json_str, cls=CustomJSONDecoder)
-
-        message = V2GMessageDINSPEC.parse_obj(decoded_dict["V2G_Message"])
-        assert isinstance(message, V2GMessageDINSPEC)
-
-
-class TestDinSpec_RealWorldMessageCreation:
-    # This test is used to ensure the compatibility with
-    # vehicles in field which might behave not always according to standard
-
-    @pytest.mark.parametrize(
-        "message",
-        DIN_REAL_WORLD_MESSAGES,
-        ids=[f"parse_and_create_{msg.message_name}" for msg in DIN_REAL_WORLD_MESSAGES],
-    )
-    def test_real_world_v2g_messages_can_be_parsed_and_created(
-        self, message: TestMessage
-    ):
         decoded_dict = json.loads(message.json_str, cls=CustomJSONDecoder)
 
         message = V2GMessageDINSPEC.parse_obj(decoded_dict["V2G_Message"])
