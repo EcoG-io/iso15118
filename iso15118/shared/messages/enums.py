@@ -422,10 +422,6 @@ class AuthorizationTokenType(str, Enum):
     EMAID = "eMAID"
     # TODO GitHub#95: Do we need to define this in a more complete way?
     EXTERNAL = "external"
-class Contactor(IntEnum):
-    ERROR = 0
-    OPENED = 1
-    CLOSED = 2
 
 
 class CpState(str, Enum):

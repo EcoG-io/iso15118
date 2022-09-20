@@ -36,7 +36,6 @@ from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDIN
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
-    Contactor,
     CpState,
     DCEVErrorCode,
     EVSEProcessing,
@@ -1474,7 +1473,6 @@ class PowerDelivery(StateSECC):
             # no later than 3s after measuring CP State C or D.
             # Before closing the contactor, we need to check to
             # ensure the CP is in state C or D
-            if not await self.comm_session.evse_controller.is_contactor_closed():
             cp_state = await self.comm_session.evse_controller.get_cp_state()
             if cp_state not in [CpState.C2, CpState.D2]:
                 logger.info(
@@ -1495,8 +1493,7 @@ class PowerDelivery(StateSECC):
                     )
                     return
 
-            contactor_state = await self.comm_session.evse_controller.close_contactor()
-            if contactor_state != Contactor.CLOSED:
+            if not await self.comm_session.evse_controller.is_contactor_closed():
                 self.stop_state_machine(
                     "Contactor didnt close",
                     message,
