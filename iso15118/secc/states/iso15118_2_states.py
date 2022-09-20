@@ -3,8 +3,8 @@ This module contains the SECC's States used to process the EVCC's incoming
 V2GMessage objects of the ISO 15118-2 protocol, from SessionSetupReq to
 SessionStopReq.
 """
-import base64
 import asyncio
+import base64
 import logging
 import time
 from typing import List, Optional, Type, Union

@@ -5,8 +5,8 @@ import pytest
 
 from iso15118.shared.exi_codec import CustomJSONDecoder
 from iso15118.shared.messages.datatypes import (
-    PVRemainingTimeToFullSOC,
     PVRemainingTimeToBulkSOC,
+    PVRemainingTimeToFullSOC,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 
