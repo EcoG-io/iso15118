@@ -1475,7 +1475,7 @@ class PowerDelivery(StateSECC):
             # Before closing the contactor, we need to check to
             # ensure the CP is in state C or D
             if not await self.wait_for_state_c_or_d():
-                logger.error(f"Cp state is not C2 or D2 after 250ms")
+                logger.error("Cp state is not C2 or D2 after PowerDeliveryReq")
                 self.stop_state_machine(
                     "State is not C or D",
                     message,
@@ -2111,8 +2111,7 @@ class CurrentDemand(StateSECC):
             evse_voltage_limit_achieved=(
                 await evse_controller.is_evse_voltage_limit_achieved()
             ),
-            evse_power_limit_achieved=await evse_controller.is_evse_power_limit_achieved(),
-            # noqa
+            evse_power_limit_achieved=await evse_controller.is_evse_power_limit_achieved(),  # noqa
             evse_max_voltage_limit=await evse_controller.get_evse_max_voltage_limit(),
             evse_max_current_limit=await evse_controller.get_evse_max_current_limit(),
             evse_max_power_limit=await evse_controller.get_evse_max_power_limit(),
