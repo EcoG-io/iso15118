@@ -17,6 +17,7 @@ from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
     AuthorizationTokenType,
+    CpState,
     EVSEProcessing,
 )
 from iso15118.shared.messages.iso15118_2.body import ResponseCode
@@ -334,3 +335,24 @@ class TestEvScenarios:
         )
 
         self.comm_session.evse_controller.set_hlc_charging.assert_called_with(False)
+
+    @pytest.mark.parametrize(
+        "get_state_return_value, expected_next_state",
+        [
+            (CpState.C2, CurrentDemand),
+            (CpState.B2, Terminate),
+        ],
+    )
+    async def test_power_delivery_state_c(
+        self, get_state_return_value, expected_next_state
+    ):
+
+        power_delivery = PowerDelivery(self.comm_session)
+        self.comm_session.writer = Mock()
+        self.comm_session.writer.get_extra_info = Mock()
+        mock_get_cp_state = AsyncMock(return_value=get_state_return_value)
+        self.comm_session.evse_controller.get_cp_state = mock_get_cp_state
+        await power_delivery.process_message(
+            message=get_dummy_v2g_message_power_delivery_req_charge_start()
+        )
+        assert power_delivery.next_state is expected_next_state

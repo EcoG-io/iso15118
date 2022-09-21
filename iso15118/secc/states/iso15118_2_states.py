@@ -1474,25 +1474,14 @@ class PowerDelivery(StateSECC):
             # no later than 3s after measuring CP State C or D.
             # Before closing the contactor, we need to check to
             # ensure the CP is in state C or D
-            cp_state = await self.comm_session.evse_controller.get_cp_state()
-            if cp_state not in [CpState.C2, CpState.D2]:
-                logger.info(
-                    f"Cp state is not C2 or D2, state is {cp_state} .waiting for "
-                    f"C2 or D2"
+            if not await self.wait_for_state_c_or_d():
+                logger.error(f"Cp state is not C2 or D2 after 250ms")
+                self.stop_state_machine(
+                    "State is not C or D",
+                    message,
+                    ResponseCode.FAILED,
                 )
-                # wait for state C or D 250ms
-                await asyncio.sleep(0.25)
-                cp_state = await self.comm_session.evse_controller.get_cp_state()
-                if cp_state not in [CpState.C2, CpState.D2]:
-                    logger.error(
-                        f"Cp state is not C2 or D2 after 250ms, state is {cp_state}"
-                    )
-                    self.stop_state_machine(
-                        "State is not C or D",
-                        message,
-                        ResponseCode.FAILED,
-                    )
-                    return
+                return
 
             if not await self.comm_session.evse_controller.is_contactor_closed():
                 self.stop_state_machine(
@@ -1575,6 +1564,32 @@ class PowerDelivery(StateSECC):
         )
 
         self.expecting_power_delivery_req = False
+
+    async def wait_for_state_c_or_d(self) -> bool:
+        STATE_C_TIMEOUT = 0.25
+
+        async def check_state():
+            while await self.comm_session.evse_controller.get_cp_state() not in [
+                CpState.C2,
+                CpState.D2,
+            ]:
+                await asyncio.sleep(0.05)
+            logger.debug(
+                f"State is " f"{await self.comm_session.evse_controller.get_cp_state()}"
+            )
+            return True
+
+        try:
+            return await asyncio.wait_for(
+                check_state(),
+                timeout=STATE_C_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            # try one more time to get the latest state
+            return await self.comm_session.evse_controller.get_cp_state() in [
+                CpState.C2,
+                CpState.D2,
+            ]
 
 
 class MeteringReceipt(StateSECC):
@@ -2096,7 +2111,8 @@ class CurrentDemand(StateSECC):
             evse_voltage_limit_achieved=(
                 await evse_controller.is_evse_voltage_limit_achieved()
             ),
-            evse_power_limit_achieved=await evse_controller.is_evse_power_limit_achieved(),  # noqa
+            evse_power_limit_achieved=await evse_controller.is_evse_power_limit_achieved(),
+            # noqa
             evse_max_voltage_limit=await evse_controller.get_evse_max_voltage_limit(),
             evse_max_current_limit=await evse_controller.get_evse_max_current_limit(),
             evse_max_power_limit=await evse_controller.get_evse_max_power_limit(),
