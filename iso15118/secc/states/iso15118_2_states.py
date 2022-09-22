@@ -1566,6 +1566,9 @@ class PowerDelivery(StateSECC):
         self.expecting_power_delivery_req = False
 
     async def wait_for_state_c_or_d(self) -> bool:
+        # [V2G2 - 847] The EV shall signal CP State C or D no later than 250ms
+        # after sending the first PowerDeliveryReq with ChargeProgress equals
+        # "Start" within V2G Communication SessionPowerDeliveryReq.
         STATE_C_TIMEOUT = 0.25
 
         async def check_state():
