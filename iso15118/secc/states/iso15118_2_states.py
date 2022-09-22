@@ -1974,7 +1974,7 @@ class PreCharge(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
-        self.expecting_precharge_req = False
+        self.expecting_precharge_req = True
 
     async def process_message(
         self,
@@ -1990,7 +1990,7 @@ class PreCharge(StateSECC):
         msg = self.check_msg_v2(
             message,
             [PreChargeReq, PowerDeliveryReq],
-            not self.expecting_precharge_req,
+            self.expecting_precharge_req,
         )
         if not msg:
             return
@@ -2058,7 +2058,7 @@ class PreCharge(StateSECC):
             Namespace.ISO_V2_MSG_DEF,
         )
 
-        self.expecting_precharge_req = True
+        self.expecting_precharge_req = False
 
 
 class CurrentDemand(StateSECC):
