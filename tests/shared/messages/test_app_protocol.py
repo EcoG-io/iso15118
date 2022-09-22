@@ -1,8 +1,9 @@
 import json
+
 from iso15118.shared.exi_codec import CustomJSONDecoder
 from iso15118.shared.messages.app_protocol import (
-    SupportedAppProtocolRes,
     SupportedAppProtocolReq,
+    SupportedAppProtocolRes,
 )
 
 

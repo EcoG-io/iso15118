@@ -6,15 +6,15 @@ import base64
 import logging
 import math
 import time
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional
 
 from aiofile import async_open
 from pydantic import BaseModel, Field
 
 from iso15118.secc.controller.interface import (
     EVChargeParamsLimits,
-    EVSEControllerInterface,
     EVDataContext,
+    EVSEControllerInterface,
 )
 from iso15118.shared.exceptions import EncryptionError, PrivateKeyReadError
 from iso15118.shared.exi_codec import EXI
@@ -51,6 +51,7 @@ from iso15118.shared.messages.din_spec.datatypes import (
 from iso15118.shared.messages.enums import (
     AuthorizationStatus,
     AuthorizationTokenType,
+    CpState,
     EnergyTransferModeEnum,
     IsolationLevel,
     Namespace,
@@ -537,6 +538,10 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def stop_charger(self) -> None:
         pass
+
+    async def get_cp_state(self) -> CpState:
+        """Overrides EVSEControllerInterface.set_cp_state()."""
+        return CpState.C2
 
     async def service_renegotiation_supported(self) -> bool:
         """Overrides EVSEControllerInterface.service_renegotiation_supported()."""

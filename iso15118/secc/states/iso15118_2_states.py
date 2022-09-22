@@ -3,7 +3,7 @@ This module contains the SECC's States used to process the EVCC's incoming
 V2GMessage objects of the ISO 15118-2 protocol, from SessionSetupReq to
 SessionStopReq.
 """
-
+import asyncio
 import base64
 import logging
 import time
@@ -37,6 +37,7 @@ from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
     AuthorizationTokenType,
+    CpState,
     DCEVErrorCode,
     EVSEProcessing,
     IsolationLevel,
@@ -1468,10 +1469,20 @@ class PowerDelivery(StateSECC):
             # [V2G2-847] - The EV shall signal CP State C or D no later than 250ms
             # after sending the first PowerDeliveryReq with ChargeProgress equals
             # "Start" within V2G Communication SessionPowerDeliveryReq.
+
             # [V2G2-860] - If no error is detected, the SECC shall close the Contactor
             # no later than 3s after measuring CP State C or D.
-            # TODO: Before closing the contactor, we may need to check to
+            # Before closing the contactor, we need to check to
             # ensure the CP is in state C or D
+            if not await self.wait_for_state_c_or_d():
+                logger.error("Cp state is not C2 or D2 after PowerDeliveryReq")
+                self.stop_state_machine(
+                    "State is not C or D",
+                    message,
+                    ResponseCode.FAILED,
+                )
+                return
+
             if not await self.comm_session.evse_controller.is_contactor_closed():
                 self.stop_state_machine(
                     "Contactor didnt close",
@@ -1553,6 +1564,35 @@ class PowerDelivery(StateSECC):
         )
 
         self.expecting_power_delivery_req = False
+
+    async def wait_for_state_c_or_d(self) -> bool:
+        # [V2G2 - 847] The EV shall signal CP State C or D no later than 250ms
+        # after sending the first PowerDeliveryReq with ChargeProgress equals
+        # "Start" within V2G Communication SessionPowerDeliveryReq.
+        STATE_C_TIMEOUT = 0.25
+
+        async def check_state():
+            while await self.comm_session.evse_controller.get_cp_state() not in [
+                CpState.C2,
+                CpState.D2,
+            ]:
+                await asyncio.sleep(0.05)
+            logger.debug(
+                f"State is " f"{await self.comm_session.evse_controller.get_cp_state()}"
+            )
+            return True
+
+        try:
+            return await asyncio.wait_for(
+                check_state(),
+                timeout=STATE_C_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            # try one more time to get the latest state
+            return await self.comm_session.evse_controller.get_cp_state() in [
+                CpState.C2,
+                CpState.D2,
+            ]
 
 
 class MeteringReceipt(StateSECC):
