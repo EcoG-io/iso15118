@@ -5,6 +5,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2022-09-22
+
+### Added
+- Exception handling for reading mo cert by @ikaratass in https://github.com/SwitchEV/iso15118/pull/133
+- Feature/iso din bringup on comemso by @martinbachmanndesignwerk in https://github.com/SwitchEV/iso15118/pull/86
+Thank you @martinbachmanndesignwerk for your first contribution ;)
+
+### Changed
+- Improvement: Add get_cp_state method to iso15118 interface controller and include cp_status handler by @ikaratass in https://github.com/SwitchEV/iso15118/pull/77
+- bumped crypto version to 38.0.1 by @tropxy in https://github.com/SwitchEV/iso15118/pull/137
+
 ## [0.10.3] - 2022-09-10
 
 ### Added
