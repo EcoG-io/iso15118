@@ -344,8 +344,8 @@ class TestEvScenarios:
             (CpState.C1, Terminate),
             (CpState.C2, CurrentDemand),
             (CpState.D1, Terminate),
-            (CpState.D2, CurrentDemand)
-        ]
+            (CpState.D2, CurrentDemand),
+        ],
     )
     async def test_power_delivery_state_c(
         self, get_state_return_value, expected_next_state
