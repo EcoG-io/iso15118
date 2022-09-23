@@ -143,4 +143,4 @@ class SupportedAppProtocol(StateSECC):
             Namespace.SAP,
         )
         self.comm_session.protocol = selected_protocol
-        logger.debug(f"Chosen protocol: {self.comm_session.protocol}")
+        logger.info(f"Chosen protocol: {self.comm_session.protocol}")

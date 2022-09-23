@@ -139,7 +139,7 @@ class SupportedAppProtocol(StateEVCC):
                 break
 
         if match:
-            logger.debug(f"Chosen protocol: {self.comm_session.protocol}")
+            logger.info(f"Chosen protocol: {self.comm_session.protocol}")
             self.create_next_message(
                 next_state, next_msg, Timeouts.SESSION_SETUP_REQ, next_ns
             )
