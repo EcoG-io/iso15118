@@ -138,7 +138,7 @@ class State(ABC):
 
         if timeout > 0:
             self.timeout = timeout
-            logger.info(f"Waiting for up to {timeout} s")
+            logger.debug(f"Waiting for up to {timeout} s")
 
     @abstractmethod
     async def process_message(
