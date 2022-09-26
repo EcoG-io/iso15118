@@ -15,6 +15,7 @@ from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDIN
 class TestMessage:
     message_name: str
     json_str: str
+    description: str = ""
 
 
 # Test strings recorded 28.7.2022 with Comemso Multi Mobile DC Protocol Tester
@@ -223,6 +224,20 @@ DIN_TEST_MESSAGES = [
         message_name="SessionStopRes",
         json_str='{"V2G_Message": {"Header": {"SessionID": "4FF877E9B597CC1C"},'
         '"Body": {"SessionStopRes": {"ResponseCode": "OK"}}}}',
+    ),
+    TestMessage(
+        message_name="ChargeParameterDiscoveryReq",
+        json_str='{"V2G_Message": {"Header": {"SessionID": "C427C77F5FAA1DD5"},'
+        ' "Body": {"ChargeParameterDiscoveryReq": '
+        '{"EVRequestedEnergyTransferType": "DC_extended", '
+        '"DC_EVChargeParameter": {"DC_EVStatus": {"EVReady": false, '
+        '"EVErrorCode": "NO_ERROR", "EVRESSSOC": 43}, '
+        '"EVMaximumCurrentLimit": {"Multiplier": -1, "Value": 3500}, '
+        '"EVMaximumVoltageLimit": {"Multiplier": -1, "Value": 4690}, '
+        '"EVEnergyRequest": {"Multiplier": 0, "Value": 500}}}}}}',
+        description="EV: VW ID3; Date: 06.09.2022; Element 'Unit' in "
+        "PhysicalValuetype in DIN is optional. "
+        "In ISO it is mandatory.",
     ),
 ]
 

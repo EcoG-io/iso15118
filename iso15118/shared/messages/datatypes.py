@@ -328,6 +328,196 @@ class PVStartValue(PhysicalValue):
     unit: Literal[UnitSymbol.WATT] = Field(..., alias="Unit")
 
 
+class PVEVEnergyCapacityDin(PVEVEnergyCapacity):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.WATT_HOURS] = Field(None, alias="Unit")
+
+
+class PVEVEnergyRequestDin(PVEVEnergyRequest):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.WATT_HOURS] = Field(None, alias="Unit")
+
+
+class PVEVMaxCurrentLimitDin(PVEVMaxCurrentLimit):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
+
+
+class PVEVMaxPowerLimitDin(PVEVMaxPowerLimit):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.WATT] = Field(None, alias="Unit")
+
+
+class PVEVMaxVoltageLimitDin(PVEVMaxVoltageLimit):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.VOLTAGE] = Field(None, alias="Unit")
+
+
+class PVEVSECurrentRegulationToleranceDin(PVEVSECurrentRegulationTolerance):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
+
+
+class PVEVSEEnergyToBeDeliveredDin(PVEVSEEnergyToBeDelivered):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.WATT_HOURS] = Field(None, alias="Unit")
+
+
+class PVEVSEMaxCurrentLimitDin(PVEVSEMaxCurrentLimit):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
+
+
+class PVEVSEMaxPowerLimitDin(PVEVSEMaxPowerLimit):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.WATT] = Field(None, alias="Unit")
+
+
+class PVEVSEMaxVoltageLimitDin(PVEVSEMaxVoltageLimit):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.VOLTAGE] = Field(None, alias="Unit")
+
+
+class PVEVSEMinCurrentLimitDin(PVEVSEMinCurrentLimit):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
+
+
+class PVEVSEMinVoltageLimitDin(PVEVSEMinVoltageLimit):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.VOLTAGE] = Field(None, alias="Unit")
+
+
+class PVEVSEPeakCurrentRippleDin(PVEVSEPeakCurrentRipple):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
+
+
+class PVEVSEPresentCurrentDin(PVEVSEPresentCurrent):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
+
+
+class PVEVSEPresentVoltageDin(PVEVSEPresentVoltage):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.VOLTAGE] = Field(None, alias="Unit")
+
+
+class PVEVTargetCurrentDin(PVEVTargetCurrent):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
+
+
+class PVEVTargetVoltageDin(PVEVTargetVoltage):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.VOLTAGE] = Field(None, alias="Unit")
+
+
+class PVRemainingTimeToFullSOCDin(PVRemainingTimeToFullSOC):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.SECONDS] = Field(None, alias="Unit")
+
+
+class PVRemainingTimeToBulkSOCDin(PVRemainingTimeToBulkSOC):
+    """
+    See section 9.5.2.4 in DIN SPEC 70121
+
+    In DIN the Element unit is optional, in ISO it is mandatory.
+    """
+
+    unit: Literal[UnitSymbol.SECONDS] = Field(None, alias="Unit")
+
+
 class DCEVChargeParams(BaseModel):
     dc_max_current_limit: PVEVMaxCurrentLimit
     dc_max_power_limit: PVEVMaxPowerLimit

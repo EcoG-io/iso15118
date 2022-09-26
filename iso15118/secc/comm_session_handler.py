@@ -145,6 +145,10 @@ class SECCCommunicationSession(V2GCommunicationSession):
         _, writer = transport
         return True if writer.get_extra_info("sslcontext") else False
 
+    async def stop(self, reason: str):
+        await self.evse_controller.stop_charger()
+        await super().stop(reason)
+
 
 class CommunicationSessionHandler:
     """
