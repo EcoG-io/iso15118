@@ -225,7 +225,7 @@ class CommunicationSessionHandler:
                 if isinstance(notification, UDPPacketNotification):
                     await self.process_incoming_udp_packet(notification)
                 elif isinstance(notification, TCPClientNotification):
-                    logger.debug(
+                    logger.info(
                         "TCP client connected, client address is "
                         f"{notification.ip_address}."
                     )
@@ -235,7 +235,7 @@ class CommunicationSessionHandler:
                         comm_session.resume()
                     except (KeyError, ConnectionResetError) as e:
                         if isinstance(e, ConnectionResetError):
-                            logger.debug("Can't resume session. End and start new one.")
+                            logger.info("Can't resume session. End and start new one.")
                             await self.end_current_session(notification.ip_address)
                         comm_session = SECCCommunicationSession(
                             notification.transport,
@@ -269,7 +269,7 @@ class CommunicationSessionHandler:
     async def end_current_session(self, peer_ip_address: str):
         await cancel_task(self.comm_sessions[peer_ip_address][1])
         del self.comm_sessions[peer_ip_address]
-        logger.debug(f"Existing session with {peer_ip_address} ended.")
+        logger.info(f"Existing session with {peer_ip_address} ended.")
 
     async def process_incoming_udp_packet(self, message: UDPPacketNotification):
         """
@@ -289,7 +289,7 @@ class CommunicationSessionHandler:
 
             try:
                 sdp_request = SDPRequest.from_payload(v2gtp_msg.payload)
-                logger.debug(f"SDPRequest received: {sdp_request}")
+                logger.info(f"SDPRequest received: {sdp_request}")
 
                 if self.config.enforce_tls or sdp_request.security == Security.TLS:
                     port = self.tcp_server.port_tls
@@ -329,6 +329,6 @@ class CommunicationSessionHandler:
             ISOV2PayloadTypes.SDP_RESPONSE,
             sdp_response.to_payload(),
         )
-        logger.debug(f"Sending SDPResponse: {sdp_response}")
+        logger.info(f"Sending SDPResponse: {sdp_response}")
 
         self.udp_server.send(v2gtp_msg, message.addr)

@@ -314,7 +314,7 @@ class CommunicationSessionHandler:
         v2gtp_msg = V2GTPMessage(
             Protocol.UNKNOWN, sdp_request.payload_type, sdp_request.to_payload()
         )
-        logger.debug(f"Sending SDPRequest: {sdp_request}")
+        logger.info(f"Sending SDPRequest: {sdp_request}")
         await self.udp_client.send_and_receive(v2gtp_msg)
 
     async def restart_sdp(self, new_sdp_cycle: bool):
@@ -377,7 +377,7 @@ class CommunicationSessionHandler:
             )
 
         if self.sdp_retries_number > 0:
-            logger.debug(f"Remaining SDP requests: {self.sdp_retries_number}")
+            logger.info(f"Remaining SDP requests: {self.sdp_retries_number}")
             try:
                 await self.send_sdp()
             except InvalidSettingsValueError as exc:
@@ -395,14 +395,14 @@ class CommunicationSessionHandler:
         server_type = "TLS" if is_tls else "TCP"
 
         try:
-            logger.debug(
+            logger.info(
                 f"Starting {server_type} client, trying to connect to "
                 f"{host.compressed} at port {port} ..."
             )
             self.tcp_client = await TCPClient.create(
                 host, port, self._rcv_queue, is_tls, self.config.iface
             )
-            logger.debug("TCP client connected")
+            logger.info("TCP client connected")
         except Exception as exc:
             logger.exception(
                 f"{exc.__class__.__name__} when trying to connect "
@@ -459,7 +459,7 @@ class CommunicationSessionHandler:
                     logger.exception(exc)
                     return  # TODO check if this is correct here
 
-            logger.debug(f"SDPResponse received: {sdp_response}")
+            logger.info(f"SDPResponse received: {sdp_response}")
 
             secc_signals_tls = False
             if sdp_response.security == Security.TLS:
