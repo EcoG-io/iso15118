@@ -296,7 +296,7 @@ class EXI:
             ) from exc
 
         if MESSAGE_LOG_JSON:
-            logger.debug(f"Decoded message (ns={namespace}): {exi_decoded}")
+            logger.info(f"Decoded message (ns={namespace}): {exi_decoded}")
 
         try:
             if namespace == Namespace.SAP and "supportedAppProtocolReq" in decoded_dict:
