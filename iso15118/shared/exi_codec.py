@@ -242,7 +242,7 @@ class EXI:
             ) from exc
 
         if MESSAGE_LOG_JSON:
-            logger.debug(f"Message to encode (ns={protocol_ns}): {msg_content}")
+            logger.info(f"Message to encode (ns={protocol_ns}): {msg_content}")
 
         try:
             exi_stream = self.exi_codec.encode(msg_content, protocol_ns)
