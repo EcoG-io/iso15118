@@ -89,12 +89,12 @@ class Config:
             "MAX_SUPPORTING_POINTS", default=1024, validate=Range(min=0, max=1024)
         )
 
+        env.seal()  # raise all errors at once, if any
         logger.info("EVCC settings:")
         for key, value in shared_settings.items():
             logger.info(f"{key:30}: {value}")
         for key, value in env.dump().items():
             logger.info(f"{key:30}: {value}")
-        env.seal()  # raise all errors at once, if any
 
 
 RESUME_SELECTED_AUTH_OPTION = None

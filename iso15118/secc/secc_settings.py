@@ -113,12 +113,12 @@ class Config:
         # EV can still use value-added services while not consuming any power.
         self.standby_allowed = env.bool("STANDBY_ALLOWED", default=False)
 
+        env.seal()  # raise all errors at once, if any
         logger.info("SECC settings:")
         for key, value in shared_settings.items():
             logger.info(f"{key:30}: {value}")
         for key, value in env.dump().items():
             logger.info(f"{key:30}: {value}")
-        env.seal()  # raise all errors at once, if any
 
     def load_requested_protocols(self, read_protocols: Optional[List[str]]):
         protocols = format_list(read_protocols)
