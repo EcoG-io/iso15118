@@ -19,11 +19,11 @@ from pydantic import Field, conbytes, root_validator
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.datatypes import (
     PhysicalValue,
+    PVEVEnergyCapacityDin,
+    PVEVEnergyRequestDin,
     PVEVMaxCurrentLimitDin,
     PVEVMaxPowerLimitDin,
     PVEVMaxVoltageLimitDin,
-    PVEVEnergyCapacityDin,
-    PVEVEnergyRequestDin,
 )
 from iso15118.shared.messages.enums import (
     INT_8_MAX,
