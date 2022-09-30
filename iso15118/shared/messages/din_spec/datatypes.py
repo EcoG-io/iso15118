@@ -19,11 +19,11 @@ from pydantic import Field, conbytes, root_validator
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.datatypes import (
     PhysicalValue,
-    PVEVEnergyCapacity,
-    PVEVEnergyRequest,
-    PVEVMaxCurrentLimit,
-    PVEVMaxPowerLimit,
-    PVEVMaxVoltageLimit,
+    PVEVMaxCurrentLimitDin,
+    PVEVMaxPowerLimitDin,
+    PVEVMaxVoltageLimitDin,
+    PVEVEnergyCapacityDin,
+    PVEVEnergyRequestDin,
 )
 from iso15118.shared.messages.enums import (
     INT_8_MAX,
@@ -349,7 +349,7 @@ class DCEVChargeParameter(EVChargeParameter):
     """See section 9.5.3.3 in DIN SPEC 70121"""
 
     dc_ev_status: DCEVStatus = Field(..., alias="DC_EVStatus")
-    ev_maximum_current_limit: PVEVMaxCurrentLimit = Field(
+    ev_maximum_current_limit: PVEVMaxCurrentLimitDin = Field(
         ..., alias="EVMaximumCurrentLimit"
     )
     """
@@ -360,12 +360,14 @@ class DCEVChargeParameter(EVChargeParameter):
     is contained in the message ChargeParameterDiscoveryReq, this allows the
     EVSE to compute suitable PMaxSchedules.
      """
-    ev_maximum_power_limit: PVEVMaxPowerLimit = Field(None, alias="EVMaximumPowerLimit")
-    ev_maximum_voltage_limit: PVEVMaxVoltageLimit = Field(
+    ev_maximum_power_limit: PVEVMaxPowerLimitDin = Field(
+        None, alias="EVMaximumPowerLimit"
+    )
+    ev_maximum_voltage_limit: PVEVMaxVoltageLimitDin = Field(
         ..., alias="EVMaximumVoltageLimit"
     )
-    ev_energy_capacity: PVEVEnergyCapacity = Field(None, alias="EVEnergyCapacity")
-    ev_energy_request: PVEVEnergyRequest = Field(None, alias="EVEnergyRequest")
+    ev_energy_capacity: PVEVEnergyCapacityDin = Field(None, alias="EVEnergyCapacity")
+    ev_energy_request: PVEVEnergyRequestDin = Field(None, alias="EVEnergyRequest")
     # XSD type byte with value range [0..100]
     full_soc: int = Field(None, ge=0, le=100, alias="FullSOC")
     # XSD type byte with value range [0..100]
