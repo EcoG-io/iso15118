@@ -24,5 +24,5 @@ V20_EVSE_SERVICES_CONFIG = env.str(
 
 ENABLE_TLS_1_3 = env.bool("ENABLE_TLS_1_3", default=False)
 
-shared_settings=env.dump()
+shared_settings = env.dump()
 env.seal()  # raise all errors at once, if any
