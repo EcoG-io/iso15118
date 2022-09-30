@@ -11,6 +11,7 @@ from iso15118.shared.exceptions import (
     NoSupportedProtocols,
 )
 from iso15118.shared.messages.enums import AuthEnum, Protocol
+from iso15118.shared.settings import shared_settings
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +86,6 @@ class Config:
         # Indicates if CPO integration is available to perform contract
         # certificate installation.
         self.use_cpo_backend = env.bool("USE_CPO_BACKEND", default=False)
-        logger.info(f"Using CPO Backend: {self.use_cpo_backend}")
 
         # Indicates whether or not the installation/update of a contract certificate
         # shall be offered to the EV. Should be configurable via OCPP messages.
@@ -112,9 +112,14 @@ class Config:
         # enum values in PowerDeliveryReq's ChargeProgress field). In Standby, the
         # EV can still use value-added services while not consuming any power.
         self.standby_allowed = env.bool("STANDBY_ALLOWED", default=False)
-
+        
+        logger.info("SECC settings:")
+        for key, value in shared_settings.items():
+            logger.info(f"{key}:\t{value}")
+        for key, value in env.dump().items():
+            logger.info(f"{key}:\t{value}")
         env.seal()  # raise all errors at once, if any
-
+        
     def load_requested_protocols(self, read_protocols: Optional[List[str]]):
         protocols = format_list(read_protocols)
         valid_protocols = list(set(protocols).intersection(self.default_protocols))
@@ -125,7 +130,6 @@ class Config:
                 f" file with key 'PROTOCOLS'"
             )
         self.supported_protocols = [Protocol[x] for x in valid_protocols]
-        logger.info(f"Loaded protocols: {valid_protocols}")
 
     def load_requested_auth_modes(self, read_auth_modes: Optional[List[str]]):
         auth_modes = format_list(read_auth_modes)
@@ -137,4 +141,3 @@ class Config:
                 f" file with key 'AUTH_MODES'"
             )
         self.supported_auth_options = [AuthEnum[x] for x in valid_auth_options]
-        logger.info(f"Loaded authentication modes: {valid_auth_options}")
