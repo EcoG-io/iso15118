@@ -8,6 +8,7 @@ from marshmallow.validate import Range
 
 from iso15118.shared.messages.enums import UINT_16_MAX, Protocol
 from iso15118.shared.network import validate_nic
+from iso15118.shared.settings import shared_settings
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,11 @@ class Config:
             "MAX_SUPPORTING_POINTS", default=1024, validate=Range(min=0, max=1024)
         )
 
+        logger.info("EVCC settings:")
+        for key, value in shared_settings.items():
+            logger.info(f"{key}:\t{value}")
+        for key, value in env.dump().items():
+            logger.info(f"{key}:\t{value}")
         env.seal()  # raise all errors at once, if any
 
 
