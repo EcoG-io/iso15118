@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2022-10-03
+
+### Changed
+- Feature/add protocol state to interface by @lukaslombriserdesignwerk in https://github.com/SwitchEV/iso15118/pull/136
+- Feat/improve logging/ab#2898 by @santiagosalamandri in https://github.com/SwitchEV/iso15118/pull/139
+Thank you @santiagosalamandri for your first contribution :)
+
 ## [0.11.0] - 2022-09-22
 
 ### Added

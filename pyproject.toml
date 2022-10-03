@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "iso15118"
-version = "0.11.0"
+version = "0.12.0"
 description = "Implementation of DIN SPEC 70121, ISO 15118-2 and -20 specs for SECC"
 authors = ["André Duarte <andre@switch-ev.com>",
            "Dr. Marc Mültin <marc@switch-ev.com>",
@@ -8,6 +8,7 @@ authors = ["André Duarte <andre@switch-ev.com>",
            "Milton Eduardo Sosa <milton@switch-ev.com>",
            "Daniel Gordon <daniel@switch-ev.com>",
            "İbrahim Karatas <ibrahim@switch-ev.com>",
+           "Santiago Salamandri <santiago@switch-ev.com>",
            "Lukas Lombriser <lukas.lombriser@designwerk.com"]
 
 [tool.poetry.dependencies]
