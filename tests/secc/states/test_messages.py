@@ -13,6 +13,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     ChargeParameterDiscoveryReq,
     PaymentDetailsReq,
     PowerDeliveryReq,
+    ServiceDiscoveryReq,
     SessionStopReq,
     WeldingDetectionReq,
 )
@@ -208,4 +209,12 @@ def get_dummy_v2g_message_power_delivery_req_charge_stop():
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(power_delivery_req=power_delivery_req),
+    )
+
+
+def get_dummy_v2g_message_service_discovery_req() -> V2GMessage:
+    service_discovery_req = ServiceDiscoveryReq()
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(service_discovery_req=service_discovery_req),
     )

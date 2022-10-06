@@ -3,12 +3,14 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+from iso15118.secc import Config
 from iso15118.secc.states.iso15118_2_states import (
     Authorization,
     ChargeParameterDiscovery,
     CurrentDemand,
     PaymentDetails,
     PowerDelivery,
+    ServiceDiscovery,
     Terminate,
     WeldingDetection,
 )
@@ -29,6 +31,7 @@ from tests.secc.states.test_messages import (
     get_dummy_v2g_message_payment_details_req,
     get_dummy_v2g_message_power_delivery_req_charge_start,
     get_dummy_v2g_message_power_delivery_req_charge_stop,
+    get_dummy_v2g_message_service_discovery_req,
     get_dummy_v2g_message_welding_detection_req,
     get_v2g_message_power_delivery_req,
 )
@@ -40,6 +43,8 @@ class TestEvScenarios:
     @pytest.fixture(autouse=True)
     def _comm_session(self, comm_secc_session_mock):
         self.comm_session = comm_secc_session_mock
+        self.comm_session.config = Config()
+        self.comm_session.is_tls = False
 
     async def test_current_demand_to_power_delivery_when_power_delivery_received(
         self,
@@ -360,3 +365,21 @@ class TestEvScenarios:
             message=get_dummy_v2g_message_power_delivery_req_charge_start()
         )
         assert power_delivery.next_state is expected_next_state
+
+    async def test_service_discovery_req_unexpected_state(self):
+        self.comm_session.selected_auth_option = AuthEnum.PNC_V2
+        self.comm_session.config.free_charging_service = False
+        self.comm_session.writer = Mock()
+        self.comm_session.writer.get_extra_info = Mock()
+        service_discovery = ServiceDiscovery(self.comm_session)
+        await service_discovery.process_message(
+            message=get_dummy_v2g_message_service_discovery_req()
+        )
+        await service_discovery.process_message(
+            message=get_dummy_v2g_message_service_discovery_req()
+        )
+        assert service_discovery.next_state is Terminate
+        assert (
+            service_discovery.message.body.service_discovery_res.response_code
+            is ResponseCode.FAILED_SEQUENCE_ERROR
+        )

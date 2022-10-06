@@ -256,6 +256,13 @@ class ServiceDiscovery(StateSECC):
             )
             return
 
+        if msg.body.service_discovery_req and not self.expecting_service_discovery_req:
+            self.stop_state_machine(
+                f"{str(message)}' not accepted in state " f"{str(self)}",
+                message,
+                ResponseCode.FAILED_SEQUENCE_ERROR,
+            )
+            return
         service_discovery_req: ServiceDiscoveryReq = msg.body.service_discovery_req
         service_discovery_res = await self.get_services(
             service_discovery_req.service_category
