@@ -375,11 +375,9 @@ class TestEvScenarios:
         await service_discovery.process_message(
             message=get_dummy_v2g_message_service_discovery_req()
         )
-        print(service_discovery.next_state)
         await service_discovery.process_message(
             message=get_dummy_v2g_message_service_discovery_req()
         )
-        print(service_discovery.next_state)
         assert service_discovery.next_state is Terminate
         assert (
             service_discovery.message.body.service_discovery_res.response_code
