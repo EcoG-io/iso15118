@@ -10,8 +10,9 @@ from iso15118.secc.states.iso15118_2_states import (
     CurrentDemand,
     PaymentDetails,
     PowerDelivery,
+    ServiceDiscovery,
     Terminate,
-    WeldingDetection, ServiceDiscovery,
+    WeldingDetection,
 )
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.messages.enums import (
@@ -30,8 +31,9 @@ from tests.secc.states.test_messages import (
     get_dummy_v2g_message_payment_details_req,
     get_dummy_v2g_message_power_delivery_req_charge_start,
     get_dummy_v2g_message_power_delivery_req_charge_stop,
+    get_dummy_v2g_message_service_discovery_req,
     get_dummy_v2g_message_welding_detection_req,
-    get_v2g_message_power_delivery_req, get_dummy_v2g_message_service_discovery_req,
+    get_v2g_message_power_delivery_req,
 )
 
 
@@ -45,7 +47,7 @@ class TestEvScenarios:
         self.comm_session.is_tls = False
 
     async def test_current_demand_to_power_delivery_when_power_delivery_received(
-            self,
+        self,
     ):
         current_demand = CurrentDemand(self.comm_session)
         current_demand.expecting_current_demand_req = False
@@ -55,7 +57,7 @@ class TestEvScenarios:
         assert isinstance(self.comm_session.current_state, PowerDelivery)
 
     async def test_power_delivery_to_welding_detection_when_welding_detection_received(
-            self,
+        self,
     ):
         # V2G2-601 (to WeldingDetection)
         power_delivery = PowerDelivery(self.comm_session)
@@ -66,7 +68,7 @@ class TestEvScenarios:
         assert isinstance(self.comm_session.current_state, WeldingDetection)
 
     async def test_welding_detection_to_session_stop_when_session_stop_received(
-            self,
+        self,
     ):
         pass
         # V2G2-570
@@ -75,8 +77,8 @@ class TestEvScenarios:
         PaymentDetails,
         "_mobility_operator_root_cert_path",
         return_value=Path(__file__).parent.parent.parent
-                     / "sample_certs"
-                     / "moRootCACert.der",
+        / "sample_certs"
+        / "moRootCACert.der",
     )
     @pytest.mark.parametrize(
         "is_authorized_return_value, expected_next_state",
@@ -87,10 +89,10 @@ class TestEvScenarios:
         ],
     )
     async def test_payment_details_next_state_on_payment_details_req_auth(
-            self,
-            mo_root_cert_path_mock,
-            is_authorized_return_value: AuthorizationStatus,
-            expected_next_state: StateSECC,
+        self,
+        mo_root_cert_path_mock,
+        is_authorized_return_value: AuthorizationStatus,
+        expected_next_state: StateSECC,
     ):
         self.comm_session.writer = Mock()
         self.comm_session.writer.get_extra_info = Mock()
@@ -106,7 +108,7 @@ class TestEvScenarios:
             self.comm_session.contract_cert_chain, CertificateChain
         ), "Comm session certificate chain not populated"
         assert (
-                payment_details.next_state == expected_next_state
+            payment_details.next_state == expected_next_state
         ), "State did not progress after PaymentDetailsReq"
         mock_is_authorized.assert_called_once()
         req_body = payment_details_req.body.payment_details_req
@@ -120,56 +122,56 @@ class TestEvScenarios:
         "expected_response_code, expected_evse_processing",
         [
             (
-                    AuthEnum.EIM,
-                    AuthorizationStatus.ACCEPTED,
-                    ChargeParameterDiscovery,
-                    ResponseCode.OK,
-                    EVSEProcessing.FINISHED,
+                AuthEnum.EIM,
+                AuthorizationStatus.ACCEPTED,
+                ChargeParameterDiscovery,
+                ResponseCode.OK,
+                EVSEProcessing.FINISHED,
             ),
             (
-                    AuthEnum.EIM,
-                    AuthorizationStatus.ONGOING,
-                    None,
-                    ResponseCode.OK,
-                    EVSEProcessing.ONGOING,
+                AuthEnum.EIM,
+                AuthorizationStatus.ONGOING,
+                None,
+                ResponseCode.OK,
+                EVSEProcessing.ONGOING,
             ),
             (
-                    AuthEnum.EIM,
-                    AuthorizationStatus.REJECTED,
-                    Terminate,
-                    ResponseCode.FAILED,
-                    EVSEProcessing.FINISHED,
+                AuthEnum.EIM,
+                AuthorizationStatus.REJECTED,
+                Terminate,
+                ResponseCode.FAILED,
+                EVSEProcessing.FINISHED,
             ),
             (
-                    AuthEnum.PNC_V2,
-                    AuthorizationStatus.ACCEPTED,
-                    ChargeParameterDiscovery,
-                    ResponseCode.OK,
-                    EVSEProcessing.FINISHED,
+                AuthEnum.PNC_V2,
+                AuthorizationStatus.ACCEPTED,
+                ChargeParameterDiscovery,
+                ResponseCode.OK,
+                EVSEProcessing.FINISHED,
             ),
             (
-                    AuthEnum.PNC_V2,
-                    AuthorizationStatus.ONGOING,
-                    None,
-                    ResponseCode.OK,
-                    EVSEProcessing.ONGOING,
+                AuthEnum.PNC_V2,
+                AuthorizationStatus.ONGOING,
+                None,
+                ResponseCode.OK,
+                EVSEProcessing.ONGOING,
             ),
             (
-                    AuthEnum.PNC_V2,
-                    AuthorizationStatus.REJECTED,
-                    Terminate,
-                    ResponseCode.FAILED,
-                    EVSEProcessing.FINISHED,
+                AuthEnum.PNC_V2,
+                AuthorizationStatus.REJECTED,
+                Terminate,
+                ResponseCode.FAILED,
+                EVSEProcessing.FINISHED,
             ),
         ],
     )
     async def test_authorization_next_state_on_authorization_request(
-            self,
-            auth_type: AuthEnum,
-            is_authorized_return_value: AuthorizationStatus,
-            expected_next_state: StateSECC,
-            expected_response_code: ResponseCode,
-            expected_evse_processing: EVSEProcessing,
+        self,
+        auth_type: AuthEnum,
+        is_authorized_return_value: AuthorizationStatus,
+        expected_next_state: StateSECC,
+        expected_response_code: ResponseCode,
+        expected_evse_processing: EVSEProcessing,
     ):
         self.comm_session.writer = Mock()
         self.comm_session.writer.get_extra_info = Mock()
@@ -189,12 +191,12 @@ class TestEvScenarios:
         )
         assert authorization.next_state == expected_next_state
         assert (
-                authorization.message.body.authorization_res.response_code
-                == expected_response_code
+            authorization.message.body.authorization_res.response_code
+            == expected_response_code
         )
         assert (
-                authorization.message.body.authorization_res.evse_processing
-                == expected_evse_processing
+            authorization.message.body.authorization_res.evse_processing
+            == expected_evse_processing
         )
 
     async def test_charge_parameter_discovery_res_v2g2_303(self):
@@ -215,8 +217,8 @@ class TestEvScenarios:
         )
 
         assert (
-                charge_parameter_discovery.message.body.charge_parameter_discovery_res
-                is not None
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res
+            is not None
         )
         charge_parameter_discovery_res = (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res
@@ -243,8 +245,8 @@ class TestEvScenarios:
                     ].time_interval.duration
                 )
                 schedule_duration = (
-                                            last_entry_start_time - first_entry_start_time
-                                    ) + last_entry_schedule_duration
+                    last_entry_start_time - first_entry_start_time
+                ) + last_entry_schedule_duration
 
             assert schedule_duration == charging_duration
 
@@ -257,8 +259,8 @@ class TestEvScenarios:
             message=get_charge_parameter_discovery_req_message_no_departure_time()
         )
         assert (
-                charge_parameter_discovery.message.body.charge_parameter_discovery_res
-                is not None
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res
+            is not None
         )
         charge_parameter_discovery_res = (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res
@@ -285,8 +287,8 @@ class TestEvScenarios:
                     ].time_interval.duration
                 )
                 schedule_duration = (
-                                            last_entry_start_time - first_entry_start_time
-                                    ) + last_entry_schedule_duration
+                    last_entry_start_time - first_entry_start_time
+                ) + last_entry_schedule_duration
             assert schedule_duration >= twenty_four_hours_in_seconds
 
     async def test_charge_parameter_discovery_res_v2g2_761(self):
@@ -297,8 +299,8 @@ class TestEvScenarios:
             message=get_charge_parameter_discovery_req_message_no_departure_time()
         )
         assert (
-                charge_parameter_discovery.message.body.charge_parameter_discovery_res
-                is not None
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res
+            is not None
         )
         charge_parameter_discovery_res = (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res
@@ -320,7 +322,7 @@ class TestEvScenarios:
             assert found_entry_indicating_start_without_delay is True
 
     async def test_power_delivery_set_hlc_charging(
-            self,
+        self,
     ):
 
         power_delivery = PowerDelivery(self.comm_session)
@@ -352,7 +354,7 @@ class TestEvScenarios:
         ],
     )
     async def test_power_delivery_state_c(
-            self, get_state_return_value, expected_next_state
+        self, get_state_return_value, expected_next_state
     ):
 
         power_delivery = PowerDelivery(self.comm_session)
@@ -372,11 +374,15 @@ class TestEvScenarios:
         self.comm_session.writer.get_extra_info = Mock()
         service_discovery = ServiceDiscovery(self.comm_session)
         await service_discovery.process_message(
-            message=get_dummy_v2g_message_service_discovery_req())
+            message=get_dummy_v2g_message_service_discovery_req()
+        )
         print(service_discovery.next_state)
         await service_discovery.process_message(
-            message=get_dummy_v2g_message_service_discovery_req())
+            message=get_dummy_v2g_message_service_discovery_req()
+        )
         print(service_discovery.next_state)
         assert service_discovery.next_state is Terminate
-        assert service_discovery.message.body.service_discovery_res.response_code is \
-               ResponseCode.FAILED_SEQUENCE_ERROR
+        assert (
+            service_discovery.message.body.service_discovery_res.response_code
+            is ResponseCode.FAILED_SEQUENCE_ERROR
+        )

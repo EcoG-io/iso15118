@@ -13,8 +13,9 @@ from iso15118.shared.messages.iso15118_2.body import (
     ChargeParameterDiscoveryReq,
     PaymentDetailsReq,
     PowerDeliveryReq,
+    ServiceDiscoveryReq,
     SessionStopReq,
-    WeldingDetectionReq, ServiceDiscoveryReq,
+    WeldingDetectionReq,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
