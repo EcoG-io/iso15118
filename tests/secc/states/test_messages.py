@@ -14,6 +14,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     ChargingStatusReq,
     PaymentDetailsReq,
     PowerDeliveryReq,
+    ServiceDetailReq,
     ServiceDiscoveryReq,
     SessionStopReq,
     WeldingDetectionReq,
@@ -510,10 +511,9 @@ def get_dummy_charging_status_req() -> V2GMessage:
     )
 
 
-def get_dummy_v2g_session_stop_req(charging_session: ChargingSession) -> V2GMessage:
-    session_stop_req = SessionStopReq(charging_session=charging_session)
-
+def get_v2g_message_service_detail_req(service_id) -> V2GMessage:
+    service_detail_req = ServiceDetailReq(service_id=service_id)
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),
-        body=Body(session_stop_req=session_stop_req),
+        body=Body(service_detail_req=service_detail_req),
     )

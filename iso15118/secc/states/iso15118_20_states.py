@@ -604,15 +604,26 @@ class ServiceDetail(StateSECC):
             )
         )
 
+        is_found = False
         for offered_service in self.comm_session.matched_services_v20:
             if offered_service.service.id == service_detail_req.service_id:
                 offered_service.parameter_sets = service_parameter_list.parameter_sets
+                is_found = True
+                break
+        if is_found:
+            response_code = ResponseCode.OK
+        else:
+            # [V2G20-464] The message "ServiceDetailRes" shall contain the
+            # ResponseCode "FAILED_ServiceIDInvalid" if the ServiceID contained
+            # in the ServiceDetailReq message was not part of the offered
+            # EnergyTransferServiceList or VASList during ServiceDiscovery.
+            response_code = ResponseCode.FAILED_SERVICE_ID_INVALID
 
         service_detail_res = ServiceDetailRes(
             header=MessageHeader(
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
-            response_code=ResponseCode.OK,
+            response_code=response_code,
             service_id=service_detail_req.service_id,
             service_parameter_list=service_parameter_list,
         )
