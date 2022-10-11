@@ -23,7 +23,6 @@ from iso15118.shared.messages.enums import (
     ISOV20PayloadTypes,
     Namespace,
     ParameterName,
-    Protocol,
     ServiceV20,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
@@ -145,9 +144,7 @@ class SessionSetup(StateSECC):
         session_setup_res = SessionSetupRes(
             header=MessageHeader(session_id=session_id, timestamp=time.time()),
             response_code=self.response_code,
-            evse_id=await self.comm_session.evse_controller.get_evse_id(
-                Protocol.ISO_15118_20_COMMON_MESSAGES
-            ),
+            evse_id=await self.comm_session.evse_controller.get_evse_id(),
         )
 
         self.comm_session.evcc_id = session_setup_req.evcc_id

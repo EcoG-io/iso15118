@@ -25,7 +25,6 @@ def format_list(read_settings: List[str]) -> List[str]:
 
 @dataclass
 class Config:
-    iface: Optional[str] = None
     log_level: Optional[int] = None
     evse_controller: Type[EVSEControllerInterface] = None
     enforce_tls: bool = False
@@ -36,6 +35,8 @@ class Config:
     supported_protocols: Optional[List[Protocol]] = None
     supported_auth_options: Optional[List[AuthEnum]] = None
     standby_allowed: bool = False
+    cs_config_file_path: Optional[str] = None
+    cs_limits_file_path: Optional[str] = None
     default_protocols = [
         "DIN_SPEC_70121",
         "ISO_15118_2",
@@ -60,8 +61,6 @@ class Config:
         if not env_path:
             env_path = os.getcwd() + "/.env"
         env.read_env(path=env_path)  # read .env file, if it exists
-
-        self.iface = env.str("NETWORK_INTERFACE", default="eth0")
 
         self.log_level = env.str("LOG_LEVEL", default="INFO")
 
@@ -112,6 +111,9 @@ class Config:
         # enum values in PowerDeliveryReq's ChargeProgress field). In Standby, the
         # EV can still use value-added services while not consuming any power.
         self.standby_allowed = env.bool("STANDBY_ALLOWED", default=False)
+
+        self.cs_config_file_path = env.str("CS_CONFIG_FILE")
+        self.cs_limits_file_path = env.str("CS_LIMITS_FILE")
 
         env.seal()  # raise all errors at once, if any
         logger.info("SECC settings:")

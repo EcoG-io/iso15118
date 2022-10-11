@@ -9,9 +9,10 @@ class Notification:
 
 
 class TCPClientNotification(Notification):
-    def __init__(self, reader: StreamReader, writer: StreamWriter):
+    def __init__(self, reader: StreamReader, writer: StreamWriter, iface: str):
         self.transport = (reader, writer)
         self.ip_address = writer.get_extra_info("peername")
+        self.iface = iface
 
 
 class UDPPacketNotification(Notification):
@@ -19,9 +20,10 @@ class UDPPacketNotification(Notification):
     Message notification of a UDP Packet
     """
 
-    def __init__(self, data: bytes, addr: Tuple[str, int]):
+    def __init__(self, data: bytes, addr: Tuple[str, int], iface: str):
         self.data = data
         self.addr = addr
+        self.iface = iface
 
     def __len__(self):
         return len(self.data)

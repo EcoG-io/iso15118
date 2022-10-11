@@ -104,7 +104,7 @@ class UDPClient(DatagramProtocol):
         """
         logger.info(f"Received datagram from UDP server at address {addr}")
         try:
-            udp_packet = UDPPacketNotification(data, addr)
+            udp_packet = UDPPacketNotification(data, addr, self.iface)
             self._rcv_queue.put_nowait((udp_packet, addr))
         except asyncio.QueueFull:
             logger.error(f"Dropped packet size {len(data)} from {addr}")

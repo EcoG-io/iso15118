@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 
+from iso15118.secc.controller.evse_config import EVSEConfig
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
@@ -81,8 +82,9 @@ class EVChargeParamsLimits:
 
 
 class EVSEControllerInterface(ABC):
-    def __init__(self):
+    def __init__(self, config: EVSEConfig):
         self.ev_data_context = EVDataContext()
+        self.config = config
 
     def reset_ev_data_context(self):
         self.ev_data_context = EVDataContext()
@@ -92,7 +94,7 @@ class EVSEControllerInterface(ABC):
     # ============================================================================
 
     @abstractmethod
-    async def get_evse_id(self, protocol: Protocol) -> str:
+    async def get_evse_id(self) -> str:
         """
         Gets the ID of the EVSE (Electric Vehicle Supply Equipment), which is
         controlling the energy flow to the connector the EV is plugged into.

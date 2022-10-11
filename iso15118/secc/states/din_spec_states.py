@@ -120,9 +120,7 @@ class SessionSetup(StateSECC):
 
         session_setup_res = SessionSetupRes(
             response_code=self.response_code,
-            evse_id=await self.comm_session.evse_controller.get_evse_id(
-                Protocol.DIN_SPEC_70121
-            ),
+            evse_id=await self.comm_session.evse_controller.get_evse_id(),
             datetime_now=time.time(),
         )
 

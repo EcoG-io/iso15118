@@ -14,7 +14,8 @@ import asyncio
 import logging
 import socket
 from asyncio.streams import StreamReader, StreamWriter
-from typing import Dict, List, Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import Coroutine, Dict, List, Optional, Tuple, Union
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.secc.failed_responses import (
@@ -56,6 +57,16 @@ from iso15118.shared.notifications import (
 from iso15118.shared.utils import cancel_task, wait_for_tasks
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class EVSEConnection:
+    udp_server: UDPServer
+    tcp_server: TCPServer
+    # Receiving queue for UDP or TCP packets and session
+    # triggers (e.g. pause/terminate)
+    rcv_queue: asyncio.Queue
+    tasks: List[Coroutine]
 
 
 class SECCCommunicationSession(V2GCommunicationSession):
@@ -159,14 +170,15 @@ class CommunicationSessionHandler:
     # pylint: disable=too-many-instance-attributes
 
     def __init__(
-        self, config: Config, codec: IEXICodec, evse_controller: EVSEControllerInterface
+        self,
+        config: Config,
+        codec: IEXICodec,
+        evse_controllers: Dict[str, EVSEControllerInterface],
     ):
-
-        self.list_of_tasks = []
-        self.udp_server = None
-        self.tcp_server = None
+        self.evse_connections = {}
         self.config = config
-        self.evse_controller = evse_controller
+        self.evse_controllers = evse_controllers
+        self.list_of_tasks: List[Coroutine] = []
 
         # Set the selected EXI codec implementation
         EXI().set_exi_codec(codec)
@@ -188,17 +200,27 @@ class CommunicationSessionHandler:
         constructor.
         """
 
-        self.udp_server = UDPServer(self._rcv_queue, self.config.iface)
-        self.tcp_server = TCPServer(self._rcv_queue, self.config.iface)
+        for _, controller in self.evse_controllers.items():
+            rcv_queue = asyncio.Queue()
+            iface = controller.config.cs_config.network_interface
+            udp_server = UDPServer(rcv_queue, iface)
+            tcp_server = TCPServer(rcv_queue, iface)
+            tasks = [
+                self.get_from_rcv_queue(rcv_queue),
+                udp_server.start(),
+                tcp_server.start_tls(),
+            ]
 
-        self.list_of_tasks = [
-            self.get_from_rcv_queue(self._rcv_queue),
-            self.udp_server.start(),
-            self.tcp_server.start_tls(),
-        ]
+            if not self.config.enforce_tls:
+                tasks.append(tcp_server.start_no_tls())
 
-        if not self.config.enforce_tls:
-            self.list_of_tasks.append(self.tcp_server.start_no_tls())
+            self.list_of_tasks.extend(tasks)
+            self.evse_connections[iface] = EVSEConnection(
+                udp_server=udp_server,
+                tcp_server=tcp_server,
+                rcv_queue=rcv_queue,
+                tasks=tasks,
+            )
 
         logger.info("Communication session handler started")
 
@@ -239,9 +261,9 @@ class CommunicationSessionHandler:
                             await self.end_current_session(notification.ip_address)
                         comm_session = SECCCommunicationSession(
                             notification.transport,
-                            self._rcv_queue,
+                            self.evse_connections[notification.iface].rcv_queue,
                             self.config,
-                            self.evse_controller,
+                            self.evse_controllers[notification.iface],
                         )
 
                     task = asyncio.create_task(
@@ -292,13 +314,14 @@ class CommunicationSessionHandler:
                 logger.info(f"SDPRequest received: {sdp_request}")
 
                 if self.config.enforce_tls or sdp_request.security == Security.TLS:
-                    port = self.tcp_server.port_tls
+                    port = self.evse_connections[message.iface].tcp_server.port_tls
                 else:
-                    port = self.tcp_server.port_no_tls
+                    port = self.evse_connections[message.iface].tcp_server.port_no_tls
 
                 # convert IPv6 address from presentation to numeric format
                 ipv6_bytes = socket.inet_pton(
-                    socket.AF_INET6, self.tcp_server.ipv6_address_host
+                    socket.AF_INET6,
+                    self.evse_connections[message.iface].tcp_server.ipv6_address_host,
                 )
 
                 sdp_response = create_sdp_response(
@@ -331,4 +354,4 @@ class CommunicationSessionHandler:
         )
         logger.info(f"Sending SDPResponse: {sdp_response}")
 
-        self.udp_server.send(v2gtp_msg, message.addr)
+        self.evse_connections[message.iface].udp_server.send(v2gtp_msg, message.addr)

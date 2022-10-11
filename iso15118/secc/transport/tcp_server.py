@@ -130,7 +130,7 @@ class TCPServer(asyncio.Protocol):
         Callback for a new socket connection with the server.
         It provides a streamReader and a streamWriter
         """
-        new_client = TCPClientNotification(reader, writer)
+        new_client = TCPClientNotification(reader, writer, self.iface)
 
         self._session_handler_queue.put_nowait(new_client)
 

@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 from aiofile import async_open
 from pydantic import BaseModel, Field
 
+from iso15118.secc.controller.evse_config import EVSEConfig
 from iso15118.secc.controller.interface import (
     EVChargeParamsLimits,
     EVDataContext,
@@ -180,9 +181,12 @@ class SimEVSEController(EVSEControllerInterface):
     A simulated version of an EVSE controller
     """
 
+    def __init__(self, evse_config: EVSEConfig):
+        EVSEControllerInterface.__init__(self, evse_config)
+
     @classmethod
-    async def create(cls):
-        self = SimEVSEController()
+    async def create(cls, evse_config: EVSEConfig):
+        self = SimEVSEController(evse_config)
         self.ev_data_context = EVDataContext()
         self.v20_service_id_parameter_mapping = (
             await read_service_id_parameter_mappings()
@@ -196,19 +200,9 @@ class SimEVSEController(EVSEControllerInterface):
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
 
-    async def get_evse_id(self, protocol: Protocol) -> str:
-        if protocol == Protocol.DIN_SPEC_70121:
-            #  To transform a string-based DIN SPEC 91286 EVSE ID to hexBinary
-            #  representation and vice versa, the following conversion rules shall
-            #  be used for each character and hex digit: '0' <--> 0x0, '1' <--> 0x1,
-            #  '2' <--> 0x2, '3' <--> 0x3, '4' <--> 0x4, '5' <--> 0x5, '6' <--> 0x6,
-            #  '7' <--> 0x7, '8' <--> 0x8, '9' <--> 0x9, '*' <--> 0xA,
-            #  Unused <--> 0xB .. 0xF.
-            # Example: The DIN SPEC 91286 EVSE ID “49*89*6360” is represented
-            # as “0x49 0xA8 0x9A 0x63 0x60”.
-            return "49A89A6360"
+    async def get_evse_id(self) -> str:
         """Overrides EVSEControllerInterface.get_evse_id()."""
-        return "UK123E1234"
+        return self.config.cs_config.evse_id
 
     async def get_supported_energy_transfer_modes(
         self, protocol: Protocol

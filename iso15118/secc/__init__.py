@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Dict, Optional
 
 from iso15118 import __version__
 from iso15118.secc.comm_session_handler import CommunicationSessionHandler
@@ -15,17 +15,16 @@ logger = logging.getLogger(__name__)
 class SECCHandler(CommunicationSessionHandler):
     def __init__(
         self,
+        config: Config,
+        evse_controllers: Dict[str, EVSEControllerInterface],
         exi_codec: IEXICodec,
-        evse_controller: EVSEControllerInterface,
         env_path: Optional[str] = None,
     ):
-        config = Config()
-        config.load_envs(env_path)
         CommunicationSessionHandler.__init__(
             self,
             config,
             exi_codec,
-            evse_controller,
+            evse_controllers,
         )
 
     async def start(self):

@@ -185,9 +185,7 @@ class SessionSetup(StateSECC):
 
         session_setup_res = SessionSetupRes(
             response_code=self.response_code,
-            evse_id=await self.comm_session.evse_controller.get_evse_id(
-                Protocol.ISO_15118_2
-            ),
+            evse_id=await self.comm_session.evse_controller.get_evse_id(),
             evse_timestamp=time.time(),
         )
 
@@ -1827,9 +1825,7 @@ class ChargingStatus(StateSECC):
         # do, then set receipt_required to True and set the field meter_info
         charging_status_res = ChargingStatusRes(
             response_code=ResponseCode.OK,
-            evse_id=await self.comm_session.evse_controller.get_evse_id(
-                Protocol.ISO_15118_2
-            ),
+            evse_id=await self.comm_session.evse_controller.get_evse_id(),
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             ac_evse_status=ACEVSEStatus(
                 notification_max_delay=0,
@@ -2128,7 +2124,7 @@ class CurrentDemand(StateSECC):
             evse_max_voltage_limit=await evse_controller.get_evse_max_voltage_limit(),
             evse_max_current_limit=await evse_controller.get_evse_max_current_limit(),
             evse_max_power_limit=await evse_controller.get_evse_max_power_limit(),
-            evse_id=await evse_controller.get_evse_id(Protocol.ISO_15118_2),
+            evse_id=await evse_controller.get_evse_id(),
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             # TODO Could maybe request an OCPP setting that determines
             #      whether or not a receipt is required and when

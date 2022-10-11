@@ -6,7 +6,11 @@ from asyncio import DatagramTransport
 from typing import Optional, Tuple
 
 from iso15118.shared.messages.v2gtp import V2GTPMessage
-from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT
+from iso15118.shared.network import (
+    SDP_MULTICAST_GROUP,
+    SDP_SERVER_PORT,
+    get_link_local_full_addr,
+)
 from iso15118.shared.notifications import (
     ReceiveTimeoutNotification,
     UDPPacketNotification,
@@ -41,7 +45,7 @@ class UDPServer(asyncio.DatagramProtocol):
         self._transport: Optional[DatagramTransport] = None
 
     @staticmethod
-    def _create_socket(iface: str) -> "socket":
+    async def _create_socket(iface: str) -> "socket":
         """
         This method is necessary because Python does not allow
         async def __init__.
@@ -58,7 +62,8 @@ class UDPServer(asyncio.DatagramProtocol):
 
         # Bind the socket to the predefined port for receiving
         # UDP packets (SDP requests)
-        sock.bind(("", SDP_SERVER_PORT))
+        full_ipv6_address = await get_link_local_full_addr(SDP_SERVER_PORT, iface)
+        sock.bind(full_ipv6_address)
 
         # After the regular socket is created and bound to a port, it can be
         # added to the multicast group by using setsockopt() to set the
@@ -90,7 +95,7 @@ class UDPServer(asyncio.DatagramProtocol):
         # One protocol instance will be created to serve all client requests
         self._transport, _ = await loop.create_datagram_endpoint(
             lambda: self,
-            sock=self._create_socket(self.iface),
+            sock=await self._create_socket(self.iface),
             reuse_address=True,
         )
 
@@ -124,7 +129,7 @@ class UDPServer(asyncio.DatagramProtocol):
         """
         logger.debug(f"Message received from {addr}: {data.hex()}")
         try:
-            udp_packet = UDPPacketNotification(bytearray(data), addr)
+            udp_packet = UDPPacketNotification(bytearray(data), addr, self.iface)
             self._rcv_queue.put_nowait((udp_packet, addr))
         except asyncio.QueueFull:
             logger.error(f"Dropped packet size {len(data)} from {addr}")
