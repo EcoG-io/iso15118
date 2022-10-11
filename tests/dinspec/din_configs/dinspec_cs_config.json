@@ -1,0 +1,27 @@
+{
+  "sw_version": "v1.0.1",
+  "hw_version": "v2.0.0",
+  "number_of_evses": 1,
+  "parameters": [
+    {
+      "evse_id": "49A89A6360",
+      "connectors": [
+        {
+          "id": 1,
+          "services": {
+            "dc": {
+              "connector_type": "DC_extended",
+              "nominal_voltage": 230,
+              "free_service": true,
+              "control_mode": "",
+              "mobility_needs": "",
+              "pricing": ""
+            }
+          }
+        }
+      ],
+      "supports_eim": true,
+      "network_interface": "en0"
+    }
+  ]
+}

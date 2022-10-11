@@ -2,16 +2,27 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+from iso15118.secc import Config
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.simulator import SimEVSEController
+from iso15118.secc.main import build_evse_configs
 from iso15118.secc.states.din_spec_states import CurrentDemand, PowerDelivery
 from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol
 from iso15118.shared.notifications import StopNotification
 
 
-class MockWriter:
-    def get_extra_info(self, query_string: str):
-        return "not supported"
+async def build_evse_controllers():
+    config = Config()
+    config.load_envs()
+
+    evse_configs = await build_evse_configs(
+        config.cs_config_file_path, config.cs_limits_file_path
+    )
+    evse_controllers = {}
+    for key, value in evse_configs.items():
+        sim_evse_controller = await SimEVSEController.create(evse_config=value)
+        evse_controllers[key] = sim_evse_controller
+    return evse_controllers
 
 
 @patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b"01"))
@@ -25,9 +36,8 @@ class TestEvseScenarios:
         self.comm_session.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
         self.comm_session.selected_charging_type_is_ac = False
         self.comm_session.stop_reason = StopNotification(False, "pytest")
-        self.comm_session.evse_controller = SimEVSEController()
+        self.comm_session.evse_controller = SimEVSEController(build_evse_controllers())
         self.comm_session.protocol = Protocol.UNKNOWN
-        self.comm_session.writer = MockWriter()
 
     async def test_sap_to_billing(self):
         pass
