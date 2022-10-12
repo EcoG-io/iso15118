@@ -7,6 +7,7 @@ from iso15118.secc import Config
 from iso15118.secc.states.iso15118_2_states import (
     Authorization,
     ChargeParameterDiscovery,
+    ChargingStatus,
     CurrentDemand,
     PaymentDetails,
     PowerDelivery,
@@ -15,6 +16,7 @@ from iso15118.secc.states.iso15118_2_states import (
     WeldingDetection,
 )
 from iso15118.secc.states.secc_state import StateSECC
+from iso15118.shared.messages.datatypes import EVSENotification
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
@@ -23,10 +25,11 @@ from iso15118.shared.messages.enums import (
     EVSEProcessing,
 )
 from iso15118.shared.messages.iso15118_2.body import ResponseCode
-from iso15118.shared.messages.iso15118_2.datatypes import CertificateChain
+from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEStatus, CertificateChain
 from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
+    get_dummy_charging_status_req,
     get_dummy_v2g_message_authorization_req,
     get_dummy_v2g_message_payment_details_req,
     get_dummy_v2g_message_power_delivery_req_charge_start,
@@ -39,7 +42,7 @@ from tests.secc.states.test_messages import (
 
 @patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b"01"))
 @pytest.mark.asyncio
-class TestEvScenarios:
+class TestV2GSessionScenarios:
     @pytest.fixture(autouse=True)
     def _comm_session(self, comm_secc_session_mock):
         self.comm_session = comm_secc_session_mock
@@ -383,3 +386,35 @@ class TestEvScenarios:
             service_discovery.message.body.service_discovery_res.response_code
             is ResponseCode.FAILED_SEQUENCE_ERROR
         )
+
+    async def test_charging_status_evse_status(self):
+        charging_status = ChargingStatus(self.comm_session)
+        self.comm_session.writer = Mock()
+        self.comm_session.writer.get_extra_info = Mock()
+        self.comm_session.selected_schedule = 1
+        await charging_status.process_message(message=get_dummy_charging_status_req())
+
+        charging_status_res = charging_status.message.body.charging_status_res
+        assert charging_status_res.ac_evse_status == ACEVSEStatus(
+            notification_max_delay=0,
+            evse_notification=EVSENotification.NONE,
+            rcd=False,
+        )
+
+    async def test_charging_status_evse_status_altered(self):
+        charging_status = ChargingStatus(self.comm_session)
+        self.comm_session.writer = Mock()
+        self.comm_session.writer.get_extra_info = Mock()
+        self.comm_session.selected_schedule = 1
+
+        async def get_ac_evse_status_patch():
+            return ACEVSEStatus(
+                notification_max_delay=0,
+                evse_notification=EVSENotification.NONE,
+                rcd=True,
+            )
+
+        self.comm_session.evse_controller.get_ac_evse_status = get_ac_evse_status_patch
+        await charging_status.process_message(message=get_dummy_charging_status_req())
+        charging_status_res = charging_status.message.body.charging_status_res
+        assert charging_status_res.ac_evse_status == await get_ac_evse_status_patch()

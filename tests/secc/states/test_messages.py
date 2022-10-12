@@ -11,6 +11,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     AuthorizationReq,
     Body,
     ChargeParameterDiscoveryReq,
+    ChargingStatusReq,
     PaymentDetailsReq,
     PowerDeliveryReq,
     ServiceDiscoveryReq,
@@ -217,4 +218,12 @@ def get_dummy_v2g_message_service_discovery_req() -> V2GMessage:
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(service_discovery_req=service_discovery_req),
+    )
+
+
+def get_dummy_charging_status_req() -> V2GMessage:
+    charging_status_req = ChargingStatusReq()
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(charging_status_req=charging_status_req),
     )

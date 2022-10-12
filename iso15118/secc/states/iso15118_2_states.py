@@ -27,11 +27,7 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.datatypes import (
-    DCEVSEChargeParameter,
-    DCEVSEStatus,
-    EVSENotification,
-)
+from iso15118.shared.messages.datatypes import DCEVSEChargeParameter, DCEVSEStatus
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
@@ -1825,17 +1821,12 @@ class ChargingStatus(StateSECC):
 
         # We don't care about signed meter values from the EVCC, but if you
         # do, then set receipt_required to True and set the field meter_info
+        evse_controller = self.comm_session.evse_controller
         charging_status_res = ChargingStatusRes(
             response_code=ResponseCode.OK,
-            evse_id=await self.comm_session.evse_controller.get_evse_id(
-                Protocol.ISO_15118_2
-            ),
+            evse_id=await evse_controller.get_evse_id(Protocol.ISO_15118_2),
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
-            ac_evse_status=ACEVSEStatus(
-                notification_max_delay=0,
-                evse_notification=EVSENotification.NONE,
-                rcd=False,
-            ),
+            ac_evse_status=await evse_controller.get_ac_evse_status(),
             # TODO Could maybe request an OCPP setting that determines
             #      whether or not a receipt is required and when
             #      (probably only makes sense at the beginning and end of
