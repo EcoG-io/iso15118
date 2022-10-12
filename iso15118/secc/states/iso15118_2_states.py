@@ -27,11 +27,7 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.datatypes import (
-    DCEVSEChargeParameter,
-    DCEVSEStatus,
-    EVSENotification,
-)
+from iso15118.shared.messages.datatypes import DCEVSEChargeParameter, DCEVSEStatus
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
