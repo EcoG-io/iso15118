@@ -3,7 +3,7 @@ prompt 					= no
 distinguished_name		= ca_dn
 
 [ca_dn]
-commonName				= MOSubCA1
+commonName				= PKI-Ext_CRT_MO_SUB1_VALID
 organizationName		= Switch
 countryName				= UK
 domainComponent			= MO
