@@ -1021,14 +1021,13 @@ class Authorization(StateSECC):
         # 'FAILED_ChallengeInvalid' if the challenge response contained in the
         # AuthorizationReq message in attribute GenChallenge is not valid versus
         # the provided GenChallenge in PaymentDetailsRes.
-        if authorization_req.gen_challenge:
-            if authorization_req.gen_challenge != self.comm_session.gen_challenge:
-                self.stop_state_machine(
-                    "[V2G2-475] GenChallenge is not the same in PaymentDetailsRes",
-                    message,
-                    ResponseCode.FAILED_CHALLENGE_INVALID,
-                )
-                return
+        if authorization_req.gen_challenge != self.comm_session.gen_challenge:
+            self.stop_state_machine(
+                "[V2G2-475] GenChallenge is not the same in PaymentDetailsRes",
+                message,
+                ResponseCode.FAILED_CHALLENGE_INVALID,
+            )
+            return
 
         if self.comm_session.selected_auth_option == AuthEnum.PNC_V2:
             if not self.comm_session.contract_cert_chain:
