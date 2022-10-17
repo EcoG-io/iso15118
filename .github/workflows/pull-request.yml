@@ -22,8 +22,18 @@ jobs:
       run: |
         cp .env.dev.local .env
 
-    - name: Code Quality Check
-      shell: bash
-      run: |
-        cp template.Dockerfile iso15118/secc/Dockerfile
-        docker-compose build secc
+# TODO: Fix MyPy issues https://github.com/SwitchEV/iso15118/issues/93
+#    - name: Mypy
+#      run: make mypy
+
+    - name: Black
+      run: make black
+
+    - name: Flake8
+      run: make flake8
+
+    - name: isort
+      run: make isort
+
+    - name: Tests
+      run: make test

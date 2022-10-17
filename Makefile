@@ -97,23 +97,23 @@ test-secc:
 
 # Run pytest
 test:
-	pytest tests
+	poetry run pytest -vv --cov-config .coveragerc --cov-report term-missing  --durations=3 --cov=.
 
 # Run mypy checks
 mypy:
-	mypy --config-file mypy.ini iso15118 tests
+	poetry run mypy --config-file mypy.ini iso15118 tests
 
 # Reformat with isort and black
 reformat:
-	isort iso15118 tests && black --line-length=88 iso15118 tests
+	poetry run isort iso15118 tests && poetry run black --line-length=88 iso15118 tests
 
 # Run black checks
 black:
-	black --check --diff --line-length=88 iso15118 tests
+	poetry run black --check --diff --line-length=88 iso15118 tests
 
 # Run flake8 checks
 flake8:
-	flake8 --config .flake8 iso15118 tests
+	poetry run flake8 --config .flake8 iso15118 tests
 
 # Run black, isort, mypy, & flake8
 code-quality: reformat mypy flake8
