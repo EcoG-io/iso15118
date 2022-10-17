@@ -111,6 +111,10 @@ reformat:
 black:
 	poetry run black --check --diff --line-length=88 iso15118 tests
 
+# Run isort checks
+isort:
+	poetry run isort --check-only iso15118 tests
+
 # Run flake8 checks
 flake8:
 	poetry run flake8 --config .flake8 iso15118 tests
