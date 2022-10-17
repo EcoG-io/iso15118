@@ -16,7 +16,7 @@ import socket
 from asyncio.streams import StreamReader, StreamWriter
 from typing import Dict, List, Optional, Tuple, Union
 
-from iso15118.secc.controller.interface import EVSEControllerInterface
+from iso15118.secc.controller.interface import EVSEControllerInterface, ServiceStatus
 from iso15118.secc.failed_responses import (
     init_failed_responses_din_spec_70121,
     init_failed_responses_iso_v2,
@@ -168,6 +168,9 @@ class CommunicationSessionHandler:
         self.config = config
         self.evse_controller = evse_controller
 
+        # List of server status events
+        self.status_event_list: List[asyncio.Event] = []
+
         # Set the selected EXI codec implementation
         EXI().set_exi_codec(codec)
 
@@ -189,20 +192,49 @@ class CommunicationSessionHandler:
         """
 
         self.udp_server = UDPServer(self._rcv_queue, self.config.iface)
+        udp_ready_event: asyncio.Event = asyncio.Event()
+        self.status_event_list.append(udp_ready_event)
+
         self.tcp_server = TCPServer(self._rcv_queue, self.config.iface)
+        tls_ready_event: asyncio.Event = asyncio.Event()
+        self.status_event_list.append(tls_ready_event)
 
         self.list_of_tasks = [
             self.get_from_rcv_queue(self._rcv_queue),
-            self.udp_server.start(),
-            self.tcp_server.start_tls(),
+            self.udp_server.start(udp_ready_event),
+            self.tcp_server.start_tls(tls_ready_event),
+            self.check_status_task(),
         ]
 
         if not self.config.enforce_tls:
-            self.list_of_tasks.append(self.tcp_server.start_no_tls())
+            tcp_ready_event: asyncio.Event = asyncio.Event()
+            self.status_event_list.append(tcp_ready_event)
+            self.list_of_tasks.append(self.tcp_server.start_no_tls(tcp_ready_event))
 
         logger.info("Communication session handler started")
 
         await wait_for_tasks(self.list_of_tasks)
+
+    def check_events(self) -> bool:
+        result: bool = True
+        for event in self.status_event_list:
+            if event.is_set() is False:
+                result = False
+                break
+        return result
+
+    async def check_ready_status(self) -> None:
+        # Wait until all flags are set
+        while self.check_events() is False:
+            await asyncio.sleep(0.01)
+
+    async def check_status_task(self) -> None:
+        try:
+            await asyncio.wait_for(self.check_ready_status(), timeout=10)
+            await self.evse_controller.set_status(ServiceStatus.READY)
+        except asyncio.TimeoutError:
+            logger.error("Timeout: Servers failed to startup")
+            await self.evse_controller.set_status(ServiceStatus.ERROR)
 
     async def get_from_rcv_queue(self, queue: asyncio.Queue):
         """
