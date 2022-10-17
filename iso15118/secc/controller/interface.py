@@ -73,7 +73,7 @@ class EVDataContext:
     soc: Optional[int] = None  # 0-100
 
 
-class EVSEServiceStatus(str, Enum):
+class ServiceStatus(str, Enum):
     READY = "ready"
     STARTING = "starting"
     STOPPING = "stopping"
@@ -101,7 +101,7 @@ class EVSEControllerInterface(ABC):
     # ============================================================================
 
     @abstractmethod
-    async def set_status(self, status: EVSEServiceStatus) -> None:
+    async def set_status(self, status: ServiceStatus) -> None:
         """
         Sets the new status for the EVSE Controller
         """
