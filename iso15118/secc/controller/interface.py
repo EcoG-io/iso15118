@@ -4,6 +4,7 @@ This module contains the abstract class for an SECC to retrieve data from the EV
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from typing import Dict, List, Optional, Union
 
 from iso15118.shared.messages.datatypes import (
@@ -72,6 +73,14 @@ class EVDataContext:
     soc: Optional[int] = None  # 0-100
 
 
+class EVSEServiceStatus(str, Enum):
+    READY = "ready"
+    STARTING = "starting"
+    STOPPING = "stopping"
+    ERROR = "error"
+    BUSY = "busy"
+
+
 @dataclass
 class EVChargeParamsLimits:
     ev_max_voltage: Optional[Union[PVEVMaxVoltageLimit, PVEVMaxVoltage]] = None
@@ -90,6 +99,13 @@ class EVSEControllerInterface(ABC):
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
+
+    @abstractmethod
+    async def set_status(self, status: EVSEServiceStatus) -> None:
+        """
+        Sets the new status for the EVSE Controller
+        """
+        raise NotImplementedError
 
     @abstractmethod
     async def get_evse_id(self, protocol: Protocol) -> str:
