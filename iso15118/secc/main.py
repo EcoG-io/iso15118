@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from iso15118.secc import SECCHandler
-from iso15118.secc.controller.interface import EVSEServiceStatus
+from iso15118.secc.controller.interface import ServiceStatus
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.shared.exificient_exi_codec import ExificientEXICodec
 
@@ -15,7 +15,7 @@ async def main():
     the SECC (Supply Equipment Communication Controller)
     """
     sim_evse_controller = await SimEVSEController.create()
-    await sim_evse_controller.set_status(EVSEServiceStatus.STARTING)
+    await sim_evse_controller.set_status(ServiceStatus.STARTING)
     await SECCHandler(
         exi_codec=ExificientEXICodec(), evse_controller=sim_evse_controller
     ).start()
