@@ -27,6 +27,8 @@ class TCPServer(asyncio.Protocol):
         self.port_no_tls = get_tcp_port()
         self.port_tls = get_tcp_port()
         self.iface = iface
+        self.tls_ready_event: asyncio.Event = asyncio.Event()
+        self.tcp_ready_event: asyncio.Event = asyncio.Event()
 
         # Making sure the TCP and TLS port are definitely different
         while self.port_no_tls == self.port_tls:
@@ -111,6 +113,11 @@ class TCPServer(asyncio.Protocol):
             f"address {self.ipv6_address_host}%{self.iface} and "
             f"port {port}"
         )
+
+        if tls:
+            self.tls_ready_event.set()
+        else:
+            self.tcp_ready_event.set()
 
         try:
             # Shield the task so we can handle the cancellation

@@ -36,6 +36,7 @@ class UDPServer(asyncio.DatagramProtocol):
     def __init__(self, session_handler_queue: asyncio.Queue, iface: str):
         self.started: bool = False
         self.iface = iface
+        self.ready_event: asyncio.Event = asyncio.Event()
         self._session_handler_queue: asyncio.Queue = session_handler_queue
         self._rcv_queue: asyncio.Queue = asyncio.Queue()
         self._transport: Optional[DatagramTransport] = None
@@ -99,6 +100,7 @@ class UDPServer(asyncio.DatagramProtocol):
             f"{SDP_MULTICAST_GROUP}%{self.iface} "
             f"and port {SDP_SERVER_PORT}"
         )
+        self.ready_event.set()
         tasks = [self.rcv_task()]
         await wait_for_tasks(tasks)
 
