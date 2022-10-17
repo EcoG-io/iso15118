@@ -36,7 +36,6 @@ class UDPServer(asyncio.DatagramProtocol):
     def __init__(self, session_handler_queue: asyncio.Queue, iface: str):
         self.started: bool = False
         self.iface = iface
-        self.ready_event: asyncio.Event = asyncio.Event()
         self._session_handler_queue: asyncio.Queue = session_handler_queue
         self._rcv_queue: asyncio.Queue = asyncio.Queue()
         self._transport: Optional[DatagramTransport] = None
@@ -83,7 +82,7 @@ class UDPServer(asyncio.DatagramProtocol):
 
         return sock
 
-    async def start(self):
+    async def start(self, ready_event: asyncio.Event):
         """UDP server tasks to start"""
         # Get a reference to the event loop as we plan to use a low-level API
         # (see loop.create_datagram_endpoint())
@@ -100,7 +99,7 @@ class UDPServer(asyncio.DatagramProtocol):
             f"{SDP_MULTICAST_GROUP}%{self.iface} "
             f"and port {SDP_SERVER_PORT}"
         )
-        self.ready_event.set()
+        ready_event.set()
         tasks = [self.rcv_task()]
         await wait_for_tasks(tasks)
 

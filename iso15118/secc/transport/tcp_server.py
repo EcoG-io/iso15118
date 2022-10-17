@@ -27,26 +27,24 @@ class TCPServer(asyncio.Protocol):
         self.port_no_tls = get_tcp_port()
         self.port_tls = get_tcp_port()
         self.iface = iface
-        self.tls_ready_event: asyncio.Event = asyncio.Event()
-        self.tcp_ready_event: asyncio.Event = asyncio.Event()
 
         # Making sure the TCP and TLS port are definitely different
         while self.port_no_tls == self.port_tls:
             self.port_tls = get_tcp_port()
 
-    async def start_tls(self):
+    async def start_tls(self, ready_event: asyncio.Event):
         """
         Uses the `server_factory` to start a TLS based server
         """
-        await self.server_factory(tls=True)
+        await self.server_factory(ready_event, tls=True)
 
-    async def start_no_tls(self):
+    async def start_no_tls(self, ready_event: asyncio.Event):
         """
         Uses the `server_factory` to start a regular TCO based server (No TLS)
         """
-        await self.server_factory(tls=False)
+        await self.server_factory(ready_event, tls=False)
 
-    async def server_factory(self, tls: bool) -> None:
+    async def server_factory(self, ready_event: asyncio.Event, tls: bool) -> None:
         """
         Factory method to spawn a new server.
 
@@ -114,10 +112,7 @@ class TCPServer(asyncio.Protocol):
             f"port {port}"
         )
 
-        if tls:
-            self.tls_ready_event.set()
-        else:
-            self.tcp_ready_event.set()
+        ready_event.set()
 
         try:
             # Shield the task so we can handle the cancellation
