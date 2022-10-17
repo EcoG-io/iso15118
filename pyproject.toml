@@ -32,6 +32,9 @@ pytest-cov = "^3.0.0"
 aiofile = "^3.7.4"
 toml = "0.10.2"
 
+[tool.poetry.group.dev.dependencies]
+mypy = "^0.982"
+
 [tool.isort]
 profile = "black"
 
