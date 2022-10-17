@@ -5,6 +5,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2022-10-15
+
+### Fixed
+
+* Fix/serviceDiscoveryreq is not allowed after receiving first one by @ikaratass in https://github.com/SwitchEV/iso15118/pull/143
+* fix: remove sphinx dependency by @mdwcrft in https://github.com/SwitchEV/iso15118/pull/141
+* Fix: create_certs to generate jks certs for Keysight by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/134
+### Added
+
+* feat: Add Service status in https://github.com/SwitchEV/iso15118/pull/148
+* get from the evse controller the ac evse status by @tropxy in https://github.com/SwitchEV/iso15118/pull/146
+
 ## [0.12.0] - 2022-10-03
 
 ### Changed
