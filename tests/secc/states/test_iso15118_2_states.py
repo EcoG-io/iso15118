@@ -31,13 +31,19 @@ from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
     get_dummy_charging_status_req,
+    get_dummy_sa_schedule,
     get_dummy_v2g_message_authorization_req,
     get_dummy_v2g_message_payment_details_req,
     get_dummy_v2g_message_power_delivery_req_charge_start,
     get_dummy_v2g_message_power_delivery_req_charge_stop,
     get_dummy_v2g_message_service_discovery_req,
     get_dummy_v2g_message_welding_detection_req,
+    get_power_delivery_req_charging_profile_in_boundary_invalid,
+    get_power_delivery_req_charging_profile_in_limits,
+    get_power_delivery_req_charging_profile_not_in_limits_span_over_sa,
+    get_power_delivery_req_charging_profile_out_of_boundary,
     get_v2g_message_power_delivery_req,
+    get_v2g_message_power_delivery_req_charging_profile_in_boundary_valid,
 )
 
 
@@ -359,6 +365,58 @@ class TestV2GSessionScenarios:
                     break
 
             assert found_entry_indicating_start_without_delay is True
+
+    @pytest.mark.parametrize(
+        "power_delivery_message,expected_state, expected_response_code",
+        [
+            (
+                get_v2g_message_power_delivery_req_charging_profile_in_boundary_valid(),
+                CurrentDemand,
+                ResponseCode.OK,
+            ),
+            (
+                get_power_delivery_req_charging_profile_in_boundary_invalid(),
+                Terminate,
+                ResponseCode.FAILED_CHARGING_PROFILE_INVALID,
+            ),
+            (
+                get_power_delivery_req_charging_profile_in_limits(),
+                CurrentDemand,
+                ResponseCode.OK,
+            ),
+            (
+                get_power_delivery_req_charging_profile_not_in_limits_span_over_sa(),
+                Terminate,
+                ResponseCode.FAILED_CHARGING_PROFILE_INVALID,
+            ),
+            (
+                get_power_delivery_req_charging_profile_out_of_boundary(),
+                Terminate,
+                ResponseCode.FAILED_CHARGING_PROFILE_INVALID,
+            ),
+        ],
+    )
+    async def test_charge_parameter_discovery_req_v2g2_225(
+        self, power_delivery_message, expected_state, expected_response_code
+    ):
+        # [V2G2-225] The SECC shall send the negative ResponseCode
+        # FAILED_ChargingProfileInvalid in
+        # the PowerDelivery response message if the EVCC sends a ChargingProfile which
+        # is not adhering to the PMax values of all PMaxScheduleEntry elements according
+        # to the chosen SAScheduleTuple element in the last ChargeParameterDiscoveryRes
+        # message sent by the SECC.
+        self.comm_session.writer = Mock()
+        self.comm_session.writer.get_extra_info = Mock()
+
+        self.comm_session.offered_schedules = get_dummy_sa_schedule()
+        power_delivery = PowerDelivery(self.comm_session)
+
+        await power_delivery.process_message(message=power_delivery_message)
+        assert power_delivery.next_state is expected_state
+        assert (
+            power_delivery.message.body.power_delivery_res.response_code
+            is expected_response_code
+        )
 
     async def test_power_delivery_set_hlc_charging(
         self,

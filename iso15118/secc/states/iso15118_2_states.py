@@ -1472,7 +1472,21 @@ class PowerDelivery(StateSECC):
         #     )
         #     return
 
-        # TODO We should also do a more detailed check of the charging profile
+        # [V2G2-225] The SECC shall send the negative ResponseCode
+        # FAILED_ChargingProfileInvalid in
+        # the PowerDelivery response message if the EVCC sends a ChargingProfile which
+        # is not adhering to the PMax values of all PMaxScheduleEntry elements according
+        # to the chosen SAScheduleTuple element in the last ChargeParameterDiscoveryRes
+        # message sent by the SECC.
+        if power_delivery_req.charging_profile:
+            if not self._is_charging_profile_valid(power_delivery_req):
+                self.stop_state_machine(
+                    "[V2G2-225] ChargingProfile is not adhering to the Pmax values in "
+                    "ChargeParameterDiscoveryRes",
+                    message,
+                    ResponseCode.FAILED_CHARGING_PROFILE_INVALID,
+                )
+                return
 
         logger.debug(f"ChargeProgress set to {power_delivery_req.charge_progress}")
 
@@ -1610,6 +1624,99 @@ class PowerDelivery(StateSECC):
                 CpState.C2,
                 CpState.D2,
             ]
+
+    def _is_charging_profile_valid(self, power_delivery_req: PowerDeliveryReq) -> bool:
+        for schedule in self.comm_session.offered_schedules:
+            if schedule.sa_schedule_tuple_id == power_delivery_req.sa_schedule_tuple_id:
+                schedule_entries = schedule.p_max_schedule.schedule_entries
+                # schedule_entries shall look like [PMaxScheduleEntry_0,
+                # PMaxScheduleEntry_1, ...]. The enumerate will pair an index with
+                # each list entry: (0, PMaxScheduleEntry_0), (1,
+                # PMaxScheduleEntry_1), ...
+                ev_profile = power_delivery_req.charging_profile
+                ev_profile_entries = ev_profile.profile_entries
+                cached_start_idx_ev: int = 0
+                last_ev_running_idx: int = 0
+
+                for idx, sa_profile_entry in enumerate(schedule_entries):
+                    sa_profile_entry_start = sa_profile_entry.time_interval.start
+
+                    sa_entry_pmax = (
+                        sa_profile_entry.p_max.value
+                        * 10**sa_profile_entry.p_max.multiplier
+                    )
+
+                    try:
+                        # By getting the next entry/slot, we can know when
+                        # the current entry ends
+                        next_sa_profile_entry = schedule_entries[idx + 1]
+                        sa_profile_entry_end = next_sa_profile_entry.time_interval.start
+
+                    except IndexError:
+                        # As the index is out of rage, it signals this is
+                        # the final entry of the sa profile. The last entry
+                        # must have a duration field, so we can calculate
+                        # the end of the period summing the relative start
+                        # of the entry with the duration of it
+                        sa_profile_entry_end = (
+                            sa_profile_entry_start
+                            + sa_profile_entry.time_interval.duration
+                        )
+                    # The cached index and last ev running index are helpers that
+                    # allow the for loop to start in the ev profile entry belonging
+                    # to the start range of the SA entry. This avoids looping all
+                    # over the ev profiles again for each SA entry schedule.
+                    # For example, if the SA time schedule is
+                    # [0; 1000[ [1000; 2000[ [2000; 3000[
+                    # And the EV profile time schedule is
+                    # [0, 100[ [100, 400[ [400; 1000[ [1000, inf+[
+                    # The first three entries of the ev profile belong
+                    # to the time range [0; 1000[ of the SA schedule and
+                    # if the EV power, for those three entries
+                    # does not surpass the limit imposed by the SA schedule
+                    # during that time, then for the next loop iteration,
+                    # we dont need to go test those EV time entries again,
+                    # as they dont belong to the [1000; 2000[ SA time schedule slot.
+                    cached_start_idx_ev += last_ev_running_idx
+                    last_ev_running_idx = 0
+                    # fmt: off
+                    for (ev_profile_idx, ev_profile_entry) in enumerate(
+                        ev_profile_entries[cached_start_idx_ev:]
+                    ):
+                        _is_last_ev_profile = (
+                            ev_profile_entry.start == ev_profile_entries[-1].start
+                        )
+
+                        if (ev_profile_entry.start < sa_profile_entry_end or _is_last_ev_profile ): # noqa
+                            ev_entry_pmax = (ev_profile_entry.max_power.value * 10 ** ev_profile_entry.max_power.multiplier)  # noqa
+                            if ev_entry_pmax > sa_entry_pmax:
+                                logger.error(
+                                    f"EV Profile start {ev_profile_entry.start}s"
+                                    f"is out of power range: "
+                                    f"EV Max {ev_entry_pmax} W > EVSE Max "
+                                    f"{sa_entry_pmax} W \n"
+                                )
+                                return False
+
+                            if not _is_last_ev_profile:
+                                ev_profile_entry_end = ev_profile_entries[
+                                    ev_profile_idx + 1
+                                ].start
+                                if ev_profile_entry_end <= sa_profile_entry_end:
+                                    last_ev_running_idx = ev_profile_idx + 1
+                            else:
+                                logger.debug(
+                                    f"EV last Profile start "
+                                    f"{ev_profile_entry.start}s is "
+                                    f"within time range [{sa_profile_entry_start}; "
+                                    f"{sa_profile_entry_end}[ and power range: "
+                                    f"EV Max {ev_entry_pmax} W <= EVSE Max "
+                                    f"{sa_entry_pmax} W \n"
+                                )
+                        else:
+                            break
+                    # fmt: on
+        return True
 
 
 class MeteringReceipt(StateSECC):
