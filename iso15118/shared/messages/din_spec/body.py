@@ -247,7 +247,7 @@ class ChargeParameterDiscoveryReq(BodyBase):
         )
         if requested_energy_mode not in ("DC_extended", "DC_core"):
             raise V2GMessageValidationError(
-                f"[V2G2-476] Wrong energy transfer mode transfer mode "
+                f"[V2G2-476] Wrong energy transfer mode for"
                 f"{requested_energy_mode}",
                 ResponseCode.FAILED_WRONG_ENERGY_TRANSFER_MODE,
                 cls,
