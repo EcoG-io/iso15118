@@ -92,7 +92,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         self.selected_auth_option: Optional[AuthEnum] = None
         # The generated challenge sent in PaymentDetailsRes. Its copy is expected in
         # AuthorizationReq (applies to Plug & Charge identification mode only)
-        self.gen_challenge: Optional[bytes] = None
+        self.gen_challenge: bytes = bytes(0)
         # In ISO 15118-2, the EVCCID is the MAC address, given as bytes.
         # In ISO 15118-20, the EVCCID is like a VIN number, given as str.
         self.evcc_id: Union[bytes, str, None] = None

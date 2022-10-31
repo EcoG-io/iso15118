@@ -914,10 +914,10 @@ class PaymentDetails(StateSECC):
                 AuthorizationStatus.ACCEPTED,
                 AuthorizationStatus.ONGOING,
             ]:
-                self.comm_session.gen_challenge = get_random_bytes(16)
+
                 payment_details_res = PaymentDetailsRes(
                     response_code=ResponseCode.OK,
-                    gen_challenge=self.comm_session.gen_challenge,
+                    gen_challenge=get_random_bytes(16),
                     evse_timestamp=time.time(),
                 )
 
@@ -1016,18 +1016,6 @@ class Authorization(StateSECC):
             return
 
         authorization_req: AuthorizationReq = msg.body.authorization_req
-
-        # [V2G2-475] The message 'AuthorizationRes' shall contain the ResponseCode
-        # 'FAILED_ChallengeInvalid' if the challenge response contained in the
-        # AuthorizationReq message in attribute GenChallenge is not valid versus
-        # the provided GenChallenge in PaymentDetailsRes.
-        if authorization_req.gen_challenge != self.comm_session.gen_challenge:
-            self.stop_state_machine(
-                "[V2G2-475] GenChallenge is not the same in PaymentDetailsRes",
-                message,
-                ResponseCode.FAILED_CHALLENGE_INVALID,
-            )
-            return
 
         if self.comm_session.selected_auth_option == AuthEnum.PNC_V2:
             if not self.comm_session.contract_cert_chain:
