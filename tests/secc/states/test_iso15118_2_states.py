@@ -26,7 +26,6 @@ from iso15118.shared.messages.enums import (
 )
 from iso15118.shared.messages.iso15118_2.body import ResponseCode
 from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEStatus, CertificateChain
-from iso15118.shared.messages.iso15118_2.datatypes import CertificateChain
 from iso15118.shared.security import get_random_bytes
 from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
