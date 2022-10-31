@@ -207,7 +207,8 @@ class TestV2GSessionScenarios:
     async def test_authorization_req_gen_challenge_invalid(self):
         self.comm_session.writer = Mock()
         self.comm_session.writer.get_extra_info = Mock()
-
+        self.comm_session.selected_auth_option = AuthEnum.PNC_V2
+        self.comm_session.contract_cert_chain = Mock()
         self.comm_session.gen_challenge = get_random_bytes(16)
         id = "aReq"
         gen_challenge = get_random_bytes(16)
