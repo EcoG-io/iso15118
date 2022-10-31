@@ -710,7 +710,7 @@ def check_validity(certs: List[Certificate]):
     Raises:
         CertNotYetValidError, CertExpiredError
     """
-    now = datetime.now()
+    now = datetime.utcnow()
     for cert in certs:
         if cert.not_valid_before > now:
             raise CertNotYetValidError(cert.subject.__str__())
