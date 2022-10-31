@@ -188,6 +188,7 @@ class TestV2GSessionScenarios:
         #      `get_dummy_v2g_message_authorization_req`
         self.comm_session.contract_cert_chain = Mock()
         self.comm_session.emaid = "dummy"
+        self.comm_session.gen_challenge = None
         authorization = Authorization(self.comm_session)
         authorization.signature_verified_once = True
         await authorization.process_message(
