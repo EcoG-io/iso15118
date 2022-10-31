@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from iso15118.shared.messages.datatypes import (
     PVEAmount,
@@ -118,11 +118,15 @@ def get_dummy_v2g_message_session_stop_req():
     )
 
 
-def get_dummy_v2g_message_authorization_req():
+def get_dummy_v2g_message_authorization_req(
+    id: Optional[str] = None, gen_challenge: Optional[bytes] = None
+):
     # The AuthorizationReq is empty, unless it is following a PaymentDetailsRes
     # message, in which case it must send back the generated challenge.
-    authorization_req = AuthorizationReq()
-
+    if gen_challenge:
+        authorization_req = AuthorizationReq(id=id, gen_challenge=gen_challenge)
+    else:
+        authorization_req = AuthorizationReq()
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(authorization_req=authorization_req),

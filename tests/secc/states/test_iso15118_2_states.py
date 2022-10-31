@@ -26,6 +26,7 @@ from iso15118.shared.messages.enums import (
 )
 from iso15118.shared.messages.iso15118_2.body import ResponseCode
 from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEStatus, CertificateChain
+from iso15118.shared.security import get_random_bytes
 from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
@@ -187,6 +188,7 @@ class TestV2GSessionScenarios:
         #      `get_dummy_v2g_message_authorization_req`
         self.comm_session.contract_cert_chain = Mock()
         self.comm_session.emaid = "dummy"
+        self.comm_session.gen_challenge = None
         authorization = Authorization(self.comm_session)
         authorization.signature_verified_once = True
         await authorization.process_message(
@@ -201,6 +203,40 @@ class TestV2GSessionScenarios:
             authorization.message.body.authorization_res.evse_processing
             == expected_evse_processing
         )
+
+    async def test_authorization_req_gen_challenge_invalid(self):
+        self.comm_session.writer = Mock()
+        self.comm_session.writer.get_extra_info = Mock()
+
+        self.comm_session.gen_challenge = get_random_bytes(16)
+        id = "aReq"
+        gen_challenge = get_random_bytes(16)
+        authorization = Authorization(self.comm_session)
+
+        await authorization.process_message(
+            message=get_dummy_v2g_message_authorization_req(id, gen_challenge)
+        )
+        assert authorization.next_state == Terminate
+        assert (
+            authorization.message.body.authorization_res.response_code
+            == ResponseCode.FAILED_CHALLENGE_INVALID
+        )
+
+    async def test_authorization_req_gen_challenge_valid(self):
+        self.comm_session.writer = Mock()
+        self.comm_session.writer.get_extra_info = Mock()
+        self.comm_session.selected_auth_option = AuthEnum.PNC_V2
+        self.comm_session.gen_challenge = get_random_bytes(16)
+        id = "aReq"
+        gen_challenge = self.comm_session.gen_challenge
+        self.comm_session.contract_cert_chain = Mock()
+        self.comm_session.emaid = "dummy"
+        authorization = Authorization(self.comm_session)
+        authorization.signature_verified_once = True
+        await authorization.process_message(
+            message=get_dummy_v2g_message_authorization_req(id, gen_challenge)
+        )
+        assert authorization.next_state == ChargeParameterDiscovery
 
     async def test_charge_parameter_discovery_res_v2g2_303(self):
         # V2G2-303 : Sum of individual time intervals shall match the period of time
