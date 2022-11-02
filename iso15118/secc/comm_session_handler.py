@@ -17,7 +17,11 @@ from asyncio.streams import StreamReader, StreamWriter
 from dataclasses import dataclass
 from typing import Coroutine, Dict, List, Optional, Tuple, Union
 
-from iso15118.secc.controller.interface import EVSEControllerInterface, ServiceStatus
+from iso15118.secc.controller.interface import (
+    EVSEControllerInterface,
+    ServiceManager,
+    ServiceStatus,
+)
 from iso15118.secc.failed_responses import (
     init_failed_responses_din_spec_70121,
     init_failed_responses_iso_v2,
@@ -160,6 +164,9 @@ class SECCCommunicationSession(V2GCommunicationSession):
         await self.evse_controller.stop_charger()
         await super().stop(reason)
 
+    async def update_status(self, status: ServiceStatus):
+        logger.info(f"Updated service status: {status}")
+
 
 class CommunicationSessionHandler:
     """
@@ -174,10 +181,12 @@ class CommunicationSessionHandler:
         config: Config,
         codec: IEXICodec,
         evse_controllers: Dict[str, EVSEControllerInterface],
+        service_monitor: ServiceManager,
     ):
         self.evse_connections = {}
         self.config = config
         self.evse_controllers = evse_controllers
+        self.service_monitor = service_monitor
         self.list_of_tasks: List[Coroutine] = []
 
         # List of server status events
@@ -209,7 +218,7 @@ class CommunicationSessionHandler:
             iface = controller.config.cs_config.network_interface
             udp_ready_event: asyncio.Event = asyncio.Event()
             tls_ready_event: asyncio.Event = asyncio.Event()
-            self.status_event_list.append([udp_ready_event, tls_ready_event])
+            self.status_event_list.extend([udp_ready_event, tls_ready_event])
 
             udp_server = UDPServer(rcv_queue, iface)
             tcp_server = TCPServer(rcv_queue, iface)
@@ -253,10 +262,15 @@ class CommunicationSessionHandler:
     async def check_status_task(self) -> None:
         try:
             await asyncio.wait_for(self.check_ready_status(), timeout=10)
-            await self.evse_controller.set_status(ServiceStatus.READY)
+
+            # Use one of the controllers to report that the service is ready.
+            await self.update_status(ServiceStatus.READY)
         except asyncio.TimeoutError:
             logger.error("Timeout: Servers failed to startup")
-            await self.evse_controller.set_status(ServiceStatus.ERROR)
+            await self.update_status(ServiceStatus.ERROR)
+
+    async def update_status(self, status: ServiceStatus):
+        self.service_monitor.set_status(status)
 
     async def get_from_rcv_queue(self, queue: asyncio.Queue):
         """

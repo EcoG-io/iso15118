@@ -16,6 +16,7 @@ from iso15118.secc.controller.interface import (
     EVChargeParamsLimits,
     EVDataContext,
     EVSEControllerInterface,
+    ServiceManager,
     ServiceStatus,
 )
 from iso15118.shared.exceptions import EncryptionError, PrivateKeyReadError
@@ -175,6 +176,11 @@ async def read_service_id_parameter_mappings():
         raise FileNotFoundError(
             f"V20 config not found at {V20_EVSE_SERVICES_CONFIG}"
         ) from exc
+
+
+class ISO15118ServiceManager(ServiceManager):
+    def set_status(self, status: ServiceStatus):
+        logger.info(f"Service status: {status}")
 
 
 class SimEVSEController(EVSEControllerInterface):

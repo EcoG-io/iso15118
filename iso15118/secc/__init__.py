@@ -4,6 +4,7 @@ from typing import Dict, Optional
 from iso15118 import __version__
 from iso15118.secc.comm_session_handler import CommunicationSessionHandler
 from iso15118.secc.controller.interface import EVSEControllerInterface
+from iso15118.secc.controller.simulator import ISO15118ServiceManager
 from iso15118.secc.secc_settings import Config
 from iso15118.shared.iexi_codec import IEXICodec
 from iso15118.shared.logging import _init_logger
@@ -18,6 +19,7 @@ class SECCHandler(CommunicationSessionHandler):
         config: Config,
         evse_controllers: Dict[str, EVSEControllerInterface],
         exi_codec: IEXICodec,
+        service_monitor: ISO15118ServiceManager,
         env_path: Optional[str] = None,
     ):
         CommunicationSessionHandler.__init__(
@@ -25,6 +27,7 @@ class SECCHandler(CommunicationSessionHandler):
             config,
             exi_codec,
             evse_controllers,
+            service_monitor,
         )
 
     async def start(self):

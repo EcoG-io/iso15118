@@ -4,7 +4,7 @@ import logging
 from iso15118.secc import SECCHandler
 from iso15118.secc.controller.evse_config import build_evse_configs
 from iso15118.secc.controller.interface import ServiceStatus
-from iso15118.secc.controller.simulator import SimEVSEController
+from iso15118.secc.controller.simulator import ISO15118ServiceManager, SimEVSEController
 from iso15118.secc.secc_settings import Config
 from iso15118.shared.exificient_exi_codec import ExificientEXICodec
 
@@ -30,8 +30,12 @@ async def main():
     evse_controllers = await build_evse_controllers(
         config.cs_config_file_path, config.cs_limits_file_path
     )
+    monitor = ISO15118ServiceManager()
     await SECCHandler(
-        config=config, evse_controllers=evse_controllers, exi_codec=ExificientEXICodec()
+        config=config,
+        evse_controllers=evse_controllers,
+        exi_codec=ExificientEXICodec(),
+        service_monitor=monitor,
     ).start()
 
 

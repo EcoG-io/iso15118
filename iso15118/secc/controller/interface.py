@@ -90,6 +90,11 @@ class EVChargeParamsLimits:
     ev_energy_request: Optional[PVEVEnergyRequest] = None
 
 
+class ServiceManager(ABC):
+    def set_status(self, status: ServiceStatus):
+        pass
+
+
 class EVSEControllerInterface(ABC):
     def __init__(self, config: EVSEConfig):
         self.ev_data_context = EVDataContext()
@@ -101,7 +106,6 @@ class EVSEControllerInterface(ABC):
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
-
 
     @abstractmethod
     async def get_evse_id(self) -> str:
