@@ -16,6 +16,7 @@ from iso15118.secc.controller.interface import (
     EVChargeParamsLimits,
     EVDataContext,
     EVSEControllerInterface,
+    ServiceStatus,
 )
 from iso15118.shared.exceptions import EncryptionError, PrivateKeyReadError
 from iso15118.shared.exi_codec import EXI
@@ -199,6 +200,8 @@ class SimEVSEController(EVSEControllerInterface):
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
+    async def set_status(self, status: ServiceStatus) -> None:
+        logger.debug(f"New Status: {status}")
 
     async def get_evse_id(self) -> str:
         """Overrides EVSEControllerInterface.get_evse_id()."""

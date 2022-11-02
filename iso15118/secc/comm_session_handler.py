@@ -17,7 +17,7 @@ from asyncio.streams import StreamReader, StreamWriter
 from dataclasses import dataclass
 from typing import Coroutine, Dict, List, Optional, Tuple, Union
 
-from iso15118.secc.controller.interface import EVSEControllerInterface
+from iso15118.secc.controller.interface import EVSEControllerInterface, ServiceStatus
 from iso15118.secc.failed_responses import (
     init_failed_responses_din_spec_70121,
     init_failed_responses_iso_v2,
@@ -103,7 +103,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         self.selected_auth_option: Optional[AuthEnum] = None
         # The generated challenge sent in PaymentDetailsRes. Its copy is expected in
         # AuthorizationReq (applies to Plug & Charge identification mode only)
-        self.gen_challenge: bytes = bytes(0)
+        self.gen_challenge: Optional[bytes] = None
         # In ISO 15118-2, the EVCCID is the MAC address, given as bytes.
         # In ISO 15118-20, the EVCCID is like a VIN number, given as str.
         self.evcc_id: Union[bytes, str, None] = None
@@ -180,6 +180,9 @@ class CommunicationSessionHandler:
         self.evse_controllers = evse_controllers
         self.list_of_tasks: List[Coroutine] = []
 
+        # List of server status events
+        self.status_event_list: List[asyncio.Event] = []
+
         # Set the selected EXI codec implementation
         EXI().set_exi_codec(codec)
 
@@ -200,19 +203,27 @@ class CommunicationSessionHandler:
         constructor.
         """
 
+        self.list_of_tasks.append(self.check_status_task())
         for _, controller in self.evse_controllers.items():
             rcv_queue = asyncio.Queue()
             iface = controller.config.cs_config.network_interface
+            udp_ready_event: asyncio.Event = asyncio.Event()
+            tls_ready_event: asyncio.Event = asyncio.Event()
+            self.status_event_list.append([udp_ready_event, tls_ready_event])
+
             udp_server = UDPServer(rcv_queue, iface)
             tcp_server = TCPServer(rcv_queue, iface)
+
             tasks = [
                 self.get_from_rcv_queue(rcv_queue),
-                udp_server.start(),
-                tcp_server.start_tls(),
+                udp_server.start(udp_ready_event),
+                tcp_server.start_tls(tls_ready_event),
             ]
 
             if not self.config.enforce_tls:
-                tasks.append(tcp_server.start_no_tls())
+                tcp_ready_event: asyncio.Event = asyncio.Event()
+                self.status_event_list.append(tcp_ready_event)
+                tasks.append(tcp_server.start_no_tls(tcp_ready_event))
 
             self.list_of_tasks.extend(tasks)
             self.evse_connections[iface] = EVSEConnection(
@@ -225,6 +236,27 @@ class CommunicationSessionHandler:
         logger.info("Communication session handler started")
 
         await wait_for_tasks(self.list_of_tasks)
+
+    def check_events(self) -> bool:
+        result: bool = True
+        for event in self.status_event_list:
+            if event.is_set() is False:
+                result = False
+                break
+        return result
+
+    async def check_ready_status(self) -> None:
+        # Wait until all flags are set
+        while self.check_events() is False:
+            await asyncio.sleep(0.01)
+
+    async def check_status_task(self) -> None:
+        try:
+            await asyncio.wait_for(self.check_ready_status(), timeout=10)
+            await self.evse_controller.set_status(ServiceStatus.READY)
+        except asyncio.TimeoutError:
+            logger.error("Timeout: Servers failed to startup")
+            await self.evse_controller.set_status(ServiceStatus.ERROR)
 
     async def get_from_rcv_queue(self, queue: asyncio.Queue):
         """
