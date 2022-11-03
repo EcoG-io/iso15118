@@ -299,7 +299,7 @@ class PVRemainingTimeToBulkSOC(PhysicalValue):
     """
 
     _max_limit: int = 172800
-    unit = Field(..., alias="Unit")
+    unit: Literal[UnitSymbol.HOURS] = Field(..., alias="Unit")
 
 
 class PVRemainingTimeToFullSOC(PhysicalValue):
@@ -312,7 +312,7 @@ class PVRemainingTimeToFullSOC(PhysicalValue):
     """
 
     _max_limit: int = 172800
-    unit = Field(..., alias="Unit")
+    unit: Literal[UnitSymbol.HOURS] = Field(..., alias="Unit")
 
 
 class PVStartValue(PhysicalValue):
