@@ -192,6 +192,9 @@ class CommunicationSessionHandler:
         # List of server status events
         self.status_event_list: List[asyncio.Event] = []
 
+        # List of server status events
+        self.status_event_list: List[asyncio.Event] = []
+
         # Set the selected EXI codec implementation
         EXI().set_exi_codec(codec)
 
@@ -262,8 +265,6 @@ class CommunicationSessionHandler:
     async def check_status_task(self) -> None:
         try:
             await asyncio.wait_for(self.check_ready_status(), timeout=10)
-
-            # Use one of the controllers to report that the service is ready.
             await self.update_status(ServiceStatus.READY)
         except asyncio.TimeoutError:
             logger.error("Timeout: Servers failed to startup")

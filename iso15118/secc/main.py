@@ -31,6 +31,7 @@ async def main():
         config.cs_config_file_path, config.cs_limits_file_path
     )
     monitor = ISO15118ServiceManager()
+    monitor.set_status(ServiceStatus.STARTING)
     await SECCHandler(
         config=config,
         evse_controllers=evse_controllers,

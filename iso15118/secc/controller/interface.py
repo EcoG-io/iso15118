@@ -121,13 +121,6 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def set_status(self, status: ServiceStatus) -> None:
-        """
-        Sets the new status for the EVSE Controller
-        """
-        raise NotImplementedError
-
-    @abstractmethod
     async def get_supported_energy_transfer_modes(
         self, protocol: Protocol
     ) -> List[EnergyTransferModeEnum]:
