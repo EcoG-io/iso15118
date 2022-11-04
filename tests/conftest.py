@@ -1,4 +1,3 @@
-import os
 from unittest.mock import Mock
 
 import pytest
@@ -6,7 +5,6 @@ import pytest_asyncio
 
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.controller.simulator import SimEVController
-from iso15118.secc import Config
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.evse_config import build_evse_configs
 from iso15118.secc.controller.simulator import SimEVSEController

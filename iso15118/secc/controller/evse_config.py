@@ -231,7 +231,7 @@ async def load_object(path: str, content: str, data_class: str):
             config=dacite.Config(cast=[Enum]),
         )
     except Exception as e:
-        raise Exception(f"Error loading {data_class}. Path used: {path}")
+        raise Exception(f"Error loading object {e} (Path used: {path}).")
 
 
 async def get_cs_config_and_limits(
