@@ -208,33 +208,53 @@ class EVSEConfig:
     cs_limits: CsStatusAndLimitsPayload
 
 
-async def load_object(path: str, data_class: str):
+async def read_file(path: str):
     try:
         async with async_open(path, "r") as f:
-            json_content = await f.read()
-            data = json.loads(json_content)
-            return dacite.from_dict(
-                data_class=data_class,
-                data=data,
-                config=dacite.Config(cast=[Enum]),
-            )
+            content = await f.read()
+            return content
     except Exception as e:
-        raise Exception(
-            f"Error loading {data_class} from file ({e}). Path used: {path}"
+        raise Exception(f"Error reading from  {path}: {e}")
+
+
+async def load_object(path: str, content: str, data_class: str):
+    try:
+        if path is not None:
+            data = await read_file(path)
+        elif content is not None:
+            data = content
+
+        json_data = json.loads(data)
+        return dacite.from_dict(
+            data_class=data_class,
+            data=json_data,
+            config=dacite.Config(cast=[Enum]),
         )
+    except Exception as e:
+        raise Exception(f"Error loading {data_class}. Path used: {path}")
 
 
-async def get_cs_config_and_limits(cs_config_path: str, cs_limits_path: str):
+async def get_cs_config_and_limits(
+    cs_config_path: str = None,
+    cs_limits_path: str = None,
+    cs_config: str = None,
+    cs_limits: str = None,
+):
     logger.info("Getting CS configuration through cs_config file")
-    cs_config = await load_object(cs_config_path, CsParametersPayload)
+    cs_config = await load_object(cs_config_path, cs_config, CsParametersPayload)
     logger.info("Getting CS limits through cs_limits file")
-    cs_limits = await load_object(cs_limits_path, CsStatusAndLimitsPayload)
+    cs_limits = await load_object(cs_limits_path, cs_limits, CsStatusAndLimitsPayload)
     return cs_config, cs_limits
 
 
-async def build_evse_configs(cs_config_path: str, cs_limits_path: str):
+async def build_evse_configs(
+    cs_config_path: str = None,
+    cs_limits_path: str = None,
+    cs_config: str = None,
+    cs_limits: str = None,
+):
     evses_cs_config, evses_cs_limits = await get_cs_config_and_limits(
-        cs_config_path, cs_limits_path
+        cs_config_path, cs_limits_path, cs_config, cs_limits
     )
     evse_cs_limits = {}
     for evse_limit in evses_cs_limits.evses:

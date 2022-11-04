@@ -16,7 +16,8 @@ async def build_evse_controllers():
     config.load_envs()
 
     evse_configs = await build_evse_configs(
-        config.cs_config_file_path, config.cs_limits_file_path
+        cs_config_path=config.cs_config_file_path,
+        cs_limits_path=config.cs_limits_file_path,
     )
     evse_controllers = {}
     for key, value in evse_configs.items():

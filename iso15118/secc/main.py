@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 async def build_evse_controllers(cs_config_path: str, cs_limits_path: str):
-    evse_configs = await build_evse_configs(cs_config_path, cs_limits_path)
+    evse_configs = await build_evse_configs(
+        cs_config_path=cs_config_path, cs_limits_path=cs_limits_path
+    )
     evse_controllers = {}
     for key, value in evse_configs.items():
         sim_evse_controller = await SimEVSEController.create(evse_config=value)
