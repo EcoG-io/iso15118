@@ -25,7 +25,7 @@ from iso15118.shared.messages.enums import (
     CpState,
     EVSEProcessing,
 )
-from iso15118.shared.messages.iso15118_2.body import ResponseCode, SessionStopReq
+from iso15118.shared.messages.iso15118_2.body import ResponseCode
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
     CertificateChain,
