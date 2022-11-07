@@ -436,3 +436,8 @@ class CpState(str, Enum):
     E = "E"
     F = "F"
     UNKNOWN = "UNKNOWN"
+
+
+class SessionStopAction(str, Enum):
+    TERMINATE = "terminate"
+    PAUSE = "pause"
