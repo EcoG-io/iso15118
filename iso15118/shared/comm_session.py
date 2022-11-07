@@ -35,6 +35,7 @@ from iso15118.shared.messages.enums import (
     ISOV20PayloadTypes,
     Namespace,
     Protocol,
+    SessionStopAction,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
@@ -380,9 +381,9 @@ class V2GCommunicationSession(SessionStateMachine):
         """
         if self.current_state.next_state == Pause:
             self.save_session_info()
-            terminate_or_pause = "Pause"
+            terminate_or_pause = SessionStopAction.PAUSE
         else:
-            terminate_or_pause = "Terminate"
+            terminate_or_pause = SessionStopAction.TERMINATE
 
         logger.info(
             f"The data link will {terminate_or_pause} in 2 seconds and "
@@ -391,8 +392,10 @@ class V2GCommunicationSession(SessionStateMachine):
         logger.info(f"Reason: {reason}")
 
         await asyncio.sleep(2)
-        # TODO Signal data link layer to either terminate or pause the data
-        #      link connection
+        # Signal data link layer to either terminate or pause the data
+        # link connection
+        if hasattr(self.comm_session, "evse_controller"):
+            await self.comm_session.evse_controller.session_stop(terminate_or_pause)
         logger.info(f"{terminate_or_pause}d the data link")
         await asyncio.sleep(3)
         try:
