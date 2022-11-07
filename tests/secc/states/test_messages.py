@@ -508,3 +508,12 @@ def get_dummy_charging_status_req() -> V2GMessage:
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(charging_status_req=charging_status_req),
     )
+
+
+def get_dummy_v2g_session_stop_req(charging_session: ChargingSession) -> V2GMessage:
+    session_stop_req = SessionStopReq(charging_session=charging_session)
+
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(session_stop_req=session_stop_req),
+    )

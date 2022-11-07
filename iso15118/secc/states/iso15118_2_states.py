@@ -84,6 +84,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain,
     ChargeProgress,
     ChargeService,
+    ChargingSession,
     DHPublicKey,
     EncryptedPrivateKey,
     EnergyTransferModeList,
@@ -123,7 +124,7 @@ from iso15118.shared.security import (
     verify_certs,
     verify_signature,
 )
-from iso15118.shared.states import Base64, State, Terminate
+from iso15118.shared.states import Base64, Pause, State, Terminate
 
 logger = logging.getLogger(__name__)
 
@@ -1869,9 +1870,12 @@ class SessionStop(StateSECC):
             f"EV Requested to {session_status} the communication session",
             self.comm_session.writer.get_extra_info("peername"),
         )
-
+        if msg.body.session_stop_req.charging_session == ChargingSession.PAUSE:
+            next_state = Pause
+        else:
+            next_state = Terminate
         self.create_next_message(
-            Terminate,
+            next_state,
             SessionStopRes(response_code=ResponseCode.OK),
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.ISO_V2_MSG_DEF,
