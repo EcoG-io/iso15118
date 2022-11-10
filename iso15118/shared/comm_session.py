@@ -475,6 +475,9 @@ class V2GCommunicationSession(SessionStateMachine):
                 return
 
             try:
+                if hasattr(self.comm_session, "evse_controller"):
+                    self.comm_session.evse_controller.set_present_protocol_state(
+                        str(self.current_state))
                 # This will create the values needed for the next state, such as
                 # next_state, next_v2gtp_message, next_message_payload_type etc.
                 await self.process_message(message)
@@ -485,6 +488,9 @@ class V2GCommunicationSession(SessionStateMachine):
                     await self.send(self.current_state.next_v2gtp_msg)
 
                 if self.current_state.next_state in (Terminate, Pause):
+                    if hasattr(self.comm_session, "evse_controller"):
+                        self.comm_session.evse_controller.set_present_protocol_state(
+                            str(self.current_state.next_state.__name__))
                     await self.stop(reason=self.comm_session.stop_reason.reason)
                     self.comm_session.session_handler_queue.put_nowait(
                         self.comm_session.stop_reason
