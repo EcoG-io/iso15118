@@ -94,7 +94,9 @@ class StateSECC(State, ABC):
         self.comm_session: "SECCCommunicationSession" = comm_session
 
         if hasattr(self.comm_session, "evse_controller"):
-            self.comm_session.evse_controller.set_present_protocol_state(str(self))
+            await self.comm_session.evse_controller.set_present_protocol_state(
+                str(self)
+            )
 
     T = TypeVar("T")
 
