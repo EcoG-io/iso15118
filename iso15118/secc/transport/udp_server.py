@@ -6,8 +6,11 @@ from asyncio import DatagramTransport
 from typing import Optional, Tuple
 
 from iso15118.shared.messages.v2gtp import V2GTPMessage
-from iso15118.shared.network import SDP_MULTICAST_GROUP, SDP_SERVER_PORT, \
-    get_link_local_full_addr
+from iso15118.shared.network import (
+    SDP_MULTICAST_GROUP,
+    SDP_SERVER_PORT,
+    get_link_local_full_addr,
+)
 from iso15118.shared.notifications import (
     ReceiveTimeoutNotification,
     UDPPacketNotification,
