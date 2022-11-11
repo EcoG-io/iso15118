@@ -93,9 +93,6 @@ class StateSECC(State, ABC):
         super().__init__(comm_session, timeout)
         self.comm_session: "SECCCommunicationSession" = comm_session
 
-        if hasattr(self.comm_session, "evse_controller"):
-            self.comm_session.evse_controller.set_present_protocol_state(str(self))
-
     T = TypeVar("T")
 
     def check_msg_dinspec(

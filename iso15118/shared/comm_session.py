@@ -478,7 +478,10 @@ class V2GCommunicationSession(SessionStateMachine):
                 # This will create the values needed for the next state, such as
                 # next_state, next_v2gtp_message, next_message_payload_type etc.
                 await self.process_message(message)
-
+                if hasattr(self.comm_session, "evse_controller"):
+                    await self.comm_session.evse_controller.set_present_protocol_state(
+                        str(self.current_state)
+                    )
                 if self.current_state.next_v2gtp_msg:
                     # next_v2gtp_msg would not be set only if the next state is either
                     # Terminate or Pause on the EVCC side
