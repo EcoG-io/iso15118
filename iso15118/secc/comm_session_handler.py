@@ -183,7 +183,7 @@ class CommunicationSessionHandler:
         # associated ayncio.Task object (so we can cancel the task when needed)
         self.comm_sessions: Dict[str, (SECCCommunicationSession, asyncio.Task)] = {}
 
-    async def start_session_handler(self):
+    async def start_session_handler(self, iface: str):
         """
         This method is necessary, because python does not allow
         async def __init__.
@@ -191,11 +191,11 @@ class CommunicationSessionHandler:
         constructor.
         """
 
-        self.udp_server = UDPServer(self._rcv_queue, self.config.iface)
+        self.udp_server = UDPServer(self._rcv_queue, iface)
         udp_ready_event: asyncio.Event = asyncio.Event()
         self.status_event_list.append(udp_ready_event)
 
-        self.tcp_server = TCPServer(self._rcv_queue, self.config.iface)
+        self.tcp_server = TCPServer(self._rcv_queue, iface)
         tls_ready_event: asyncio.Event = asyncio.Event()
         self.status_event_list.append(tls_ready_event)
 

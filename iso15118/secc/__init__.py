@@ -17,10 +17,8 @@ class SECCHandler(CommunicationSessionHandler):
         self,
         exi_codec: IEXICodec,
         evse_controller: EVSEControllerInterface,
-        env_path: Optional[str] = None,
+        config: Config,
     ):
-        config = Config()
-        config.load_envs(env_path)
         CommunicationSessionHandler.__init__(
             self,
             config,
@@ -28,10 +26,10 @@ class SECCHandler(CommunicationSessionHandler):
             evse_controller,
         )
 
-    async def start(self):
+    async def start(self, iface: str):
         try:
             logger.info(f"Starting 15118 version: {__version__}")
-            await self.start_session_handler()
+            await self.start_session_handler(iface)
         except Exception as exc:
             logger.error(f"SECC terminated: {exc}")
             # Re-raise so the process ends with a non-zero exit code and the
