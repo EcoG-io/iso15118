@@ -201,10 +201,12 @@ class SessionStateMachine(ABC):
                 v2gtp_msg.payload, self.get_exi_ns(v2gtp_msg.payload_type)
             )
 
-            logger.trace(
-                f"{v2gtp_msg.payload.hex()}:::"
-                f"{self.get_exi_ns(v2gtp_msg.payload_type).value}"
-            )
+            if hasattr(self.comm_session, "evse_id"):
+                logger.trace(
+                    f"{self.comm_session.evse_id}:::"
+                    f"{v2gtp_msg.payload.hex()}:::"
+                    f"{self.get_exi_ns(v2gtp_msg.payload_type).value}"
+                )
 
         except V2GMessageValidationError as exc:
             self.comm_session.current_state.stop_state_machine(

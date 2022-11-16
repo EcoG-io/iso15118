@@ -329,7 +329,13 @@ class State(ABC):
             # Step 3
             try:
                 exi_payload = EXI().to_exi(to_be_exi_encoded, namespace)
-                logger.trace(f"{exi_payload.hex()}:::{namespace.value}")
+
+                if hasattr(self.comm_session, "evse_controller"):
+                    logger.trace(
+                        f"{self.comm_session.evse_id}:::"
+                        f"{exi_payload.hex()}:::"
+                        f"{namespace.value}"
+                    )
             except EXIEncodingError as exc:
                 logger.error(f"{exc}")
                 self.next_state = Terminate
