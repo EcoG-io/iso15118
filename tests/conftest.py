@@ -38,4 +38,5 @@ def comm_secc_session_mock():
     comm_session_mock.stop_reason = StopNotification(False, "pytest")
     comm_session_mock.evse_controller = SimEVSEController()
     comm_session_mock.protocol = Protocol.UNKNOWN
+    comm_session_mock.evse_id = "UK123E1234"
     return comm_session_mock

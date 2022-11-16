@@ -27,6 +27,7 @@ class TestEvseScenarios:
         self.comm_session.stop_reason = StopNotification(False, "pytest")
         self.comm_session.evse_controller = SimEVSEController()
         self.comm_session.protocol = Protocol.UNKNOWN
+        self.comm_session.evse_id = "UK123E1234"
         self.comm_session.writer = MockWriter()
 
     async def test_sap_to_billing(self):
