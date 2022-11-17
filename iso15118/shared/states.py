@@ -330,7 +330,7 @@ class State(ABC):
             try:
                 exi_payload = EXI().to_exi(to_be_exi_encoded, namespace)
 
-                if hasattr(self.comm_session, "evse_controller"):
+                if hasattr(self.comm_session, "evse_id"):
                     logger.trace(
                         f"{self.comm_session.evse_id}:::"
                         f"{exi_payload.hex()}:::"
