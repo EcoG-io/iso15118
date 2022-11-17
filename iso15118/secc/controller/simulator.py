@@ -912,8 +912,8 @@ class SimEVSEController(EVSEControllerInterface):
 
         return base64_encode_cert_install_res
 
-    async def session_stop(self, action: SessionStopAction) -> None:
+    async def update_data_link(self, action: SessionStopAction) -> None:
         """
-        Overrides EVSEControllerInterface.session_stop().
+        Overrides EVSEControllerInterface.update_data_link().
         """
         pass

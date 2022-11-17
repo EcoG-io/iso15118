@@ -702,7 +702,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def session_stop(self, action: SessionStopAction) -> None:
+    async def update_data_link(self, action: SessionStopAction) -> None:
         """
         Called when EV requires termination or pausing of the charging session.
         Args:
