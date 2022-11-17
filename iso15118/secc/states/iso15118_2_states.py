@@ -294,11 +294,17 @@ class ServiceDiscovery(StateSECC):
             else:
                 auth_options.append(AuthEnum.PNC_V2)
         else:
-            supported_auth_options = self.comm_session.config.supported_auth_options
-            if AuthEnum.EIM in supported_auth_options:
+            if (
+                await self.comm_session.evse_controller.is_external_authorization_done()
+                == AuthorizationStatus.ACCEPTED
+            ):
                 auth_options.append(AuthEnum.EIM_V2)
-            if AuthEnum.PNC in supported_auth_options and self.comm_session.is_tls:
-                auth_options.append(AuthEnum.PNC_V2)
+            else:
+                supported_auth_options = self.comm_session.config.supported_auth_options
+                if AuthEnum.EIM in supported_auth_options:
+                    auth_options.append(AuthEnum.EIM_V2)
+                if AuthEnum.PNC in supported_auth_options and self.comm_session.is_tls:
+                    auth_options.append(AuthEnum.PNC_V2)
 
         self.comm_session.offered_auth_options = auth_options
 
