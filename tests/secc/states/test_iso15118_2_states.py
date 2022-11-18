@@ -44,11 +44,11 @@ from tests.secc.states.test_messages import (
     get_dummy_v2g_message_power_delivery_req_charge_stop,
     get_dummy_v2g_message_service_discovery_req,
     get_dummy_v2g_message_welding_detection_req,
+    get_dummy_v2g_session_stop_req,
     get_power_delivery_req_charging_profile_in_boundary_invalid,
     get_power_delivery_req_charging_profile_in_limits,
     get_power_delivery_req_charging_profile_not_in_limits_span_over_sa,
     get_power_delivery_req_charging_profile_out_of_boundary,
-    get_dummy_v2g_session_stop_req,
     get_v2g_message_power_delivery_req,
     get_v2g_message_power_delivery_req_charging_profile_in_boundary_valid,
 )
