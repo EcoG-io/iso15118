@@ -169,6 +169,8 @@ def get_tcp_port() -> int:
     A port number in the range of Dynamic Ports (49152-65535) as defined in
     IETF RFC 6335 are allowed for TCP.
     """
+    logger.info("Shalinnn")
+    logger.info(psutil.net_if_addrs())
     return randint(49152, 65535)
 
 

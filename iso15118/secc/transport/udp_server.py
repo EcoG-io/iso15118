@@ -62,7 +62,8 @@ class UDPServer(asyncio.DatagramProtocol):
 
         # Bind the socket to the predefined port for receiving
         # UDP packets (SDP requests)
-        #full_ipv6_address = await get_link_local_full_addr(SDP_SERVER_PORT, iface)
+        full_ipv6_address = await get_link_local_full_addr(SDP_SERVER_PORT, iface)
+        logger.info(full_ipv6_address)
         #sock.bind(full_ipv6_address)
         sock.bind(("", SDP_SERVER_PORT))
         # After the regular socket is created and bound to a port, it can be
