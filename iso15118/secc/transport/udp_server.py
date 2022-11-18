@@ -65,7 +65,7 @@ class UDPServer(asyncio.DatagramProtocol):
         full_ipv6_address = await get_link_local_full_addr(SDP_SERVER_PORT, iface)
         logger.info(full_ipv6_address)
         #sock.bind(full_ipv6_address)
-        sock.bind(('fe80::201:87ff:fe0c:72a0', SDP_SERVER_PORT))
+        sock.bind(("", SDP_SERVER_PORT))
         # After the regular socket is created and bound to a port, it can be
         # added to the multicast group by using setsockopt() to set the
         # IPV6_JOIN_GROUP option. The option value is the 16-byte packed
