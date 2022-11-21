@@ -58,6 +58,7 @@ from iso15118.shared.messages.enums import (
     Namespace,
     PriceAlgorithm,
     Protocol,
+    SessionStopAction,
     UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_2.body import Body, CertificateInstallationRes
@@ -910,3 +911,9 @@ class SimEVSEController(EVSEControllerInterface):
         ).decode("utf-8")
 
         return base64_encode_cert_install_res
+
+    async def update_data_link(self, action: SessionStopAction) -> None:
+        """
+        Overrides EVSEControllerInterface.update_data_link().
+        """
+        pass

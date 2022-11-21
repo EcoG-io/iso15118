@@ -12,6 +12,7 @@ from iso15118.secc.states.iso15118_2_states import (
     PaymentDetails,
     PowerDelivery,
     ServiceDiscovery,
+    SessionStop,
     Terminate,
     WeldingDetection,
 )
@@ -25,8 +26,13 @@ from iso15118.shared.messages.enums import (
     EVSEProcessing,
 )
 from iso15118.shared.messages.iso15118_2.body import ResponseCode
-from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEStatus, CertificateChain
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    ACEVSEStatus,
+    CertificateChain,
+    ChargingSession,
+)
 from iso15118.shared.security import get_random_bytes
+from iso15118.shared.states import Pause
 from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
@@ -38,6 +44,7 @@ from tests.secc.states.test_messages import (
     get_dummy_v2g_message_power_delivery_req_charge_stop,
     get_dummy_v2g_message_service_discovery_req,
     get_dummy_v2g_message_welding_detection_req,
+    get_dummy_v2g_session_stop_req,
     get_power_delivery_req_charging_profile_in_boundary_invalid,
     get_power_delivery_req_charging_profile_in_limits,
     get_power_delivery_req_charging_profile_not_in_limits_span_over_sa,
@@ -55,6 +62,8 @@ class TestV2GSessionScenarios:
         self.comm_session = comm_secc_session_mock
         self.comm_session.config = Config()
         self.comm_session.is_tls = False
+        self.comm_session.writer = Mock()
+        self.comm_session.writer.get_extra_info = Mock()
 
     async def test_current_demand_to_power_delivery_when_power_delivery_received(
         self,
@@ -104,8 +113,6 @@ class TestV2GSessionScenarios:
         is_authorized_return_value: AuthorizationStatus,
         expected_next_state: StateSECC,
     ):
-        self.comm_session.writer = Mock()
-        self.comm_session.writer.get_extra_info = Mock()
 
         self.comm_session.selected_auth_option = AuthEnum.PNC_V2
         mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
@@ -183,8 +190,6 @@ class TestV2GSessionScenarios:
         expected_response_code: ResponseCode,
         expected_evse_processing: EVSEProcessing,
     ):
-        self.comm_session.writer = Mock()
-        self.comm_session.writer.get_extra_info = Mock()
 
         self.comm_session.selected_auth_option = auth_type
         mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
@@ -211,8 +216,6 @@ class TestV2GSessionScenarios:
         )
 
     async def test_authorization_req_gen_challenge_invalid(self):
-        self.comm_session.writer = Mock()
-        self.comm_session.writer.get_extra_info = Mock()
         self.comm_session.selected_auth_option = AuthEnum.PNC_V2
         self.comm_session.contract_cert_chain = Mock()
         self.comm_session.gen_challenge = get_random_bytes(16)
@@ -230,8 +233,6 @@ class TestV2GSessionScenarios:
         )
 
     async def test_authorization_req_gen_challenge_valid(self):
-        self.comm_session.writer = Mock()
-        self.comm_session.writer.get_extra_info = Mock()
         self.comm_session.selected_auth_option = AuthEnum.PNC_V2
         self.comm_session.gen_challenge = get_random_bytes(16)
         id = "aReq"
@@ -455,8 +456,6 @@ class TestV2GSessionScenarios:
     ):
 
         power_delivery = PowerDelivery(self.comm_session)
-        self.comm_session.writer = Mock()
-        self.comm_session.writer.get_extra_info = Mock()
         mock_get_cp_state = AsyncMock(return_value=get_state_return_value)
         self.comm_session.evse_controller.get_cp_state = mock_get_cp_state
         await power_delivery.process_message(
@@ -467,8 +466,6 @@ class TestV2GSessionScenarios:
     async def test_service_discovery_req_unexpected_state(self):
         self.comm_session.selected_auth_option = AuthEnum.PNC_V2
         self.comm_session.config.free_charging_service = False
-        self.comm_session.writer = Mock()
-        self.comm_session.writer.get_extra_info = Mock()
         service_discovery = ServiceDiscovery(self.comm_session)
         await service_discovery.process_message(
             message=get_dummy_v2g_message_service_discovery_req()
@@ -484,8 +481,6 @@ class TestV2GSessionScenarios:
 
     async def test_charging_status_evse_status(self):
         charging_status = ChargingStatus(self.comm_session)
-        self.comm_session.writer = Mock()
-        self.comm_session.writer.get_extra_info = Mock()
         self.comm_session.selected_schedule = 1
         await charging_status.process_message(message=get_dummy_charging_status_req())
 
@@ -498,8 +493,6 @@ class TestV2GSessionScenarios:
 
     async def test_charging_status_evse_status_altered(self):
         charging_status = ChargingStatus(self.comm_session)
-        self.comm_session.writer = Mock()
-        self.comm_session.writer.get_extra_info = Mock()
         self.comm_session.selected_schedule = 1
 
         async def get_ac_evse_status_patch():
@@ -513,3 +506,18 @@ class TestV2GSessionScenarios:
         await charging_status.process_message(message=get_dummy_charging_status_req())
         charging_status_res = charging_status.message.body.charging_status_res
         assert charging_status_res.ac_evse_status == await get_ac_evse_status_patch()
+
+    @pytest.mark.parametrize(
+        "charging_session, expected_next_state",
+        [
+            (ChargingSession.PAUSE, Pause),
+            (ChargingSession.TERMINATE, Terminate),
+        ],
+    )
+    async def test_session_stop_req(self, charging_session, expected_next_state):
+        # V2G2-718
+        session_stop = SessionStop(self.comm_session)
+        await session_stop.process_message(
+            message=get_dummy_v2g_session_stop_req(charging_session)
+        )
+        assert session_stop.next_state == expected_next_state

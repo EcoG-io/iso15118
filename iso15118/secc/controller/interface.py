@@ -33,6 +33,7 @@ from iso15118.shared.messages.enums import (
     CpState,
     EnergyTransferModeEnum,
     Protocol,
+    SessionStopAction,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
@@ -695,6 +696,17 @@ class EVSEControllerInterface(ABC):
         Returns:
          CertificateInstallationRes EXI stream in base64 encoded form.
 
+        Relevant for:
+        - ISO 15118-20 and ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def update_data_link(self, action: SessionStopAction) -> None:
+        """
+        Called when EV requires termination or pausing of the charging session.
+        Args:
+            action : SessionStopAction
         Relevant for:
         - ISO 15118-20 and ISO 15118-2
         """
