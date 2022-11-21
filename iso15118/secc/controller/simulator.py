@@ -416,7 +416,7 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def is_external_authorization_done(self) -> bool:
         """Overrides EVSEControllerInterface.is_external_authorization_done()."""
-        return True
+        return False
 
     async def is_authorized(
         self,
