@@ -13,7 +13,6 @@ from iso15118.secc.states.iso15118_2_states import (
     PowerDelivery,
     ServiceDetail,
     ServiceDiscovery,
-    SessionStop,
     Terminate,
     WeldingDetection,
 )
@@ -35,7 +34,6 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ServiceName,
 )
 from iso15118.shared.security import get_random_bytes
-from iso15118.shared.states import Pause
 from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
@@ -47,7 +45,6 @@ from tests.secc.states.test_messages import (
     get_dummy_v2g_message_power_delivery_req_charge_stop,
     get_dummy_v2g_message_service_discovery_req,
     get_dummy_v2g_message_welding_detection_req,
-    get_dummy_v2g_session_stop_req,
     get_power_delivery_req_charging_profile_in_boundary_invalid,
     get_power_delivery_req_charging_profile_in_limits,
     get_power_delivery_req_charging_profile_not_in_limits_span_over_sa,
