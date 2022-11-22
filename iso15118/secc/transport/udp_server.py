@@ -58,8 +58,9 @@ class UDPServer(asyncio.DatagramProtocol):
         # Socket type (datagram, determines transport layer protocol UDP)
         sock = socket.socket(family=socket.AF_INET6, type=socket.SOCK_DGRAM)
 
-        # Allows address to be reused
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # Block binding to this socket+interface combination from now.
+        # Ref: https://www.man7.org/linux/man-pages/man7/socket.7.html
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 0)
 
         # Bind the socket to the predefined port on specified interface for receiving
         # UDP packets (SDP requests). This is done differently on Mac and Linux.
