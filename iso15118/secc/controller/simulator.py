@@ -414,6 +414,10 @@ class SimEVSEController(EVSEControllerInterface):
 
         return service_list
 
+    async def is_external_authorization_done(self) -> bool:
+        """Overrides EVSEControllerInterface.is_external_authorization_done()."""
+        return False
+
     async def is_authorized(
         self,
         id_token: Optional[str] = None,

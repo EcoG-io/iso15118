@@ -198,6 +198,15 @@ class EVSEControllerInterface(ABC):
         """
         raise NotImplementedError
 
+    async def is_external_authorization_done(self) -> bool:
+        """
+        it returns true when an external authentication before plugging in.
+        Relevant for:
+        - ISO 15118-2
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
     @abstractmethod
     async def is_authorized(
         self,
