@@ -3,6 +3,7 @@ import logging
 import socket
 import struct
 from asyncio import DatagramTransport
+from sys import platform
 from typing import Optional, Tuple
 
 from iso15118.shared.messages.v2gtp import V2GTPMessage
@@ -57,13 +58,26 @@ class UDPServer(asyncio.DatagramProtocol):
         # Socket type (datagram, determines transport layer protocol UDP)
         sock = socket.socket(family=socket.AF_INET6, type=socket.SOCK_DGRAM)
 
-        # Allows address to be reused
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # Block binding to this socket+interface combination from now.
+        # Ref: https://www.man7.org/linux/man-pages/man7/socket.7.html
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 0)
 
-        # Bind the socket to the predefined port for receiving
-        # UDP packets (SDP requests)
-        full_ipv6_address = await get_link_local_full_addr(SDP_SERVER_PORT, iface)
-        sock.bind(full_ipv6_address)
+        # Bind the socket to the predefined port on specified interface for receiving
+        # UDP packets (SDP requests). This is done differently on Mac and Linux.
+        # Reference:
+        # https://djangocas.dev/blog/linux/linux-SO_BINDTODEVICE-and-mac-IP_BOUND_IF-to-bind-socket-to-a-network-interface/ # noqa
+        # https://linux.die.net/man/7/socket
+        # https://stackoverflow.com/questions/20616029/os-x-equivalent-of-so-bindtodevice # noqa
+        if platform == "darwin":
+            full_ipv6_address = await get_link_local_full_addr(SDP_SERVER_PORT, iface)
+            sock.bind(full_ipv6_address)
+        else:
+            sock.setsockopt(
+                socket.SOL_SOCKET,
+                socket.SO_BINDTODEVICE,
+                (iface + "\0").encode("ascii"),
+            )
+            sock.bind("", SDP_SERVER_PORT)
 
         # After the regular socket is created and bound to a port, it can be
         # added to the multicast group by using setsockopt() to set the
