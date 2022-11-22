@@ -618,7 +618,7 @@ class ServiceDetail(StateSECC):
             # in the ServiceDetailReq message was not part of the offered
             # EnergyTransferServiceList or VASList during ServiceDiscovery.
             response_code = ResponseCode.FAILED_SERVICE_ID_INVALID
-
+            logger.error(f"Service Id is invalid for {message}")
         service_detail_res = ServiceDetailRes(
             header=MessageHeader(
                 session_id=self.comm_session.session_id, timestamp=time.time()

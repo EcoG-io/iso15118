@@ -433,6 +433,7 @@ class ServiceDetail(StateSECC):
                 Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
                 Namespace.ISO_V2_MSG_DEF,
             )
+            logger.error(f"Service ID is invalid for {message}")
             return
 
         parameter_set: List[ParameterSet] = []
