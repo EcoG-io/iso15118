@@ -71,8 +71,6 @@ class UDPServer(asyncio.DatagramProtocol):
             full_ipv6_address = await get_link_local_full_addr(SDP_SERVER_PORT, iface)
             sock.bind(full_ipv6_address)
         else:
-            if not hasattr(socket, "SO_BINDTODEVICE"):
-                socket.SO_BINDTODEVICE = 25
             sock.setsockopt(
                 socket.SOL_SOCKET,
                 socket.SO_BINDTODEVICE,
