@@ -200,10 +200,8 @@ class EVSEControllerInterface(ABC):
 
     async def is_external_authorization_done(self) -> bool:
         """
-        it returns true when an RFID card tapped before plugging in
-        and authorization is successful afterwards.
+        it returns true when an external authentication before plugging in.
         Relevant for:
-        - DIN SPEC 70121
         - ISO 15118-2
         - ISO 15118-20
         """
