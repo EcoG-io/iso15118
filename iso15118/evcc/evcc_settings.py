@@ -78,6 +78,7 @@ class Config:
         self.supported_protocols = [
             Protocol.ISO_15118_2,
             Protocol.ISO_15118_20_AC,
+            Protocol.ISO_15118_20_DC,
             Protocol.DIN_SPEC_70121,
         ]
 

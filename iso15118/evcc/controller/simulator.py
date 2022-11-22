@@ -452,7 +452,7 @@ class SimEVController(EVControllerInterface):
 
     async def is_cert_install_needed(self) -> bool:
         """Overrides EVControllerInterface.is_cert_install_needed()."""
-        return True
+        return False
 
     async def process_sa_schedules_dinspec(
         self, sa_schedules: List[SAScheduleTupleEntryDINSPEC]
