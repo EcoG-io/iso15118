@@ -5,6 +5,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2022-11-22
+
+### Fixed
+* feat: run code qual and tests in gha by @mdwcrft in https://github.com/SwitchEV/iso15118/pull/147
+* fix: use utcnow() to check certificate validity by @rstanchak in https://github.com/SwitchEV/iso15118/pull/151
+* fix: cleanup template dockerfile by @mdwcrft in https://github.com/SwitchEV/iso15118/pull/109
+* Fix/genchallange invalid by @ikaratass in https://github.com/SwitchEV/iso15118/pull/154
+* Fix/set present by @ikaratass in https://github.com/SwitchEV/iso15118/pull/159
+* Fix: UDP server bind issue after PR#161 by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/164
+* Fix:service detail res by @ikaratass in https://github.com/SwitchEV/iso15118/pull/144
+* genchallange check has been added for Authorization by @ikaratass in https://github.com/SwitchEV/iso15118/pull/135
+* Fix tc secc ac vtb power delivery 010 by @ikaratass in https://github.com/SwitchEV/iso15118/pull/150
+
+### Changed
+* Update udp socket to bind to specific interface by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/161
+* feat: interface added for pause and terminate by @ikaratass in https://github.com/SwitchEV/iso15118/pull/155
+* Minor logging improvement. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/162
+* Feat/external auth by @ikaratass in https://github.com/SwitchEV/iso15118/pull/163
+
+### New Contributors
+* @rstanchak made their first contribution in https://github.com/SwitchEV/iso15118/pull/151
+
 ## [0.13.0] - 2022-10-17
 
 ### Fixed
