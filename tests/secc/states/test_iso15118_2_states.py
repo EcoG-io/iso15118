@@ -11,8 +11,8 @@ from iso15118.secc.states.iso15118_2_states import (
     CurrentDemand,
     PaymentDetails,
     PowerDelivery,
+    ServiceDetail,
     ServiceDiscovery,
-    SessionStop,
     Terminate,
     WeldingDetection,
 )
@@ -29,10 +29,11 @@ from iso15118.shared.messages.iso15118_2.body import ResponseCode
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
     CertificateChain,
-    ChargingSession,
+    ServiceCategory,
+    ServiceDetails,
+    ServiceName,
 )
 from iso15118.shared.security import get_random_bytes
-from iso15118.shared.states import Pause
 from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
@@ -44,13 +45,13 @@ from tests.secc.states.test_messages import (
     get_dummy_v2g_message_power_delivery_req_charge_stop,
     get_dummy_v2g_message_service_discovery_req,
     get_dummy_v2g_message_welding_detection_req,
-    get_dummy_v2g_session_stop_req,
     get_power_delivery_req_charging_profile_in_boundary_invalid,
     get_power_delivery_req_charging_profile_in_limits,
     get_power_delivery_req_charging_profile_not_in_limits_span_over_sa,
     get_power_delivery_req_charging_profile_out_of_boundary,
     get_v2g_message_power_delivery_req,
     get_v2g_message_power_delivery_req_charging_profile_in_boundary_valid,
+    get_v2g_message_service_detail_req,
 )
 
 
@@ -508,16 +509,35 @@ class TestV2GSessionScenarios:
         assert charging_status_res.ac_evse_status == await get_ac_evse_status_patch()
 
     @pytest.mark.parametrize(
-        "charging_session, expected_next_state",
+        "service_id, response_code",
         [
-            (ChargingSession.PAUSE, Pause),
-            (ChargingSession.TERMINATE, Terminate),
+            (2, ResponseCode.OK),
+            (3, ResponseCode.FAILED_SERVICE_ID_INVALID),
         ],
     )
-    async def test_session_stop_req(self, charging_session, expected_next_state):
-        # V2G2-718
-        session_stop = SessionStop(self.comm_session)
-        await session_stop.process_message(
-            message=get_dummy_v2g_session_stop_req(charging_session)
+    async def test_service_detail_service_id_is_in_offered_list(
+        self, service_id, response_code
+    ):
+        self.comm_session.selected_auth_option = AuthEnum.PNC_V2
+        self.comm_session.config.free_charging_service = False
+        self.comm_session.writer = Mock()
+        self.comm_session.writer.get_extra_info = Mock()
+
+        cert_install_service = ServiceDetails(
+            service_id=2,
+            service_name=ServiceName.CERTIFICATE,
+            service_category=ServiceCategory.CERTIFICATE,
+            free_service=True,
         )
-        assert session_stop.next_state == expected_next_state
+
+        self.comm_session.offered_services = []
+        self.comm_session.offered_services.append(cert_install_service)
+        service_details = ServiceDetail(self.comm_session)
+        await service_details.process_message(
+            message=get_v2g_message_service_detail_req(service_id=service_id)
+        )
+        assert isinstance(self.comm_session.current_state, ServiceDetail)
+        assert (
+            service_details.message.body.service_detail_res.response_code
+            is response_code
+        )

@@ -412,6 +412,30 @@ class ServiceDetail(StateSECC):
 
         service_detail_req: ServiceDetailReq = msg.body.service_detail_req
 
+        is_found = False
+        for service_details in self.comm_session.offered_services:
+            if service_detail_req.service_id == service_details.service_id:
+                is_found = True
+                break
+
+        if not is_found:
+            # [V2G2-425] The SECC shall respond with a negative ResponseCode
+            # 'FAILED_ServiceIDInvalid'
+            # if the EVCC provided a not previously retrieved ServiceID in the
+            # ServiceDetailsReq.
+            error_service_detail_res = ServiceDetailRes(
+                response_code=ResponseCode.FAILED_SERVICE_ID_INVALID,
+                service_id=service_detail_req.service_id,
+            )
+            self.create_next_message(
+                None,
+                error_service_detail_res,
+                Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+                Namespace.ISO_V2_MSG_DEF,
+            )
+            logger.error(f"Service ID is invalid for {message}")
+            return
+
         parameter_set: List[ParameterSet] = []
 
         # Certificate installation service
