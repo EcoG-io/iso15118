@@ -77,7 +77,7 @@ class UDPServer(asyncio.DatagramProtocol):
                 socket.SO_BINDTODEVICE,
                 (iface + "\0").encode("ascii"),
             )
-            sock.bind("", SDP_SERVER_PORT)
+            sock.bind(("", SDP_SERVER_PORT))
 
         # After the regular socket is created and bound to a port, it can be
         # added to the multicast group by using setsockopt() to set the
