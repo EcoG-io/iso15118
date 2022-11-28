@@ -5,6 +5,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.1] - 2022-11-28
+
+### Fixed
+* Bugfix - Binding the port to the socket does not work (Linux) by @SebaLukas in https://github.com/SwitchEV/iso15118/pull/168
+
+### New Contributors
+* @SebaLukas made their first contribution in https://github.com/SwitchEV/iso15118/pull/168
+
+
 ## [0.14.0] - 2022-11-22
 
 ### Fixed
