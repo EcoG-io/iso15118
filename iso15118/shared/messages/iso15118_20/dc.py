@@ -95,36 +95,13 @@ class BPTDCChargeParameterDiscoveryResParams(DCChargeParameterDiscoveryResParams
 class ScheduledDCChargeLoopReqParams(ScheduledChargeLoopReqParams):
     """See section 8.3.5.4.4 in ISO 15118-20"""
 
+    ev_target_current: RationalNumber = Field(..., alias="EVTargetCurrent")
+    ev_target_voltage: RationalNumber = Field(..., alias="EVTargetVoltage")
     ev_max_charge_power: RationalNumber = Field(None, alias="EVMaximumChargePower")
-    ev_max_charge_power_l2: RationalNumber = Field(
-        None, alias="EVMaximumChargePower_L2"
-    )
-    ev_max_charge_power_l3: RationalNumber = Field(
-        None, alias="EVMaximumChargePower_L3"
-    )
     ev_min_charge_power: RationalNumber = Field(None, alias="EVMinimumChargePower")
-    ev_min_charge_power_l2: RationalNumber = Field(
-        None, alias="EVMinimumChargePower_L2"
-    )
-    ev_min_charge_power_l3: RationalNumber = Field(
-        None, alias="EVMinimumChargePower_L3"
-    )
-    ev_present_active_power: RationalNumber = Field(..., alias="EVPresentActivePower")
-    ev_present_active_power_l2: RationalNumber = Field(
-        None, alias="EVPresentActivePower_L2"
-    )
-    ev_present_active_power_l3: RationalNumber = Field(
-        None, alias="EVPresentActivePower_L3"
-    )
-    ev_present_reactive_power: RationalNumber = Field(
-        None, alias="EVPresentReactivePower"
-    )
-    ev_present_reactive_power_l2: RationalNumber = Field(
-        None, alias="EVPresentReactivePower_L2"
-    )
-    ev_present_reactive_power_l3: RationalNumber = Field(
-        None, alias="EVPresentReactivePower_L3"
-    )
+    ev_max_charge_current: RationalNumber = Field(None, alias="EVMaximumChargeCurrent")
+    ev_max_voltage: RationalNumber = Field(None, alias="EVMaximumVoltage")
+    ev_min_voltage: RationalNumber = Field(None, alias="EVMinimumVoltage")
 
 
 class ScheduledDCChargeLoopResParams(ScheduledChargeLoopResParams):
@@ -165,20 +142,11 @@ class BPTScheduledDCChargeLoopReqParams(ScheduledDCChargeLoopReqParams):
     ev_max_discharge_power: RationalNumber = Field(
         None, alias="EVMaximumDischargePower"
     )
-    ev_max_discharge_power_l2: RationalNumber = Field(
-        None, alias="EVMaximumDischargePower_L2"
-    )
-    ev_max_discharge_power_l3: RationalNumber = Field(
-        None, alias="EVMaximumDischargePower_L3"
-    )
     ev_min_discharge_power: RationalNumber = Field(
         None, alias="EVMinimumDischargePower"
     )
-    ev_min_discharge_power_l2: RationalNumber = Field(
-        None, alias="EVMinimumDischargePower_L2"
-    )
-    ev_min_discharge_power_l3: RationalNumber = Field(
-        None, alias="EVMinimumDischargePower_L3"
+    ev_max_discharge_current: RationalNumber = Field(
+        None, alias="EVMaximumDischargeCurrent"
     )
 
 
@@ -186,39 +154,14 @@ class BPTScheduledDCChargeLoopResParams(ScheduledDCChargeLoopResParams):
     """See section 8.3.5.4.7.6 in ISO 15118-20"""
 
 
-class DynamicDCChargeLoopReq(DynamicChargeLoopReqParams):
+class DynamicDCChargeLoopReqParams(DynamicChargeLoopReqParams):
     """See section 8.3.5.4.3 in ISO 15118-20"""
 
     ev_max_charge_power: RationalNumber = Field(..., alias="EVMaximumChargePower")
-    ev_max_charge_power_l2: RationalNumber = Field(
-        None, alias="EVMaximumChargePower_L2"
-    )
-    ev_max_charge_power_l3: RationalNumber = Field(
-        None, alias="EVMaximumChargePower_l2"
-    )
     ev_min_charge_power: RationalNumber = Field(..., alias="EVMinimumChargePower")
-    ev_min_charge_power_l2: RationalNumber = Field(
-        None, alias="EVMinimumChargePower_L2"
-    )
-    ev_min_charge_power_l3: RationalNumber = Field(
-        None, alias="EVMinimumChargePower_L3"
-    )
-    ev_present_active_power: RationalNumber = Field(..., alias="EVPresentActivePower")
-    ev_present_active_power_l2: RationalNumber = Field(
-        None, alias="EVPresentActivePower_L2"
-    )
-    ev_present_active_power_l3: RationalNumber = Field(
-        None, alias="EVPresentActivePower_L3"
-    )
-    ev_present_reactive_power: RationalNumber = Field(
-        ..., alias="EVPresentReactivePower"
-    )
-    ev_present_reactive_power_l2: RationalNumber = Field(
-        None, alias="EVPresentReactivePower_L2"
-    )
-    ev_present_reactive_power_l3: RationalNumber = Field(
-        None, alias="EVPresentReactivePower_L3"
-    )
+    ev_max_charge_current: RationalNumber = Field(..., alias="EVMaximumChargeCurrent")
+    ev_max_voltage: RationalNumber = Field(..., alias="EVMaximumVoltage")
+    ev_min_voltage: RationalNumber = Field(..., alias="EVMinimumVoltage")
 
 
 class DynamicDCChargeLoopRes(DynamicChargeLoopResParams):
@@ -251,22 +194,13 @@ class DynamicDCChargeLoopRes(DynamicChargeLoopResParams):
     )
 
 
-class BPTDynamicDCChargeLoopReq(DynamicDCChargeLoopReq):
+class BPTDynamicDCChargeLoopReqParams(DynamicDCChargeLoopReqParams):
     """See section 8.3.5.4.7.3 in ISO 15118-20"""
 
     ev_max_discharge_power: RationalNumber = Field(..., alias="EVMaximumDischargePower")
-    ev_max_discharge_power_l2: RationalNumber = Field(
-        None, alias="EVMaximumDischargePower_L2"
-    )
-    ev_max_discharge_power_l3: RationalNumber = Field(
-        None, alias="EVMaximumDischargePower_L3"
-    )
     ev_min_discharge_power: RationalNumber = Field(..., alias="EVMinimumDischargePower")
-    ev_min_discharge_power_l2: RationalNumber = Field(
-        None, alias="EVMinimumDischargePower_L2"
-    )
-    ev_min_discharge_power_l3: RationalNumber = Field(
-        None, alias="EVMinimumDischargePower_L3"
+    ev_max_discharge_current: RationalNumber = Field(
+        ..., alias="EVMaximumDischargeCurrent"
     )
     ev_max_v2x_energy_request: RationalNumber = Field(
         None, alias="EVMaximumV2XEnergyRequest"
@@ -359,16 +293,17 @@ class DCChargeParameterDiscoveryRes(ChargeParameterDiscoveryRes):
 class DCChargeLoopReq(ChargeLoopReq):
     """See section 8.3.4.4.3.2 in ISO 15118-20"""
 
+    ev_present_voltage: RationalNumber = Field(..., alias="EVPresentVoltage")
     scheduled_params: ScheduledDCChargeLoopReqParams = Field(
         None, alias="Scheduled_DC_CLReqControlMode"
     )
-    dynamic_params: DynamicDCChargeLoopReq = Field(
+    dynamic_params: DynamicDCChargeLoopReqParams = Field(
         None, alias="Dynamic_DC_CLReqControlMode"
     )
     bpt_scheduled_params: BPTScheduledDCChargeLoopReqParams = Field(
         None, alias="BPT_Scheduled_DC_CLReqControlMode"
     )
-    bpt_dynamic_params: BPTDynamicDCChargeLoopReq = Field(
+    bpt_dynamic_params: BPTDynamicDCChargeLoopReqParams = Field(
         None, alias="BPT_Dynamic_DC_CLReqControlMode"
     )
 
