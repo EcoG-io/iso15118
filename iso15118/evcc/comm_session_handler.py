@@ -16,7 +16,7 @@ from typing import List, Optional, Tuple, Union
 from pydantic.error_wrappers import ValidationError
 
 from iso15118.evcc.controller.interface import EVControllerInterface
-from iso15118.evcc.evcc_settings import Config
+from iso15118.evcc.evcc_config import EVCCConfig
 from iso15118.evcc.transport.tcp_client import TCPClient
 from iso15118.evcc.transport.udp_client import UDPClient
 from iso15118.shared.comm_session import V2GCommunicationSession
@@ -71,11 +71,12 @@ class EVCCCommunicationSession(V2GCommunicationSession):
     """
 
     def __init__(
-        self,
-        transport: Tuple[StreamReader, StreamWriter],
-        session_handler_queue: asyncio.Queue,
-        config: Config,
-        ev_controller: EVControllerInterface,
+            self,
+            transport: Tuple[StreamReader, StreamWriter],
+            session_handler_queue: asyncio.Queue,
+            evcc_config: EVCCConfig,
+            iface: str,
+            ev_controller: EVControllerInterface,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -91,7 +92,8 @@ class EVCCCommunicationSession(V2GCommunicationSession):
             self, transport, SupportedAppProtocol, session_handler_queue, self
         )
 
-        self.config = config
+        self.config = evcc_config
+        self.iface = iface
         # The EV controller that implements the interface EVControllerInterface
         self.ev_controller = ev_controller
         # The authorization option (called PaymentOption in ISO 15118-2) the
@@ -147,7 +149,10 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         app_protocols = []
         schema_id = 0
         priority = 0
-        supported_protocols = self.config.supported_protocols
+        supported_protocols = []
+        for protocols in self.config.supported_protocols:
+            if protocols.name in list(map(lambda p: p.name, Protocol)):
+                supported_protocols.append(Protocol[protocols.name])
 
         # [V2G-DC-618] For DC charging according to DIN SPEC 70121,
         # an SDP server shall send an SECC Discovery Response message with Transport
@@ -256,13 +261,18 @@ class CommunicationSessionHandler:
     # pylint: disable=too-many-instance-attributes
 
     def __init__(
-        self, config: Config, codec: IEXICodec, ev_controller: EVControllerInterface
+            self,
+            config: EVCCConfig,
+            iface: str,
+            codec: IEXICodec,
+            ev_controller: EVControllerInterface,
     ):
         self.list_of_tasks = []
         self.udp_client = None
         self.tcp_client = None
         self.tls_client = None
         self.config = config
+        self.iface = iface
         self.ev_controller = ev_controller
         self.sdp_retries_number = SDP_MAX_REQUEST_COUNTER
         self._sdp_retry_cycles = self.config.sdp_retry_cycles
@@ -285,7 +295,7 @@ class CommunicationSessionHandler:
         async def __init__. Therefore, we need to create a separate async
         method to be our constructor.
         """
-        self.udp_client = UDPClient(self._rcv_queue, self.config.iface)
+        self.udp_client = UDPClient(self._rcv_queue, self.iface)
         self.list_of_tasks = [
             self.udp_client.start(),
             self.get_from_rcv_queue(self._rcv_queue),
@@ -400,7 +410,7 @@ class CommunicationSessionHandler:
                 f"{host.compressed} at port {port} ..."
             )
             self.tcp_client = await TCPClient.create(
-                host, port, self._rcv_queue, is_tls, self.config.iface
+                host, port, self._rcv_queue, is_tls, self.iface
             )
             logger.info("TCP client connected")
         except Exception as exc:
@@ -479,7 +489,7 @@ class CommunicationSessionHandler:
             # The rationale behind this might be that the EV OEM trades convenience
             # (the EV driver can always charge) over security.
             if (not secc_signals_tls and self.config.enforce_tls) or (
-                secc_signals_tls and not self.config.use_tls
+                    secc_signals_tls and not self.config.use_tls
             ):
                 logger.error(
                     "Security mismatch, can't initiate communication session."

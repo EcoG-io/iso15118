@@ -1,0 +1,12 @@
+{
+	"supported_protocols": [
+		"ISO_15118_2",
+		"DIN_SPEC_70121"
+	],
+	"supported_energy_services": [
+		"ServiceV20.AC_BPT"
+	],
+	"supports_eim": false,
+	"is_cert_install_needed": false,
+	"use_tls": false
+}

@@ -19,7 +19,7 @@ MESSAGE_LOG_EXI = env.bool("MESSAGE_LOG_EXI", default=False)
 
 V20_EVSE_SERVICES_CONFIG = env.str(
     "V20_SERVICE_CONFIG",
-    default=SHARED_CWD + "/examples/15118_20_evse_service_config.json",
+    default=SHARED_CWD + "/examples/secc/15118_20/service_config.json",
 )
 
 ENABLE_TLS_1_3 = env.bool("ENABLE_TLS_1_3", default=False)

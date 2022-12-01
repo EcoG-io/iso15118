@@ -7,6 +7,7 @@ import logging
 import random
 from typing import List, Optional, Tuple, Union
 
+from iso15118.evcc import EVCCConfig
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
 from iso15118.shared.messages.datatypes import (
@@ -110,7 +111,8 @@ class SimEVController(EVControllerInterface):
     A simulated version of an EV controller
     """
 
-    def __init__(self):
+    def __init__(self, evcc_config: Optional[EVCCConfig] = None):
+        self.config = evcc_config
         self.charging_loop_cycles: int = 0
         self.precharge_loop_cycles: int = 0
         self._charging_is_completed = False
@@ -163,7 +165,7 @@ class SimEVController(EVControllerInterface):
             raise InvalidProtocolError
 
     async def get_energy_transfer_mode(
-        self, protocol: Protocol
+            self, protocol: Protocol
     ) -> EnergyTransferModeEnum:
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
         if protocol == Protocol.DIN_SPEC_70121:
@@ -172,10 +174,10 @@ class SimEVController(EVControllerInterface):
 
     async def get_supported_energy_services(self) -> List[ServiceV20]:
         """Overrides EVControllerInterface.get_energy_transfer_service()."""
-        return [ServiceV20.DC_BPT]
+        return self.config.supported_energy_services
 
     async def select_energy_service_v20(
-        self, services: List[MatchedService]
+            self, services: List[MatchedService]
     ) -> SelectedEnergyService:
         """Overrides EVControllerInterface.select_energy_service_v20()."""
         matched_energy_services = [
@@ -192,7 +194,7 @@ class SimEVController(EVControllerInterface):
         return None
 
     async def select_vas_services_v20(
-        self, services: List[MatchedService]
+            self, services: List[MatchedService]
     ) -> Optional[List[SelectedVAS]]:
         """Overrides EVControllerInterface.select_vas_services_v20()."""
         matched_vas_services = [
@@ -254,7 +256,7 @@ class SimEVController(EVControllerInterface):
         )
 
     async def get_charge_params_v20(
-        self, selected_service: SelectedEnergyService
+            self, selected_service: SelectedEnergyService
     ) -> Union[
         ACChargeParameterDiscoveryReqParams,
         BPTACChargeParameterDiscoveryReqParams,
@@ -304,7 +306,7 @@ class SimEVController(EVControllerInterface):
             return None
 
     async def get_scheduled_se_params(
-        self, selected_energy_service: SelectedEnergyService
+            self, selected_energy_service: SelectedEnergyService
     ) -> ScheduledScheduleExchangeReqParams:
         """Overrides EVControllerInterface.get_scheduled_se_params()."""
         ev_price_rule = EVPriceRule(
@@ -355,7 +357,7 @@ class SimEVController(EVControllerInterface):
         return scheduled_params
 
     async def get_dynamic_se_params(
-        self, selected_energy_service: SelectedEnergyService
+            self, selected_energy_service: SelectedEnergyService
     ) -> DynamicScheduleExchangeReqParams:
         """Overrides EVControllerInterface.get_dynamic_se_params()."""
         dynamic_params = DynamicScheduleExchangeReqParams(
@@ -372,7 +374,7 @@ class SimEVController(EVControllerInterface):
         return dynamic_params
 
     async def process_scheduled_se_params(
-        self, scheduled_params: ScheduledScheduleExchangeResParams, pause: bool
+            self, scheduled_params: ScheduledScheduleExchangeResParams, pause: bool
     ) -> Tuple[Optional[EVPowerProfile], ChargeProgressV20]:
         """Overrides EVControllerInterface.process_scheduled_se_params()."""
         is_ready = bool(random.getrandbits(1))
@@ -419,7 +421,7 @@ class SimEVController(EVControllerInterface):
         return ev_power_profile, charge_progress
 
     async def process_dynamic_se_params(
-        self, dynamic_params: DynamicScheduleExchangeResParams, pause: bool
+            self, dynamic_params: DynamicScheduleExchangeResParams, pause: bool
     ) -> Tuple[Optional[EVPowerProfile], ChargeProgressV20]:
         """Overrides EVControllerInterface.process_dynamic_se_params()."""
         is_ready = bool(random.getrandbits(1))
@@ -453,10 +455,10 @@ class SimEVController(EVControllerInterface):
 
     async def is_cert_install_needed(self) -> bool:
         """Overrides EVControllerInterface.is_cert_install_needed()."""
-        return False
+        return self.config.is_cert_install_needed
 
     async def process_sa_schedules_dinspec(
-        self, sa_schedules: List[SAScheduleTupleEntryDINSPEC]
+            self, sa_schedules: List[SAScheduleTupleEntryDINSPEC]
     ) -> int:
         """Overrides EVControllerInterface.process_sa_schedules_dinspec()."""
         schedule = sa_schedules.pop()
@@ -481,8 +483,8 @@ class SimEVController(EVControllerInterface):
                 zero_power = 1
                 last_profile_entry_details = ProfileEntryDetailsDINSPEC(
                     start=(
-                        schedule_entry_details.time_interval.start
-                        + schedule_entry_details.time_interval.duration
+                            schedule_entry_details.time_interval.start
+                            + schedule_entry_details.time_interval.duration
                     ),
                     max_power=zero_power,
                 )
@@ -491,7 +493,7 @@ class SimEVController(EVControllerInterface):
         return schedule.sa_schedule_tuple_id
 
     async def process_sa_schedules_v2(
-        self, sa_schedules: List[SAScheduleTuple]
+            self, sa_schedules: List[SAScheduleTuple]
     ) -> Tuple[ChargeProgressV2, int, ChargingProfile]:
         """Overrides EVControllerInterface.process_sa_schedules()."""
         secc_schedule = sa_schedules.pop()
@@ -516,8 +518,8 @@ class SimEVController(EVControllerInterface):
                 zero_power = PVPMax(multiplier=0, value=0, unit=UnitSymbol.WATT)
                 last_profile_entry_details = ProfileEntryDetails(
                     start=(
-                        schedule_entry_details.time_interval.start
-                        + schedule_entry_details.time_interval.duration
+                            schedule_entry_details.time_interval.start
+                            + schedule_entry_details.time_interval.duration
                     ),
                     max_power=zero_power,
                 )
@@ -545,7 +547,7 @@ class SimEVController(EVControllerInterface):
             return True
 
     async def store_contract_cert_and_priv_key(
-        self, contract_cert: bytes, priv_key: bytes
+            self, contract_cert: bytes, priv_key: bytes
     ):
         """Overrides EVControllerInterface.store_contract_cert_and_priv_key()."""
         # TODO Need to store the contract cert and private key
@@ -563,7 +565,7 @@ class SimEVController(EVControllerInterface):
         return True
 
     async def get_dc_ev_power_delivery_parameter_dinspec(
-        self,
+            self,
     ) -> DCEVPowerDeliveryParameterDINSPEC:
         return DCEVPowerDeliveryParameterDINSPEC(
             dc_ev_status=await self.get_dc_ev_status_dinspec(),
@@ -620,8 +622,34 @@ class SimEVController(EVControllerInterface):
             await self.get_energy_transfer_mode(), ac_charge_params, None
         )
 
+    async def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
+        """Overrides EVControllerInterface.get_ac_charge_params_v20()."""
+        return ACChargeParameterDiscoveryReqParams(
+            ev_max_charge_power=RationalNumber(exponent=3, value=3),
+            ev_max_charge_power_l2=RationalNumber(exponent=3, value=3),
+            ev_max_charge_power_l3=RationalNumber(exponent=3, value=3),
+            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+            ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+        )
+
+    async def get_ac_bpt_charge_params_v20(
+            self,
+    ) -> BPTACChargeParameterDiscoveryReqParams:
+        """Overrides EVControllerInterface.get_bpt_ac_charge_params_v20()."""
+        ac_charge_params_v20 = (await self.get_ac_charge_params_v20()).dict()
+        return BPTACChargeParameterDiscoveryReqParams(
+            **ac_charge_params_v20,
+            ev_max_discharge_power=RationalNumber(exponent=3, value=11),
+            ev_max_discharge_power_l2=RationalNumber(exponent=3, value=11),
+            ev_max_discharge_power_l3=RationalNumber(exponent=3, value=11),
+            ev_min_discharge_power=RationalNumber(exponent=0, value=100),
+            ev_min_discharge_power_l2=RationalNumber(exponent=0, value=100),
+            ev_min_discharge_power_l3=RationalNumber(exponent=0, value=100),
+        )
+
     async def get_scheduled_ac_charge_loop_params(
-        self,
+            self,
     ) -> ScheduledACChargeLoopReqParams:
         """Overrides EVControllerInterface.get_scheduled_ac_charge_loop_params()."""
         return ScheduledACChargeLoopReqParams(
@@ -630,7 +658,7 @@ class SimEVController(EVControllerInterface):
         )
 
     async def get_bpt_scheduled_ac_charge_loop_params(
-        self,
+            self,
     ) -> BPTScheduledACChargeLoopReqParams:
         """Overrides EVControllerInterface.get_bpt_scheduled_ac_charge_loop_params()."""
         return BPTScheduledACChargeLoopReqParams(
@@ -652,7 +680,7 @@ class SimEVController(EVControllerInterface):
         )
 
     async def get_bpt_dynamic_ac_charge_loop_params(
-        self,
+            self,
     ) -> BPTDynamicACChargeLoopReqParams:
         """Overrides EVControllerInterface.get_bpt_dynamic_ac_charge_loop_params()."""
         return BPTDynamicACChargeLoopReqParams(
