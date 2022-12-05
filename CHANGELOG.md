@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.2] - 2022-12-05
+
+### Changed
+* chore: bump cryptography to 38.0.4 by @mdwcrft in https://github.com/SwitchEV/iso15118/pull/173
+
 ## [0.14.1] - 2022-11-28
 
 ### Fixed
