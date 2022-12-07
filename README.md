@@ -9,8 +9,8 @@ The primary dependencies to install the project are the following:
 
 > - Linux
 >
->    * MacOS is not fully supported -- see "IPv6 Warning" below
->    * Other non-Linux operating systems are not supported
+>   - MacOS is not fully supported -- see "IPv6 Warning" below
+>   - Other non-Linux operating systems are not supported
 >
 > - Poetry [^3]
 > - Python >= 3.9
@@ -18,16 +18,17 @@ The primary dependencies to install the project are the following:
 There are two recommended ways of running the project:
 
 ### Running with Docker
+
 Using Docker has the advantage of starting everything up automatically,
 including certificate generation, tests and linting, as well as spawning
 both the SECC and EVCC containers.
 
 Building and running the docker file:
 
-   ```bash
-   $ make build
-   $ make dev
-   ```
+```bash
+$ make build
+$ make dev
+```
 
 Note that if Docker is used, the command `make run` will try to get the `.env` file.
 The command `make dev` will fetch the contents of `.env.dev.docker` - thus,
@@ -37,6 +38,7 @@ automatically fetch the `.env.dev.docker` one.
 ### Local installation
 
 #### 1. Generate certificates
+
 The project includes a script to help on the generation of -2 and -20 certificates.
 This script is located under `iso15118/shared/pki/` directory and is called `create_certs.sh`.
 The following command provides a guide for the script usage:
@@ -47,6 +49,7 @@ $ ./create_certs.sh -h
 ```
 
 Use the following commands to generate certificates for ISO 15118-2 and 15118-20:
+
 ```bash
 $ ./create_certs.sh -v iso-2
 $ ./create_certs.sh -v iso-20
@@ -72,11 +75,13 @@ sudo apt install openjdk-17-jre
 ```
 
 Display the different installed versions of Java you have installed:
+
 ```bash
 update-alternatives --query java
 ```
 
 Configure the more recent version to be the default:
+
 ```bash
 update-alternatives --config java
 ```
@@ -116,6 +121,7 @@ The recommended way to install Poetry is to use its installation script.
 See https://python-poetry.org/docs/#installation for instructions.
 
 #### 5. Run the SECC/EVCC
+
 For convenience, the Makefile, present in the project, helps you to start up the controllers. Thus, in the terminal run:
 
 ```bash
@@ -125,6 +131,7 @@ $ make run-secc
 ```
 
 The above commands will do the following:
+
 1. Install all dependencies with Poetry
 2. Use the Poetry shell to activate the appropriate virtual environment
 3. Run the start script for SECC
@@ -146,6 +153,7 @@ $ make run-evcc
 ```
 
 The SECC and EVCC have been tested together under:
+
 - Linux - Ubuntu and Debian distros
 - MacOS
 
@@ -185,7 +193,7 @@ The default configuration values can be modified by setting them as environment 
 The following table provides a few of the available variables:
 
 | ENV               | Default Value                                                | Description                                                                                                                                                     |
-|-------------------|--------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | NETWORK_INTERFACE | `eth0`                                                       | HomePlug Green PHY Network Interface from which the high-level communication (HLC) will be established                                                          |
 | SECC_ENFORCE_TLS  | `False`                                                      | Whether or not the SECC will enforce a TLS connection                                                                                                           |
 | EVCC_USE_TLS      | `True`                                                       | Whether or not the EVCC signals the preference to communicate with a TLS connection                                                                             |
@@ -194,11 +202,10 @@ The following table provides a few of the available variables:
 | LOG_LEVEL         | `INFO`                                                       | Level of the Python log service                                                                                                                                 |
 | MESSAGE_LOG_JSON  | `True`                                                       | Whether or not to log the EXI JSON messages (only works if log level is set to DEBUG)                                                                           |
 | MESSAGE_LOG_EXI   | `False`                                                      | Whether or not to log the EXI Bytestream messages (only works if log level is set to DEBUG)                                                                     |
-| PROTOCOLS         | `DIN_SPEC_70121,ISO_15118_2,ISO_15118_20_AC,ISO_15118_20_DC` | Enabled communication protocols on SECC.  NOTE: ISO 15118 DC support is still under development                                                                 |
+| PROTOCOLS         | `DIN_SPEC_70121,ISO_15118_2,ISO_15118_20_AC,ISO_15118_20_DC` | Enabled communication protocols on SECC. NOTE: ISO 15118 DC support is still under development                                                                  |
 | AUTH_MODES        | `EIM,PNC`                                                    | Selected authentication modes for SECC                                                                                                                          |
 | USE_CPO_BACKEND   | `False`                                                      | Indicates if backend integration is available to fetch certificates                                                                                             |
 | ENABLE_TLS_1_3    | `False`                                                      | Enables TLS 1.3 for SECC-EVCC communication.                                                                                                                    |
-
 
 ## License
 
@@ -217,7 +224,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 [^1]: https://www.iso.org/standard/55366.html
-[^2]: https://www.switch-ev.com/news-and-events/new-features-and-timeline-for-iso15118-20
+[^2]: https://www.switch-ev.com/blog/new-features-and-timeline-for-iso15118-20
 [^3]: https://python-poetry.org/docs/#installation
 [^4]: https://exificient.github.io/
 [^5]: https://docs.docker.com/network/host/
