@@ -92,11 +92,14 @@ class AuthorizationResponse:
 
 @dataclass
 class EVDataContext:
-    dc_current: Optional[float] = None
-    dc_voltage: Optional[float] = None
+    dc_current_request: Optional[int] = None
+    dc_voltage_request: Optional[int] = None
     ac_current: Optional[dict] = None  # {"l1": 10, "l2": 10, "l3": 10}
     ac_voltage: Optional[dict] = None  # {"l1": 230, "l2": 230, "l3": 230}
     soc: Optional[int] = None  # 0-100
+    remaining_time_to_full_soc_s: Optional[int] = None
+    remaining_time_to_bulk_soc_s: Optional[int] = None
+    ev_max_current_limit: Optional[int] = None
 
     # from ISO 15118-20 AC
     departure_time: Optional[int] = None
