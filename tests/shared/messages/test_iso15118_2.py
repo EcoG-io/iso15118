@@ -173,6 +173,19 @@ ISO_TEST_MESSAGES = [
         '"Unit": "W"}, "EVSEID": "CH123DW123", "SAScheduleTupleID": 1,'
         '"ReceiptRequired": false}}}}',
     ),
+    ExiMessageContainer(
+        description="Audi E-Tron GT recorded at 2022-12-15",
+        message_name="CurrentDemandReq",
+        json_str='{"V2G_Message": {"Header": {"SessionID": "AC1DECE39DBE831A"},'
+        '"Body": {"CurrentDemandReq": {"DC_EVStatus":{"EVReady":'
+        'true,"EVErrorCode":"NO_ERROR","EVRESSSOC":76},"EVTargetCurrent":'
+        '{"Multiplier":-1,"Unit":"A","Value":0},"EVMaximumVoltageLimit":'
+        '{"Multiplier":-1,"Unit":"V","Value":8490},"EVMaximumCurrentLimit":'
+        '{"Multiplier":-1,"Unit":"A","Value":4000},"BulkChargingComplete":'
+        'false,"ChargingComplete":false,"RemainingTimeToFullSoC":'
+        '{"Multiplier":0,"Unit":"s","Value":10680},"EVTargetVoltage":'
+        '{"Multiplier":-1,"Unit":"V","Value":8390}}}}}',
+    ),
 ]
 
 
