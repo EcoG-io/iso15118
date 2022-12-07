@@ -53,7 +53,7 @@ from iso15118.shared.notifications import (
     TCPClientNotification,
     UDPPacketNotification,
 )
-from iso15118.shared.utils import cancel_task, wait_for_tasks
+from iso15118.shared.utils import cancel_task, wait_for_tasks, start_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -164,8 +164,7 @@ class CommunicationSessionHandler:
     def __init__(
         self, config: Config, codec: IEXICodec, evse_controller: EVSEControllerInterface
     ):
-
-        self.list_of_tasks = []
+        self.list_of_tasks: List[asyncio.Task] = []
         self.udp_server = None
         self.tcp_server = None
         self.config = config
@@ -202,7 +201,7 @@ class CommunicationSessionHandler:
         tls_ready_event: asyncio.Event = asyncio.Event()
         self.status_event_list.append(tls_ready_event)
 
-        self.list_of_tasks = [
+        list_of_coroutines = [
             self.get_from_rcv_queue(self._rcv_queue),
             self.udp_server.start(udp_ready_event),
             self.tcp_server.start_tls(tls_ready_event),
@@ -212,10 +211,11 @@ class CommunicationSessionHandler:
         if not self.config.enforce_tls:
             tcp_ready_event: asyncio.Event = asyncio.Event()
             self.status_event_list.append(tcp_ready_event)
-            self.list_of_tasks.append(self.tcp_server.start_no_tls(tcp_ready_event))
+            list_of_coroutines.append(self.tcp_server.start_no_tls(tcp_ready_event))
 
         logger.info("Communication session handler started")
 
+        self.list_of_tasks = start_tasks(list_of_coroutines)
         await wait_for_tasks(self.list_of_tasks)
 
     def check_events(self) -> bool:

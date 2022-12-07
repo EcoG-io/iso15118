@@ -57,7 +57,7 @@ from iso15118.shared.notifications import (
     StopNotification,
     UDPPacketNotification,
 )
-from iso15118.shared.utils import cancel_task, wait_for_tasks
+from iso15118.shared.utils import cancel_task, start_and_wait_for_coroutines
 
 logger = logging.getLogger(__name__)
 
@@ -294,7 +294,7 @@ class CommunicationSessionHandler:
 
         logger.info("Communication session handler started")
 
-        await wait_for_tasks(self.list_of_tasks)
+        await start_and_wait_for_coroutines(self.list_of_tasks)
 
     async def send_sdp(self):
         """

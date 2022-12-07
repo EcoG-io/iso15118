@@ -1,11 +1,12 @@
 import asyncio
 import logging
-from typing import Coroutine, List
+from asyncio import Task
+from typing import Coroutine, List, Any
 
 logger = logging.getLogger(__name__)
 
 
-async def cancel_task(task):
+async def cancel_task(task: Task):
     """Cancel the task safely"""
     task.cancel()
     try:
@@ -14,8 +15,25 @@ async def cancel_task(task):
         pass
 
 
+def start_tasks(
+    await_tasks: List[Coroutine]
+) -> List[Task]:
+    """
+    Method to run multiple tasks concurrently.
+    returns a list of running tasks
+    """
+    tasks = []
+
+    for task in await_tasks:
+        if not isinstance(task, asyncio.Task):
+            task = asyncio.create_task(task, name=f"ISO15118-Task-{task.__name__}")
+        tasks.append(task)
+
+    return tasks
+
+
 async def wait_for_tasks(
-    await_tasks: List[Coroutine], return_when=asyncio.FIRST_EXCEPTION
+    tasks: List[Task], return_when=asyncio.FIRST_EXCEPTION
 ):
     """
     Method to run multiple tasks concurrently.
@@ -32,13 +50,6 @@ async def wait_for_tasks(
     * https://stackoverflow.com/questions/63583822/asyncio-wait-on-multiple-tasks-with-timeout-and-cancellation  # noqa: E501
 
     """
-    tasks = []
-
-    for task in await_tasks:
-        if not isinstance(task, asyncio.Task):
-            task = asyncio.create_task(task)
-        tasks.append(task)
-
     done, pending = await asyncio.wait(tasks, return_when=return_when)
 
     for task in pending:
@@ -49,3 +60,10 @@ async def wait_for_tasks(
             task.result()
         except Exception as e:
             logger.exception(e)
+
+
+async def start_and_wait_for_coroutines(
+    await_coroutines: List[Coroutine], return_when=asyncio.FIRST_EXCEPTION
+):
+    tasks = start_tasks(await_coroutines)
+    await wait_for_tasks(tasks)
