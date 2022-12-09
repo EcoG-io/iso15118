@@ -9,34 +9,28 @@ from iso15118.shared.messages.datatypes import (
     PVRemainingTimeToFullSOC,
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
-
-
-@dataclass
-class TestMessage:
-    message_name: str
-    json_str: str
-    description: str = ""
+from tests.shared.messages.exi_message_container import ExiMessageContainer
 
 
 # Test strings recorded 28.7.2022 with Comemso Multi Mobile DC Protocol Tester
 DIN_TEST_MESSAGES = [
-    TestMessage(
+    ExiMessageContainer(
         message_name="SessionSetupReq",
         json_str='{"V2G_Message":{"Header":{"SessionID":"0000000000000000"},"Body":'
         '{"SessionSetupReq":{"EVCCID":"0000020000000001"}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="SessionSetupRes",
         json_str='{"V2G_Message": {"Header": {"SessionID": "AB9AB72CABAEFC72"},"Body":'
         '{"SessionSetupRes": {"ResponseCode": "OK_NewSessionEstablished",'
         '"EVSEID": "49A89A6360", "DateTimeNow": 1659025085}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="ServiceDiscoveryReq",
         json_str='{"V2G_Message":{"Header":{"SessionID":"AB9AB72CABAEFC72"},"Body":'
         '{"ServiceDiscoveryReq":{"ServiceCategory":"EVCharging"}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="ServiceDiscoveryRes",
         json_str='{"V2G_Message": {"Header": {"SessionID":"AB9AB72CABAEFC72"},"Body":'
         '{"ServiceDiscoveryRes": {"ResponseCode": "OK", "PaymentOptions":'
@@ -44,30 +38,30 @@ DIN_TEST_MESSAGES = [
         '{"ServiceID": 1, "ServiceCategory": "EVCharging"}, "FreeService":'
         'true, "EnergyTransferType": "DC_extended"}}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="ServicePaymentSelectionReq",
         json_str='{"V2G_Message":{"Header":{"SessionID":"AB9AB72CABAEFC72"},"Body":'
         '{"ServicePaymentSelectionReq":{"SelectedPaymentOption":'
         '"ExternalPayment","SelectedServiceList":{"SelectedService":'
         '[{"ServiceID":1}]}}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="ServicePaymentSelectionRes",
         json_str='{"V2G_Message": {"Header": {"SessionID":"AB9AB72CABAEFC72"},"Body":'
         '{"ServicePaymentSelectionRes": {"ResponseCode": "OK"}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="ContractAuthenticationReq",
         json_str='{"V2G_Message":{"Header":{"SessionID":"AB9AB72CABAEFC72"},"Body":'
         '{"ContractAuthenticationReq":{}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="ContractAuthenticationRes",
         json_str='{"V2G_Message": {"Header": {"SessionID": "AB9AB72CABAEFC72"},"Body":'
         '{"ContractAuthenticationRes":{"ResponseCode":"OK","EVSEProcessing":'
         '"Finished"}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="ChargeParameterDiscoveryReq",
         json_str='{"V2G_Message":{"Header":{"SessionID":"AB9AB72CABAEFC72"},"Body":'
         '{"ChargeParameterDiscoveryReq":{"EVRequestedEnergyTransferType":'
@@ -81,7 +75,7 @@ DIN_TEST_MESSAGES = [
         '{"Multiplier":3,"Unit":"Wh","Value":160},"FullSOC":99,'
         '"BulkSOC":80}}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="ChargeParameterDiscoveryRes",
         json_str='{"V2G_Message": {"Header": {"SessionID": "AB9AB72CABAEFC72"},'
         '"Body": {"ChargeParameterDiscoveryRes": {"ResponseCode": "OK",'
@@ -101,14 +95,14 @@ DIN_TEST_MESSAGES = [
         '{"Value": 1, "Multiplier": 0,"Unit":"A"},"EVSEEnergyToBeDelivered":'
         '{"Value": 10000, "Multiplier": 0, "Unit": "Wh"}}}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="CableCheckReq",
         json_str='{"V2G_Message":{"Header":{"SessionID":"AB9AB72CABAEFC72"},"Body":'
         '{"CableCheckReq":{"DC_EVStatus":{"EVReady":true,'
         '"EVCabinConditioning":true,"EVRESSConditioning":true,"EVErrorCode":'
         '"NO_ERROR","EVRESSSOC":20}}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="CableCheckRes",
         json_str='{"V2G_Message": {"Header": {"SessionID": "AB9AB72CABAEFC72"},"Body":'
         '{"CableCheckRes": {"ResponseCode": "OK", "DC_EVSEStatus":'
@@ -116,7 +110,7 @@ DIN_TEST_MESSAGES = [
         '"EVSEIsolationStatus": "Invalid", "EVSEStatusCode": "EVSE_Ready"},'
         '"EVSEProcessing": "Ongoing"}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="PreChargeReq",
         json_str='{"V2G_Message":{"Header":{"SessionID":"AB9AB72CABAEFC72"},"Body":'
         '{"PreChargeReq":{"DC_EVStatus":{"EVReady":true,'
@@ -125,7 +119,7 @@ DIN_TEST_MESSAGES = [
         '"V","Value":4},"EVTargetCurrent":{"Multiplier":0,"Unit":"A","Value":'
         "0}}}}}",
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="PreChargeRes",
         json_str='{"V2G_Message": {"Header": {"SessionID": "AB9AB72CABAEFC72"},"Body":'
         '{"PreChargeRes": {"ResponseCode": "OK", "DC_EVSEStatus":'
@@ -133,7 +127,7 @@ DIN_TEST_MESSAGES = [
         '"EVSEIsolationStatus": "Valid", "EVSEStatusCode": "EVSE_Ready"},'
         '"EVSEPresentVoltage": {"Value": 0, "Multiplier": 0,"Unit":"V"}}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="PowerDeliveryReq",
         json_str='{"V2G_Message":{"Header":{"SessionID":"AB9AB72CABAEFC72"},"Body":'
         '{"PowerDeliveryReq":{"ReadyToChargeState":true,'
@@ -142,14 +136,14 @@ DIN_TEST_MESSAGES = [
         '"NO_ERROR","EVRESSSOC":20},"BulkChargingComplete":false,'
         '"ChargingComplete":false}}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="PowerDeliveryRes",
         json_str='{"V2G_Message": {"Header": {"SessionID": "4FF877E9B597CC1C"},"Body":'
         '{"PowerDeliveryRes": {"ResponseCode": "OK", "DC_EVSEStatus":'
         '{"NotificationMaxDelay": 0, "EVSENotification": "None",'
         '"EVSEIsolationStatus": "Valid", "EVSEStatusCode": "EVSE_Ready"}}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="CurrentDemandReq",
         json_str='{"V2G_Message":{"Header":{"SessionID":"4FF877E9B597CC1C"},"Body":'
         '{"CurrentDemandReq":{"DC_EVStatus":{"EVReady":true,'
@@ -163,7 +157,7 @@ DIN_TEST_MESSAGES = [
         '"RemainingTimeToBulkSoC":{"Multiplier":3,"Unit":"s","Value":32767},'
         '"EVTargetVoltage":{"Multiplier":1,"Unit":"V","Value":45}}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="CurrentDemandRes",
         json_str='{"V2G_Message": {"Header": {"SessionID": "4FF877E9B597CC1C"},'
         '"Body": {"CurrentDemandRes": {"ResponseCode": "OK","DC_EVSEStatus":'
@@ -174,7 +168,7 @@ DIN_TEST_MESSAGES = [
         '"EVSECurrentLimitAchieved": false, "EVSEVoltageLimitAchieved":'
         'false, "EVSEPowerLimitAchieved": false}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="CurrentDemandReq",
         json_str='{"V2G_Message":{"Header":{"SessionID":"4FF877E9B597CC1C"},"Body":'
         '{"CurrentDemandReq":{"DC_EVStatus":{"EVReady":true,'
@@ -189,7 +183,7 @@ DIN_TEST_MESSAGES = [
         '{"Multiplier":3,"Unit":"s","Value":32767},"EVTargetVoltage":'
         '{"Multiplier":1,"Unit":"V","Value":45}}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="CurrentDemandRes",
         json_str='{"V2G_Message": {"Header": {"SessionID": "4FF877E9B597CC1C"},'
         '"Body": {"CurrentDemandRes": {"ResponseCode": "OK", "DC_EVSEStatus":'
@@ -200,14 +194,14 @@ DIN_TEST_MESSAGES = [
         '"EVSECurrentLimitAchieved": false, "EVSEVoltageLimitAchieved":'
         'false, "EVSEPowerLimitAchieved": false}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="WeldingDetectionReq",
         json_str='{"V2G_Message":{"Header":{"SessionID":"4FF877E9B597CC1C"},"Body":'
         '{"WeldingDetectionReq":{"DC_EVStatus":{"EVReady":false,'
         '"EVCabinConditioning":false,"EVRESSConditioning":false,'
         '"EVErrorCode":"NO_ERROR","EVRESSSOC":20}}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="WeldingDetectionRes",
         json_str='{"V2G_Message": {"Header": {"SessionID": "4FF877E9B597CC1C"},'
         '"Body":{"WeldingDetectionRes":{"ResponseCode":"OK","DC_EVSEStatus":'
@@ -215,17 +209,17 @@ DIN_TEST_MESSAGES = [
         '"EVSEIsolationStatus": "Valid", "EVSEStatusCode": "EVSE_Ready"},'
         '"EVSEPresentVoltage": {"Value": 400,"Multiplier": 0,"Unit":"V"}}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="SessionStopReq",
         json_str='{"V2G_Message":{"Header":{"SessionID":"4FF877E9B597CC1C"},'
         '"Body":{"SessionStopReq":{}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="SessionStopRes",
         json_str='{"V2G_Message": {"Header": {"SessionID": "4FF877E9B597CC1C"},'
         '"Body": {"SessionStopRes": {"ResponseCode": "OK"}}}}',
     ),
-    TestMessage(
+    ExiMessageContainer(
         message_name="ChargeParameterDiscoveryReq",
         json_str='{"V2G_Message": {"Header": {"SessionID": "C427C77F5FAA1DD5"},'
         ' "Body": {"ChargeParameterDiscoveryReq": '
@@ -254,7 +248,7 @@ class TestDinSpec_MessageCreation:
         DIN_TEST_MESSAGES,
         ids=[f"parse_and_create_{msg.message_name}" for msg in DIN_TEST_MESSAGES],
     )
-    def test_common_v2g_messages_can_be_parsed_and_created(self, message: TestMessage):
+    def test_common_v2g_messages_can_be_parsed_and_created(self, message: ExiMessageContainer):
         decoded_dict = json.loads(message.json_str, cls=CustomJSONDecoder)
 
         message = V2GMessageDINSPEC.parse_obj(decoded_dict["V2G_Message"])
