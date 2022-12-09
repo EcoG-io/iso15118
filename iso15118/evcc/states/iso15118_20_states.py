@@ -771,6 +771,7 @@ class ScheduleExchange(StateEVCC):
 
             ev_processing = Processing.FINISHED
             self.comm_session.schedule_exchange_res = schedule_exchange_res
+
             if not ev_power_profile:
                 ev_processing = Processing.ONGOING
                 self.comm_session.ev_processing = Processing.ONGOING
@@ -1480,10 +1481,6 @@ class DCPreCharge(StateEVCC):
         )
 
     async def build_power_delivery_req(self):
-        logger.info(
-            f"Schedule_exchange_res: {self.comm_session.schedule_exchange_res}"
-            f" {str(self.comm_session.schedule_exchange_res)}"
-        )
         if self.comm_session.control_mode == ControlMode.SCHEDULED:
             (
                 ev_power_profile,

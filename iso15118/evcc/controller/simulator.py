@@ -389,7 +389,7 @@ class SimEVController(EVControllerInterface):
             charge_progress = ChargeProgressV20.STOP
 
         # Let's just select the first schedule offered
-        selected_schedule = scheduled_params.schedule_tuples.pop()
+        selected_schedule = scheduled_params.schedule_tuples[0]
         charging_schedule = selected_schedule.charging_schedule.power_schedule
         charging_schedule_entries = charging_schedule.schedule_entry_list.entries
 
