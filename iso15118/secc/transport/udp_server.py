@@ -118,8 +118,7 @@ class UDPServer(asyncio.DatagramProtocol):
             f"and port {SDP_SERVER_PORT}"
         )
         ready_event.set()
-        tasks = [self.rcv_task()]
-        await start_and_wait_for_coroutines(tasks)
+        await self.rcv_task()
 
     def connection_made(self, transport):
         """
