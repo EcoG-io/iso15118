@@ -1545,7 +1545,7 @@ class DCPreCharge(StateSECC):
         if not msg:
             return
 
-        if isinstance(msg, PowerDelivery):
+        if isinstance(msg, PowerDeliveryReq):
             await PowerDelivery(self.comm_session).process_message(message, message_exi)
             return
 
@@ -1557,7 +1557,7 @@ class DCPreCharge(StateSECC):
             next_state = PowerDelivery
         else:
             await self.comm_session.evse_controller.set_precharge(
-                precharge_req.ev_target_voltage, precharge_req.ev_current_voltage
+                precharge_req.ev_target_voltage, precharge_req.ev_present_voltage
             )
 
         dc_precharge_res = DCPreChargeRes(
