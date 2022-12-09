@@ -58,10 +58,18 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ServiceList,
     ServiceParameterList,
 )
-from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
+from iso15118.shared.messages.iso15118_20.common_types import (
+    EVSEStatus,
+    Processing,
+    RationalNumber,
+)
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryResParams,
+    BPTDynamicDCChargeLoopRes,
+    BPTScheduledDCChargeLoopResParams,
     DCChargeParameterDiscoveryResParams,
+    DynamicDCChargeLoopRes,
+    ScheduledDCChargeLoopResParams,
 )
 
 
@@ -567,6 +575,26 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def get_evse_present_voltage_v20(self) -> RationalNumber:
+        """
+        Gets the presently available voltage at the EVSE
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_evse_present_current_v20(self) -> RationalNumber:
+        """
+        Gets the presently available voltage at the EVSE
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     async def set_precharge(
         self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
     ):
@@ -590,6 +618,18 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - DIN SPEC 70121
         - ISO 15118-2
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_cable_check_status(self) -> Processing:
+        """
+        This method is called at the beginning of the state CableCheck.
+        Gets's the status of a previously started CableCheck
+
+        Relevant for:
+        - ISO 15118-20
         """
         raise NotImplementedError
 
@@ -683,6 +723,54 @@ class EVSEControllerInterface(ABC):
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
         bidirectional DC charging.
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_scheduled_dc_charge_loop_params(
+        self,
+    ) -> ScheduledDCChargeLoopResParams:
+        """
+        Gets the parameters for the DCChargeLoopRes in the Scheduled control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_dynamic_dc_charge_loop_params(self) -> DynamicDCChargeLoopRes:
+        """
+        Gets the parameters for the DCChargeLoopRes in the Dynamic control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_bpt_scheduled_dc_charge_loop_params(
+        self,
+    ) -> BPTScheduledDCChargeLoopResParams:
+        """
+        Gets the parameters for the DCChargeLoopRes in the Scheduled control mode for
+        bi-directional power transfer (BPT)
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_bpt_dynamic_dc_charge_loop_params(
+        self,
+    ) -> BPTDynamicDCChargeLoopRes:
+        """
+        Gets the parameters for the DCChargeLoopRes in the Dynamic control mode for
+        bi-directional power transfer (BPT)
 
         Relevant for:
         - ISO 15118-20

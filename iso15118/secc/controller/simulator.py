@@ -127,10 +127,14 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
-from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import Processing, RationalNumber
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryResParams,
+    BPTDynamicDCChargeLoopRes,
+    BPTScheduledDCChargeLoopResParams,
     DCChargeParameterDiscoveryResParams,
+    DynamicDCChargeLoopRes,
+    ScheduledDCChargeLoopResParams,
 )
 from iso15118.shared.security import (
     CertPath,
@@ -405,7 +409,7 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_energy_service_list()."""
         # AC = 1, DC = 2, AC_BPT = 5, DC_BPT = 6;
         # DC_ACDP = 4 and DC_ADCP_BPT NOT supported
-        service_ids = [1, 5]
+        service_ids = [2, 6]
         service_list: ServiceList = ServiceList(services=[])
         for service_id in service_ids:
             service_list.services.append(
@@ -722,8 +726,21 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
         return PVEVSEPresentCurrent(multiplier=0, value=1, unit="A")
 
+    async def get_evse_present_voltage_v20(self) -> RationalNumber:
+        """Overrides EVSEControllerInterface.get_evse_present_voltage_v20()."""
+        return RationalNumber(exponent=0, value=230)
+
+    async def get_evse_present_current_v20(self) -> RationalNumber:
+        """Overrides EVSEControllerInterface.get_evse_present_current_v20()."""
+        return RationalNumber(exponent=0, value=1)
+
     async def start_cable_check(self):
+        """Overrides EVSEControllerInterface.start_cable_check()."""
         pass
+
+    async def get_cable_check_status(self) -> Processing:
+        """Overrides EVSEControllerInterface.get_cable_check_status()."""
+        return Processing.FINISHED
 
     async def set_precharge(
         self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
@@ -756,12 +773,12 @@ class SimEVSEController(EVSEControllerInterface):
     async def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryResParams:
         """Overrides EVSEControllerInterface.get_dc_charge_params_v20()."""
         return DCChargeParameterDiscoveryResParams(
-            evse_max_charge_power=RationalNumber(exponent=3, value=300),
-            evse_min_charge_power=RationalNumber(exponent=0, value=100),
-            evse_max_charge_current=RationalNumber(exponent=0, value=300),
-            evse_min_charge_current=RationalNumber(exponent=0, value=10),
-            evse_max_voltage=RationalNumber(exponent=0, value=1000),
-            evse_min_voltage=RationalNumber(exponent=0, value=10),
+            evse_max_charge_power=RationalNumber(exponent=1, value=1000),
+            evse_min_charge_power=RationalNumber(exponent=1, value=50),
+            evse_max_charge_current=RationalNumber(exponent=1, value=300),
+            evse_min_charge_current=RationalNumber(exponent=1, value=10),
+            evse_max_voltage=RationalNumber(exponent=1, value=600),
+            evse_min_voltage=RationalNumber(exponent=1, value=10),
             evse_power_ramp_limit=RationalNumber(exponent=0, value=10),
         )
 
@@ -769,17 +786,54 @@ class SimEVSEController(EVSEControllerInterface):
         self,
     ) -> BPTDCChargeParameterDiscoveryResParams:
         """Overrides EVSEControllerInterface.get_dc_bpt_charge_params_v20()."""
+        dc_charge_parameter_discovery_res = (
+            await self.get_dc_charge_params_v20()
+        ).dict()
         return BPTDCChargeParameterDiscoveryResParams(
-            evse_max_charge_power=RationalNumber(exponent=3, value=300),
-            evse_min_charge_power=RationalNumber(exponent=0, value=100),
-            evse_max_charge_current=RationalNumber(exponent=0, value=300),
-            evse_min_charge_current=RationalNumber(exponent=0, value=10),
-            evse_max_voltage=RationalNumber(exponent=0, value=1000),
-            evse_min_voltage=RationalNumber(exponent=0, value=10),
-            evse_max_discharge_power=RationalNumber(exponent=3, value=11),
-            evse_min_discharge_power=RationalNumber(exponent=3, value=1),
+            **dc_charge_parameter_discovery_res,
+            evse_max_discharge_power=RationalNumber(exponent=1, value=700),
+            evse_min_discharge_power=RationalNumber(exponent=1, value=10),
             evse_max_discharge_current=RationalNumber(exponent=0, value=11),
             evse_min_discharge_current=RationalNumber(exponent=0, value=0),
+        )
+
+    async def get_scheduled_dc_charge_loop_params(
+        self,
+    ) -> ScheduledDCChargeLoopResParams:
+        return ScheduledDCChargeLoopResParams(
+            evse_maximum_charge_current=RationalNumber(exponent=0, value=11),
+        )
+
+    async def get_dynamic_dc_charge_loop_params(self) -> DynamicDCChargeLoopRes:
+        return DynamicDCChargeLoopRes(
+            evse_maximum_charge_power=RationalNumber(exponent=1, value=1000),
+            evse_minimum_charge_power=RationalNumber(exponent=1, value=50),
+            evse_maximum_charge_current=RationalNumber(exponent=1, value=300),
+            evse_maximum_voltage=RationalNumber(exponent=1, value=600),
+        )
+
+    async def get_bpt_scheduled_dc_charge_loop_params(
+        self,
+    ) -> BPTScheduledDCChargeLoopResParams:
+        scheduled_dc_charge_loop_res_params = (
+            await self.get_scheduled_dc_charge_loop_params()
+        ).dict()
+        return BPTScheduledDCChargeLoopResParams(
+            **scheduled_dc_charge_loop_res_params,
+        )
+
+    async def get_bpt_dynamic_dc_charge_loop_params(
+        self,
+    ) -> BPTDynamicDCChargeLoopRes:
+        dynamic_dc_charge_loop_res_params = (
+            await self.get_dynamic_dc_charge_loop_params()
+        ).dict()
+        return BPTDynamicDCChargeLoopRes(
+            **dynamic_dc_charge_loop_res_params,
+            evse_max_discharge_power=RationalNumber(exponent=0, value=300),
+            evse_min_discharge_power=RationalNumber(exponent=0, value=300),
+            evse_max_discharge_current=RationalNumber(exponent=0, value=300),
+            evse_min_voltage=RationalNumber(exponent=0, value=300),
         )
 
     async def get_15118_ev_certificate(

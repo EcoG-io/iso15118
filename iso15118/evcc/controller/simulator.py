@@ -94,7 +94,11 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
+    BPTDynamicDCChargeLoopReqParams,
+    BPTScheduledDCChargeLoopReqParams,
     DCChargeParameterDiscoveryReqParams,
+    DynamicDCChargeLoopReqParams,
+    ScheduledDCChargeLoopReqParams,
 )
 from iso15118.shared.network import get_nic_mac_address
 
@@ -164,11 +168,11 @@ class SimEVController(EVControllerInterface):
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
         if protocol == Protocol.DIN_SPEC_70121:
             return EnergyTransferModeEnum.DC_EXTENDED
-        return EnergyTransferModeEnum.DC_EXTENDED
+        return EnergyTransferModeEnum.AC_THREE_PHASE_CORE
 
     async def get_supported_energy_services(self) -> List[ServiceV20]:
         """Overrides EVControllerInterface.get_energy_transfer_service()."""
-        return [ServiceV20.AC_BPT]
+        return [ServiceV20.DC_BPT]
 
     async def select_energy_service_v20(
         self, services: List[MatchedService]
@@ -182,10 +186,6 @@ class SimEVController(EVControllerInterface):
             selected_service = SelectedEnergyService(
                 service=top_of_list.service,
                 is_free=top_of_list.is_free,
-                # Hi Marc/André
-                # My understanding is that there could be multiple parameter sets
-                # for matched service.
-                # When we select a service we pick one of the parameter sets.
                 parameter_set=top_of_list.parameter_sets[0],
             )
             return selected_service
@@ -301,6 +301,7 @@ class SimEVController(EVControllerInterface):
             logger.error(
                 f"Energy transfer service {selected_service.service} not supported"
             )
+            return None
 
     async def get_scheduled_se_params(
         self, selected_energy_service: SelectedEnergyService
@@ -556,7 +557,9 @@ class SimEVController(EVControllerInterface):
     async def ready_to_charge(self) -> bool:
         return await self.continue_charging()
 
-    async def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
+    async def is_precharged(
+        self, present_voltage_evse: Union[PVEVSEPresentVoltage, RationalNumber]
+    ) -> bool:
         return True
 
     async def get_dc_ev_power_delivery_parameter_dinspec(
@@ -736,3 +739,58 @@ class SimEVController(EVControllerInterface):
             ev_max_discharge_current=RationalNumber(exponent=0, value=11),
             ev_min_discharge_current=RationalNumber(exponent=0, value=0),
         )
+
+    async def get_scheduled_dc_charge_loop_params(
+        self,
+    ) -> ScheduledDCChargeLoopReqParams:
+        """Overrides EVControllerInterface.get_scheduled_dc_charge_loop_params()."""
+        return ScheduledDCChargeLoopReqParams(
+            ev_target_current=RationalNumber(exponent=3, value=40),
+            ev_target_voltage=RationalNumber(exponent=3, value=60),
+        )
+
+    async def get_dynamic_dc_charge_loop_params(self) -> DynamicDCChargeLoopReqParams:
+        """Overrides EVControllerInterface.get_dynamic_dc_charge_loop_params()."""
+        return DynamicDCChargeLoopReqParams(
+            ev_target_energy_request=RationalNumber(exponent=3, value=40),
+            ev_max_energy_request=RationalNumber(exponent=3, value=60),
+            ev_min_energy_request=RationalNumber(exponent=-2, value=20),
+            ev_max_charge_power=RationalNumber(exponent=3, value=40),
+            ev_min_charge_power=RationalNumber(exponent=3, value=300),
+            ev_max_charge_current=RationalNumber(exponent=3, value=40),
+            ev_max_voltage=RationalNumber(exponent=3, value=300),
+            ev_min_voltage=RationalNumber(exponent=3, value=300),
+        )
+
+    async def get_bpt_scheduled_dc_charge_loop_params(
+        self,
+    ) -> BPTScheduledDCChargeLoopReqParams:
+        """Overrides EVControllerInterface.get_bpt_scheduled_dc_charge_loop_params()."""
+        dc_scheduled_dc_charge_loop_params_v20 = (
+            await self.get_scheduled_dc_charge_loop_params()
+        ).dict()
+        return BPTScheduledDCChargeLoopReqParams(
+            **dc_scheduled_dc_charge_loop_params_v20
+        )
+
+    async def get_bpt_dynamic_dc_charge_loop_params(
+        self,
+    ) -> BPTDynamicDCChargeLoopReqParams:
+        """Overrides EVControllerInterface.get_bpt_dynamic_dc_charge_loop_params()."""
+        dc_dynamic_dc_charge_loop_params_v20 = (
+            await self.get_dynamic_dc_charge_loop_params()
+        ).dict()
+        return BPTDynamicDCChargeLoopReqParams(
+            **dc_dynamic_dc_charge_loop_params_v20,
+            ev_max_discharge_power=RationalNumber(exponent=3, value=300),
+            ev_min_discharge_power=RationalNumber(exponent=3, value=300),
+            ev_max_discharge_current=RationalNumber(exponent=3, value=300),
+        )
+
+    async def get_present_voltage(self) -> RationalNumber:
+        """Overrides EVControllerInterface.get_present_voltage()."""
+        return RationalNumber(exponent=3, value=20)
+
+    async def get_target_voltage(self) -> RationalNumber:
+        """Overrides EVControllerInterface.get_target_voltage()."""
+        return RationalNumber(exponent=3, value=20)

@@ -119,8 +119,10 @@ class ScheduledDCChargeLoopResParams(ScheduledChargeLoopResParams):
     evse_minimum_charge_power: RationalNumber = Field(
         None, alias="EVSEMinimumChargePower"
     )
-    evse_maximum_charge_current: bool = Field(None, alias="EVSEMaximumChargeCurrent")
-    evse_maximum_voltage: bool = Field(None, alias="EVSEMaximumVoltage")
+    evse_maximum_charge_current: RationalNumber = Field(
+        None, alias="EVSEMaximumChargeCurrent"
+    )
+    evse_maximum_voltage: RationalNumber = Field(None, alias="EVSEMaximumVoltage")
 
 
 class BPTScheduledDCChargeLoopReqParams(ScheduledDCChargeLoopReqParams):
