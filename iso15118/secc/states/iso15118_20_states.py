@@ -902,7 +902,8 @@ class ScheduleExchange(StateSECC):
         # We don't know what request will come next (which state to transition to),
         # unless the schedule parameters are ready and we're in AC charging.
         # Even in DC charging the sequence is not 100% clear as the EVCC could skip
-        # DCCableCheck and DCPreCharge and go straight to PowerDelivery (Pause, Standby) [V2G20-2122]
+        # DCCableCheck and DCPreCharge and go straight to PowerDelivery (Pause, Standby)
+        # [V2G20-2122]
         next_state = None
         if (
             evse_processing == Processing.FINISHED
@@ -1474,7 +1475,7 @@ class DCCableCheck(StateSECC):
             await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
-        dc_cable_check_req: DCCableCheckReq = msg
+        dc_cable_check_req: DCCableCheckReq = msg  # noqa
 
         if not self.cable_check_req_was_received:
             # Requirement in 6.4.3.106 of the IEC 61851-23
@@ -1564,7 +1565,7 @@ class DCPreCharge(StateSECC):
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage_v20(),
+            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage_v20(),  # noqa
         )
         self.create_next_message(
             next_state,
@@ -1606,7 +1607,7 @@ class DCChargeLoop(StateSECC):
             await PowerDelivery(self.comm_session).process_message(message, message_exi)
             return
 
-        dc_charge_loop_req = msg
+        dc_charge_loop_req: DCChargeLoopReq = msg  # noqa
         self.expecting_charge_loop_req = False
 
         dc_charge_loop_res = await self.build_dc_charge_loop_res()
@@ -1699,14 +1700,14 @@ class DCWeldingDetection(StateSECC):
             await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
-        welding_detection_req = msg
+        welding_detection_req: DCWeldingDetectionReq = msg  # noqa
         self.expecting_welding_detection_req = False
         welding_detection_res = DCWeldingDetectionRes(
             header=MessageHeader(
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage_v20(),
+            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage_v20(),  # noqa
         )
 
         self.create_next_message(

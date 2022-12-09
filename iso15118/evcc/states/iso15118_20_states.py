@@ -1426,7 +1426,7 @@ class DCCableCheck(StateEVCC):
             ),
             ev_processing=processing,
             ev_present_voltage=present_voltage,
-            ev_target_voltage=await self.comm_session.ev_controller.get_target_voltage(),
+            ev_target_voltage=await self.comm_session.ev_controller.get_target_voltage(),  # noqa
         )
         return dc_pre_charge_req
 
@@ -1546,7 +1546,7 @@ class DCPreCharge(StateEVCC):
             ),
             ev_processing=processing,
             ev_present_voltage=present_voltage,
-            ev_target_voltage=await self.comm_session.ev_controller.get_target_voltage(),
+            ev_target_voltage=await self.comm_session.ev_controller.get_target_voltage(),  # noqa
         )
         return dc_pre_charge_req
 
@@ -1575,7 +1575,7 @@ class DCChargeLoop(StateEVCC):
         if not msg:
             return
 
-        charge_loop_res: DCChargeLoopRes = msg
+        charge_loop_res: DCChargeLoopRes = msg  # noqa
 
         # if charge_loop_res.evse_power_limit_achieved:
         #     await self.stop_charging(False)
@@ -1599,20 +1599,20 @@ class DCChargeLoop(StateEVCC):
         if self.comm_session.selected_energy_service.service == ServiceV20.DC:
             if self.comm_session.control_mode == ControlMode.SCHEDULED:
                 scheduled_params = (
-                    await self.comm_session.ev_controller.get_scheduled_dc_charge_loop_params()
+                    await self.comm_session.ev_controller.get_scheduled_dc_charge_loop_params()  # noqa
                 )
             else:
                 dynamic_params = (
-                    await self.comm_session.ev_controller.get_dynamic_dc_charge_loop_params()
+                    await self.comm_session.ev_controller.get_dynamic_dc_charge_loop_params()  # noqa
                 )
         elif self.comm_session.selected_energy_service.service == ServiceV20.DC_BPT:
             if self.comm_session.control_mode == ControlMode.SCHEDULED:
                 bpt_scheduled_params = (
-                    await self.comm_session.ev_controller.get_bpt_scheduled_dc_charge_loop_params()
+                    await self.comm_session.ev_controller.get_bpt_scheduled_dc_charge_loop_params()  # noqa
                 )
             else:
                 bpt_dynamic_params = (
-                    await self.comm_session.ev_controller.get_bpt_dynamic_dc_charge_loop_params()
+                    await self.comm_session.ev_controller.get_bpt_dynamic_dc_charge_loop_params()  # noqa
                 )
 
         dc_charge_loop_req = DCChargeLoopReq(
@@ -1620,7 +1620,7 @@ class DCChargeLoop(StateEVCC):
                 session_id=self.comm_session.session_id,
                 timestamp=time.time(),
             ),
-            ev_present_voltage=await self.comm_session.ev_controller.get_present_voltage(),
+            ev_present_voltage=await self.comm_session.ev_controller.get_present_voltage(),  # noqa
             scheduled_params=scheduled_params,
             dynamic_params=dynamic_params,
             bpt_scheduled_params=bpt_scheduled_params,
