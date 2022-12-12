@@ -17,6 +17,7 @@ async def main():
     """
     config = Config()
     config.load_envs()
+    config.log_settings()
 
     sim_evse_controller = await SimEVSEController.create()
     await sim_evse_controller.set_status(ServiceStatus.STARTING)
