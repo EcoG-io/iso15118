@@ -94,7 +94,8 @@ class TCPServer(asyncio.Protocol):
 
         # Bind the socket to the IP address and port for receiving
         # TCP packets
-        sock.bind(("", port))
+        sock.bind((self.full_ipv6_address))
+
         server = await asyncio.start_server(
             # The client_connected_cb callback, which is the __call__ method of
             # this class) is called whenever a new client connection is
