@@ -8,7 +8,6 @@ from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.secc.failed_responses import init_failed_responses_iso_v20
 from iso15118.secc.states.iso15118_20_states import (
     DCCableCheck,
-    DCChargeLoop,
     DCChargeParameterDiscovery,
     DCPreCharge,
     PowerDelivery,
@@ -22,7 +21,6 @@ from iso15118.shared.messages.enums import (
     ServiceV20,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
-    ChargeProgress,
     SelectedEnergyService,
 )
 from iso15118.shared.messages.iso15118_20.common_types import Processing
@@ -31,7 +29,6 @@ from iso15118.shared.states import State, Terminate
 from tests.dinspec.secc.test_dinspec_secc_states import MockWriter
 from tests.iso15118_20.secc.test_messages import (
     get_cable_check_req,
-    get_power_delivery_req,
     get_precharge_req,
     get_schedule_exchange_req_message,
     get_v2g_message_dc_charge_parameter_discovery_req,
