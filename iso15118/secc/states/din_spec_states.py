@@ -468,7 +468,9 @@ class CableCheck(StateSECC):
             cable_check_req.dc_ev_status.ev_ress_soc
         )
 
-        dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
+        isolation_level = (
+            await self.comm_session.evse_controller.get_cable_check_status()
+        )  # noqa
 
         # [V2G-DC-418] Stay in CableCheck state until EVSEProcessing is complete.
         # Until EVSEProcessing is completed, EV will send identical
@@ -477,24 +479,24 @@ class CableCheck(StateSECC):
         evse_processing: EVSEProcessing = EVSEProcessing.ONGOING
         response_code: ResponseCode = ResponseCode.OK
         next_state: Type["State"] = None
-        if dc_charger_state.evse_isolation_status in [
+        if isolation_level in [
             IsolationLevel.VALID,
             IsolationLevel.WARNING,
         ]:
-            if dc_charger_state.evse_isolation_status == IsolationLevel.WARNING:
+            if isolation_level == IsolationLevel.WARNING:
                 logger.warning(
                     "Isolation resistance measured by EVSE is in Warning-Range"
                 )
             next_state = PreCharge
             evse_processing = EVSEProcessing.FINISHED
-        elif dc_charger_state.evse_isolation_status is IsolationLevel.FAULT:
+        elif isolation_level in [IsolationLevel.FAULT, IsolationLevel.NO_IMD]:
             response_code = ResponseCode.FAILED
             next_state = Terminate
             evse_processing = EVSEProcessing.FINISHED
 
         cable_check_res: CableCheckRes = CableCheckRes(
             response_code=response_code,
-            dc_evse_status=dc_charger_state,
+            dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
             evse_processing=evse_processing,
         )
 

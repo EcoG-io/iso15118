@@ -740,9 +740,9 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.start_cable_check()."""
         pass
 
-    async def get_cable_check_status(self) -> Processing:
+    async def get_cable_check_status(self) -> Union[IsolationLevel, None]:
         """Overrides EVSEControllerInterface.get_cable_check_status()."""
-        return Processing.FINISHED
+        return IsolationLevel.VALID
 
     async def set_precharge(
         self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent

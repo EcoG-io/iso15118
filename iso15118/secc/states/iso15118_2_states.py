@@ -2073,26 +2073,28 @@ class CableCheck(StateSECC):
             cable_check_req.dc_ev_status.ev_ress_soc
         )
 
-        dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
+        isolation_level = (
+            await self.comm_session.evse_controller.get_cable_check_status()
+        )  # noqa
 
         evse_processing = EVSEProcessing.ONGOING
         next_state = None
-        if dc_charger_state.evse_isolation_status in [
+        if isolation_level in [
             IsolationLevel.VALID,
             IsolationLevel.WARNING,
         ]:
-            if dc_charger_state.evse_isolation_status == IsolationLevel.WARNING:
+            if isolation_level == IsolationLevel.WARNING:
                 logger.warning(
                     "Isolation resistance measured by EVSE is in Warning-Range"
                 )
             evse_processing = EVSEProcessing.FINISHED
             next_state = PreCharge
-        elif dc_charger_state.evse_isolation_status in [
+        elif isolation_level in [
             IsolationLevel.FAULT,
             IsolationLevel.NO_IMD,
         ]:
             self.stop_state_machine(
-                f"Isolation Failure: {dc_charger_state.evse_isolation_status}",
+                f"Isolation Failure: {isolation_level}",
                 message,
                 ResponseCode.FAILED,
             )
@@ -2100,7 +2102,7 @@ class CableCheck(StateSECC):
 
         cable_check_res = CableCheckRes(
             response_code=ResponseCode.OK,
-            dc_evse_status=dc_charger_state,
+            dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
             evse_processing=evse_processing,
         )
 

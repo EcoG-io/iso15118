@@ -32,6 +32,7 @@ from iso15118.shared.messages.enums import (
     AuthorizationTokenType,
     CpState,
     EnergyTransferModeEnum,
+    IsolationLevel,
     Protocol,
     SessionStopAction,
 )
@@ -611,7 +612,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_cable_check_status(self) -> Processing:
+    async def get_cable_check_status(self) -> Union[IsolationLevel, None]:
         """
         This method is called at the beginning of the state CableCheck.
         Gets's the status of a previously started CableCheck

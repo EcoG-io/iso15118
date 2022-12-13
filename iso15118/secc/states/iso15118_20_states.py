@@ -21,6 +21,7 @@ from iso15118.shared.messages.enums import (
     AuthorizationStatus,
     ControlMode,
     EVSEProcessing,
+    IsolationLevel,
     ISOV20PayloadTypes,
     Namespace,
     ParameterName,
@@ -1492,21 +1493,34 @@ class DCCableCheck(StateSECC):
             self.cable_check_req_was_received = True
 
         next_state = None
-        cable_check_status = (
+        processing = EVSEProcessing.ONGOING
+        isolation_level = (
             await self.comm_session.evse_controller.get_cable_check_status()
         )
-        if cable_check_status == EVSEProcessing.FINISHED:
+
+        if isolation_level in [IsolationLevel.VALID, IsolationLevel.WARNING]:
+            if isolation_level == IsolationLevel.WARNING:
+                logger.warning(
+                    "Isolation resistance measured by EVSE is in Warning range"
+                )
             next_state = DCPreCharge
+            processing = EVSEProcessing.FINISHED
+        elif isolation_level in [IsolationLevel.INVALID, IsolationLevel.FAULT]:
+            self.stop_state_machine(
+                f"Isolation Failure: {isolation_level}",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         dc_cable_check_res = DCCableCheckRes(
             header=MessageHeader(
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            evse_processing=cable_check_status,
+            evse_processing=processing,
         )
 
-        logger.info(f"Next state: {next_state} {cable_check_status}")
         self.create_next_message(
             next_state,
             dc_cable_check_res,
@@ -1565,9 +1579,9 @@ class DCPreCharge(StateSECC):
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage(
+            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage(  # noqa
                 Protocol.ISO_15118_20_DC
-            ),  # noqa
+            ),
         )
         self.create_next_message(
             next_state,
@@ -1656,10 +1670,10 @@ class DCChargeLoop(StateSECC):
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            evse_present_current=await self.comm_session.evse_controller.get_evse_present_current(
+            evse_present_current=await self.comm_session.evse_controller.get_evse_present_current(  # noqa
                 Protocol.ISO_15118_20_DC
             ),  # noqa
-            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage(
+            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage(  # noqa
                 Protocol.ISO_15118_20_DC
             ),  # noqa
             evse_power_limit_achieved=await self.comm_session.evse_controller.is_evse_power_limit_achieved(),  # noqa
@@ -1713,7 +1727,7 @@ class DCWeldingDetection(StateSECC):
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage(
+            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage(  # noqa
                 Protocol.ISO_15118_20_DC
             ),  # noqa
         )
