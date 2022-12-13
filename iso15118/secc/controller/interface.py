@@ -555,42 +555,30 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
+    async def get_evse_present_voltage(
+        self, protocol: Protocol
+    ) -> Union[PVEVSEPresentVoltage, RationalNumber]:
         """
         Gets the presently available voltage at the EVSE
 
         Relevant for:
         - ISO 15118-2
+        - ISO 15118-20
+        - DINSPEC
         """
         raise NotImplementedError
 
     @abstractmethod
-    async def get_evse_present_current(self) -> PVEVSEPresentCurrent:
+    async def get_evse_present_current(
+        self, protocol: Protocol
+    ) -> Union[PVEVSEPresentCurrent, RationalNumber]:
         """
         Gets the presently available voltage at the EVSE
 
         Relevant for:
         - ISO 15118-2
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_evse_present_voltage_v20(self) -> RationalNumber:
-        """
-        Gets the presently available voltage at the EVSE
-
-        Relevant for:
         - ISO 15118-20
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_evse_present_current_v20(self) -> RationalNumber:
-        """
-        Gets the presently available voltage at the EVSE
-
-        Relevant for:
-        - ISO 15118-20
+        - DINSPEC
         """
         raise NotImplementedError
 

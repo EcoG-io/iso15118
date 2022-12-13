@@ -1565,7 +1565,9 @@ class DCPreCharge(StateSECC):
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage_v20(),  # noqa
+            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage(
+                Protocol.ISO_15118_20_DC
+            ),  # noqa
         )
         self.create_next_message(
             next_state,
@@ -1654,8 +1656,12 @@ class DCChargeLoop(StateSECC):
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            evse_present_current=await self.comm_session.evse_controller.get_evse_present_current_v20(),  # noqa
-            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage_v20(),  # noqa
+            evse_present_current=await self.comm_session.evse_controller.get_evse_present_current(
+                Protocol.ISO_15118_20_DC
+            ),  # noqa
+            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage(
+                Protocol.ISO_15118_20_DC
+            ),  # noqa
             evse_power_limit_achieved=await self.comm_session.evse_controller.is_evse_power_limit_achieved(),  # noqa
             evse_current_limit_achieved=await self.comm_session.evse_controller.is_evse_current_limit_achieved(),  # noqa
             evse_voltage_limit_achieved=await self.comm_session.evse_controller.is_evse_voltage_limit_achieved(),  # noqa
@@ -1707,7 +1713,9 @@ class DCWeldingDetection(StateSECC):
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=ResponseCode.OK,
-            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage_v20(),  # noqa
+            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage(
+                Protocol.ISO_15118_20_DC
+            ),  # noqa
         )
 
         self.create_next_message(

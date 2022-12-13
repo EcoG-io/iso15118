@@ -558,7 +558,9 @@ class PreCharge(StateSECC):
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
         present_current = (
-            await self.comm_session.evse_controller.get_evse_present_current()
+            await self.comm_session.evse_controller.get_evse_present_current(
+                Protocol.DIN_SPEC_70121
+            )
         )
         present_current_in_a = present_current.value * 10**present_current.multiplier
         target_current = precharge_req.ev_target_current
@@ -581,7 +583,9 @@ class PreCharge(StateSECC):
 
         dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
         evse_present_voltage = (
-            await self.comm_session.evse_controller.get_evse_present_voltage()
+            await self.comm_session.evse_controller.get_evse_present_voltage(
+                Protocol.DIN_SPEC_70121
+            )
         )
 
         precharge_res = PreChargeRes(
@@ -758,10 +762,14 @@ class CurrentDemand(StateSECC):
             response_code=ResponseCode.OK,
             dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
             evse_present_voltage=(
-                await self.comm_session.evse_controller.get_evse_present_voltage()
+                await self.comm_session.evse_controller.get_evse_present_voltage(
+                    Protocol.DIN_SPEC_70121
+                )
             ),
             evse_present_current=(
-                await self.comm_session.evse_controller.get_evse_present_current()
+                await self.comm_session.evse_controller.get_evse_present_current(
+                    Protocol.DIN_SPEC_70121
+                )
             ),
             evse_current_limit_achieved=current_demand_req.charging_complete,
             evse_voltage_limit_achieved=(
@@ -830,7 +838,9 @@ class WeldingDetection(StateSECC):
             response_code=ResponseCode.OK,
             dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
             evse_present_voltage=(
-                await self.comm_session.evse_controller.get_evse_present_voltage()
+                await self.comm_session.evse_controller.get_evse_present_voltage(
+                    Protocol.DIN_SPEC_70121
+                )
             ),
         )
 

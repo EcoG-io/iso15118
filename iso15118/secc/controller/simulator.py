@@ -6,7 +6,7 @@ import base64
 import logging
 import math
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from aiofile import async_open
 from pydantic import BaseModel, Field
@@ -718,21 +718,23 @@ class SimEVSEController(EVSEControllerInterface):
             ),
         )
 
-    async def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
+    async def get_evse_present_voltage(
+        self, protocol: Protocol
+    ) -> Union[PVEVSEPresentVoltage, RationalNumber]:
         """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
-        return PVEVSEPresentVoltage(multiplier=0, value=230, unit="V")
+        if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
+            return PVEVSEPresentVoltage(multiplier=0, value=230, unit="V")
+        else:
+            return RationalNumber(exponent=0, value=230)
 
-    async def get_evse_present_current(self) -> PVEVSEPresentCurrent:
+    async def get_evse_present_current(
+        self, protocol: Protocol
+    ) -> Union[PVEVSEPresentCurrent, RationalNumber]:
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
-        return PVEVSEPresentCurrent(multiplier=0, value=1, unit="A")
-
-    async def get_evse_present_voltage_v20(self) -> RationalNumber:
-        """Overrides EVSEControllerInterface.get_evse_present_voltage_v20()."""
-        return RationalNumber(exponent=0, value=230)
-
-    async def get_evse_present_current_v20(self) -> RationalNumber:
-        """Overrides EVSEControllerInterface.get_evse_present_current_v20()."""
-        return RationalNumber(exponent=0, value=1)
+        if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
+            return PVEVSEPresentCurrent(multiplier=0, value=1, unit="A")
+        else:
+            return RationalNumber(exponent=0, value=1)
 
     async def start_cable_check(self):
         """Overrides EVSEControllerInterface.start_cable_check()."""
