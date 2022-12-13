@@ -27,6 +27,7 @@ class TCPServer(asyncio.Protocol):
         self.port_no_tls = get_tcp_port()
         self.port_tls = get_tcp_port()
         self.iface = iface
+        self.socket = None
 
         # Making sure the TCP and TLS port are definitely different
         while self.port_no_tls == self.port_tls:
@@ -43,6 +44,10 @@ class TCPServer(asyncio.Protocol):
         Uses the `server_factory` to start a regular TCO based server (No TLS)
         """
         await self.server_factory(ready_event, tls=False)
+
+    def stop(self):
+        if self.socket:
+            self.socket.close()
 
     async def server_factory(self, ready_event: asyncio.Event, tls: bool) -> None:
         """
@@ -85,6 +90,7 @@ class TCPServer(asyncio.Protocol):
         # Address family (determines network layer protocol, here IPv6)
         # Socket type (stream, determines transport layer protocol TCP)
         sock = socket.socket(family=socket.AF_INET6, type=socket.SOCK_STREAM)
+        self.socket = sock
 
         # Allows address to be reused
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

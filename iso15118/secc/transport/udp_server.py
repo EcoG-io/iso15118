@@ -43,6 +43,7 @@ class UDPServer(asyncio.DatagramProtocol):
         self.iface = iface
         self._session_handler_queue: asyncio.Queue = session_handler_queue
         self._rcv_queue: asyncio.Queue = asyncio.Queue()
+        self._stop_requested = False
         self._transport: Optional[DatagramTransport] = None
 
     @staticmethod
@@ -101,8 +102,14 @@ class UDPServer(asyncio.DatagramProtocol):
 
         return sock
 
+    def stop(self):
+        if self._transport:
+            self._stop_requested = True
+            self._transport.close()
+
     async def start(self, ready_event: asyncio.Event):
         """UDP server tasks to start"""
+        self._stop_requested = False
         # Get a reference to the event loop as we plan to use a low-level API
         # (see loop.create_datagram_endpoint())
         loop = asyncio.get_running_loop()
@@ -166,9 +173,12 @@ class UDPServer(asyncio.DatagramProtocol):
             EOF is received, or the connection was aborted or closed by this
             side of the connection.
         """
-        reason = f". Reason: {exc}" if exc else ""
-        logger.exception(f"UDP server closed. {reason}")
         self.started = False
+        if self._stop_requested:
+            logger.warning("UDP server closed on request.")
+            return
+        reason = f"Reason: {exc}" if exc else ""
+        logger.exception(f"UDP server closed. {reason}")
 
     def send(self, message: V2GTPMessage, addr: Tuple[str, int]):
         """
