@@ -238,6 +238,13 @@ class CommunicationSessionHandler:
         while self.check_events() is False:
             await asyncio.sleep(0.01)
 
+    def shutdown_session_handler(self):
+        self.udp_server.stop()
+        self.tcp_server.stop()
+        for task in self.list_of_tasks:
+            task.cancel()
+            del task
+
     async def check_status_task(self) -> None:
         try:
             await asyncio.wait_for(self.check_ready_status(), timeout=10)
