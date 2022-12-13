@@ -127,6 +127,10 @@ class SECCCommunicationSession(V2GCommunicationSession):
         self.sent_meter_info: Optional[MeterInfoV2] = None
         self.is_tls = self._is_tls(transport)
 
+    async def start(self, timeout: float):
+        await self.evse_controller.set_status(ServiceStatus.COMM_SESSION_START)
+        await super().start(timeout)
+
     def save_session_info(self):
         # TODO make sure to not delete the comm session object
         pass
@@ -150,6 +154,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
 
     async def stop(self, reason: str):
         await self.evse_controller.stop_charger()
+        await self.evse_controller.set_status(ServiceStatus.COMM_SESSION_STOP)
         await super().stop(reason)
 
 
@@ -216,7 +221,9 @@ class CommunicationSessionHandler:
         logger.info("Communication session handler started")
 
         self.list_of_tasks = start_tasks(list_of_coroutines)
+
         await wait_for_tasks(self.list_of_tasks)
+        await self.evse_controller.set_status(ServiceStatus.STOPPED)
 
     def check_events(self) -> bool:
         result: bool = True

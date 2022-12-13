@@ -75,11 +75,12 @@ class EVDataContext:
 
 
 class ServiceStatus(str, Enum):
-    READY = "ready"
-    STARTING = "starting"
-    STOPPING = "stopping"
+    STARTING = "starting"  #: Iso15118 service is starting up
+    READY = "ready"  #: Iso15118 up and running - ready for incoming connection
+    COMM_SESSION_START = "comm start"
+    COMM_SESSION_STOP = "comm stop"
+    STOPPED = "stopped"
     ERROR = "error"
-    BUSY = "busy"
 
 
 @dataclass
