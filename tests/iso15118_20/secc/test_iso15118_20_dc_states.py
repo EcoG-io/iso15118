@@ -20,9 +20,7 @@ from iso15118.shared.messages.enums import (
     Protocol,
     ServiceV20,
 )
-from iso15118.shared.messages.iso15118_20.common_messages import (
-    SelectedEnergyService,
-)
+from iso15118.shared.messages.iso15118_20.common_messages import SelectedEnergyService
 from iso15118.shared.messages.iso15118_20.common_types import Processing
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
