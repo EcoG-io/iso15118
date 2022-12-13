@@ -2,7 +2,12 @@ import time
 
 from iso15118.shared.messages.enums import ControlMode, ServiceV20
 from iso15118.shared.messages.iso15118_20.common_messages import (
+    ChargeProgress,
     DynamicScheduleExchangeReqParams,
+    EVPowerProfile,
+    EVPowerProfileEntryList,
+    PowerDeliveryReq,
+    PowerScheduleEntry,
     ScheduledScheduleExchangeReqParams,
     ScheduleExchangeReq,
     ServiceDetailReq,
@@ -115,4 +120,25 @@ def get_precharge_req(processing: Processing):
         ev_processing=processing,
         ev_present_voltage=RationalNumber(exponent=0, value=10),
         ev_target_voltage=RationalNumber(exponent=0, value=10),
+    )
+
+
+def get_power_delivery_req(processing: Processing, charge_progress: ChargeProgress):
+    return PowerDeliveryReq(
+        header=MessageHeader(
+            session_id=MOCK_SESSION_ID,
+            timestamp=time.time(),
+        ),
+        ev_processing=processing,
+        charge_progress=charge_progress,
+        scheduled_profile=EVPowerProfile(
+            time_anchor=0,
+            entry_list=EVPowerProfileEntryList(
+                entries=[
+                    PowerScheduleEntry(
+                        duration=10, power=RationalNumber(exponent=0, value=10)
+                    )
+                ]
+            ),
+        ),
     )
