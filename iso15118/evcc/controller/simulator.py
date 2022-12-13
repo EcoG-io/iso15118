@@ -620,32 +620,6 @@ class SimEVController(EVControllerInterface):
             await self.get_energy_transfer_mode(), ac_charge_params, None
         )
 
-    async def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
-        """Overrides EVControllerInterface.get_ac_charge_params_v20()."""
-        return ACChargeParameterDiscoveryReqParams(
-            ev_max_charge_power=RationalNumber(exponent=3, value=3),
-            ev_max_charge_power_l2=RationalNumber(exponent=3, value=3),
-            ev_max_charge_power_l3=RationalNumber(exponent=3, value=3),
-            ev_min_charge_power=RationalNumber(exponent=0, value=100),
-            ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
-            ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
-        )
-
-    async def get_ac_bpt_charge_params_v20(
-        self,
-    ) -> BPTACChargeParameterDiscoveryReqParams:
-        """Overrides EVControllerInterface.get_bpt_ac_charge_params_v20()."""
-        ac_charge_params_v20 = (await self.get_ac_charge_params_v20()).dict()
-        return BPTACChargeParameterDiscoveryReqParams(
-            **ac_charge_params_v20,
-            ev_max_discharge_power=RationalNumber(exponent=3, value=11),
-            ev_max_discharge_power_l2=RationalNumber(exponent=3, value=11),
-            ev_max_discharge_power_l3=RationalNumber(exponent=3, value=11),
-            ev_min_discharge_power=RationalNumber(exponent=0, value=100),
-            ev_min_discharge_power_l2=RationalNumber(exponent=0, value=100),
-            ev_min_discharge_power_l3=RationalNumber(exponent=0, value=100),
-        )
-
     async def get_scheduled_ac_charge_loop_params(
         self,
     ) -> ScheduledACChargeLoopReqParams:
@@ -714,30 +688,6 @@ class SimEVController(EVControllerInterface):
             ev_ready=True,
             ev_error_code=DCEVErrorCode.NO_ERROR,
             ev_ress_soc=60,
-        )
-
-    async def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryReqParams:
-        """Overrides EVControllerInterface.get_dc_charge_params_v20()."""
-        return DCChargeParameterDiscoveryReqParams(
-            ev_max_charge_power=RationalNumber(exponent=3, value=300),
-            ev_min_charge_power=RationalNumber(exponent=0, value=100),
-            ev_max_charge_current=RationalNumber(exponent=0, value=300),
-            ev_min_charge_current=RationalNumber(exponent=0, value=10),
-            ev_max_voltage=RationalNumber(exponent=0, value=1000),
-            ev_min_voltage=RationalNumber(exponent=0, value=10),
-        )
-
-    async def get_dc_bpt_charge_params_v20(
-        self,
-    ) -> BPTDCChargeParameterDiscoveryReqParams:
-        """Overrides EVControllerInterface.get_bpt_dc_charge_params_v20()."""
-        dc_charge_params_v20 = (await self.get_dc_charge_params_v20()).dict()
-        return BPTDCChargeParameterDiscoveryReqParams(
-            **dc_charge_params_v20,
-            ev_max_discharge_power=RationalNumber(exponent=3, value=11),
-            ev_min_discharge_power=RationalNumber(exponent=3, value=1),
-            ev_max_discharge_current=RationalNumber(exponent=0, value=11),
-            ev_min_discharge_current=RationalNumber(exponent=0, value=0),
         )
 
     async def get_scheduled_dc_charge_loop_params(

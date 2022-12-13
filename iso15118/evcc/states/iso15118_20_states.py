@@ -653,12 +653,14 @@ class ServiceSelection(StateEVCC):
             ac_params, bpt_ac_params = None, None
             self.comm_session.selected_charging_type_is_ac = True
             if self.comm_session.selected_energy_service.service == ServiceV20.AC:
-                ac_params = (
-                    await self.comm_session.ev_controller.get_ac_charge_params_v20()
+                ac_params = await self.comm_session.ev_controller.get_charge_params_v20(
+                    self.comm_session.selected_energy_service
                 )
             else:
                 bpt_ac_params = (
-                    await self.comm_session.ev_controller.get_ac_bpt_charge_params_v20()
+                    await self.comm_session.ev_controller.get_charge_params_v20(
+                        self.comm_session.selected_energy_service
+                    )
                 )
 
             next_req = ACChargeParameterDiscoveryReq(
@@ -684,12 +686,14 @@ class ServiceSelection(StateEVCC):
             dc_params, bpt_dc_params = None, None
             self.comm_session.selected_charging_type_is_ac = False
             if self.comm_session.selected_energy_service.service == ServiceV20.DC:
-                dc_params = (
-                    await self.comm_session.ev_controller.get_dc_charge_params_v20()
+                dc_params = await self.comm_session.ev_controller.get_charge_params_v20(
+                    self.comm_session.selected_energy_service
                 )
             else:
                 bpt_dc_params = (
-                    await self.comm_session.ev_controller.get_dc_bpt_charge_params_v20()
+                    await self.comm_session.ev_controller.get_charge_params_v20(
+                        self.comm_session.selected_energy_service
+                    )
                 )
 
             next_req = DCChargeParameterDiscoveryReq(

@@ -428,10 +428,23 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
+    async def get_charge_params_v20(
+        self, selected_service: SelectedEnergyService
+    ) -> Union[
+        ACChargeParameterDiscoveryReqParams,
+        BPTACChargeParameterDiscoveryReqParams,
+        DCChargeParameterDiscoveryReqParams,
+        BPTDCChargeParameterDiscoveryReqParams,
+    ]:
         """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
-        AC charging.
+        Gets the charge parameter needed for
+        ACChargeParameterDiscovery/DCChargeParameterDiscovery (ISO 15118-20).
+        Returns:
+            One of [ACChargeParameterDiscoveryReqParams,
+            BPTACChargeParameterDiscoveryReqParams,
+            DCChargeParameterDiscoveryReqParams,
+            BPTDCChargeParameterDiscoveryReqParams]
+            based on the currently selected service.
 
         Relevant for:
         - ISO 15118-20
@@ -480,19 +493,6 @@ class EVControllerInterface(ABC):
         - DIN SPEC 70121 ??
         - ISO 15118-2
         - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_ac_bpt_charge_params_v20(
-        self,
-    ) -> BPTACChargeParameterDiscoveryReqParams:
-        """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
-        bidirectional AC charging.
-
-        Relevant for:
-        - ISO 15118-20
         """
         raise NotImplementedError
 
@@ -547,14 +547,6 @@ class EVControllerInterface(ABC):
     # ============================================================================
     # |                          DC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
-
-    @abstractmethod
-    async def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryReqParams:
-        """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
-        DC charging.
-        """
-        raise NotImplementedError
 
     @abstractmethod
     async def get_scheduled_dc_charge_loop_params(
@@ -648,19 +640,6 @@ class EVControllerInterface(ABC):
     async def stop_charging(self) -> None:
         """
         Used by CurrentDemand to indicate to EV to stop charging.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_dc_bpt_charge_params_v20(
-        self,
-    ) -> BPTDCChargeParameterDiscoveryReqParams:
-        """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
-        bidirectional DC charging.
-
-        Relevant for:
-        - ISO 15118-20
         """
         raise NotImplementedError
 
