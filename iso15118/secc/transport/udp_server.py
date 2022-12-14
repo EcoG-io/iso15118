@@ -110,7 +110,6 @@ class UDPServer(asyncio.DatagramProtocol):
         self._transport, _ = await loop.create_datagram_endpoint(
             lambda: self,
             sock=await self._create_socket(self.iface),
-            reuse_address=True,
         )
 
         logger.info(
