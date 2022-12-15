@@ -51,6 +51,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.notifications import StopNotification
+from iso15118.shared.settings import MESSAGE_LOG_MSGNAME
 from iso15118.shared.states import Pause, State, Terminate
 
 logger = logging.getLogger(__name__)
@@ -230,7 +231,8 @@ class SessionStateMachine(ABC):
 
         # Step 3
         try:
-            logger.info(f"{str(decoded_message)} received")
+            if MESSAGE_LOG_MSGNAME:
+                logger.info(f"{str(decoded_message)} received")
             await self.current_state.process_message(decoded_message, v2gtp_msg.payload)
         except MessageProcessingError as exc:
             logger.exception(
@@ -414,7 +416,8 @@ class V2GCommunicationSession(SessionStateMachine):
         Args:
             message: A V2GTPMessage
         """
-        logger.info(f"Sending {str(self.current_state.message)}")
+        if MESSAGE_LOG_MSGNAME:
+            logger.info(f"Sending {str(self.current_state.message)}")
         # TODO: we may also check for writer exceptions
         self.writer.write(message.to_bytes())
         await self.writer.drain()

@@ -16,6 +16,7 @@ PKI_PATH = env.path("PKI_PATH", default=SHARED_CWD + "/pki/")
 
 MESSAGE_LOG_JSON = env.bool("MESSAGE_LOG_JSON", default=True)
 MESSAGE_LOG_EXI = env.bool("MESSAGE_LOG_EXI", default=False)
+MESSAGE_LOG_MSGNAME = env.bool("MESSAGE_LOG_MSGNAME", default=True)
 
 V20_EVSE_SERVICES_CONFIG = env.str(
     "V20_SERVICE_CONFIG",
