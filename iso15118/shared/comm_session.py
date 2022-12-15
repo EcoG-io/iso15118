@@ -216,9 +216,13 @@ class SessionStateMachine(ABC):
                 exc.message,
                 self.get_exi_ns(v2gtp_msg.payload_type),
             )
+            logger.error(f"EXI message (ns={self.get_exi_ns(v2gtp_msg.payload_type)}) "
+                         f"where validation failed: {v2gtp_msg.payload.hex()}")
             return
         except EXIDecodingError as exc:
             logger.exception(f"{exc}")
+            logger.error(f"EXI message (ns={self.get_exi_ns(v2gtp_msg.payload_type)}) "
+                         f"where error occured: {v2gtp_msg.payload.hex()}")
             raise exc
 
         # Shouldn't happen, but just to be sure (otherwise mypy would complain)
