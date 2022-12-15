@@ -127,9 +127,7 @@ class TCPServer(asyncio.Protocol):
             # So, instead, we can control what to do with the task
             await asyncio.shield(server.wait_closed())
         except asyncio.CancelledError:
-            logger.warning("Closing TCP server")
-            server.close()
-            await server.wait_closed()
+            logger.warning("TCP server closed")
 
     async def __call__(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
