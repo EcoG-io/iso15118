@@ -52,7 +52,6 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import Pause, State, Terminate
-from iso15118.shared.utils import start_and_wait_for_coroutines
 
 logger = logging.getLogger(__name__)
 
@@ -353,11 +352,9 @@ class V2GCommunicationSession(SessionStateMachine):
         Args:
             timeout:    The time the EVCC / SECC is waiting for a next message
         """
-        tasks = [self.rcv_loop(timeout)]
-
         try:
             self._started = True
-            await start_and_wait_for_coroutines(tasks)
+            await self.rcv_loop(timeout)
         finally:
             self._started = False
 
