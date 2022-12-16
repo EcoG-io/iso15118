@@ -174,6 +174,7 @@ class SimEVController(EVControllerInterface):
         if protocol == Protocol.DIN_SPEC_70121:
             return EnergyTransferModeEnum.DC_EXTENDED
         return EnergyTransferModeEnum.AC_THREE_PHASE_CORE
+
     # todo read from json file
 
     async def get_supported_energy_services(self) -> List[ServiceV20]:

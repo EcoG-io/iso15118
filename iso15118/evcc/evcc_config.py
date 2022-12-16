@@ -1,12 +1,9 @@
 import json
 import logging
-from dataclasses import dataclass, fields
-from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel, validator, root_validator, Field
 
-import dacite
 from aiofile import async_open
+from pydantic import BaseModel, Field, validator
 
 from iso15118.shared.messages.enums import UINT_16_MAX
 
@@ -14,8 +11,9 @@ logger = logging.getLogger(__name__)
 
 
 class EVCCConfig(BaseModel):
-    supported_energy_services: List[str] = Field(None, max_items=4,
-                                                 alias="supportedEnergyServices")
+    supported_energy_services: List[str] = Field(
+        None, max_items=4, alias="supportedEnergyServices"
+    )
     is_cert_install_needed: bool = Field(None, alias="isCertInstallNeeded")
     # Indicates the security level (either TCP (unencrypted) or TLS (encrypted))
     # the EVCC shall send in the SDP request
@@ -23,8 +21,9 @@ class EVCCConfig(BaseModel):
     sdp_retry_cycles: Optional[int] = Field(None, alias="sdpRetryCycles")
     max_contract_certs: Optional[int] = Field(None, alias="maxContractCerts")
     enforce_tls: bool = Field(None, alias="EnforceTls")
-    supported_protocols: Optional[List[str]] = Field(None, max_items=4,
-                                                     alias="supportedProtocols")
+    supported_protocols: Optional[List[str]] = Field(
+        None, max_items=4, alias="supportedProtocols"
+    )
     max_supporting_points: Optional[int] = Field(None, alias="maxSupportingPoints")
 
     @validator("supported_energy_services", pre=True, always=True)
