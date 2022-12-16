@@ -16,7 +16,7 @@ async def main():
     the EVCC (EV Communication Controller)
     """
     config = Config()
-    await config.load_envs()
+    config.load_envs()
     if len(sys.argv) > 1:
         ev_config_file_path = sys.argv[1]
         if ev_config_file_path:

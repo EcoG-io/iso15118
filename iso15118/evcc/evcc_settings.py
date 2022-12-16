@@ -16,7 +16,7 @@ class Config:
     log_level: Optional[int] = None
     ev_config_file_path: str = None
 
-    async def load_envs(self, env_path: Optional[str] = None) -> None:
+    def load_envs(self, env_path: Optional[str] = None) -> None:
         """
         Tries to load the .env file containing all the project settings.
         If `env_path` is not specified, it will get the .env on the current
@@ -41,7 +41,6 @@ class Config:
             default="iso15118/shared/examples/evcc/evcc_config.json",
         )
         env.seal()  # raise all errors at once, if any
-
         logger.info("EVCC settings:")
         for key, value in shared_settings.items():
             logger.info(f"{key:30}: {value}")
