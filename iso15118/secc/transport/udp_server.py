@@ -16,7 +16,6 @@ from iso15118.shared.notifications import (
     ReceiveTimeoutNotification,
     UDPPacketNotification,
 )
-from iso15118.shared.utils import start_and_wait_for_coroutines
 
 logger = logging.getLogger(__name__)
 

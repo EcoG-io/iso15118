@@ -53,7 +53,7 @@ from iso15118.shared.notifications import (
     TCPClientNotification,
     UDPPacketNotification,
 )
-from iso15118.shared.utils import cancel_task, wait_for_tasks, start_tasks
+from iso15118.shared.utils import cancel_task, start_tasks, wait_for_tasks
 
 logger = logging.getLogger(__name__)
 

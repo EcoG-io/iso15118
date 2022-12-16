@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from asyncio import Task
-from typing import Coroutine, List, Any
+from typing import Coroutine, List
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +15,7 @@ async def cancel_task(task: Task):
         pass
 
 
-def start_tasks(
-    await_tasks: List[Coroutine]
-) -> List[Task]:
+def start_tasks(await_tasks: List[Coroutine]) -> List[Task]:
     """
     Method to run multiple tasks concurrently.
     returns a list of running tasks
@@ -32,9 +30,7 @@ def start_tasks(
     return tasks
 
 
-async def wait_for_tasks(
-    tasks: List[Task], return_when=asyncio.FIRST_EXCEPTION
-):
+async def wait_for_tasks(tasks: List[Task], return_when=asyncio.FIRST_EXCEPTION):
     """
     Method to run multiple tasks concurrently.
     return_when is used directly in the asyncio.wait call and sets the
