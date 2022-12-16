@@ -39,10 +39,10 @@ class Config:
 
         self.ev_config_file_path = env.path(
             "EVCC_CONFIG_PATH",
-            default="iso15118/shared/examples/evcc/evcc_config.json",
+            default="iso15118/shared/examples/evcc/iso15118_2/evcc_config_eim_ac.json",
         )
         env.seal()  # raise all errors at once, if any
-        logger.info("EVCC settings:")
+        logger.info("EVCC environment settings:")
         for key, value in shared_settings.items():
             logger.info(f"{key:30}: {value}")
         for key, value in env.dump().items():

@@ -49,10 +49,7 @@ def load_requested_energy_services(
     ]
 
     services = _format_list(read_services)
-    print(services)
-    print(supported_services)
     valid_services = list(set(services).intersection(supported_services))
-    print(valid_services)
     if not valid_services:
         raise NoSupportedEnergyServices(
             f"No supported energy services configured. Supported energy services are "

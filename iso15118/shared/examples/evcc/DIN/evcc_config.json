@@ -1,0 +1,7 @@
+{
+	"supportedProtocols": [
+		"DIN_SPEC_70121"
+	],
+	"isCertInstallNeeded": false,
+	"useTls": false
+}

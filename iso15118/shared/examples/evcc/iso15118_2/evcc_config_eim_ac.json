@@ -1,0 +1,7 @@
+{
+	"supportedProtocols": [
+		"ISO_15118_2"
+	],
+	"isCertInstallNeeded": false,
+	"useTls": false
+}
