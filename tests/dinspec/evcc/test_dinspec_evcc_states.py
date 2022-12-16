@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest as pytest
 
+from iso15118.evcc import EVCCConfig
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.controller.simulator import SimEVController
 from iso15118.evcc.states.din_spec_states import (
@@ -16,7 +17,11 @@ from iso15118.evcc.states.din_spec_states import (
     ServicePaymentSelection,
     WeldingDetection,
 )
-from iso15118.shared.messages.enums import AuthEnum, EnergyTransferModeEnum, Protocol
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    EnergyTransferModeEnum,
+    Protocol,
+)
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import Terminate
 from tests.dinspec.evcc.evcc_mock_messages import (
@@ -50,7 +55,7 @@ class TestEvScenarios:
         self.comm_session_mock = Mock(spec=EVCCCommunicationSession)
         self.comm_session_mock.session_id = "F9F9EE8505F55838"
         self.comm_session_mock.stop_reason = StopNotification(False, "pytest")
-        self.comm_session_mock.ev_controller = SimEVController()
+        self.comm_session_mock.ev_controller = SimEVController(EVCCConfig())
         self.comm_session_mock.protocol = Protocol.DIN_SPEC_70121
         self.comm_session_mock.selected_schedule = 1
         self.comm_session_mock.selected_services = []

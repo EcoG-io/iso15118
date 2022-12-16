@@ -2,6 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from iso15118.evcc import EVCCConfig
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.controller.simulator import SimEVController
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
@@ -19,7 +20,7 @@ def comm_evcc_session_mock():
     comm_session_mock = Mock(spec=EVCCCommunicationSession)
     comm_session_mock.session_id = MOCK_SESSION_ID
     comm_session_mock.stop_reason = StopNotification(False, "pytest")
-    comm_session_mock.ev_controller = SimEVController()
+    comm_session_mock.ev_controller = SimEVController(EVCCConfig())
     comm_session_mock.protocol = Protocol.UNKNOWN
     comm_session_mock.selected_schedule = 1
     comm_session_mock.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED

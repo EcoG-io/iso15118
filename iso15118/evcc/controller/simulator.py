@@ -112,7 +112,7 @@ class SimEVController(EVControllerInterface):
     A simulated version of an EV controller
     """
 
-    def __init__(self, evcc_config: Optional[EVCCConfig] = None):
+    def __init__(self, evcc_config: EVCCConfig):
         self.config = evcc_config
         self.charging_loop_cycles: int = 0
         self.precharge_loop_cycles: int = 0
