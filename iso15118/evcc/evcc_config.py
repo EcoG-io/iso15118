@@ -12,15 +12,6 @@ from iso15118.shared.messages.enums import UINT_16_MAX
 logger = logging.getLogger(__name__)
 
 
-class SupportedProtocolOption(Enum):
-    ISO_15118_2 = "ISO_15118_2"
-    DIN_SPEC_70121 = "DIN_SPEC_70121"
-    ISO_15118_20_AC = "ISO_15118_20_AC"
-    ISO_15118_20_DC = "ISO_15118_20_DC"
-    ISO_15118_20_WPT = "ISO_15118_20_WPT"
-    ISO_15118_20_ACDP = "ISO_15118_20_ACDP"
-
-
 @dataclass
 class EVCCConfig:
     supported_energy_services: List[str] = None
