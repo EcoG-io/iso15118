@@ -121,11 +121,7 @@ class TCPServer(asyncio.Protocol):
         ready_event.set()
 
         try:
-            # Shield the task so we can handle the cancellation
-            # closing the opening connections
-            # Shield when cancelled, does not cancel the task within.
-            # So, instead, we can control what to do with the task
-            await asyncio.shield(server.wait_closed())
+            await server.wait_closed()
         except asyncio.CancelledError:
             logger.warning("TCP server closed")
 
