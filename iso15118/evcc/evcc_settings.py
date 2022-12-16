@@ -4,9 +4,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 import environs
-from marshmallow.validate import Range
-
-from iso15118.shared.messages.enums import UINT_16_MAX, Protocol
 from iso15118.shared.network import validate_nic
 from iso15118.shared.settings import shared_settings
 

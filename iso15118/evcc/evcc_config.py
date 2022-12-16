@@ -1,14 +1,13 @@
 import json
 import logging
-from dataclasses import dataclass, field, asdict, fields
+from dataclasses import dataclass, fields
 from enum import Enum
 from typing import List, Optional
 
 import dacite
 from aiofile import async_open
-from dacite import from_dict, Config
 
-from iso15118.shared.messages.enums import Protocol, UINT_16_MAX, ServiceV20
+from iso15118.shared.messages.enums import UINT_16_MAX
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +23,7 @@ class SupportedProtocolOption(Enum):
 
 @dataclass
 class EVCCConfig:
-    supported_energy_services: List[ServiceV20] = None
-    supports_eim: bool = True
+    supported_energy_services: List[str] = None
     is_cert_install_needed: bool = True
     # Indicates the security level (either TCP (unencrypted) or TLS (encrypted))
     # the EVCC shall send in the SDP request
@@ -35,8 +33,6 @@ class EVCCConfig:
     enforce_tls: bool = False
     supported_protocols: Optional[List[str]] = None
     max_supporting_points: Optional[int] = None
-    is_cert_install_needed: bool = True
-    supported_energy_services: Optional[List[str]] = None
 
     def __post_init__(self):
         # Supported protocols, used for SupportedAppProtocol (SAP). The order in which
@@ -50,12 +46,8 @@ class EVCCConfig:
                 "ISO_15118_20_AC",
                 "DIN_SPEC_70121",
             ]
-        for protocol in self.supported_protocols:
-            if protocol not in list(map(lambda p: p.name, Protocol)):
-                raise Exception("Wrong attribute for supported protocol in config file."
-                                f"Should be in list "
-                                f"{list(map(lambda p: p.name, Protocol))}")
-
+        if self.supported_energy_services is None:
+            self.supported_energy_services = ["AC"]
         # Indicates the maximum number of entries the EVCC supports within the
         # sub-elements of a ScheduleTuple (e.g. PowerScheduleType and PriceRuleType in
         # ISO 15118-20 as well as PMaxSchedule and SalesTariff in ISO 15118-2).
@@ -64,15 +56,18 @@ class EVCCConfig:
             self.max_supporting_points = 1024
 
         if not 0 <= self.max_supporting_points <= 1024:
-            raise Exception("Wrong range for max_supporting_points in config file. "
-                            "Should be in [0..1024]")
+            raise Exception(
+                "Wrong range for max_supporting_points in config file. "
+                "Should be in [0..1024]"
+            )
         # How often shall SDP (SECC Discovery Protocol) retries happen before reverting
         # to using nominal duty cycle PWM-based charging?
         if self.sdp_retry_cycles is None:
             self.sdp_retry_cycles = 1
         if self.sdp_retry_cycles < 0:
-            raise Exception("Wrong range for sdp_retry_cycles in config file. "
-                            "Should be in [0..]")
+            raise Exception(
+                "Wrong range for sdp_retry_cycles in config file. " "Should be in [0..]"
+            )
         # Indicates the security level (either TCP (unencrypted) or TLS (encrypted))
         # the EVCC shall send in the SDP request
         if self.use_tls is None:
@@ -95,8 +90,10 @@ class EVCCConfig:
         if self.max_contract_certs is None:
             self.max_contract_certs = 3
         if not 1 < self.max_contract_certs < UINT_16_MAX:
-            raise Exception("Wrong range for max_contract_certs in config file. "
-                            "Should be in [1..UINT_16_MAX]")
+            raise Exception(
+                "Wrong range for max_contract_certs in config file. "
+                "Should be in [1..UINT_16_MAX]"
+            )
 
 
 async def load_from_file(file_name: str) -> EVCCConfig:

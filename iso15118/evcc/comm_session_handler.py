@@ -57,7 +57,7 @@ from iso15118.shared.notifications import (
     StopNotification,
     UDPPacketNotification,
 )
-from iso15118.shared.utils import cancel_task, wait_for_tasks
+from iso15118.shared.utils import cancel_task, load_requested_protocols, wait_for_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -71,12 +71,12 @@ class EVCCCommunicationSession(V2GCommunicationSession):
     """
 
     def __init__(
-            self,
-            transport: Tuple[StreamReader, StreamWriter],
-            session_handler_queue: asyncio.Queue,
-            evcc_config: EVCCConfig,
-            iface: str,
-            ev_controller: EVControllerInterface,
+        self,
+        transport: Tuple[StreamReader, StreamWriter],
+        session_handler_queue: asyncio.Queue,
+        evcc_config: EVCCConfig,
+        iface: str,
+        ev_controller: EVControllerInterface,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -149,10 +149,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         app_protocols = []
         schema_id = 0
         priority = 0
-        supported_protocols = []
-        for protocols in self.config.supported_protocols:
-            if protocols.name in list(map(lambda p: p.name, Protocol)):
-                supported_protocols.append(Protocol[protocols.name])
+        supported_protocols = load_requested_protocols(self.config.supported_protocols)
 
         # [V2G-DC-618] For DC charging according to DIN SPEC 70121,
         # an SDP server shall send an SECC Discovery Response message with Transport
@@ -261,11 +258,11 @@ class CommunicationSessionHandler:
     # pylint: disable=too-many-instance-attributes
 
     def __init__(
-            self,
-            config: EVCCConfig,
-            iface: str,
-            codec: IEXICodec,
-            ev_controller: EVControllerInterface,
+        self,
+        config: EVCCConfig,
+        iface: str,
+        codec: IEXICodec,
+        ev_controller: EVControllerInterface,
     ):
         self.list_of_tasks = []
         self.udp_client = None
@@ -424,6 +421,7 @@ class CommunicationSessionHandler:
             (self.tcp_client.reader, self.tcp_client.writer),
             self._rcv_queue,
             self.config,
+            self.iface,
             self.ev_controller,
         )
 
@@ -489,7 +487,7 @@ class CommunicationSessionHandler:
             # The rationale behind this might be that the EV OEM trades convenience
             # (the EV driver can always charge) over security.
             if (not secc_signals_tls and self.config.enforce_tls) or (
-                    secc_signals_tls and not self.config.use_tls
+                secc_signals_tls and not self.config.use_tls
             ):
                 logger.error(
                     "Security mismatch, can't initiate communication session."

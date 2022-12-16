@@ -221,6 +221,10 @@ class NoSupportedProtocols(Exception):
     """Is thrown when no supported protocols are configured"""
 
 
+class NoSupportedEnergyServices(Exception):
+    """Is thrown when no supported energy services are configured"""
+
+
 class NoSupportedAuthenticationModes(Exception):
     """Is thrown when no supported authentication modes are configured"""
 
