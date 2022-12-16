@@ -17,11 +17,7 @@ from iso15118.evcc.states.din_spec_states import (
     ServicePaymentSelection,
     WeldingDetection,
 )
-from iso15118.shared.messages.enums import (
-    AuthEnum,
-    EnergyTransferModeEnum,
-    Protocol,
-)
+from iso15118.shared.messages.enums import AuthEnum, EnergyTransferModeEnum, Protocol
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import Terminate
 from tests.dinspec.evcc.evcc_mock_messages import (
