@@ -2,7 +2,7 @@
 	"supportedProtocols": [
 		"ISO_15118_2"
 	],
-	"energy_transfer_mode": "AC_three_phase_core",
+	"energyTransferMode": "AC_three_phase_core",
 	"isCertInstallNeeded": false,
 	"useTls": true
 }

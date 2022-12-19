@@ -2,7 +2,7 @@
 	"supportedProtocols": [
 		"ISO_15118_2"
 	],
-	"energy_transfer_mode": "DC_extended",
+	"energyTransferMode": "DC_extended",
 	"isCertInstallNeeded": false,
 	"useTls": false
 }

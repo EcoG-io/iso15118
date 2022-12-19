@@ -5,7 +5,7 @@ from typing import List, Optional
 from aiofile import async_open
 from pydantic import BaseModel, Field, validator
 
-from iso15118.shared.messages.enums import UINT_16_MAX
+from iso15118.shared.messages.enums import UINT_16_MAX, EnergyTransferModeEnum
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,9 @@ class EVCCConfig(BaseModel):
     supported_protocols: Optional[List[str]] = Field(
         None, max_items=4, alias="supportedProtocols"
     )
+    energy_transfer_mode: Optional[EnergyTransferModeEnum] = Field(
+        None,
+        alias="energyTransferMode")
     max_supporting_points: Optional[int] = Field(None, alias="maxSupportingPoints")
 
     @validator("supported_energy_services", pre=True, always=True)
@@ -45,6 +48,12 @@ class EVCCConfig(BaseModel):
                 "ISO_15118_20_AC",
                 "DIN_SPEC_70121",
             ]
+        return value
+
+    @validator("energy_transfer_mode", pre=True, always=True)
+    def check_energy_transfer_mode(cls, value):
+        if value is None:
+            return "AC_three_phase_core"
         return value
 
     @validator("max_supporting_points", pre=True, always=True)
