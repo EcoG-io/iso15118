@@ -151,6 +151,29 @@ $ make install-local
 $ make poetry-shell
 $ make run-evcc
 ```
+It is possible to run up EVCC in different configurations. An example setting configuration
+for EVCC would be (15118-2, AC, EIM, TLS disabled mode), (15118-2/DINSPEC, DC, EIM/PnC, TLS enabled) etc. 
+Examples for such configurations are provided under "iso15118/shared/examples/evcc/". The configuration 
+could be passed in as a commandline argument as given below.
+
+```bash
+$ make run-evcc path_of_config_file
+```
+Supported settings in EVCC configuration are given below:
+
+
+| Setting                | Default Value                                                | Description                                                                                                                                 |
+|----------------------- | ------------------------------------------------------------ |---------------------------------------------------------------------------------------------------------------------------------------------|
+| supportedProtocols     | `DIN_SPEC_70121,ISO_15118_2,ISO_15118_20_AC,ISO_15118_20_DC` | Enabled communication protocols on EVCC. NOTE: ISO 15118 DC support is still under development                                              |
+| supportedEnergyServices| `AC`                                                         | Selected energy services mode for EVCC.                                                                                                     |
+| useTls                 | `True`                                                       | Whether or not the EVCC signals the preference to communicate with a TLS connection                                                         |
+| enforceTls             | `False`                                                      | Whether or not the EVCC will only accept TLS connections                                                                                    |
+| isCertInstallNeeded    | `False`                                                      | Indicates if the installation of a contract certificate is needed                                                                           |
+| energyTransferMode     | `AC_three_phase_core`                                        | Energy transfer mode requested for the current charging session.                                                                            |
+| sdpRetryCycles         | `1`                                                          | Indicates how often shall SDP (SECC Discovery Protocol) retries happen before reverting to using nominal duty cycle PWM-based charging      |
+| maxContractCerts       | `3`                                                          | Maximum amount of contract certificates the EV stores.                                                                                      |
+| maxSupportingPoints    | `1024`                                                       | Indicates the maximum number of entries the EVCC supports within the sub-elements of a ScheduleTuple                                        |
+
 
 The SECC and EVCC have been tested together under:
 

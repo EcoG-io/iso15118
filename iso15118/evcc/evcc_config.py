@@ -20,7 +20,7 @@ class EVCCConfig(BaseModel):
     use_tls: Optional[bool] = Field(None, alias="useTls")
     sdp_retry_cycles: Optional[int] = Field(None, alias="sdpRetryCycles")
     max_contract_certs: Optional[int] = Field(None, alias="maxContractCerts")
-    enforce_tls: bool = Field(None, alias="EnforceTls")
+    enforce_tls: bool = Field(None, alias="enforceTls")
     supported_protocols: Optional[List[str]] = Field(
         None, max_items=4, alias="supportedProtocols"
     )
@@ -46,6 +46,7 @@ class EVCCConfig(BaseModel):
             return [
                 "ISO_15118_2",
                 "ISO_15118_20_AC",
+                "ISO_15118_20_DC",
                 "DIN_SPEC_70121",
             ]
         return value
