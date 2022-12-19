@@ -25,8 +25,8 @@ class EVCCConfig(BaseModel):
         None, max_items=4, alias="supportedProtocols"
     )
     energy_transfer_mode: Optional[EnergyTransferModeEnum] = Field(
-        None,
-        alias="energyTransferMode")
+        None, alias="energyTransferMode"
+    )
     max_supporting_points: Optional[int] = Field(None, alias="maxSupportingPoints")
 
     @validator("supported_energy_services", pre=True, always=True)
