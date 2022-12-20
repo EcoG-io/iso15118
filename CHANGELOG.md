@@ -5,6 +5,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2022-12-20
+
+### Fixed
+* fix: changed the link to the switch blog page on ISO 15118-20 by @tropxy in https://github.com/SwitchEV/iso15118/pull/175
+* feat: remove argument from UDP server by @snorkman88 in https://github.com/SwitchEV/iso15118/pull/178
+
+### Changed
+* Feat/log secc settings by @santiagosalamandri in https://github.com/SwitchEV/iso15118/pull/176
+
+### Added
+* Support 15118-20 DC BPT by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/169
+
 ## [0.14.2] - 2022-12-05
 
 ### Changed
