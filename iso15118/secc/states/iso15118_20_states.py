@@ -6,7 +6,7 @@ SessionStopReq.
 
 import logging
 import time
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.states.secc_state import StateSECC
@@ -20,6 +20,8 @@ from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
     ControlMode,
+    EVSEProcessing,
+    IsolationLevel,
     ISOV20PayloadTypes,
     Namespace,
     ParameterName,
@@ -79,14 +81,21 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
     DCCableCheckReq,
+    DCCableCheckRes,
+    DCChargeLoopReq,
+    DCChargeLoopRes,
     DCChargeParameterDiscoveryReq,
     DCChargeParameterDiscoveryReqParams,
     DCChargeParameterDiscoveryRes,
+    DCPreChargeReq,
+    DCPreChargeRes,
+    DCWeldingDetectionReq,
+    DCWeldingDetectionRes,
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.security import get_random_bytes, verify_signature
-from iso15118.shared.states import Terminate
+from iso15118.shared.states import State, Terminate
 
 logger = logging.getLogger(__name__)
 
@@ -895,6 +904,7 @@ class ScheduleExchange(StateSECC):
         # unless the schedule parameters are ready and we're in AC charging.
         # Even in DC charging the sequence is not 100% clear as the EVCC could skip
         # DCCableCheck and DCPreCharge and go straight to PowerDelivery (Pause, Standby)
+        # [V2G20-2122]
         next_state = None
         if (
             evse_processing == Processing.FINISHED
@@ -932,7 +942,9 @@ class PowerDelivery(StateSECC):
         ],
         message_exi: bytes = None,
     ):
-        msg = self.check_msg_v20(message, [PowerDeliveryReq, SessionStopReq], False)
+        msg = self.check_msg_v20(
+            message, [PowerDeliveryReq, DCWeldingDetectionReq, SessionStopReq], False
+        )
         if not msg:
             return
 
@@ -940,9 +952,15 @@ class PowerDelivery(StateSECC):
             await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
+        if isinstance(msg, DCWeldingDetectionReq):
+            await DCWeldingDetection(self.comm_session).process_message(
+                message, message_exi
+            )
+            return
+
         power_delivery_req: PowerDeliveryReq = msg
 
-        next_state = None
+        next_state: Optional[Type[State]] = None
         header = MessageHeader(
             session_id=self.comm_session.session_id, timestamp=time.time()
         )
@@ -978,7 +996,6 @@ class PowerDelivery(StateSECC):
                 )
                 return
             elif power_delivery_req.charge_progress == ChargeProgress.STOP:
-                next_state = SessionStop
                 # According to section 8.5.6 in ISO 15118-20, the EV is out of the
                 # HLC-C (High Level Controlled Charging) once
                 # PowerDeliveryRes(ResponseCode=OK) is sent with a ChargeProgress=Stop
@@ -1200,13 +1217,17 @@ class ACChargeParameterDiscovery(StateSECC):
             ac_cpd_req.ac_params
         ):
             ac_params = (
-                await self.comm_session.evse_controller.get_ac_charge_params_v20()
+                await self.comm_session.evse_controller.get_ac_charge_params_v20(
+                    ServiceV20.AC
+                )
             )
         elif energy_service == ServiceV20.AC_BPT and self.charge_parameter_valid(
             ac_cpd_req.bpt_ac_params
         ):
             bpt_ac_params = (
-                await self.comm_session.evse_controller.get_ac_bpt_charge_params_v20()
+                await self.comm_session.evse_controller.get_ac_charge_params_v20(
+                    ServiceV20.AC_BPT
+                )
             )
         else:
             self.stop_state_machine(
@@ -1290,22 +1311,22 @@ class ACChargeLoop(StateSECC):
 
         if selected_energy_service.service == ServiceV20.AC:
             if control_mode == ControlMode.SCHEDULED:
-                scheduled_params = (
-                    await self.comm_session.evse_controller.get_scheduled_ac_charge_loop_params()  # noqa
+                scheduled_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
+                    ControlMode.SCHEDULED, ServiceV20.AC
                 )
             elif control_mode == ControlMode.DYNAMIC:
-                dynamic_params = (
-                    await self.comm_session.evse_controller.get_dynamic_ac_charge_loop_params()  # noqa
-                )
+                dynamic_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
+                    ControlMode.DYNAMIC, ServiceV20.AC
+                )  # noqa
         elif selected_energy_service.service == ServiceV20.AC_BPT:
             if control_mode == ControlMode.SCHEDULED:
-                bpt_scheduled_params = (
-                    await self.comm_session.evse_controller.get_bpt_scheduled_ac_charge_loop_params()  # noqa
-                )
+                bpt_scheduled_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
+                    ControlMode.SCHEDULED, ServiceV20.AC_BPT
+                )  # noqa
             else:
-                bpt_dynamic_params = (
-                    await self.comm_session.evse_controller.get_bpt_dynamic_ac_charge_loop_params()  # noqa
-                )
+                bpt_dynamic_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
+                    ControlMode.DYNAMIC, ServiceV20.AC_BPT
+                )  # noqa
         else:
             logger.error(
                 f"Energy service {selected_energy_service.service} not yet supported"
@@ -1387,13 +1408,17 @@ class DCChargeParameterDiscovery(StateSECC):
             dc_cpd_req.dc_params
         ):
             dc_params = (
-                await self.comm_session.evse_controller.get_dc_charge_params_v20()
+                await self.comm_session.evse_controller.get_dc_charge_params_v20(
+                    ServiceV20.DC
+                )
             )
         elif energy_service == ServiceV20.DC_BPT and self.charge_parameter_valid(
             dc_cpd_req.bpt_dc_params
         ):
             bpt_dc_params = (
-                await self.comm_session.evse_controller.get_dc_bpt_charge_params_v20()
+                await self.comm_session.evse_controller.get_dc_charge_params_v20(
+                    ServiceV20.DC_BPT
+                )
             )
         else:
             self.stop_state_machine(
@@ -1438,6 +1463,7 @@ class DCCableCheck(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        self.cable_check_req_was_received = False
 
     async def process_message(
         self,
@@ -1450,7 +1476,66 @@ class DCCableCheck(StateSECC):
         ],
         message_exi: bytes = None,
     ):
-        raise NotImplementedError("DCCableCheck not yet implemented")
+        msg = self.check_msg_v20(message, [DCCableCheckReq, SessionStopReq], False)
+        if not msg:
+            return
+
+        if isinstance(msg, SessionStopReq):
+            await SessionStop(self.comm_session).process_message(message, message_exi)
+            return
+
+        dc_cable_check_req: DCCableCheckReq = msg  # noqa
+
+        if not self.cable_check_req_was_received:
+            # Requirement in 6.4.3.106 of the IEC 61851-23
+            # Any relays in the DC output circuit of the DC station shall
+            # be closed during the insulation test
+            if not await self.comm_session.evse_controller.is_contactor_closed():
+                self.stop_state_machine(
+                    "Contactor didnt close for Cable Check",
+                    message,
+                    ResponseCode.FAILED,
+                )
+                return
+            await self.comm_session.evse_controller.start_cable_check()
+            self.cable_check_req_was_received = True
+
+        next_state = None
+        processing = EVSEProcessing.ONGOING
+        isolation_level = (
+            await self.comm_session.evse_controller.get_cable_check_status()
+        )
+
+        if isolation_level in [IsolationLevel.VALID, IsolationLevel.WARNING]:
+            if isolation_level == IsolationLevel.WARNING:
+                logger.warning(
+                    "Isolation resistance measured by EVSE is in Warning range"
+                )
+            next_state = DCPreCharge
+            processing = EVSEProcessing.FINISHED
+        elif isolation_level in [IsolationLevel.INVALID, IsolationLevel.FAULT]:
+            self.stop_state_machine(
+                f"Isolation Failure: {isolation_level}",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
+
+        dc_cable_check_res = DCCableCheckRes(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id, timestamp=time.time()
+            ),
+            response_code=ResponseCode.OK,
+            evse_processing=processing,
+        )
+
+        self.create_next_message(
+            next_state,
+            dc_cable_check_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_DC,
+            ISOV20PayloadTypes.DC_MAINSTREAM,
+        )
 
 
 class DCPreCharge(StateSECC):
@@ -1461,6 +1546,7 @@ class DCPreCharge(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        self.expecting_precharge_req = True
 
     async def process_message(
         self,
@@ -1473,7 +1559,45 @@ class DCPreCharge(StateSECC):
         ],
         message_exi: bytes = None,
     ):
-        raise NotImplementedError("DCPreCharge not yet implemented")
+        msg = self.check_msg_v20(
+            message,
+            [DCPreChargeReq, PowerDeliveryReq],
+            self.expecting_precharge_req,
+        )
+        if not msg:
+            return
+
+        if isinstance(msg, PowerDeliveryReq):
+            await PowerDelivery(self.comm_session).process_message(message, message_exi)
+            return
+
+        precharge_req: DCPreChargeReq = msg
+        self.expecting_precharge_req = False
+
+        next_state = None
+        if precharge_req.ev_processing == Processing.FINISHED:
+            next_state = PowerDelivery
+        else:
+            await self.comm_session.evse_controller.set_precharge(
+                precharge_req.ev_target_voltage, precharge_req.ev_present_voltage
+            )
+
+        dc_precharge_res = DCPreChargeRes(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id, timestamp=time.time()
+            ),
+            response_code=ResponseCode.OK,
+            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage(  # noqa
+                Protocol.ISO_15118_20_DC
+            ),
+        )
+        self.create_next_message(
+            next_state,
+            dc_precharge_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_DC,
+            ISOV20PayloadTypes.DC_MAINSTREAM,
+        )
 
 
 class DCChargeLoop(StateSECC):
@@ -1484,6 +1608,7 @@ class DCChargeLoop(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        self.expecting_charge_loop_req = True
 
     async def process_message(
         self,
@@ -1496,7 +1621,77 @@ class DCChargeLoop(StateSECC):
         ],
         message_exi: bytes = None,
     ):
-        raise NotImplementedError("DCChargeLoop not yet implemented")
+        msg = self.check_msg_v20(
+            message, [DCChargeLoopReq, PowerDeliveryReq], self.expecting_charge_loop_req
+        )
+        if not msg:
+            return
+
+        if isinstance(msg, PowerDeliveryReq):
+            await PowerDelivery(self.comm_session).process_message(message, message_exi)
+            return
+
+        dc_charge_loop_req: DCChargeLoopReq = msg  # noqa
+        self.expecting_charge_loop_req = False
+
+        dc_charge_loop_res = await self.build_dc_charge_loop_res()
+        self.create_next_message(
+            None,
+            dc_charge_loop_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_DC,
+            ISOV20PayloadTypes.DC_MAINSTREAM,
+        )
+
+    async def build_dc_charge_loop_res(self) -> DCChargeLoopRes:
+        scheduled_params, dynamic_params = None, None
+        bpt_scheduled_params, bpt_dynamic_params = None, None
+        selected_energy_service = self.comm_session.selected_energy_service
+        control_mode = self.comm_session.control_mode
+        if selected_energy_service.service == ServiceV20.DC:
+            if control_mode == ControlMode.SCHEDULED:
+                scheduled_params = await self.comm_session.evse_controller.get_dc_charge_loop_params_v20(  # noqa
+                    ControlMode.SCHEDULED, ServiceV20.DC
+                )
+            elif control_mode == ControlMode.DYNAMIC:
+                dynamic_params = await self.comm_session.evse_controller.get_dc_charge_loop_params_v20(  # noqa
+                    ControlMode.DYNAMIC, ServiceV20.DC
+                )
+        elif selected_energy_service.service == ServiceV20.DC_BPT:
+            if control_mode == ControlMode.SCHEDULED:
+                bpt_scheduled_params = await self.comm_session.evse_controller.get_dc_charge_loop_params_v20(  # noqa
+                    ControlMode.SCHEDULED, ServiceV20.DC_BPT
+                )
+            else:
+                bpt_dynamic_params = await self.comm_session.evse_controller.get_dc_charge_loop_params_v20(  # noqa
+                    ControlMode.DYNAMIC, ServiceV20.DC_BPT
+                )
+        else:
+            logger.error(
+                f"Energy service {selected_energy_service.service} not yet supported"
+            )
+            return
+
+        dc_charge_loop_res = DCChargeLoopRes(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id, timestamp=time.time()
+            ),
+            response_code=ResponseCode.OK,
+            evse_present_current=await self.comm_session.evse_controller.get_evse_present_current(  # noqa
+                Protocol.ISO_15118_20_DC
+            ),  # noqa
+            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage(  # noqa
+                Protocol.ISO_15118_20_DC
+            ),  # noqa
+            evse_power_limit_achieved=await self.comm_session.evse_controller.is_evse_power_limit_achieved(),  # noqa
+            evse_current_limit_achieved=await self.comm_session.evse_controller.is_evse_current_limit_achieved(),  # noqa
+            evse_voltage_limit_achieved=await self.comm_session.evse_controller.is_evse_voltage_limit_achieved(),  # noqa
+            scheduled_dc_charge_loop_res=scheduled_params,
+            dynamic_dc_charge_loop_res=dynamic_params,
+            bpt_scheduled_dc_charge_loop_res=bpt_scheduled_params,
+            bpt_dynamic_dc_charge_loop_res=bpt_dynamic_params,
+        )
+        return dc_charge_loop_res
 
 
 class DCWeldingDetection(StateSECC):
@@ -1507,6 +1702,7 @@ class DCWeldingDetection(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        self.expecting_welding_detection_req = True
 
     async def process_message(
         self,
@@ -1519,4 +1715,34 @@ class DCWeldingDetection(StateSECC):
         ],
         message_exi: bytes = None,
     ):
-        raise NotImplementedError("DCWeldingDetection not yet implemented")
+        msg = self.check_msg_v20(
+            message,
+            [DCWeldingDetectionReq, SessionStopReq],
+            self.expecting_welding_detection_req,
+        )
+        if not msg:
+            return
+
+        if isinstance(msg, SessionStopReq):
+            await SessionStop(self.comm_session).process_message(message, message_exi)
+            return
+
+        welding_detection_req: DCWeldingDetectionReq = msg  # noqa
+        self.expecting_welding_detection_req = False
+        welding_detection_res = DCWeldingDetectionRes(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id, timestamp=time.time()
+            ),
+            response_code=ResponseCode.OK,
+            evse_present_voltage=await self.comm_session.evse_controller.get_evse_present_voltage(  # noqa
+                Protocol.ISO_15118_20_DC
+            ),  # noqa
+        )
+
+        self.create_next_message(
+            None,
+            welding_detection_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V20_DC,
+            ISOV20PayloadTypes.DC_MAINSTREAM,
+        )

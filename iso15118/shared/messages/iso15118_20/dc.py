@@ -21,15 +21,18 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     ChargeParameterDiscoveryRes,
     DynamicChargeLoopReqParams,
     DynamicChargeLoopResParams,
+    Processing,
     RationalNumber,
     ScheduledChargeLoopReqParams,
     ScheduledChargeLoopResParams,
+    V2GRequest,
+    V2GResponse,
 )
 from iso15118.shared.validators import one_field_must_be_set
 
 
 class DCChargeParameterDiscoveryReqParams(BaseModel):
-    """See section 8.3.5.4.1 in ISO 15118-20"""
+    """See section 8.3.5.5.1 in ISO 15118-20"""
 
     ev_max_charge_power: RationalNumber = Field(..., alias="EVMaximumChargePower")
     ev_min_charge_power: RationalNumber = Field(..., alias="EVMinimumChargePower")
@@ -41,7 +44,7 @@ class DCChargeParameterDiscoveryReqParams(BaseModel):
 
 
 class DCChargeParameterDiscoveryResParams(BaseModel):
-    """See section 8.3.5.4.2 in ISO 15118-20"""
+    """See section 8.3.5.5.2 in ISO 15118-20"""
 
     evse_max_charge_power: RationalNumber = Field(..., alias="EVSEMaximumChargePower")
     evse_min_charge_power: RationalNumber = Field(..., alias="EVSEMinimumChargePower")
@@ -58,7 +61,7 @@ class DCChargeParameterDiscoveryResParams(BaseModel):
 
 class BPTDCChargeParameterDiscoveryReqParams(DCChargeParameterDiscoveryReqParams):
     """
-    See section 8.3.5.4.7.1 in ISO 15118-20
+    See section 8.3.5.5.7.1 in ISO 15118-20
     BPT = Bidirectional Power Transfer
     """
 
@@ -74,7 +77,7 @@ class BPTDCChargeParameterDiscoveryReqParams(DCChargeParameterDiscoveryReqParams
 
 class BPTDCChargeParameterDiscoveryResParams(DCChargeParameterDiscoveryResParams):
     """
-    See section 8.3.5.4.7.2 in ISO 15118-20
+    See section 8.3.5.5.7.2 in ISO 15118-20
     BPT = Bidirectional Power Transfer
     """
 
@@ -93,180 +96,96 @@ class BPTDCChargeParameterDiscoveryResParams(DCChargeParameterDiscoveryResParams
 
 
 class ScheduledDCChargeLoopReqParams(ScheduledChargeLoopReqParams):
-    """See section 8.3.5.4.4 in ISO 15118-20"""
+    """See section 8.3.5.5.4 in ISO 15118-20"""
 
+    ev_target_current: RationalNumber = Field(..., alias="EVTargetCurrent")
+    ev_target_voltage: RationalNumber = Field(..., alias="EVTargetVoltage")
     ev_max_charge_power: RationalNumber = Field(None, alias="EVMaximumChargePower")
-    ev_max_charge_power_l2: RationalNumber = Field(
-        None, alias="EVMaximumChargePower_L2"
-    )
-    ev_max_charge_power_l3: RationalNumber = Field(
-        None, alias="EVMaximumChargePower_L3"
-    )
     ev_min_charge_power: RationalNumber = Field(None, alias="EVMinimumChargePower")
-    ev_min_charge_power_l2: RationalNumber = Field(
-        None, alias="EVMinimumChargePower_L2"
-    )
-    ev_min_charge_power_l3: RationalNumber = Field(
-        None, alias="EVMinimumChargePower_L3"
-    )
-    ev_present_active_power: RationalNumber = Field(..., alias="EVPresentActivePower")
-    ev_present_active_power_l2: RationalNumber = Field(
-        None, alias="EVPresentActivePower_L2"
-    )
-    ev_present_active_power_l3: RationalNumber = Field(
-        None, alias="EVPresentActivePower_L3"
-    )
-    ev_present_reactive_power: RationalNumber = Field(
-        None, alias="EVPresentReactivePower"
-    )
-    ev_present_reactive_power_l2: RationalNumber = Field(
-        None, alias="EVPresentReactivePower_L2"
-    )
-    ev_present_reactive_power_l3: RationalNumber = Field(
-        None, alias="EVPresentReactivePower_L3"
-    )
+    ev_max_charge_current: RationalNumber = Field(None, alias="EVMaximumChargeCurrent")
+    ev_max_voltage: RationalNumber = Field(None, alias="EVMaximumVoltage")
+    ev_min_voltage: RationalNumber = Field(None, alias="EVMinimumVoltage")
+
+    # TODO: Validator for ensuring only one of target current and target voltage
+    #  is provided V2G20-2183
 
 
 class ScheduledDCChargeLoopResParams(ScheduledChargeLoopResParams):
-    """See section 8.3.5.4.6 in ISO 15118-20"""
+    """See section 8.3.5.5.6 in ISO 15118-20"""
 
-    evse_target_active_power: RationalNumber = Field(
-        None, alias="EVSETargetActivePower"
+    evse_maximum_charge_power: RationalNumber = Field(
+        None, alias="EVSEMaximumChargePower"
     )
-    evse_target_active_power_l2: RationalNumber = Field(
-        None, alias="EVSETargetActivePower_L2"
+    evse_minimum_charge_power: RationalNumber = Field(
+        None, alias="EVSEMinimumChargePower"
     )
-    evse_target_active_power_l3: RationalNumber = Field(
-        None, alias="EVSETargetActivePower_L3"
+    evse_maximum_charge_current: RationalNumber = Field(
+        None, alias="EVSEMaximumChargeCurrent"
     )
-    evse_target_reactive_power: RationalNumber = Field(
-        None, alias="EVSETargetReactivePower"
-    )
-    evse_target_reactive_power_l2: RationalNumber = Field(
-        None, alias="EVSETargetReactivePower_L2"
-    )
-    evse_target_reactive_power_l3: RationalNumber = Field(
-        None, alias="EVSETargetReactivePower_L3"
-    )
-    evse_present_active_power: RationalNumber = Field(
-        None, alias="EVSEPresentActivePower"
-    )
-    evse_present_active_power_l2: RationalNumber = Field(
-        None, alias="EVSEPresentActivePower_L2"
-    )
-    evse_present_active_power_l3: RationalNumber = Field(
-        None, alias="EVSEPresentActivePower_L3"
-    )
+    evse_maximum_voltage: RationalNumber = Field(None, alias="EVSEMaximumVoltage")
 
 
 class BPTScheduledDCChargeLoopReqParams(ScheduledDCChargeLoopReqParams):
-    """See section 8.3.5.4.7.4 in ISO 15118-20"""
+    """See section 8.3.5.5.7.4 in ISO 15118-20"""
 
     ev_max_discharge_power: RationalNumber = Field(
         None, alias="EVMaximumDischargePower"
     )
-    ev_max_discharge_power_l2: RationalNumber = Field(
-        None, alias="EVMaximumDischargePower_L2"
-    )
-    ev_max_discharge_power_l3: RationalNumber = Field(
-        None, alias="EVMaximumDischargePower_L3"
-    )
     ev_min_discharge_power: RationalNumber = Field(
         None, alias="EVMinimumDischargePower"
     )
-    ev_min_discharge_power_l2: RationalNumber = Field(
-        None, alias="EVMinimumDischargePower_L2"
-    )
-    ev_min_discharge_power_l3: RationalNumber = Field(
-        None, alias="EVMinimumDischargePower_L3"
+    ev_max_discharge_current: RationalNumber = Field(
+        None, alias="EVMaximumDischargeCurrent"
     )
 
 
 class BPTScheduledDCChargeLoopResParams(ScheduledDCChargeLoopResParams):
-    """See section 8.3.5.4.7.6 in ISO 15118-20"""
+    """See section 8.3.5.5.7.4 in ISO 15118-20"""
+
+    evse_max_discharge_power: RationalNumber = Field(
+        None, alias="EVSEMaximumDischargePower"
+    )
+    evse_min_discharge_power: RationalNumber = Field(
+        None, alias="EVSEMinimumDischargePower"
+    )
+    evse_max_discharge_current: RationalNumber = Field(
+        None, alias="EVSEMaximumDischargeCurrent"
+    )
+    evse_min_voltage: RationalNumber = Field(None, alias="EVSEMinimumVoltage")
 
 
-class DynamicDCChargeLoopReq(DynamicChargeLoopReqParams):
-    """See section 8.3.5.4.3 in ISO 15118-20"""
+class DynamicDCChargeLoopReqParams(DynamicChargeLoopReqParams):
+    """See section 8.3.5.5.3 in ISO 15118-20"""
 
     ev_max_charge_power: RationalNumber = Field(..., alias="EVMaximumChargePower")
-    ev_max_charge_power_l2: RationalNumber = Field(
-        None, alias="EVMaximumChargePower_L2"
-    )
-    ev_max_charge_power_l3: RationalNumber = Field(
-        None, alias="EVMaximumChargePower_l2"
-    )
     ev_min_charge_power: RationalNumber = Field(..., alias="EVMinimumChargePower")
-    ev_min_charge_power_l2: RationalNumber = Field(
-        None, alias="EVMinimumChargePower_L2"
-    )
-    ev_min_charge_power_l3: RationalNumber = Field(
-        None, alias="EVMinimumChargePower_L3"
-    )
-    ev_present_active_power: RationalNumber = Field(..., alias="EVPresentActivePower")
-    ev_present_active_power_l2: RationalNumber = Field(
-        None, alias="EVPresentActivePower_L2"
-    )
-    ev_present_active_power_l3: RationalNumber = Field(
-        None, alias="EVPresentActivePower_L3"
-    )
-    ev_present_reactive_power: RationalNumber = Field(
-        ..., alias="EVPresentReactivePower"
-    )
-    ev_present_reactive_power_l2: RationalNumber = Field(
-        None, alias="EVPresentReactivePower_L2"
-    )
-    ev_present_reactive_power_l3: RationalNumber = Field(
-        None, alias="EVPresentReactivePower_L3"
-    )
+    ev_max_charge_current: RationalNumber = Field(..., alias="EVMaximumChargeCurrent")
+    ev_max_voltage: RationalNumber = Field(..., alias="EVMaximumVoltage")
+    ev_min_voltage: RationalNumber = Field(..., alias="EVMinimumVoltage")
 
 
 class DynamicDCChargeLoopRes(DynamicChargeLoopResParams):
-    """See section 8.3.5.4.5 in ISO 15118-20"""
+    """See section 8.3.5.5.5 in ISO 15118-20"""
 
-    evse_target_active_power: RationalNumber = Field(..., alias="EVSETargetActivePower")
-    evse_target_active_power_l2: RationalNumber = Field(
-        None, alias="EVSETargetActivePower_L2"
+    evse_maximum_charge_power: RationalNumber = Field(
+        ..., alias="EVSEMaximumChargePower"
     )
-    evse_target_active_power_l3: RationalNumber = Field(
-        None, alias="EVSETargetActivePower_L3"
+    evse_minimum_charge_power: RationalNumber = Field(
+        ..., alias="EVSEMinimumChargePower"
     )
-    evse_target_reactive_power: RationalNumber = Field(
-        None, alias="EVSETargetReactivePower"
+    evse_maximum_charge_current: RationalNumber = Field(
+        ..., alias="EVSEMaximumChargeCurrent"
     )
-    evse_target_reactive_power_l2: RationalNumber = Field(
-        None, alias="EVSETargetReactivePower_L2"
-    )
-    evse_target_reactive_power_l3: RationalNumber = Field(
-        None, alias="EVSETargetReactivePower_L3"
-    )
-    evse_present_active_power: RationalNumber = Field(
-        None, alias="EVSEPresentActivePower"
-    )
-    evse_present_active_power_l2: RationalNumber = Field(
-        None, alias="EVSEPresentActivePower_L2"
-    )
-    evse_present_active_power_l3: RationalNumber = Field(
-        None, alias="EVSEPresentActivePower_L3"
-    )
+    evse_maximum_voltage: RationalNumber = Field(..., alias="EVSEMaximumVoltage")
 
 
-class BPTDynamicDCChargeLoopReq(DynamicDCChargeLoopReq):
-    """See section 8.3.5.4.7.3 in ISO 15118-20"""
+class BPTDynamicDCChargeLoopReqParams(DynamicDCChargeLoopReqParams):
+    """See section 8.3.5.5.7.3 in ISO 15118-20"""
 
     ev_max_discharge_power: RationalNumber = Field(..., alias="EVMaximumDischargePower")
-    ev_max_discharge_power_l2: RationalNumber = Field(
-        None, alias="EVMaximumDischargePower_L2"
-    )
-    ev_max_discharge_power_l3: RationalNumber = Field(
-        None, alias="EVMaximumDischargePower_L3"
-    )
     ev_min_discharge_power: RationalNumber = Field(..., alias="EVMinimumDischargePower")
-    ev_min_discharge_power_l2: RationalNumber = Field(
-        None, alias="EVMinimumDischargePower_L2"
-    )
-    ev_min_discharge_power_l3: RationalNumber = Field(
-        None, alias="EVMinimumDischargePower_L3"
+    ev_max_discharge_current: RationalNumber = Field(
+        ..., alias="EVMaximumDischargeCurrent"
     )
     ev_max_v2x_energy_request: RationalNumber = Field(
         None, alias="EVMaximumV2XEnergyRequest"
@@ -277,11 +196,22 @@ class BPTDynamicDCChargeLoopReq(DynamicDCChargeLoopReq):
 
 
 class BPTDynamicDCChargeLoopRes(DynamicDCChargeLoopRes):
-    """See section 8.3.5.4.7.5 in ISO 15118-20"""
+    """See section 8.3.5.5.7.5 in ISO 15118-20"""
+
+    evse_max_discharge_power: RationalNumber = Field(
+        ..., alias="EVSEMaximumDischargePower"
+    )
+    evse_min_discharge_power: RationalNumber = Field(
+        ..., alias="EVSEMinimumDischargePower"
+    )
+    evse_max_discharge_current: RationalNumber = Field(
+        ..., alias="EVSEMaximumDischargeCurrent"
+    )
+    evse_min_voltage: RationalNumber = Field(..., alias="EVSEMinimumVoltage")
 
 
 class DCChargeParameterDiscoveryReq(ChargeParameterDiscoveryReq):
-    """See section 8.3.4.4.2.2 in ISO 15118-20"""
+    """See section 8.3.4.5.2.2 in ISO 15118-20"""
 
     dc_params: DCChargeParameterDiscoveryReqParams = Field(
         None, alias="DC_CPDReqEnergyTransferMode"
@@ -319,7 +249,7 @@ class DCChargeParameterDiscoveryReq(ChargeParameterDiscoveryReq):
 
 
 class DCChargeParameterDiscoveryRes(ChargeParameterDiscoveryRes):
-    """See section 8.3.4.4.2.3 in ISO 15118-20"""
+    """See section 8.3.4.5.2.3 in ISO 15118-20"""
 
     dc_params: DCChargeParameterDiscoveryResParams = Field(
         None, alias="DC_CPDResEnergyTransferMode"
@@ -357,18 +287,19 @@ class DCChargeParameterDiscoveryRes(ChargeParameterDiscoveryRes):
 
 
 class DCChargeLoopReq(ChargeLoopReq):
-    """See section 8.3.4.4.3.2 in ISO 15118-20"""
+    """See section 8.3.4.5.5.2 in ISO 15118-20"""
 
+    ev_present_voltage: RationalNumber = Field(..., alias="EVPresentVoltage")
     scheduled_params: ScheduledDCChargeLoopReqParams = Field(
         None, alias="Scheduled_DC_CLReqControlMode"
     )
-    dynamic_params: DynamicDCChargeLoopReq = Field(
+    dynamic_params: DynamicDCChargeLoopReqParams = Field(
         None, alias="Dynamic_DC_CLReqControlMode"
     )
     bpt_scheduled_params: BPTScheduledDCChargeLoopReqParams = Field(
         None, alias="BPT_Scheduled_DC_CLReqControlMode"
     )
-    bpt_dynamic_params: BPTDynamicDCChargeLoopReq = Field(
+    bpt_dynamic_params: BPTDynamicDCChargeLoopReqParams = Field(
         None, alias="BPT_Dynamic_DC_CLReqControlMode"
     )
 
@@ -406,9 +337,13 @@ class DCChargeLoopReq(ChargeLoopReq):
 
 
 class DCChargeLoopRes(ChargeLoopRes):
-    """See section 8.3.4.4.3.3 in ISO 15118-20"""
+    """See section 8.3.4.5.5.3 in ISO 15118-20"""
 
-    evse_target_frequency: RationalNumber = Field(None, alias="EVSETargetFrequency")
+    evse_present_current: RationalNumber = Field(..., alias="EVSEPresentCurrent")
+    evse_present_voltage: RationalNumber = Field(..., alias="EVSEPresentVoltage")
+    evse_power_limit_achieved: bool = Field(..., alias="EVSEPowerLimitAchieved")
+    evse_current_limit_achieved: bool = Field(..., alias="EVSECurrentLimitAchieved")
+    evse_voltage_limit_achieved: bool = Field(..., alias="EVSEVoltageLimitAchieved")
     scheduled_dc_charge_loop_res: ScheduledDCChargeLoopResParams = Field(
         None, alias="Scheduled_DC_CLResControlMode"
     )
@@ -456,37 +391,61 @@ class DCChargeLoopRes(ChargeLoopRes):
         return "DC_ChargeLoopRes"
 
 
-class DCCableCheckReq(BaseModel):
+class DCCableCheckReq(V2GRequest):
+    """See section 8.3.4.5.3.2 in ISO 15118-20"""
+
     def __str__(self):
         # The XSD-conform name
         return "DC_CableCheckReq"
 
 
-class DCCableCheckRes(BaseModel):
+class DCCableCheckRes(V2GResponse):
+    """See section 8.3.4.5.3.3 in ISO 15118-20"""
+
+    evse_processing: Processing = Field(..., alias="EVSEProcessing")
+
     def __str__(self):
         # The XSD-conform name
         return "DC_CableCheckRes"
 
 
-class DCPreChargeReq(BaseModel):
+class DCPreChargeReq(V2GRequest):
+    """See section 8.3.4.5.4.1 in ISO 15118-20"""
+
+    ev_processing: Processing = Field(..., alias="EVProcessing")
+    ev_present_voltage: RationalNumber = Field(..., alias="EVPresentVoltage")
+    ev_target_voltage: RationalNumber = Field(..., alias="EVTargetVoltage")
+
     def __str__(self):
         # The XSD-conform name
         return "DC_PreChargeReq"
 
 
-class DCPreChargeRes(BaseModel):
+class DCPreChargeRes(V2GResponse):
+    """See section 8.3.4.5.4.3 in ISO 15118-20"""
+
+    evse_present_voltage: RationalNumber = Field(..., alias="EVSEPresentVoltage")
+
     def __str__(self):
         # The XSD-conform name
         return "DC_PreChargeRes"
 
 
-class DCWeldingDetectionReq(BaseModel):
+class DCWeldingDetectionReq(V2GRequest):
+    """See section 8.3.4.5.6.2 in ISO 15118-20"""
+
+    ev_processing: Processing = Field(..., alias="EVProcessing")
+
     def __str__(self):
         # The XSD-conform name
         return "DC_WeldingDetectionReq"
 
 
-class DCWeldingDetectionRes(BaseModel):
+class DCWeldingDetectionRes(V2GResponse):
+    """See section 8.3.4.5.6.3 in ISO 15118-20"""
+
+    evse_present_voltage: RationalNumber = Field(..., alias="EVSEPresentVoltage")
+
     def __str__(self):
         # The XSD-conform name
         return "DC_WeldingDetectionRes"

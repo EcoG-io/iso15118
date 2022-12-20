@@ -4,7 +4,7 @@ This module contains the abstract class for an EVCC to retrieve data from the EV
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from iso15118.shared.messages.datatypes import (
     DCEVChargeParams,
@@ -39,6 +39,9 @@ from iso15118.shared.messages.iso15118_20.ac import (
     ScheduledACChargeLoopReqParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
+    ChargeProgress as ChargeProgressV20,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     DynamicScheduleExchangeReqParams,
     DynamicScheduleExchangeResParams,
     EMAIDList,
@@ -49,9 +52,14 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SelectedEnergyService,
     SelectedVAS,
 )
+from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
+    BPTDynamicDCChargeLoopReqParams,
+    BPTScheduledDCChargeLoopReqParams,
     DCChargeParameterDiscoveryReqParams,
+    DynamicDCChargeLoopReqParams,
+    ScheduledDCChargeLoopReqParams,
 )
 
 
@@ -201,7 +209,7 @@ class EVControllerInterface(ABC):
     @abstractmethod
     async def process_scheduled_se_params(
         self, scheduled_params: ScheduledScheduleExchangeResParams, pause: bool
-    ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
+    ) -> Tuple[Optional[EVPowerProfile], ChargeProgressV20]:
         """
         Processes the ScheduleExchangeRes parameters for the Scheduled mode.
 
@@ -224,7 +232,7 @@ class EVControllerInterface(ABC):
     @abstractmethod
     async def process_dynamic_se_params(
         self, dynamic_params: DynamicScheduleExchangeResParams, pause: bool
-    ) -> Tuple[Optional[EVPowerProfile], ChargeProgress]:
+    ) -> Tuple[Optional[EVPowerProfile], ChargeProgressV20]:
         """
         Processes the ScheduleExchangeRes parameters for the Dynamic mode.
 
@@ -388,7 +396,9 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def is_precharged(self, present_voltage_evse: PVEVSEPresentVoltage) -> bool:
+    async def is_precharged(
+        self, present_voltage_evse: Union[PVEVSEPresentVoltage, RationalNumber]
+    ) -> bool:
         """
         Return True if the output voltage of the EVSE has reached
         the requested precharge voltage. Otherwise return False.
@@ -418,10 +428,23 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
+    async def get_charge_params_v20(
+        self, selected_service: SelectedEnergyService
+    ) -> Union[
+        ACChargeParameterDiscoveryReqParams,
+        BPTACChargeParameterDiscoveryReqParams,
+        DCChargeParameterDiscoveryReqParams,
+        BPTDCChargeParameterDiscoveryReqParams,
+    ]:
         """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
-        AC charging.
+        Gets the charge parameter needed for
+        ACChargeParameterDiscovery/DCChargeParameterDiscovery (ISO 15118-20).
+        Returns:
+            One of [ACChargeParameterDiscoveryReqParams,
+            BPTACChargeParameterDiscoveryReqParams,
+            DCChargeParameterDiscoveryReqParams,
+            BPTDCChargeParameterDiscoveryReqParams]
+            based on the currently selected service.
 
         Relevant for:
         - ISO 15118-20
@@ -470,19 +493,6 @@ class EVControllerInterface(ABC):
         - DIN SPEC 70121 ??
         - ISO 15118-2
         - ISO 15118-20 ??
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_ac_bpt_charge_params_v20(
-        self,
-    ) -> BPTACChargeParameterDiscoveryReqParams:
-        """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
-        bidirectional AC charging.
-
-        Relevant for:
-        - ISO 15118-20
         """
         raise NotImplementedError
 
@@ -539,9 +549,65 @@ class EVControllerInterface(ABC):
     # ============================================================================
 
     @abstractmethod
-    async def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryReqParams:
+    async def get_scheduled_dc_charge_loop_params(
+        self,
+    ) -> ScheduledDCChargeLoopReqParams:
         """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
+        Gets the parameters for the DCChargeLoopReq in the Scheduled control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_dynamic_dc_charge_loop_params(self) -> DynamicDCChargeLoopReqParams:
+        """
+        Gets the parameters for the DCChargeLoopReq in the Dynamic control mode
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_bpt_scheduled_dc_charge_loop_params(
+        self,
+    ) -> BPTScheduledDCChargeLoopReqParams:
+        """
+        Gets the parameters for the DCChargeLoopReq in the Scheduled control mode for
+        bi-directional power transfer (BPT)
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_bpt_dynamic_dc_charge_loop_params(
+        self,
+    ) -> BPTDynamicDCChargeLoopReqParams:
+        """
+        Gets the parameters for the DCChargeLoopReq in the Dynamic control mode for
+        bi-directional power transfer (BPT)
+
+        Relevant for:
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_present_voltage(self) -> RationalNumber:
+        """
+        Gets current voltage required for DCChargeLoop for
+        DC charging.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_target_voltage(self) -> RationalNumber:
+        """
+        Gets current voltage required for DCChargeLoop for
         DC charging.
         """
         raise NotImplementedError
@@ -574,19 +640,6 @@ class EVControllerInterface(ABC):
     async def stop_charging(self) -> None:
         """
         Used by CurrentDemand to indicate to EV to stop charging.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_dc_bpt_charge_params_v20(
-        self,
-    ) -> BPTDCChargeParameterDiscoveryReqParams:
-        """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryReq for
-        bidirectional DC charging.
-
-        Relevant for:
-        - ISO 15118-20
         """
         raise NotImplementedError
 

@@ -306,10 +306,10 @@ class DynamicChargeLoopReqParams(BaseModel, ABC):
     See page 464 of Annex A in ISO 15118-20
     """
 
+    departure_time: int = Field(None, ge=0, le=UINT_32_MAX, alias="DepartureTime")
     ev_target_energy_request: RationalNumber = Field(..., alias="EVTargetEnergyRequest")
     ev_max_energy_request: RationalNumber = Field(..., alias="EVMaximumEnergyRequest")
     ev_min_energy_request: RationalNumber = Field(..., alias="EVMinimumEnergyRequest")
-    departure_time: int = Field(None, ge=0, le=UINT_32_MAX, alias="DepartureTime")
 
 
 class DynamicChargeLoopResParams(BaseModel):
