@@ -11,7 +11,7 @@ from iso15118.shared.exceptions import (
     NoSupportedProtocols,
 )
 from iso15118.shared.messages.enums import AuthEnum, Protocol
-from iso15118.shared.settings import shared_settings
+from iso15118.shared.settings import shared_settings, set_ignoring_value_range
 
 logger = logging.getLogger(__name__)
 
@@ -144,3 +144,49 @@ class Config:
                 f" file with key 'AUTH_MODES'"
             )
         self.supported_auth_options = [AuthEnum[x] for x in valid_auth_options]
+
+    def load_everest_config(self, everest_config: dict) -> None:
+
+        self.iface = str(everest_config["device"])
+
+        self.log_level = "INFO"
+
+        if everest_config["enforce_tls"] is True:
+            self.enforce_tls = True
+        else:
+            self.enforce_tls = False
+        
+        if everest_config["free_cert_install_service"] is True:
+            self.free_cert_install_service = True
+        else:
+            self.free_cert_install_service = False
+
+        if everest_config["allow_cert_install_service"] is True:
+            self.allow_cert_install_service = True
+        else:
+            self.allow_cert_install_service = False
+
+        protocols: List[str] = self.default_protocols
+        if not everest_config["supported_DIN70121"]:
+            protocols.remove("DIN_SPEC_70121")
+
+        if not everest_config["supported_ISO15118_2"]:
+            protocols.remove("ISO_15118_2")
+        
+        if not everest_config["supported_ISO15118_20_AC"]:
+            protocols.remove("ISO_15118_20_AC")
+        
+        if not everest_config["supported_ISO15118_20_DC"]:
+            protocols.remove("ISO_15118_20_DC")
+        
+        self.load_requested_protocols(protocols)
+
+        self.use_cpo_backend = False
+        logger.info(f"Using CPO Backend: {self.use_cpo_backend}")
+
+        self.load_requested_auth_modes(self.default_auth_modes)
+
+        self.standby_allowed = False
+
+        set_ignoring_value_range(everest_config["ignore_physical_values_limits"])
+        

@@ -220,6 +220,9 @@ class SessionStateMachine(ABC):
         except EXIDecodingError as exc:
             logger.exception(f"{exc}")
             raise exc
+        
+        if self.comm_session.__class__.__name__ == "SECCCommunicationSession":
+            debugV2GMessages(decoded_message=decoded_message, v2gtp_msg=v2gtp_msg)
 
         # Shouldn't happen, but just to be sure (otherwise mypy would complain)
         if not decoded_message:
@@ -492,6 +495,9 @@ class V2GCommunicationSession(SessionStateMachine):
                     # Terminate or Pause on the EVCC side
                     await self.send(self.current_state.next_v2gtp_msg)
 
+                    if self.comm_session.__class__.__name__ == "SECCCommunicationSession":
+                        debugV2GMessages(decoded_message=self.current_state.message, v2gtp_msg=self.current_state.next_v2gtp_msg)
+
                 if self.current_state.next_state in (Terminate, Pause):
                     await self.stop(reason=self.comm_session.stop_reason.reason)
                     self.comm_session.session_handler_queue.put_nowait(
@@ -547,3 +553,39 @@ class V2GCommunicationSession(SessionStateMachine):
                 await self.stop(stop_reason)
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
+
+def debugV2GMessages(decoded_message, v2gtp_msg):
+    from everest_iso15118 import ChargerWrapper
+    from everest_iso15118 import p_Charger
+    import json
+    from iso15118.shared.exi_codec import CustomJSONEncoder
+    import base64
+
+    if ChargerWrapper.get_debug_mode() == "Full":
+        msg_to_dct: dict = decoded_message.dict(by_alias=True, exclude_none=True)
+        if isinstance(decoded_message, V2GMessageV2) or isinstance(
+            decoded_message, V2GMessageDINSPEC
+        ):
+            message_dict = {"V2G_Message": msg_to_dct}
+        else:
+            message_dict = {str(decoded_message): msg_to_dct}
+        msg_content = json.dumps(message_dict, cls=CustomJSONEncoder)
+
+        classname: str = ""
+        if isinstance(decoded_message, V2GMessageV2) or isinstance(
+            decoded_message, V2GMessageDINSPEC
+        ):
+            classname = decoded_message.__str__()
+        elif isinstance(decoded_message, SupportedAppProtocolReq):
+            classname = "SupportedAppProtocolReq"
+        elif isinstance(decoded_message, SupportedAppProtocolRes):
+            classname = "SupportedAppProtocolRes"
+
+        v2gmessages: dict = dict([
+            ("V2G_Message_ID", classname),
+            ("V2G_Message_JSON", msg_content),
+            ("V2G_Message_EXI_Hex",v2gtp_msg.payload.hex()),
+            ("V2G_Message_EXI_Base64", base64.b64encode(v2gtp_msg.payload).hex())
+        ])
+
+        p_Charger().publish_V2G_Messages(v2gmessages)

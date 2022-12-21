@@ -86,7 +86,6 @@ celerybeat-schedule
 *.sage.py
 
 # Environments
-.env
 .venv
 env/
 venv/
@@ -116,3 +115,6 @@ venv.bak/
 iso15118/shared/pki/iso15118_2
 iso15118/shared/pki/iso15118_20
 /iso15118/shared/pki/pki-ext/
+
+# Everest
+workspace.yaml

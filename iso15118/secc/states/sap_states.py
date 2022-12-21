@@ -27,6 +27,11 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.states import State, Terminate
 
+
+# *** EVerest code start ***
+from everest_iso15118 import p_Charger
+# *** EVerest code end ***
+
 logger = logging.getLogger(__name__)
 
 
@@ -67,8 +72,20 @@ class SupportedAppProtocol(StateSECC):
         ]
         next_state: Type[State] = Terminate  # some default that is not None
 
+        p_AppProtocols: list = []
+
         selected_protocol = Protocol.UNKNOWN
         for protocol in sap_req.app_protocol:
+
+            obj = dict([
+                ("ProtocolNamespace",protocol.protocol_ns),
+                ("VersionNumberMajor", protocol.major_version),
+                ("VersionNumberMinor", protocol.minor_version),
+                ("SchemaID", protocol.schema_id),
+                ("Priority", protocol.priority)
+            ])
+            p_AppProtocols.append(obj)
+
             if protocol.protocol_ns in supported_ns_list:
                 if (
                     protocol.protocol_ns == Protocol.ISO_15118_2.ns.value
@@ -124,6 +141,9 @@ class SupportedAppProtocol(StateSECC):
                         response_code=res, schema_id=protocol.schema_id
                     )
                     break
+        
+        p_Charger().publish_EV_AppProtocol(p_AppProtocols)
+
 
         if not sap_res:
             self.stop_state_machine(

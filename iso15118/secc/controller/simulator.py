@@ -5,8 +5,9 @@ This module contains the code to retrieve (hardware-related) data from the EVSE
 import base64
 import logging
 import math
-import time
+import time, calendar
 from typing import Dict, List, Optional
+import dateutil.parser
 
 from aiofile import async_open
 from pydantic import BaseModel, Field
@@ -23,6 +24,7 @@ from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
     DCEVSEStatusCode,
+    PVEVSEEnergyToBeDelivered,
 )
 from iso15118.shared.messages.datatypes import EVSENotification as EVSENotificationV2
 from iso15118.shared.messages.datatypes import (
@@ -36,6 +38,7 @@ from iso15118.shared.messages.datatypes import (
     PVEVSEPresentVoltage,
     PVEVTargetCurrent,
     PVEVTargetVoltage,
+    PVEVSECurrentRegulationTolerance
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     PMaxScheduleEntry as PMaxScheduleEntryDINSPEC,
@@ -145,6 +148,10 @@ from iso15118.shared.security import (
 )
 from iso15118.shared.settings import V20_EVSE_SERVICES_CONFIG
 
+from everest_iso15118 import ChargerWrapper
+from everest_iso15118 import float2Value_Multiplier
+import asyncio
+
 logger = logging.getLogger(__name__)
 
 
@@ -185,10 +192,11 @@ class SimEVSEController(EVSEControllerInterface):
     @classmethod
     async def create(cls):
         self = SimEVSEController()
+        self.evseIsolationMonitoringActive = False
         self.ev_data_context = EVDataContext()
-        self.v20_service_id_parameter_mapping = (
-            await read_service_id_parameter_mappings()
-        )
+        # self.v20_service_id_parameter_mapping = (
+        #     await read_service_id_parameter_mappings()
+        # )
         return self
 
     def reset_ev_data_context(self):
@@ -201,6 +209,8 @@ class SimEVSEController(EVSEControllerInterface):
         logger.debug(f"New Status: {status}")
 
     async def get_evse_id(self, protocol: Protocol) -> str:
+        """Overrides EVSEControllerInterface.get_evse_id()."""
+        
         if protocol == Protocol.DIN_SPEC_70121:
             #  To transform a string-based DIN SPEC 91286 EVSE ID to hexBinary
             #  representation and vice versa, the following conversion rules shall
@@ -210,28 +220,28 @@ class SimEVSEController(EVSEControllerInterface):
             #  Unused <--> 0xB .. 0xF.
             # Example: The DIN SPEC 91286 EVSE ID “49*89*6360” is represented
             # as “0x49 0xA8 0x9A 0x63 0x60”.
-            return "49A89A6360"
-        """Overrides EVSEControllerInterface.get_evse_id()."""
-        return "UK123E1234"
+            evse_id_din: str = ChargerWrapper.get_EVSEID_DIN()
+            return evse_id_din
+        else:
+            evse_id: str = ChargerWrapper.get_EVSEID()
+            return evse_id
+        
 
     async def get_supported_energy_transfer_modes(
         self, protocol: Protocol
     ) -> List[EnergyTransferModeEnum]:
         """Overrides EVSEControllerInterface.get_supported_energy_transfer_modes()."""
-        if protocol == Protocol.DIN_SPEC_70121:
-            """
-            For DIN SPEC, only DC_CORE and DC_EXTENDED are supported.
-            The other DC modes DC_COMBO_CORE and DC_DUAL are out of scope for DIN SPEC
-            """
-            dc_extended = EnergyTransferModeEnum.DC_EXTENDED
-            return [dc_extended]
 
-        # It's not valid to have mixed energy transfer modes associated with
-        # a single EVSE. Providing this here only for simulation purposes.
-        # ac_single_phase = EnergyTransferModeEnum.AC_SINGLE_PHASE_CORE
-        ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
-        dc_extended = EnergyTransferModeEnum.DC_EXTENDED
-        return [dc_extended, ac_three_phase]
+        supported_energy_transfer_modes: List[EnergyTransferModeEnum] = []
+        for modes in ChargerWrapper.get_SupportedEnergyTransferMode():
+            energy_mode = EnergyTransferModeEnum(modes)
+            if protocol == Protocol.DIN_SPEC_70121:
+                if energy_mode is EnergyTransferModeEnum.DC_CORE or energy_mode is EnergyTransferModeEnum.DC_EXTENDED:
+                    supported_energy_transfer_modes.append(energy_mode)
+            else:
+                supported_energy_transfer_modes.append(energy_mode)
+
+        return supported_energy_transfer_modes
 
     async def get_scheduled_se_params(
         self,
@@ -524,8 +534,16 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def get_meter_info_v2(self) -> MeterInfoV2:
         """Overrides EVSEControllerInterface.get_meter_info_v2()."""
+        meter_id: str = "EVerest"
+
+        powermeter: dict = ChargerWrapper.get_MeterInfo()
+        meter_reading: int = int(powermeter["energy_Wh_import"]["total"])
+        t_meter_datetime = dateutil.parser.isoparse(powermeter["timestamp"])
+        if powermeter["meter_id"]:
+            meter_id = str(powermeter["meter_id"])
+
         return MeterInfoV2(
-            meter_id="Switch-Meter-123", meter_reading=12345, t_meter=time.time()
+            meter_id=meter_id, t_meter=int(calendar.timegm(t_meter_datetime.timetuple())), meter_reading=meter_reading
         )
 
     async def get_meter_info_v20(self) -> MeterInfoV20:
@@ -557,17 +575,55 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def is_contactor_closed(self) -> bool:
         """Overrides EVSEControllerInterface.is_contactor_closed()."""
-        return True
+        startTime_ns: int = time.time_ns()
+        timeout: int = 0
+        PERFORMANCE_TIMEOUT: int = 4500
+        
+        while timeout < PERFORMANCE_TIMEOUT:
+            if ChargerWrapper.get_contactor_closed_status() is True:
+                return True
+
+            timeout = (time.time_ns() - startTime_ns) / pow(10, 6)
+            await asyncio.sleep(0.001)
+        return False
 
     async def is_contactor_opened(self) -> bool:
         """Overrides EVSEControllerInterface.is_contactor_opened()."""
-        return True
+        startTime_ns: int = time.time_ns()
+        timeout: int = 0
+        PERFORMANCE_TIMEOUT: int = 4500
+        
+        while timeout < PERFORMANCE_TIMEOUT:
+            if ChargerWrapper.get_contactor_opened_status() is True:
+                return True
+
+            timeout = (time.time_ns() - startTime_ns) / pow(10, 6)
+            await asyncio.sleep(0.001)
+        return False
 
     async def get_evse_status(self) -> EVSEStatus:
         """Overrides EVSEControllerInterface.get_evse_status()."""
         return EVSEStatus(
             notification_max_delay=0, evse_notification=EVSENotificationV20.TERMINATE
         )
+    
+    async def get_receipt_required(self) -> bool:
+        return ChargerWrapper.get_ReceiptRequired()
+
+    async def reset_evse_values(self):
+        ChargerWrapper.reset()
+    
+    async def get_evse_payment_options(self) -> list:
+        return ChargerWrapper.get_PaymentOptions()
+
+    async def is_free(self) -> bool:
+        return ChargerWrapper.get_FreeService()
+
+    async def is_eim_authorized(self) -> bool:
+        return ChargerWrapper.get_Auth_Okay_EIM()
+
+    async def is_pnc_authorized(self) -> bool:
+        return ChargerWrapper.get_Auth_Okay_PnC()
 
     async def set_present_protocol_state(self, state_name: str):
         pass
@@ -578,19 +634,27 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def get_ac_evse_status(self) -> ACEVSEStatus:
         """Overrides EVSEControllerInterface.get_ac_evse_status()."""
+
+        notification : EVSENotificationV2 = EVSENotificationV2.NONE
+        if ChargerWrapper.get_stop_charging() is True:
+            notification = EVSENotificationV2.STOP_CHARGING
+
         return ACEVSEStatus(
             notification_max_delay=0,
-            evse_notification=EVSENotificationV2.NONE,
-            rcd=False,
+            evse_notification=notification,
+            rcd=ChargerWrapper.get_RCD_Error(),
         )
 
     async def get_ac_charge_params_v2(self) -> ACEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_ac_evse_charge_parameter()."""
+
+        nominal_voltage_value, nominal_voltage_multiplier = float2Value_Multiplier(ChargerWrapper.get_AC_EVSENominalVoltage())
         evse_nominal_voltage = PVEVSENominalVoltage(
-            multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
+            multiplier=nominal_voltage_multiplier, value=nominal_voltage_value, unit=UnitSymbol.VOLTAGE
         )
+        max_current_value, max_current_multiplier = float2Value_Multiplier(ChargerWrapper.get_AC_EVSEMaxCurrent())
         evse_max_current = PVEVSEMaxCurrent(
-            multiplier=0, value=32, unit=UnitSymbol.AMPERE
+            multiplier=max_current_multiplier, value=max_current_value, unit=UnitSymbol.AMPERE
         )
         return ACEVSEChargeParameter(
             ac_evse_status=await self.get_ac_evse_status(),
@@ -672,55 +736,112 @@ class SimEVSEController(EVSEControllerInterface):
             # Add more optional fields if wanted
         )
 
+    async def get_ac_evse_max_current(self) -> PVEVSEMaxCurrent:
+        max_current_value, max_current_multiplier = float2Value_Multiplier(ChargerWrapper.get_AC_EVSEMaxCurrent())
+        return PVEVSEMaxCurrent( multiplier=max_current_multiplier, value=max_current_value, unit=UnitSymbol.AMPERE)
+
     # ============================================================================
     # |                          DC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
 
     async def get_dc_evse_status(self) -> DCEVSEStatus:
         """Overrides EVSEControllerInterface.get_dc_evse_status()."""
-        return DCEVSEStatus(
-            evse_notification=EVSENotificationV2.NONE,
-            notification_max_delay=0,
-            evse_isolation_status=IsolationLevel.VALID,
-            evse_status_code=DCEVSEStatusCode.EVSE_READY,
-        )
 
+        notification : EVSENotificationV2 = EVSENotificationV2.NONE
+        if ChargerWrapper.get_stop_charging() is True:
+            notification = EVSENotificationV2.STOP_CHARGING
+        
+        evse_isolation : IsolationLevel = IsolationLevel(ChargerWrapper.get_EVSEIsolationStatus())
+        
+        evse_status_code: DCEVSEStatusCode = DCEVSEStatusCode.EVSE_READY
+        if ChargerWrapper.get_EVSE_UtilityInterruptEvent() is True:
+            evse_status_code = DCEVSEStatusCode.EVSE_UTILITY_INTERUPT_EVENT
+        elif ChargerWrapper.get_EVSE_Malfunction() is True:
+            evse_status_code = DCEVSEStatusCode.EVSE_MALFUNCTION
+        elif ChargerWrapper.get_EVSE_EmergencyShutdown() is True:
+            evse_status_code = DCEVSEStatusCode.EVSE_EMERGENCY_SHUTDOWN
+        elif self.evseIsolationMonitoringActive is True:
+            evse_status_code = DCEVSEStatusCode.EVSE_ISOLATION_MONITORING_ACTIVE
+        elif ChargerWrapper.get_stop_charging() is True:
+            evse_status_code = DCEVSEStatusCode.EVSE_SHUTDOWN
+
+        return DCEVSEStatus(
+            evse_notification=notification,
+            notification_max_delay=0,
+            evse_isolation_status=evse_isolation,
+            evse_status_code=evse_status_code,
+        )
+		
     async def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_dc_evse_charge_parameter()."""
-        return DCEVSEChargeParameter(
-            dc_evse_status=DCEVSEStatus(
-                notification_max_delay=100,
-                evse_notification=EVSENotificationV2.NONE,
-                evse_isolation_status=IsolationLevel.VALID,
-                evse_status_code=DCEVSEStatusCode.EVSE_READY,
-            ),
+
+        c_ripple_value, c_ripple_multiplier = float2Value_Multiplier(
+            ChargerWrapper.get_DC_EVSEPeakCurrentRipple()
+        )
+        c_max_limit_value, c_max_limit_multiplier = float2Value_Multiplier(
+            ChargerWrapper.get_DC_EVSEMaximumCurrentLimit()
+        )
+        p_max_limit_value, p_max_limit_multiplier = float2Value_Multiplier(
+            ChargerWrapper.get_DC_EVSEMaximumPowerLimit()
+        )
+        v_max_limit_value, v_max_limit_multiplier = float2Value_Multiplier(
+            ChargerWrapper.get_DC_EVSEMaximumVoltageLimit()
+        )
+        c_min_limit_value, c_min_limit_multiplier = float2Value_Multiplier(
+            ChargerWrapper.get_DC_EVSEMinimumCurrentLimit()
+        )
+        v_min_limit_value, v_min_limit_multiplier = float2Value_Multiplier(
+            ChargerWrapper.get_DC_EVSEMinimumVoltageLimit()
+        )
+
+        dcEVSEChargeParameter: DCEVSEChargeParameter = DCEVSEChargeParameter(
+            dc_evse_status= await self.get_dc_evse_status(),
             evse_maximum_power_limit=PVEVSEMaxPowerLimit(
-                multiplier=1, value=230, unit="W"
+                multiplier=p_max_limit_multiplier, value=p_max_limit_value, unit="W"
             ),
             evse_maximum_current_limit=PVEVSEMaxCurrentLimit(
-                multiplier=1, value=4, unit="A"
+                multiplier=c_max_limit_multiplier, value=c_max_limit_value, unit="A"
             ),
             evse_maximum_voltage_limit=PVEVSEMaxVoltageLimit(
-                multiplier=1, value=4, unit="V"
+                multiplier=v_max_limit_multiplier, value=v_max_limit_value, unit="V"
             ),
             evse_minimum_current_limit=PVEVSEMinCurrentLimit(
-                multiplier=1, value=2, unit="A"
+                multiplier=c_min_limit_multiplier, value=c_min_limit_value, unit="A"
             ),
             evse_minimum_voltage_limit=PVEVSEMinVoltageLimit(
-                multiplier=1, value=4, unit="V"
+                multiplier=v_min_limit_multiplier, value=v_min_limit_value, unit="V"
             ),
             evse_peak_current_ripple=PVEVSEPeakCurrentRipple(
-                multiplier=1, value=4, unit="A"
-            ),
+                multiplier=c_ripple_multiplier, value=c_ripple_value, unit="A"
+            )
         )
+
+        if ChargerWrapper.get_DC_EVSECurrentRegulationTolerance() is not None:
+            current_reg_tol_value, current_reg_tol_multiplier = float2Value_Multiplier(
+                ChargerWrapper.get_DC_EVSECurrentRegulationTolerance()
+            )
+            dcEVSEChargeParameter.evse_current_regulation_tolerance = PVEVSECurrentRegulationTolerance(
+                multiplier=current_reg_tol_multiplier, value=current_reg_tol_value, unit="A"
+            )
+        if ChargerWrapper.get_EVSEEnergyToBeDelivered() is not None:
+            energy_deliver_value, energy_deliver_multiplier = float2Value_Multiplier(
+                ChargerWrapper.get_EVSEEnergyToBeDelivered()
+            )
+            dcEVSEChargeParameter.evse_energy_to_be_delivered = PVEVSEEnergyToBeDelivered(
+                multiplier = energy_deliver_multiplier, value = energy_deliver_value, unit="Wh"
+            )
+
+        return dcEVSEChargeParameter
 
     async def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
         """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
-        return PVEVSEPresentVoltage(multiplier=0, value=230, unit="V")
+        v_value, v_multiplier = float2Value_Multiplier(ChargerWrapper.get_DC_EVSEPresentVoltage())
+        return PVEVSEPresentVoltage(multiplier=v_multiplier, value=v_value, unit="V")
 
     async def get_evse_present_current(self) -> PVEVSEPresentCurrent:
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
-        return PVEVSEPresentCurrent(multiplier=0, value=1, unit="A")
+        c_value, c_multiplier = float2Value_Multiplier(ChargerWrapper.get_DC_EVSEPresentCurrent())
+        return PVEVSEPresentCurrent(multiplier=c_multiplier, value=c_value, unit="A")
 
     async def start_cable_check(self):
         pass
@@ -736,22 +857,38 @@ class SimEVSEController(EVSEControllerInterface):
         pass
 
     async def is_evse_current_limit_achieved(self) -> bool:
-        return True
+        if ChargerWrapper.get_DC_EVSEPresentCurrent() >= ChargerWrapper.get_DC_EVSEMaximumCurrentLimit():
+            return True
+        return False
 
     async def is_evse_voltage_limit_achieved(self) -> bool:
-        return True
+        if ChargerWrapper.get_DC_EVSEPresentVoltage() >= ChargerWrapper.get_DC_EVSEMaximumVoltageLimit():
+            return True
+        return False
 
     async def is_evse_power_limit_achieved(self) -> bool:
-        return True
+        presentPower:float = ChargerWrapper.get_DC_EVSEPresentCurrent() * ChargerWrapper.get_DC_EVSEPresentVoltage()
+        if presentPower >= ChargerWrapper.get_DC_EVSEMaximumPowerLimit():
+            return True
+        return False
 
     async def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
-        return PVEVSEMaxVoltageLimit(multiplier=0, value=600, unit="V")
+        v_max_limit_value, v_max_limit_multiplier = float2Value_Multiplier(
+            ChargerWrapper.get_DC_EVSEMaximumVoltageLimit()
+        )
+        return PVEVSEMaxVoltageLimit(multiplier=v_max_limit_multiplier, value=v_max_limit_value, unit="V")
 
     async def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
-        return PVEVSEMaxCurrentLimit(multiplier=0, value=300, unit="A")
+        c_max_limit_value, c_max_limit_multiplier = float2Value_Multiplier(
+            ChargerWrapper.get_DC_EVSEMaximumCurrentLimit()
+        )
+        return PVEVSEMaxCurrentLimit(multiplier=c_max_limit_multiplier, value=c_max_limit_value, unit="A")
 
     async def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
-        return PVEVSEMaxPowerLimit(multiplier=1, value=1000, unit="W")
+        p_max_limit_value, p_max_limit_multiplier = float2Value_Multiplier(
+            ChargerWrapper.get_DC_EVSEMaximumPowerLimit()
+        )
+        return PVEVSEMaxPowerLimit(multiplier=p_max_limit_multiplier, value=p_max_limit_value, unit="W")
 
     async def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryResParams:
         """Overrides EVSEControllerInterface.get_dc_charge_params_v20()."""
@@ -781,6 +918,12 @@ class SimEVSEController(EVSEControllerInterface):
             evse_max_discharge_current=RationalNumber(exponent=0, value=11),
             evse_min_discharge_current=RationalNumber(exponent=0, value=0),
         )
+    
+    async def setIsolationMonitoringActive(self, value: bool):
+        self.evseIsolationMonitoringActive = value
+    
+    async def isCableCheckFinished(self) -> bool:
+        return ChargerWrapper.get_cableCheck_Finished()
 
     async def get_15118_ev_certificate(
         self, base64_encoded_cert_installation_req: str, namespace: str

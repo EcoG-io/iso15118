@@ -3,6 +3,9 @@ from typing import List, Literal
 
 from pydantic import Field, root_validator
 
+from iso15118.shared.settings import get_ignoring_value_range
+import logging
+
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
     INT_16_MAX,
@@ -11,6 +14,7 @@ from iso15118.shared.messages.enums import (
     UnitSymbol,
 )
 
+logger = logging.getLogger(__name__)
 
 class PhysicalValue(BaseModel):
     """
@@ -45,11 +49,15 @@ class PhysicalValue(BaseModel):
         multiplier = values.get("multiplier")
         calculated_value = value * 10**multiplier
         if calculated_value > cls._max_limit or calculated_value < 0:
-            raise ValueError(
+            message: str = (
                 f"{cls.__name__[2:]} value limit exceeded: {calculated_value} \n"
                 f"Max: {cls._max_limit} \n"
                 f"Min: 0"
             )
+            if get_ignoring_value_range():
+                logger.warning(message)
+            else:
+                raise ValueError(message)
         return values
 
     def get_physical_value(self) -> float:
