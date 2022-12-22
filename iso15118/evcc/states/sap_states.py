@@ -25,7 +25,13 @@ from iso15118.shared.messages.din_spec.body import (
     SessionSetupReq as SessionSetupReqDINSPEC,
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
-from iso15118.shared.messages.enums import Namespace, Protocol
+from iso15118.shared.messages.enums import (
+    DINPayloadTypes,
+    ISOV2PayloadTypes,
+    ISOV20PayloadTypes,
+    Namespace,
+    Protocol,
+)
 from iso15118.shared.messages.iso15118_2.body import BodyBase
 from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupReq as SessionSetupReqV2,
@@ -89,6 +95,9 @@ class SupportedAppProtocol(StateEVCC):
         )
         next_ns: Namespace = Namespace.ISO_V2_MSG_DEF
         next_state: Type[State] = Terminate  # some default that is not None
+        next_payload_type: Union[
+            DINPayloadTypes, ISOV2PayloadTypes, ISOV20PayloadTypes
+        ] = ISOV2PayloadTypes.EXI_ENCODED
         match = False
 
         for protocol in self.comm_session.supported_protocols:
@@ -111,6 +120,7 @@ class SupportedAppProtocol(StateEVCC):
 
                     next_ns = Namespace.DIN_MSG_DEF
                     next_state = SessionSetupDINSPEC
+                    next_payload_type = DINPayloadTypes.EXI_ENCODED
                 elif protocol.protocol_ns.startswith(Namespace.ISO_V20_BASE):
                     self.comm_session.protocol = Protocol.get_by_ns(
                         protocol.protocol_ns
@@ -126,6 +136,7 @@ class SupportedAppProtocol(StateEVCC):
                     )
                     next_ns = Namespace.ISO_V20_COMMON_MSG
                     next_state = SessionSetupV20
+                    next_payload_type = ISOV20PayloadTypes.MAINSTREAM
                 else:
                     # This should not happen because the EVCC previously
                     # should have sent a valid SupportedAppProtocolReq
@@ -141,7 +152,11 @@ class SupportedAppProtocol(StateEVCC):
         if match:
             logger.info(f"Chosen protocol: {self.comm_session.protocol}")
             self.create_next_message(
-                next_state, next_msg, Timeouts.SESSION_SETUP_REQ, next_ns
+                next_state,
+                next_msg,
+                Timeouts.SESSION_SETUP_REQ,
+                next_ns,
+                next_payload_type,
             )
             return
 
