@@ -12,7 +12,7 @@ from iso15118.shared.exceptions import (
 )
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.settings import shared_settings
-from iso15118.shared.utils import load_requested_protocols, load_requested_auth_modes
+from iso15118.shared.utils import load_requested_auth_modes, load_requested_protocols
 
 logger = logging.getLogger(__name__)
 

@@ -2,9 +2,12 @@ import asyncio
 import logging
 from typing import Coroutine, List, Optional
 
-from iso15118.shared.exceptions import NoSupportedEnergyServices, NoSupportedProtocols, \
-    NoSupportedAuthenticationModes
-from iso15118.shared.messages.enums import Protocol, ServiceV20, AuthEnum
+from iso15118.shared.exceptions import (
+    NoSupportedAuthenticationModes,
+    NoSupportedEnergyServices,
+    NoSupportedProtocols,
+)
+from iso15118.shared.messages.enums import AuthEnum, Protocol, ServiceV20
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +39,7 @@ def load_requested_protocols(read_protocols: Optional[List[str]]) -> List[Protoc
 
 
 def load_requested_energy_services(
-        read_services: Optional[List[str]],
+    read_services: Optional[List[str]],
 ) -> List[ServiceV20]:
     supported_services = [
         "AC",
@@ -87,7 +90,7 @@ async def cancel_task(task):
 
 
 async def wait_for_tasks(
-        await_tasks: List[Coroutine], return_when=asyncio.FIRST_EXCEPTION
+    await_tasks: List[Coroutine], return_when=asyncio.FIRST_EXCEPTION
 ):
     """
     Method to run multiple tasks concurrently.
