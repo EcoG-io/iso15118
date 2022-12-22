@@ -6,10 +6,6 @@ from typing import List, Optional, Type
 import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
-from iso15118.shared.exceptions import (
-    NoSupportedAuthenticationModes,
-    NoSupportedProtocols,
-)
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.settings import shared_settings
 from iso15118.shared.utils import load_requested_auth_modes, load_requested_protocols
