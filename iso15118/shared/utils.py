@@ -2,8 +2,9 @@ import asyncio
 import logging
 from typing import Coroutine, List, Optional
 
-from iso15118.shared.exceptions import NoSupportedEnergyServices, NoSupportedProtocols
-from iso15118.shared.messages.enums import Protocol, ServiceV20
+from iso15118.shared.exceptions import NoSupportedEnergyServices, NoSupportedProtocols, \
+    NoSupportedAuthenticationModes
+from iso15118.shared.messages.enums import Protocol, ServiceV20, AuthEnum
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ def load_requested_protocols(read_protocols: Optional[List[str]]) -> List[Protoc
     supported_protocols = [
         "ISO_15118_2",
         "ISO_15118_20_AC",
+        "ISO_15118_20_DC",
         "DIN_SPEC_70121",
     ]
 
@@ -34,7 +36,7 @@ def load_requested_protocols(read_protocols: Optional[List[str]]) -> List[Protoc
 
 
 def load_requested_energy_services(
-    read_services: Optional[List[str]],
+        read_services: Optional[List[str]],
 ) -> List[ServiceV20]:
     supported_services = [
         "AC",
@@ -59,6 +61,22 @@ def load_requested_energy_services(
     return supported_services
 
 
+def load_requested_auth_modes(read_auth_modes: Optional[List[str]]) -> List[AuthEnum]:
+    default_auth_modes = [
+        "EIM",
+        "PNC",
+    ]
+    auth_modes = _format_list(read_auth_modes)
+    valid_auth_options = list(set(auth_modes).intersection(default_auth_modes))
+    if not valid_auth_options:
+        raise NoSupportedAuthenticationModes(
+            f"No supported authentication modes configured. Supported auth modes"
+            f" are {default_auth_modes} and could be configured in .env"
+            f" file with key 'AUTH_MODES'"
+        )
+    return [AuthEnum[x] for x in valid_auth_options]
+
+
 async def cancel_task(task):
     """Cancel the task safely"""
     task.cancel()
@@ -69,7 +87,7 @@ async def cancel_task(task):
 
 
 async def wait_for_tasks(
-    await_tasks: List[Coroutine], return_when=asyncio.FIRST_EXCEPTION
+        await_tasks: List[Coroutine], return_when=asyncio.FIRST_EXCEPTION
 ):
     """
     Method to run multiple tasks concurrently.

@@ -22,7 +22,7 @@ class EVCCConfig(BaseModel):
     max_contract_certs: Optional[int] = Field(None, alias="maxContractCerts")
     enforce_tls: bool = Field(None, alias="enforceTls")
     supported_protocols: Optional[List[str]] = Field(
-        None, max_items=4, alias="supportedProtocols"
+        None, max_items=8, alias="supportedProtocols"
     )
     energy_transfer_mode: Optional[EnergyTransferModeEnum] = Field(
         None, alias="energyTransferMode"
