@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field, validator
 from iso15118.shared.messages.enums import (
     UINT_16_MAX,
     EnergyTransferModeEnum,
-    ServiceV20,
 )
 
 logger = logging.getLogger(__name__)
