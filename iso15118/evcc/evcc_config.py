@@ -5,8 +5,11 @@ from typing import List, Optional
 from aiofile import async_open
 from pydantic import BaseModel, Field, validator
 
-from iso15118.shared.messages.enums import UINT_16_MAX, EnergyTransferModeEnum, \
-    ServiceV20
+from iso15118.shared.messages.enums import (
+    UINT_16_MAX,
+    EnergyTransferModeEnum,
+    ServiceV20,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +21,7 @@ class EVCCConfig(BaseModel):
         "ISO_15118_20_AC",
         "ISO_15118_20_DC",
     ]
-    default_supported_energy_services = [
-        "AC"
-    ]
+    default_supported_energy_services = ["AC"]
     supported_energy_services: List[str] = Field(
         default_supported_energy_services, max_items=4, alias="supportedEnergyServices"
     )
