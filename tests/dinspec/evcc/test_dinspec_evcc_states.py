@@ -3,11 +3,11 @@ from enum import Enum
 from unittest.mock import Mock, patch
 
 import pytest as pytest
-from iso15118.evcc.evcc_config import load_from_file
 
 from iso15118.evcc import EVCCConfig
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.controller.simulator import SimEVController
+from iso15118.evcc.evcc_config import load_from_file
 from iso15118.evcc.states.din_spec_states import (
     CableCheck,
     ChargeParameterDiscovery,
