@@ -171,10 +171,7 @@ class SimEVController(EVControllerInterface):
         self, protocol: Protocol
     ) -> EnergyTransferModeEnum:
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
-        if protocol == Protocol.DIN_SPEC_70121:
-            return EnergyTransferModeEnum.DC_EXTENDED
-        else:
-            return self.config.energy_transfer_mode
+        return self.config.energy_transfer_mode
 
     # todo read from json file
 
