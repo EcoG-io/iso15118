@@ -5,10 +5,7 @@ from typing import List, Optional
 from aiofile import async_open
 from pydantic import BaseModel, Field, validator
 
-from iso15118.shared.messages.enums import (
-    UINT_16_MAX,
-    EnergyTransferModeEnum,
-)
+from iso15118.shared.messages.enums import UINT_16_MAX, EnergyTransferModeEnum
 
 logger = logging.getLogger(__name__)
 
