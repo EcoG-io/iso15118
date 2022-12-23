@@ -102,7 +102,6 @@ from iso15118.shared.messages.iso15118_20.dc import (
     ScheduledDCChargeLoopReqParams,
 )
 from iso15118.shared.network import get_nic_mac_address
-from iso15118.shared.utils import load_requested_energy_services
 
 logger = logging.getLogger(__name__)
 
@@ -118,9 +117,6 @@ class SimEVController(EVControllerInterface):
         self.precharge_loop_cycles: int = 0
         self._charging_is_completed = False
         self._soc = 10
-        self.supported_energy_services = load_requested_energy_services(
-            self.config.supported_energy_services
-        )
         self.dc_ev_charge_params: DCEVChargeParams = DCEVChargeParams(
             dc_max_current_limit=PVEVMaxCurrentLimit(
                 multiplier=-3, value=32000, unit=UnitSymbol.AMPERE
@@ -177,7 +173,7 @@ class SimEVController(EVControllerInterface):
 
     async def get_supported_energy_services(self) -> List[ServiceV20]:
         """Overrides EVControllerInterface.get_energy_transfer_service()."""
-        return self.supported_energy_services
+        return self.config.supported_energy_services
 
     async def select_energy_service_v20(
         self, services: List[MatchedService]

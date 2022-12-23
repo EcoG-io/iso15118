@@ -57,7 +57,7 @@ from iso15118.shared.notifications import (
     StopNotification,
     UDPPacketNotification,
 )
-from iso15118.shared.utils import cancel_task, load_requested_protocols, wait_for_tasks
+from iso15118.shared.utils import cancel_task, wait_for_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         self.service_details_to_request: List[int] = []
         # Protocols supported by the EVCC as sent to the SECC via
         # the SupportedAppProtocolReq message
-        self.supported_protocols: List[AppProtocol] = []
+        self.supported_protocols: List[Protocol] = []
         # The Ongoing timer (given in seconds) starts running once the EVCC
         # receives a response with the field EVSEProcessing set to 'Ongoing'.
         # Once the timer is up, the EV will terminate the communication session.
@@ -149,7 +149,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         app_protocols = []
         schema_id = 0
         priority = 0
-        supported_protocols = load_requested_protocols(self.config.supported_protocols)
+        supported_protocols = self.config.supported_protocols
 
         # [V2G-DC-618] For DC charging according to DIN SPEC 70121,
         # an SDP server shall send an SECC Discovery Response message with Transport

@@ -5,22 +5,32 @@ from typing import List, Optional
 from aiofile import async_open
 from pydantic import BaseModel, Field, validator
 
-from iso15118.shared.messages.enums import UINT_16_MAX, EnergyTransferModeEnum
+from iso15118.shared.messages.enums import (
+    UINT_16_MAX,
+    EnergyTransferModeEnum,
+    Protocol,
+    ServiceV20,
+)
+from iso15118.shared.utils import (
+    load_requested_energy_services,
+    load_requested_protocols,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class EVCCConfig(BaseModel):
-    default_protocols = [
+    _default_protocols = [
         "DIN_SPEC_70121",
         "ISO_15118_2",
         "ISO_15118_20_AC",
         "ISO_15118_20_DC",
     ]
-    default_supported_energy_services = ["AC"]
-    supported_energy_services: List[str] = Field(
-        default_supported_energy_services, max_items=4, alias="supportedEnergyServices"
+    _default_supported_energy_services = ["AC"]
+    raw_supported_energy_services: List[str] = Field(
+        _default_supported_energy_services, max_items=4, alias="supportedEnergyServices"
     )
+    supported_energy_services: Optional[List[ServiceV20]] = None
     is_cert_install_needed: bool = Field(False, alias="isCertInstallNeeded")
     # Indicates the security level (either TCP (unencrypted) or TLS (encrypted))
     # the EVCC shall send in the SDP request
@@ -46,9 +56,10 @@ class EVCCConfig(BaseModel):
     # the protocols are listed here determines the priority (i.e. first list entry
     # has higher priority than second list entry). A list entry must be a member
     # of the Protocol enum
-    supported_protocols: Optional[List[str]] = Field(
-        default_protocols, max_items=6, alias="supportedProtocols"
+    raw_supported_protocols: Optional[List[str]] = Field(
+        _default_protocols, max_items=6, alias="supportedProtocols"
     )
+    supported_protocols: Optional[List[Protocol]] = None
     energy_transfer_mode: Optional[EnergyTransferModeEnum] = Field(
         EnergyTransferModeEnum.AC_THREE_PHASE_CORE, alias="energyTransferMode"
     )
@@ -57,6 +68,15 @@ class EVCCConfig(BaseModel):
     # ISO 15118-20 as well as PMaxSchedule and SalesTariff in ISO 15118-2).
     # The SECC must not transmit more entries than defined in this parameter.
     max_supporting_points: Optional[int] = Field(1024, alias="maxSupportingPoints")
+
+    def load_raw_values(self):
+        # conversion of list of strings to enum types.
+        self.supported_energy_services = load_requested_energy_services(
+            self.raw_supported_energy_services
+        )
+        self.supported_protocols = load_requested_protocols(
+            self.raw_supported_protocols
+        )
 
     @validator("max_supporting_points", pre=True, always=True)
     def check_max_supporting_points(cls, value):
@@ -91,9 +111,11 @@ async def load_from_file(file_name: str) -> EVCCConfig:
             json_content = await f.read()
             data = json.loads(json_content)
             ev_config = EVCCConfig(**data)
+            ev_config.load_raw_values()
             logger.info("EVCC Settings")
             for key, value in ev_config.dict().items():
-                logger.info(f"{key:30}: {value}")
+                if not key.startswith("raw"):
+                    logger.info(f"{key:30}: {value}")
         return ev_config
     except Exception as err:
         logger.debug(f"Error on loading evcc config file:{err}")
