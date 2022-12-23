@@ -169,8 +169,6 @@ class SimEVController(EVControllerInterface):
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
         return self.config.energy_transfer_mode
 
-    # todo read from json file
-
     async def get_supported_energy_services(self) -> List[ServiceV20]:
         """Overrides EVControllerInterface.get_energy_transfer_service()."""
         return self.config.supported_energy_services
