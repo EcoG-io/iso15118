@@ -3,6 +3,7 @@ from enum import Enum
 from unittest.mock import Mock, patch
 
 import pytest as pytest
+from iso15118.evcc.evcc_config import load_from_file
 
 from iso15118.evcc import EVCCConfig
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
@@ -47,11 +48,12 @@ class MockWriter:
 class TestEvScenarios:
     @pytest.fixture(autouse=True)
     def _comm_session(self, comm_evcc_session_mock):
-
         self.comm_session_mock = Mock(spec=EVCCCommunicationSession)
         self.comm_session_mock.session_id = "F9F9EE8505F55838"
         self.comm_session_mock.stop_reason = StopNotification(False, "pytest")
-        self.comm_session_mock.ev_controller = SimEVController(EVCCConfig())
+        evcc_config = EVCCConfig()
+        evcc_config.energy_transfer_mode = EnergyTransferModeEnum.DC_EXTENDED
+        self.comm_session_mock.ev_controller = SimEVController(evcc_config)
         self.comm_session_mock.protocol = Protocol.DIN_SPEC_70121
         self.comm_session_mock.selected_schedule = 1
         self.comm_session_mock.selected_services = []

@@ -2,9 +2,7 @@
 	"supportedProtocols": [
 		"DIN_SPEC_70121"
 	],
-	"supportedEnergyServices": [
-		"DC_extended"
-	],
+	"energyTransferMode": "DC_extended",
 	"isCertInstallNeeded": false,
 	"useTls": false
 }
