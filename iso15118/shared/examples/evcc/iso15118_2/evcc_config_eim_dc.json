@@ -1,0 +1,11 @@
+{
+	"supportedProtocols": [
+		"ISO_15118_2"
+	],
+	"supportedEnergyServices": [
+		"DC"
+	],
+	"energyTransferMode": "DC_extended",
+	"isCertInstallNeeded": false,
+	"useTls": false
+}

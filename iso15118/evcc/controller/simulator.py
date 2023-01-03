@@ -7,6 +7,7 @@ import logging
 import random
 from typing import List, Optional, Tuple, Union
 
+from iso15118.evcc import EVCCConfig
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
 from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
 from iso15118.shared.messages.datatypes import (
@@ -110,12 +111,12 @@ class SimEVController(EVControllerInterface):
     A simulated version of an EV controller
     """
 
-    def __init__(self):
+    def __init__(self, evcc_config: EVCCConfig):
+        self.config = evcc_config
         self.charging_loop_cycles: int = 0
         self.precharge_loop_cycles: int = 0
         self._charging_is_completed = False
         self._soc = 10
-
         self.dc_ev_charge_params: DCEVChargeParams = DCEVChargeParams(
             dc_max_current_limit=PVEVMaxCurrentLimit(
                 multiplier=-3, value=32000, unit=UnitSymbol.AMPERE
@@ -166,13 +167,11 @@ class SimEVController(EVControllerInterface):
         self, protocol: Protocol
     ) -> EnergyTransferModeEnum:
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
-        if protocol == Protocol.DIN_SPEC_70121:
-            return EnergyTransferModeEnum.DC_EXTENDED
-        return EnergyTransferModeEnum.AC_THREE_PHASE_CORE
+        return self.config.energy_transfer_mode
 
     async def get_supported_energy_services(self) -> List[ServiceV20]:
         """Overrides EVControllerInterface.get_energy_transfer_service()."""
-        return [ServiceV20.DC_BPT]
+        return self.config.supported_energy_services
 
     async def select_energy_service_v20(
         self, services: List[MatchedService]
@@ -453,7 +452,7 @@ class SimEVController(EVControllerInterface):
 
     async def is_cert_install_needed(self) -> bool:
         """Overrides EVControllerInterface.is_cert_install_needed()."""
-        return False
+        return self.config.is_cert_install_needed
 
     async def process_sa_schedules_dinspec(
         self, sa_schedules: List[SAScheduleTupleEntryDINSPEC]
@@ -618,6 +617,32 @@ class SimEVController(EVControllerInterface):
         )
         return ChargeParamsV2(
             await self.get_energy_transfer_mode(), ac_charge_params, None
+        )
+
+    async def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryReqParams:
+        """Overrides EVControllerInterface.get_ac_charge_params_v20()."""
+        return ACChargeParameterDiscoveryReqParams(
+            ev_max_charge_power=RationalNumber(exponent=3, value=3),
+            ev_max_charge_power_l2=RationalNumber(exponent=3, value=3),
+            ev_max_charge_power_l3=RationalNumber(exponent=3, value=3),
+            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+            ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+        )
+
+    async def get_ac_bpt_charge_params_v20(
+        self,
+    ) -> BPTACChargeParameterDiscoveryReqParams:
+        """Overrides EVControllerInterface.get_bpt_ac_charge_params_v20()."""
+        ac_charge_params_v20 = (await self.get_ac_charge_params_v20()).dict()
+        return BPTACChargeParameterDiscoveryReqParams(
+            **ac_charge_params_v20,
+            ev_max_discharge_power=RationalNumber(exponent=3, value=11),
+            ev_max_discharge_power_l2=RationalNumber(exponent=3, value=11),
+            ev_max_discharge_power_l3=RationalNumber(exponent=3, value=11),
+            ev_min_discharge_power=RationalNumber(exponent=0, value=100),
+            ev_min_discharge_power_l2=RationalNumber(exponent=0, value=100),
+            ev_min_discharge_power_l3=RationalNumber(exponent=0, value=100),
         )
 
     async def get_scheduled_ac_charge_loop_params(

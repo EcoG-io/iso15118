@@ -151,6 +151,29 @@ $ make install-local
 $ make poetry-shell
 $ make run-evcc
 ```
+It is possible to run up EVCC in different configurations. An example setting configuration
+for EVCC would be (15118-2, AC, EIM, TLS disabled mode), (15118-2/DINSPEC, DC, EIM/PnC, TLS enabled) etc. 
+Examples for such configurations are provided under "iso15118/shared/examples/evcc/". The configuration 
+could be passed in as a commandline argument as given below.
+
+```bash
+$ make run-evcc config=path_of_config_file
+```
+Supported settings in EVCC configuration are given below:
+
+
+| Setting                | Default Value                                                | Description                                                                                                                                 |
+|----------------------- | ------------------------------------------------------------ |---------------------------------------------------------------------------------------------------------------------------------------------|
+| supportedProtocols     | `DIN_SPEC_70121,ISO_15118_2,ISO_15118_20_AC,ISO_15118_20_DC` | Enabled communication protocols on EVCC. NOTE: ISO 15118 DC support is still under development                                              |
+| supportedEnergyServices| `AC`                                                         | Selected energy services mode for EVCC.                                                                                                     |
+| useTls                 | `True`                                                       | Whether or not the EVCC signals the preference to communicate with a TLS connection                                                         |
+| enforceTls             | `False`                                                      | Whether or not the EVCC will only accept TLS connections                                                                                    |
+| isCertInstallNeeded    | `False`                                                      | Indicates if the installation of a contract certificate is needed                                                                           |
+| energyTransferMode     | `AC_three_phase_core`                                        | Energy transfer mode requested for the current charging session.                                                                            |
+| sdpRetryCycles         | `1`                                                          | Indicates how often shall SDP (SECC Discovery Protocol) retries happen before reverting to using nominal duty cycle PWM-based charging      |
+| maxContractCerts       | `3`                                                          | Maximum amount of contract certificates the EV stores.                                                                                      |
+| maxSupportingPoints    | `1024`                                                       | Indicates the maximum number of entries the EVCC supports within the sub-elements of a ScheduleTuple                                        |
+
 
 The SECC and EVCC have been tested together under:
 
@@ -193,16 +216,14 @@ The default configuration values can be modified by setting them as environment 
 The following table provides a few of the available variables:
 
 | ENV               | Default Value                                                | Description                                                                                                                                                     |
-| ----------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ----------------- | ------------------------------------------------------------ |-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | NETWORK_INTERFACE | `eth0`                                                       | HomePlug Green PHY Network Interface from which the high-level communication (HLC) will be established                                                          |
 | SECC_ENFORCE_TLS  | `False`                                                      | Whether or not the SECC will enforce a TLS connection                                                                                                           |
-| EVCC_USE_TLS      | `True`                                                       | Whether or not the EVCC signals the preference to communicate with a TLS connection                                                                             |
-| EVCC_ENFORCE_TLS  | `False`                                                      | Whether or not the EVCC will only accept TLS connections                                                                                                        |
 | PKI_PATH          | `<CWD>/iso15118/shared/pki/`                                 | Path for the location of the PKI where the certificates are located. By default, the system will look for the PKI directory under the current working directory |
 | LOG_LEVEL         | `INFO`                                                       | Level of the Python log service                                                                                                                                 |
 | MESSAGE_LOG_JSON  | `True`                                                       | Whether or not to log the EXI JSON messages (only works if log level is set to DEBUG)                                                                           |
 | MESSAGE_LOG_EXI   | `False`                                                      | Whether or not to log the EXI Bytestream messages (only works if log level is set to DEBUG)                                                                     |
-| PROTOCOLS         | `DIN_SPEC_70121,ISO_15118_2,ISO_15118_20_AC,ISO_15118_20_DC` | Enabled communication protocols on SECC. NOTE: ISO 15118 DC support is still under development                                                                  |
+| PROTOCOLS         | `DIN_SPEC_70121,ISO_15118_2,ISO_15118_20_AC,ISO_15118_20_DC` | Enabled communication protocols on SECC.                                                                                                                        |
 | AUTH_MODES        | `EIM,PNC`                                                    | Selected authentication modes for SECC                                                                                                                          |
 | USE_CPO_BACKEND   | `False`                                                      | Indicates if backend integration is available to fetch certificates                                                                                             |
 | ENABLE_TLS_1_3    | `False`                                                      | Enables TLS 1.3 for SECC-EVCC communication.                                                                                                                    |

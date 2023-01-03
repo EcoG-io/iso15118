@@ -81,7 +81,7 @@ poetry-shell:
 
 # Run evcc with python
 run-evcc:
-	$(shell which python) iso15118/evcc/main.py
+	$(shell which python) iso15118/evcc/main.py $(config)
 
 # Run secc with python
 run-secc:

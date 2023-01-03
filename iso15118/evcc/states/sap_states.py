@@ -84,7 +84,7 @@ class SupportedAppProtocol(StateEVCC):
             BodyBaseDINSPEC,
         ] = SessionSetupReqV2(
             evcc_id=await self.comm_session.ev_controller.get_evcc_id(
-                Protocol.ISO_15118_2, self.comm_session.config.iface
+                Protocol.ISO_15118_2, self.comm_session.iface
             )
         )
         next_ns: Namespace = Namespace.ISO_V2_MSG_DEF
@@ -105,7 +105,7 @@ class SupportedAppProtocol(StateEVCC):
 
                     next_msg = SessionSetupReqDINSPEC(
                         evcc_id=await self.comm_session.ev_controller.get_evcc_id(
-                            Protocol.DIN_SPEC_70121, self.comm_session.config.iface
+                            Protocol.DIN_SPEC_70121, self.comm_session.iface
                         )
                     )
 
@@ -121,7 +121,7 @@ class SupportedAppProtocol(StateEVCC):
                     next_msg = SessionSetupReqV20(
                         header=header,
                         evcc_id=await self.comm_session.ev_controller.get_evcc_id(
-                            self.comm_session.protocol, self.comm_session.config.iface
+                            self.comm_session.protocol, self.comm_session.iface
                         ),
                     )
                     next_ns = Namespace.ISO_V20_COMMON_MSG

@@ -16,7 +16,7 @@ from typing import List, Optional, Tuple, Union
 from pydantic.error_wrappers import ValidationError
 
 from iso15118.evcc.controller.interface import EVControllerInterface
-from iso15118.evcc.evcc_settings import Config
+from iso15118.evcc.evcc_config import EVCCConfig
 from iso15118.evcc.transport.tcp_client import TCPClient
 from iso15118.evcc.transport.udp_client import UDPClient
 from iso15118.shared.comm_session import V2GCommunicationSession
@@ -74,7 +74,8 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         self,
         transport: Tuple[StreamReader, StreamWriter],
         session_handler_queue: asyncio.Queue,
-        config: Config,
+        evcc_config: EVCCConfig,
+        iface: str,
         ev_controller: EVControllerInterface,
     ):
         # Need to import here to avoid a circular import error
@@ -91,7 +92,8 @@ class EVCCCommunicationSession(V2GCommunicationSession):
             self, transport, SupportedAppProtocol, session_handler_queue, self
         )
 
-        self.config = config
+        self.config = evcc_config
+        self.iface = iface
         # The EV controller that implements the interface EVControllerInterface
         self.ev_controller = ev_controller
         # The authorization option (called PaymentOption in ISO 15118-2) the
@@ -103,7 +105,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         self.service_details_to_request: List[int] = []
         # Protocols supported by the EVCC as sent to the SECC via
         # the SupportedAppProtocolReq message
-        self.supported_protocols: List[AppProtocol] = []
+        self.supported_protocols: List[Protocol] = []
         # The Ongoing timer (given in seconds) starts running once the EVCC
         # receives a response with the field EVSEProcessing set to 'Ongoing'.
         # Once the timer is up, the EV will terminate the communication session.
@@ -256,13 +258,18 @@ class CommunicationSessionHandler:
     # pylint: disable=too-many-instance-attributes
 
     def __init__(
-        self, config: Config, codec: IEXICodec, ev_controller: EVControllerInterface
+        self,
+        config: EVCCConfig,
+        iface: str,
+        codec: IEXICodec,
+        ev_controller: EVControllerInterface,
     ):
         self.list_of_tasks = []
         self.udp_client = None
         self.tcp_client = None
         self.tls_client = None
         self.config = config
+        self.iface = iface
         self.ev_controller = ev_controller
         self.sdp_retries_number = SDP_MAX_REQUEST_COUNTER
         self._sdp_retry_cycles = self.config.sdp_retry_cycles
@@ -285,7 +292,7 @@ class CommunicationSessionHandler:
         async def __init__. Therefore, we need to create a separate async
         method to be our constructor.
         """
-        self.udp_client = UDPClient(self._rcv_queue, self.config.iface)
+        self.udp_client = UDPClient(self._rcv_queue, self.iface)
         self.list_of_tasks = [
             self.udp_client.start(),
             self.get_from_rcv_queue(self._rcv_queue),
@@ -400,7 +407,7 @@ class CommunicationSessionHandler:
                 f"{host.compressed} at port {port} ..."
             )
             self.tcp_client = await TCPClient.create(
-                host, port, self._rcv_queue, is_tls, self.config.iface
+                host, port, self._rcv_queue, is_tls, self.iface
             )
             logger.info("TCP client connected")
         except Exception as exc:
@@ -414,6 +421,7 @@ class CommunicationSessionHandler:
             (self.tcp_client.reader, self.tcp_client.writer),
             self._rcv_queue,
             self.config,
+            self.iface,
             self.ev_controller,
         )
 

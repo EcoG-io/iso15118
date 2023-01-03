@@ -6,21 +6,11 @@ from typing import List, Optional, Type
 import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
-from iso15118.shared.exceptions import (
-    NoSupportedAuthenticationModes,
-    NoSupportedProtocols,
-)
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.settings import shared_settings
+from iso15118.shared.utils import load_requested_auth_modes, load_requested_protocols
 
 logger = logging.getLogger(__name__)
-
-
-def format_list(read_settings: List[str]) -> List[str]:
-    read_settings = list(filter(None, read_settings))
-    read_settings = [setting.strip().upper() for setting in read_settings]
-    read_settings = list(set(read_settings))
-    return read_settings
 
 
 @dataclass
@@ -99,14 +89,14 @@ class Config:
         # has higher priority than second list entry). A list entry must be a member
         # of the Protocol enum
         protocols = env.list("PROTOCOLS", default=self.default_protocols)
-        self.load_requested_protocols(protocols)
+        self.supported_protocols = load_requested_protocols(protocols)
 
         # Supported authentication options (named payment options in ISO 15118-2).
         # Note: SECC will not offer 'pnc' if chosen transport protocol is not TLS
         # Must be a list containing either AuthEnum members EIM (for External
         # Identification Means), PNC (for Plug & Charge) or both
         auth_modes = env.list("AUTH_MODES", default=self.default_auth_modes)
-        self.load_requested_auth_modes(auth_modes)
+        self.supported_auth_options = load_requested_auth_modes(auth_modes)
 
         # Whether the charging station allows the EV to go into Standby (one of the
         # enum values in PowerDeliveryReq's ChargeProgress field). In Standby, the
@@ -122,25 +112,3 @@ class Config:
             logger.info(f"{key:30}: {value}")
         for key, value in self.secc_env.items():
             logger.info(f"{key:30}: {value}")
-
-    def load_requested_protocols(self, read_protocols: Optional[List[str]]):
-        protocols = format_list(read_protocols)
-        valid_protocols = list(set(protocols).intersection(self.default_protocols))
-        if not valid_protocols:
-            raise NoSupportedProtocols(
-                f"No supported protocols configured. Supported protocols are "
-                f"{self.default_protocols} and could be configured in .env"
-                f" file with key 'PROTOCOLS'"
-            )
-        self.supported_protocols = [Protocol[x] for x in valid_protocols]
-
-    def load_requested_auth_modes(self, read_auth_modes: Optional[List[str]]):
-        auth_modes = format_list(read_auth_modes)
-        valid_auth_options = list(set(auth_modes).intersection(self.default_auth_modes))
-        if not valid_auth_options:
-            raise NoSupportedAuthenticationModes(
-                f"No supported authentication modes configured. Supported auth modes"
-                f" are {self.default_auth_modes} and could be configured in .env"
-                f" file with key 'AUTH_MODES'"
-            )
-        self.supported_auth_options = [AuthEnum[x] for x in valid_auth_options]
