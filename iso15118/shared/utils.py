@@ -62,4 +62,4 @@ async def start_and_wait_for_coroutines(
     await_coroutines: List[Coroutine], return_when=asyncio.FIRST_EXCEPTION
 ):
     tasks = start_tasks(await_coroutines)
-    await wait_for_tasks(tasks)
+    await wait_for_tasks(tasks, return_when)
