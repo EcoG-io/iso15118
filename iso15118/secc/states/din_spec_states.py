@@ -1059,6 +1059,15 @@ class CurrentDemand(StateSECC):
             evse_power_limit_achieved=(
                 await self.comm_session.evse_controller.is_evse_power_limit_achieved()
             ),
+            evse_max_current_limit=(
+                await self.comm_session.evse_controller.get_evse_max_current_limit()
+            ),
+            evse_max_voltage_limit=(
+                await self.comm_session.evse_controller.get_evse_max_voltage_limit()
+            ),
+            evse_max_power_limit=(
+                await self.comm_session.evse_controller.get_evse_max_power_limit()
+            ),
         )
 
         if dc_evse_status.evse_status_code is DCEVSEStatusCode.EVSE_SHUTDOWN:
