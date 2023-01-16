@@ -1714,14 +1714,14 @@ class PowerDelivery(StateSECC):
                     for (ev_profile_idx, ev_profile_entry) in enumerate(
                             ev_profile_entries[cached_start_idx_ev:]
                     ):
-                        _is_last_ev_profile = (
-                                ev_profile_entry.start == ev_profile_entries[-1].start
-                        )
+                        _is_last_ev_profile = (ev_profile_entry.start
+                                               == ev_profile_entries[-1].start
+                                               )
 
                         if (
                                 ev_profile_entry.start < sa_profile_entry_end or _is_last_ev_profile):  # noqa
                             ev_entry_pmax = (
-                                        ev_profile_entry.max_power.value * 10 ** ev_profile_entry.max_power.multiplier)  # noqa
+                                    ev_profile_entry.max_power.value * 10 ** ev_profile_entry.max_power.multiplier)  # noqa
                             if ev_entry_pmax > sa_entry_pmax:
                                 logger.error(
                                     f"EV Profile start {ev_profile_entry.start}s"
@@ -1733,8 +1733,7 @@ class PowerDelivery(StateSECC):
 
                             if not _is_last_ev_profile:
                                 ev_profile_entry_end = ev_profile_entries[
-                                    ev_profile_idx + 1
-                                    ].start
+                                    ev_profile_idx + 1].start
                                 if ev_profile_entry_end <= sa_profile_entry_end:
                                     last_ev_running_idx = ev_profile_idx + 1
                             else:
