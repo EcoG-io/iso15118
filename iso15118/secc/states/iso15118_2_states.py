@@ -294,7 +294,10 @@ class ServiceDiscovery(StateSECC):
             else:
                 auth_options.append(AuthEnum.PNC_V2)
         else:
-            if await self.comm_session.evse_controller.is_external_authorization_done():
+            if (
+                await self.comm_session.evse_controller.is_authorized()
+                == AuthorizationStatus.ACCEPTED
+            ):
                 auth_options.append(AuthEnum.EIM_V2)
             else:
                 supported_auth_options = self.comm_session.config.supported_auth_options
@@ -1709,14 +1712,16 @@ class PowerDelivery(StateSECC):
                     last_ev_running_idx = 0
                     # fmt: off
                     for (ev_profile_idx, ev_profile_entry) in enumerate(
-                        ev_profile_entries[cached_start_idx_ev:]
+                            ev_profile_entries[cached_start_idx_ev:]
                     ):
                         _is_last_ev_profile = (
-                            ev_profile_entry.start == ev_profile_entries[-1].start
+                                ev_profile_entry.start == ev_profile_entries[-1].start
                         )
 
-                        if (ev_profile_entry.start < sa_profile_entry_end or _is_last_ev_profile ): # noqa
-                            ev_entry_pmax = (ev_profile_entry.max_power.value * 10 ** ev_profile_entry.max_power.multiplier)  # noqa
+                        if (
+                                ev_profile_entry.start < sa_profile_entry_end or _is_last_ev_profile):  # noqa
+                            ev_entry_pmax = (
+                                        ev_profile_entry.max_power.value * 10 ** ev_profile_entry.max_power.multiplier)  # noqa
                             if ev_entry_pmax > sa_entry_pmax:
                                 logger.error(
                                     f"EV Profile start {ev_profile_entry.start}s"
@@ -1729,7 +1734,7 @@ class PowerDelivery(StateSECC):
                             if not _is_last_ev_profile:
                                 ev_profile_entry_end = ev_profile_entries[
                                     ev_profile_idx + 1
-                                ].start
+                                    ].start
                                 if ev_profile_entry_end <= sa_profile_entry_end:
                                     last_ev_running_idx = ev_profile_idx + 1
                             else:
@@ -2277,7 +2282,9 @@ class CurrentDemand(StateSECC):
             evse_voltage_limit_achieved=(
                 await evse_controller.is_evse_voltage_limit_achieved()
             ),
-            evse_power_limit_achieved=await evse_controller.is_evse_power_limit_achieved(),  # noqa
+            evse_power_limit_achieved=(
+                await evse_controller.is_evse_power_limit_achieved()
+            ),
             evse_max_voltage_limit=await evse_controller.get_evse_max_voltage_limit(),
             evse_max_current_limit=await evse_controller.get_evse_max_current_limit(),
             evse_max_power_limit=await evse_controller.get_evse_max_power_limit(),
