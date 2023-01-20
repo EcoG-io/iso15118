@@ -294,7 +294,7 @@ class ServiceDiscovery(StateSECC):
             else:
                 auth_options.append(AuthEnum.PNC_V2)
         else:
-            if await self.comm_session.evse_controller.is_external_authorization_done():
+            if self.comm_session.evse_controller.is_eim_authorized():
                 auth_options.append(AuthEnum.EIM_V2)
             else:
                 supported_auth_options = self.comm_session.config.supported_auth_options
