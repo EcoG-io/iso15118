@@ -238,7 +238,7 @@ class AuthorizationSetup(StateSECC):
         auth_options: List[AuthEnum] = []
         eim_as_res, pnc_as_res = None, None
         supported_auth_options = []
-        if await self.comm_session.evse_controller.is_external_authorization_done():
+        if self.comm_session.evse_controller.is_eim_authorized():
             supported_auth_options.append(AuthEnum.EIM)
         else:
             supported_auth_options = self.comm_session.config.supported_auth_options
