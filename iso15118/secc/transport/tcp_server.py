@@ -84,18 +84,24 @@ class TCPServer(asyncio.Protocol):
         # Initialise socket for IPv6 TCP packets
         # Address family (determines network layer protocol, here IPv6)
         # Socket type (stream, determines transport layer protocol TCP)
-        sock = socket.socket(family=socket.AF_INET6, type=socket.SOCK_STREAM)
+        while True:
+            sock = socket.socket(family=socket.AF_INET6, type=socket.SOCK_STREAM)
 
-        # Allows address to be reused
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            # Allows address to be reused
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        self.full_ipv6_address = await get_link_local_full_addr(port, self.iface)
-        self.ipv6_address_host = self.full_ipv6_address[0]
+            self.full_ipv6_address = await get_link_local_full_addr(port, self.iface)
+            self.ipv6_address_host = self.full_ipv6_address[0]
 
-        # Bind the socket to the IP address and port for receiving
-        # TCP packets
-        sock.bind(self.full_ipv6_address)
-
+            # Bind the socket to the IP address and port for receiving
+            # TCP packets
+            try:
+                sock.bind(self.full_ipv6_address)
+            except OSError as e:
+                logger.info(f"{e} on {server_type} server. Retrying...")
+                await asyncio.sleep(0.5)
+                continue
+            break
         server = await asyncio.start_server(
             # The client_connected_cb callback, which is the __call__ method of
             # this class) is called whenever a new client connection is
