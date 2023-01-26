@@ -452,6 +452,9 @@ class CableCheck(StateSECC):
             return
 
         if not self.cable_check_req_was_received:
+            # First CableCheckReq received. Start cable check.
+            await self.comm_session.evse_controller.start_cable_check()
+
             # Requirement in 6.4.3.106 of the IEC 61851-23
             # Any relays in the DC output circuit of the DC station shall
             # be closed during the insulation test
@@ -462,7 +465,7 @@ class CableCheck(StateSECC):
                     ResponseCode.FAILED,
                 )
                 return
-            await self.comm_session.evse_controller.start_cable_check()
+
             self.cable_check_req_was_received = True
         self.comm_session.evse_controller.ev_data_context.soc = (
             cable_check_req.dc_ev_status.ev_ress_soc
