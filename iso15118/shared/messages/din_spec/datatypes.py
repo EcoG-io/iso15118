@@ -290,7 +290,7 @@ class ProfileEntryDetails(BaseModel):
     """See section 9.5.2.7 in DIN SPEC 70121"""
 
     start: int = Field(..., alias="ChargingProfileEntryStart")
-    max_power: int = Field(..., ge=1, le=255, alias="ChargingProfileMaxPower")
+    max_power: int = Field(..., ge=0, le=32767, alias="ChargingProfileEntryMaxPower")
 
 
 class ChargingProfile(BaseModel):
