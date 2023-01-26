@@ -10,7 +10,8 @@ The primary dependencies to install the project are the following:
 > - Linux
 >
 >   - MacOS is not fully supported -- see "IPv6 Warning" below
->   - Other non-Linux operating systems are not supported*
+>   - Windows is supported using [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+>   - Other non-Linux operating systems are not supported
 >
 > - Poetry [^3]
 > - Python >= 3.9
