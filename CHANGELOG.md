@@ -5,6 +5,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2023-01-27
+
+### Fixed
+* AB#3740: Removed check in SalesTariff validator by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/188
+* Fix for UDP server failing to start on Linux VM by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/187
+* AB#3669 Inverted cable check contactor status check order by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/186
+* Update datatypes.py - fixed range for ChargingProfileEntryMaxPower by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/185
+* Fix: SessionSetupReq in -20 had the wrong V2GTP type by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/183
+* Feat/update docker config by @santiagosalamandri in https://github.com/SwitchEV/iso15118/pull/195
+
+### Changed
+* env variables are moved to json config file by @ikaratass in https://github.com/SwitchEV/iso15118/pull/172
+* fix: bump cryptography to v39.0.0 by @snorkman88 in https://github.com/SwitchEV/iso15118/pull/189
+* the name of is_external_authorization method has changed to is_eim_au… by @ikaratass in https://github.com/SwitchEV/iso15118/pull/191
+
 ## [0.15.0] - 2022-12-20
 
 ### Fixed
