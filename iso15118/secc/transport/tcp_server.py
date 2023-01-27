@@ -84,7 +84,10 @@ class TCPServer(asyncio.Protocol):
 
         MAX_RETRIES: int = 3
         BACK_OFF_SECONDS: float = 0.5
-
+        # Note: When the socket is being created inside a container,
+        # sometimes the network interface is not ready yet and the binding
+        # process fails the first time.
+        # Therefore, a wait-and-retry block has been added.
         for i in range(MAX_RETRIES):
             # Initialise socket for IPv6 TCP packets
             # Address family (determines network layer protocol, here IPv6)
