@@ -56,6 +56,8 @@ build: .generate_v2_certs
 	@# This conversion is required, otherwise we wouldn't be able to spawn the evcc start script.
 	@# @ is used as a separator and allows us to escape '/', so we can substitute the '/' itself
 	@sed -i.bkp 's@/secc/g@/evcc/g@g' iso15118/evcc/Dockerfile
+	@# Add a delay on EVCC to give SECC time to start up 
+	@sed -i'.bkp' -e 's@CMD /venv/bin/iso15118@CMD echo "Waiting for 5 seconds to start EVCC" \&\& sleep 5 \&\& /venv/bin/iso15118@g' iso15118/evcc/Dockerfile
 	docker-compose build
 
 # Run using dev env vars

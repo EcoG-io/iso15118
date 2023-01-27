@@ -81,20 +81,38 @@ class TCPServer(asyncio.Protocol):
             port = self.port_tls
             ssl_context = get_ssl_context(True)
             server_type = "TLS"
-        # Initialise socket for IPv6 TCP packets
-        # Address family (determines network layer protocol, here IPv6)
-        # Socket type (stream, determines transport layer protocol TCP)
-        sock = socket.socket(family=socket.AF_INET6, type=socket.SOCK_STREAM)
 
-        # Allows address to be reused
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        MAX_RETRIES: int = 3
+        BACK_OFF_SECONDS: float = 0.5
+        # Note: When the socket is being created inside a container,
+        # sometimes the network interface is not ready yet and the binding
+        # process fails the first time.
+        # Therefore, a wait-and-retry block has been added.
+        for i in range(MAX_RETRIES):
+            # Initialise socket for IPv6 TCP packets
+            # Address family (determines network layer protocol, here IPv6)
+            # Socket type (stream, determines transport layer protocol TCP)
+            sock = socket.socket(family=socket.AF_INET6, type=socket.SOCK_STREAM)
 
-        self.full_ipv6_address = await get_link_local_full_addr(port, self.iface)
-        self.ipv6_address_host = self.full_ipv6_address[0]
+            # Allows address to be reused
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        # Bind the socket to the IP address and port for receiving
-        # TCP packets
-        sock.bind(self.full_ipv6_address)
+            self.full_ipv6_address = await get_link_local_full_addr(port, self.iface)
+            self.ipv6_address_host = self.full_ipv6_address[0]
+
+            # Bind the socket to the IP address and port for receiving
+            # TCP packets
+            try:
+                sock.bind(self.full_ipv6_address)
+                break
+            except OSError as e:
+                # Once the max amount of retries has been reached, reraise the exception
+                if i == MAX_RETRIES - 1:
+                    raise e
+                else:
+                    logger.info(f"{e} on {server_type} server. Retrying...")
+                    await asyncio.sleep(BACK_OFF_SECONDS)
+                    continue
 
         server = await asyncio.start_server(
             # The client_connected_cb callback, which is the __call__ method of

@@ -9,7 +9,7 @@ ENV PYTHONFAULTHANDLER=1 \
   PIP_NO_CACHE_DIR=1 \
   PIP_DISABLE_PIP_VERSION_CHECK=1 \
   PIP_DEFAULT_TIMEOUT=100 \
-  POETRY_VERSION=1.1.11 \
+  POETRY_VERSION=1.3.2 \
   VIRTUALENV_PIP=21.2.1 \
   MYPY_VERSION=0.930
 
@@ -46,6 +46,7 @@ RUN /venv/bin/pip install dist/*.whl
 
 # Replace with in-container cert generation DevOps#2664
 COPY --from=build /usr/src/app/iso15118/shared/pki/ /usr/src/app/iso15118/shared/pki/
+COPY --from=build /usr/src/app/iso15118/shared/examples/evcc/iso15118_2/ /usr/src/app/iso15118/shared/examples/evcc/iso15118_2/
 
 RUN /venv/bin/pip install aiofile
 # This will run the entrypoint script defined in the pyproject.toml
