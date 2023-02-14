@@ -6,12 +6,13 @@ from iso15118.evcc import EVCCConfig
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.controller.simulator import SimEVController
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.secc.controller.interface import EVSessionContext15118
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.secc.failed_responses import init_failed_responses_iso_v2
 from iso15118.shared.messages.enums import Protocol
 from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.notifications import StopNotification
-from tests.secc.states.test_messages import get_sa_schedule_list
+from tests.iso15118_2.secc.states.test_messages import get_sa_schedule_list
 from tests.tools import MOCK_SESSION_ID
 
 
@@ -40,4 +41,5 @@ def comm_secc_session_mock():
     comm_session_mock.evse_controller = SimEVSEController()
     comm_session_mock.protocol = Protocol.UNKNOWN
     comm_session_mock.evse_id = "UK123E1234"
+    comm_session_mock.ev_session_context = EVSessionContext15118()
     return comm_session_mock

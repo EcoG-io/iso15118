@@ -16,7 +16,11 @@ import socket
 from asyncio.streams import StreamReader, StreamWriter
 from typing import Dict, List, Optional, Tuple, Union
 
-from iso15118.secc.controller.interface import EVSEControllerInterface, ServiceStatus
+from iso15118.secc.controller.interface import (
+    EVSEControllerInterface,
+    EVSessionContext15118,
+    ServiceStatus,
+)
 from iso15118.secc.failed_responses import (
     init_failed_responses_din_spec_70121,
     init_failed_responses_iso_v2,
@@ -125,6 +129,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         # CurrentDemandRes. The SECC must send a copy in the MeteringReceiptReq
         # TODO Add support for ISO 15118-20 MeterInfo
         self.sent_meter_info: Optional[MeterInfoV2] = None
+        self.ev_session_context: Optional[EVSessionContext15118] = None
         self.is_tls = self._is_tls(transport)
 
     def save_session_info(self):

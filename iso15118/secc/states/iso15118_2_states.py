@@ -10,7 +10,10 @@ import time
 from typing import List, Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.interface import EVChargeParamsLimits
+from iso15118.secc.controller.interface import (
+    EVChargeParamsLimits,
+    EVSessionContext15118,
+)
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
     CertAttributeError,
@@ -167,7 +170,9 @@ class SessionSetup(StateSECC):
         if msg.header.session_id == bytes(1).hex():
             # A new charging session is established
             self.response_code = ResponseCode.OK_NEW_SESSION_ESTABLISHED
-        elif msg.header.session_id == self.comm_session.session_id:
+            self.comm_session.ev_session_context = EVSessionContext15118()
+            self.comm_session.ev_session_context.session_id = session_id
+        elif msg.header.session_id == self.comm_session.ev_session_context.session_id:
             # The EV wants to resume the previously paused charging session
             session_id = self.comm_session.session_id
             self.response_code = ResponseCode.OK_OLD_SESSION_JOINED
@@ -179,6 +184,8 @@ class SessionSetup(StateSECC):
                 f"New session ID {session_id} assigned"
             )
             self.response_code = ResponseCode.OK_NEW_SESSION_ESTABLISHED
+            self.comm_session.ev_session_context = EVSessionContext15118()
+            self.comm_session.ev_session_context.session_id = session_id
 
         session_setup_res = SessionSetupRes(
             response_code=self.response_code,
@@ -286,7 +293,13 @@ class ServiceDiscovery(StateSECC):
         value is not standardized in any way
         """
         auth_options: List[AuthEnum] = []
-        if self.comm_session.selected_auth_option:
+
+        if self.comm_session.ev_session_context.auth_options:
+            logger.info("AuthOptions available in context. This is a resumed session.")
+            # This is a resumed session.
+            # Return the auth option that was previously selected.
+            auth_options = self.comm_session.ev_session_context.auth_options
+        elif self.comm_session.selected_auth_option:
             # In case the EVCC resumes a paused charging session, the SECC
             # must only offer the auth option the EVCC selected previously
             if self.comm_session.selected_auth_option == AuthEnum.EIM_V2:
@@ -311,15 +324,22 @@ class ServiceDiscovery(StateSECC):
             )
         )
 
-        charge_service = ChargeService(
-            service_id=ServiceID.CHARGING,
-            service_name=ServiceName.CHARGING,
-            service_category=ServiceCategory.CHARGING,
-            free_service=self.comm_session.config.free_charging_service,
-            supported_energy_transfer_mode=EnergyTransferModeList(
-                energy_modes=energy_modes
-            ),
-        )
+        if self.comm_session.ev_session_context.charge_service:
+            logger.info(
+                "ChargeService available in context. This is a resumed session."
+            )
+            charge_service = self.comm_session.ev_session_context.charge_service
+        else:
+            charge_service = ChargeService(
+                service_id=ServiceID.CHARGING,
+                service_name=ServiceName.CHARGING,
+                service_category=ServiceCategory.CHARGING,
+                free_service=self.comm_session.config.free_charging_service,
+                supported_energy_transfer_mode=EnergyTransferModeList(
+                    energy_modes=energy_modes
+                ),
+            )
+            self.comm_session.ev_session_context.charge_service = charge_service
 
         service_list: List[ServiceDetails] = []
         # Value-added services (VAS), like installation of contract certificates
@@ -590,6 +610,9 @@ class PaymentServiceSelection(StateSECC):
         self.comm_session.selected_auth_option = AuthEnum(
             service_selection_req.selected_auth_option.value
         )
+        self.comm_session.ev_session_context.auth_options: List[AuthEnum] = [
+            self.comm_session.selected_auth_option
+        ]
 
         # For now, we don't really care much more about the selected
         # value-added services. If the EVCC wants to do contract certificate
@@ -1270,6 +1293,28 @@ class ChargeParameterDiscovery(StateSECC):
         sa_schedule_list_valid = self.validate_sa_schedule_list(
             sa_schedule_list, departure_time
         )
+
+        if (
+            sa_schedule_list_valid
+            and self.comm_session.ev_session_context.sa_schedule_tuple_id
+        ):
+            filtered_list = list(filter(
+                lambda schedule_entry: schedule_entry.sa_schedule_tuple_id
+                == self.comm_session.ev_session_context.sa_schedule_tuple_id,
+                sa_schedule_list,
+            ))
+            if len(filtered_list) != 1:
+                logger.warning(
+                    f"Resumed session. Previously selected sa_schedule_list is"
+                    f" not present {sa_schedule_list}"
+                )
+            else:
+                logger.info(
+                    f"Resumed session. SAScheduleTupleID "
+                    f"{self.comm_session.ev_session_context.sa_schedule_tuple_id} "
+                    f"present in context"
+                )
+
         if not sa_schedule_list_valid:
             # V2G2-305 : It is still acceptable if the sum of the schedule entry
             # durations falls short of departure_time requested by the EVCC in
@@ -1901,6 +1946,9 @@ class SessionStop(StateSECC):
             next_state = Pause
         else:
             next_state = Terminate
+            # EVSessionContext stores information for resuming a paused session.
+            # As Terminate is requested, clear context information.
+            self.comm_session.ev_session_context = None
         self.create_next_message(
             next_state,
             SessionStopRes(response_code=ResponseCode.OK),

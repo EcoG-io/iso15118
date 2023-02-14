@@ -9,7 +9,7 @@ from iso15118.evcc.states.iso15118_2_states import (
 )
 from iso15118.shared.messages.iso15118_2.datatypes import ChargingSession
 from iso15118.shared.notifications import StopNotification
-from tests.evcc.states.test_messages import (
+from tests.iso15118_2.evcc.states.test_messages import (
     get_v2g_message_current_demand_res,
     get_v2g_message_current_demand_res_with_stop_charging,
     get_v2g_message_power_delivery_res,
