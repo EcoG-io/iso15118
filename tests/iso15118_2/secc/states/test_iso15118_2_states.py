@@ -695,7 +695,7 @@ class TestV2GSessionScenarios:
             )
         )
         sa_schedule_list = (
-            charge_parameter_discovery.message.body.charge_parameter_discovery_res.sa_schedule_list.schedule_tuples
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res.sa_schedule_list.schedule_tuples  # noqa
         )
 
         filtered_list = list(
