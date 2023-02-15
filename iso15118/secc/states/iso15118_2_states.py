@@ -1298,11 +1298,13 @@ class ChargeParameterDiscovery(StateSECC):
             sa_schedule_list_valid
             and self.comm_session.ev_session_context.sa_schedule_tuple_id
         ):
-            filtered_list = list(filter(
-                lambda schedule_entry: schedule_entry.sa_schedule_tuple_id
-                == self.comm_session.ev_session_context.sa_schedule_tuple_id,
-                sa_schedule_list,
-            ))
+            filtered_list = list(
+                filter(
+                    lambda schedule_entry: schedule_entry.sa_schedule_tuple_id
+                    == self.comm_session.ev_session_context.sa_schedule_tuple_id,
+                    sa_schedule_list,
+                )
+            )
             if len(filtered_list) != 1:
                 logger.warning(
                     f"Resumed session. Previously selected sa_schedule_list is"

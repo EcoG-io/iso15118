@@ -698,11 +698,13 @@ class TestV2GSessionScenarios:
             charge_parameter_discovery.message.body.charge_parameter_discovery_res.sa_schedule_list.schedule_tuples
         )
 
-        filtered_list = list(filter(
-            lambda schedule_entry: schedule_entry.sa_schedule_tuple_id
-            == schedule_tuple_id,
-            sa_schedule_list,
-        ))
+        filtered_list = list(
+            filter(
+                lambda schedule_entry: schedule_entry.sa_schedule_tuple_id
+                == schedule_tuple_id,
+                sa_schedule_list,
+            )
+        )
 
         if match_status:
             assert len(filtered_list) == 1
