@@ -27,6 +27,8 @@ class TCPServer(asyncio.Protocol):
         self.port_no_tls = get_tcp_port()
         self.port_tls = get_tcp_port()
         self.iface = iface
+        self.server = None
+        self.is_tls_enabled = False
 
         # Making sure the TCP and TLS port are definitely different
         while self.port_no_tls == self.port_tls:
@@ -77,10 +79,17 @@ class TCPServer(asyncio.Protocol):
         port = self.port_no_tls
         ssl_context = None
         server_type = "TCP"
+        self.is_tls_enabled = False
         if tls:
             port = self.port_tls
             ssl_context = get_ssl_context(True)
-            server_type = "TLS"
+            if ssl_context is not None:
+                server_type = "TLS"
+                self.is_tls_enabled = True
+            else:
+                logger.warning(
+                    "SSL context not created. Falling back to TCP connection."
+                )
 
         MAX_RETRIES: int = 3
         BACK_OFF_SECONDS: float = 0.5
@@ -114,7 +123,7 @@ class TCPServer(asyncio.Protocol):
                     await asyncio.sleep(BACK_OFF_SECONDS)
                     continue
 
-        server = await asyncio.start_server(
+        self.server = await asyncio.start_server(
             # The client_connected_cb callback, which is the __call__ method of
             # this class) is called whenever a new client connection is
             # established. It receives a StreamReader and StreamWriter pair.
@@ -137,11 +146,11 @@ class TCPServer(asyncio.Protocol):
             # closing the opening connections
             # Shield when cancelled, does not cancel the task within.
             # So, instead, we can control what to do with the task
-            await asyncio.shield(server.wait_closed())
+            await asyncio.shield(self.server.wait_closed())
         except asyncio.CancelledError:
             logger.warning("Closing TCP server")
-            server.close()
-            await server.wait_closed()
+            self.server.close()
+            await self.server.wait_closed()
 
     async def __call__(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter

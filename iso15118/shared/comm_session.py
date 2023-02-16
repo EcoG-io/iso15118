@@ -312,6 +312,7 @@ class V2GCommunicationSession(SessionStateMachine):
         self.reader, self.writer = transport
         # For timeout, termination, and pausing notifications
         self.session_handler_queue = session_handler_queue
+        self.peer_name = self.writer.get_extra_info("peername")
         self.session_id: str = ""
         # Mutually agreed-upon ISO 15118 application protocol as result of SAP
         self.chosen_protocol: str = ""
@@ -405,10 +406,7 @@ class V2GCommunicationSession(SessionStateMachine):
             await self.writer.wait_closed()
         except ConnectionResetError as exc:
             logger.info(str(exc))
-        logger.info(
-            "TCP connection closed to peer with address "
-            f"{self.writer.get_extra_info('peername')}"
-        )
+        logger.info("TCP connection closed to peer with address " f"{self.peer_name}")
 
     async def send(self, message: V2GTPMessage):
         """
@@ -452,7 +450,7 @@ class V2GCommunicationSession(SessionStateMachine):
                         StopNotification(
                             False,
                             stop_reason,
-                            self.writer.get_extra_info("peername"),
+                            self.peer_name,
                         )
                     )
                     return
@@ -471,9 +469,7 @@ class V2GCommunicationSession(SessionStateMachine):
                         f"while waiting for SupportedAppProtocolReq"
                     )
 
-                self.stop_reason = StopNotification(
-                    False, error_msg, self.writer.get_extra_info("peername")
-                )
+                self.stop_reason = StopNotification(False, error_msg, self.peer_name)
 
                 await self.stop(reason=error_msg)
                 self.session_handler_queue.put_nowait(self.stop_reason)
@@ -527,7 +523,7 @@ class V2GCommunicationSession(SessionStateMachine):
                 self.stop_reason = StopNotification(
                     False,
                     stop_reason,
-                    self.writer.get_extra_info("peername"),
+                    self.peer_name,
                 )
 
                 await self.stop(stop_reason)
@@ -541,7 +537,7 @@ class V2GCommunicationSession(SessionStateMachine):
                 self.stop_reason = StopNotification(
                     False,
                     stop_reason,
-                    self.writer.get_extra_info("peername"),
+                    self.peer_name,
                 )
 
                 await self.stop(stop_reason)
