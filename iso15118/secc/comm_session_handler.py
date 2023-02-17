@@ -171,6 +171,7 @@ class CommunicationSessionHandler:
         self.tcp_server_handler = None
         self.config = config
         self.evse_controller = evse_controller
+        self.udp_processor_lock = asyncio.Lock()
 
         # List of server status events
         self.status_event_list: List[asyncio.Event] = []
@@ -308,11 +309,12 @@ class CommunicationSessionHandler:
         self.udp_server.resume_udp_server()
 
     async def start_tcp_server(self, tls_enabled: bool):
-        if (
-            self.tcp_server_handler is not None
-            and self.tcp_server.is_tls_enabled == tls_enabled
-        ):
+        if self.tcp_server_handler is not None:
+            """A TCP server is already available, ready to respond.
+            (Perhaps created when the last SDP request was received.)
+            """
             return
+
         server_ready_event: asyncio.Event = asyncio.Event()
         self.status_event_list.clear()
         self.status_event_list.append(server_ready_event)
@@ -332,59 +334,62 @@ class CommunicationSessionHandler:
         SDP response with or without
         PPD (pairing and positioning device -> ACD-pantograph in ISO 15118-20)
         """
+
         try:
             v2gtp_msg = V2GTPMessage.from_bytes(Protocol.UNKNOWN, message.data)
         except InvalidV2GTPMessageError as exc:
             logger.exception(exc)
             return
 
-        # An incoming datagram can only be an SDP request message, all
-        # other messages are sent via TCP
-        if v2gtp_msg.payload_type == ISOV2PayloadTypes.SDP_REQUEST:
-            try:
-                sdp_request = SDPRequest.from_payload(v2gtp_msg.payload)
-                logger.info(f"SDPRequest received: {sdp_request}")
+        async with self.udp_processor_lock:
+            # Process one incoming datagram at a time.
+            # An incoming datagram can only be an SDP request message, all
+            # other messages are sent via TCP
+            if v2gtp_msg.payload_type == ISOV2PayloadTypes.SDP_REQUEST:
+                try:
+                    sdp_request = SDPRequest.from_payload(v2gtp_msg.payload)
+                    logger.info(f"SDPRequest received: {sdp_request}")
 
-                if self.config.enforce_tls or sdp_request.security == Security.TLS:
-                    await self.start_tcp_server(True)
-                    port = self.tcp_server.port_tls
-                else:
-                    await self.start_tcp_server(False)
-                    port = self.tcp_server.port_no_tls
+                    if self.config.enforce_tls or sdp_request.security == Security.TLS:
+                        await self.start_tcp_server(True)
+                        port = self.tcp_server.port_tls
+                    else:
+                        await self.start_tcp_server(False)
+                        port = self.tcp_server.port_no_tls
 
-                # convert IPv6 address from presentation to numeric format
-                ipv6_bytes = socket.inet_pton(
-                    socket.AF_INET6, self.tcp_server.ipv6_address_host
+                    # convert IPv6 address from presentation to numeric format
+                    ipv6_bytes = socket.inet_pton(
+                        socket.AF_INET6, self.tcp_server.ipv6_address_host
+                    )
+
+                    sdp_response = create_sdp_response(
+                        sdp_request, ipv6_bytes, port, self.tcp_server.is_tls_enabled
+                    )
+                except InvalidSDPRequestError as exc:
+                    logger.exception(
+                        f"{exc.__class__.__name__}, received bytes: "
+                        f"{v2gtp_msg.payload.hex()}"
+                    )
+                    return
+            elif v2gtp_msg.payload_type == ISOV20PayloadTypes.SDP_REQUEST_WIRELESS:
+                raise NotImplementedError(
+                    "The incoming datagram seems to be an SECC Discovery request "
+                    "message for wireless communication (used for ACD-P). "
+                    "This feature is not yet implemented."
                 )
-
-                sdp_response = create_sdp_response(
-                    sdp_request, ipv6_bytes, port, self.tcp_server.is_tls_enabled
-                )
-            except InvalidSDPRequestError as exc:
-                logger.exception(
-                    f"{exc.__class__.__name__}, received bytes: "
-                    f"{v2gtp_msg.payload.hex()}"
+            else:
+                logger.error(
+                    f"Incoming datagram of {len(message.data)} "
+                    f"bytes is no valid SDP request message"
                 )
                 return
-        elif v2gtp_msg.payload_type == ISOV20PayloadTypes.SDP_REQUEST_WIRELESS:
-            raise NotImplementedError(
-                "The incoming datagram seems to be an SECC Discovery request "
-                "message for wireless communication (used for ACD-P). "
-                "This feature is not yet implemented."
-            )
-        else:
-            logger.error(
-                f"Incoming datagram of {len(message.data)} "
-                f"bytes is no valid SDP request message"
-            )
-            return
 
-        # TODO Determine protocol version
-        v2gtp_msg = V2GTPMessage(
-            Protocol.ISO_15118_2,
-            ISOV2PayloadTypes.SDP_RESPONSE,
-            sdp_response.to_payload(),
-        )
-        logger.info(f"Sending SDPResponse: {sdp_response}")
+            # TODO Determine protocol version
+            v2gtp_msg = V2GTPMessage(
+                Protocol.ISO_15118_2,
+                ISOV2PayloadTypes.SDP_RESPONSE,
+                sdp_response.to_payload(),
+            )
+            logger.info(f"Sending SDPResponse: {sdp_response}")
 
-        self.udp_server.send(v2gtp_msg, message.addr)
+            self.udp_server.send(v2gtp_msg, message.addr)
