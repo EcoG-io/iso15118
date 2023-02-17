@@ -28,6 +28,7 @@ class PhysicalValue(BaseModel):
     """
 
     _max_limit: int = 0
+    _min_limit: int = 0
     # XSD int16 range [-32768, 32767]
     value: int = Field(..., ge=INT_16_MIN, le=INT_16_MAX, alias="Value")
     # XSD type byte with value range [-3..3]
@@ -44,7 +45,7 @@ class PhysicalValue(BaseModel):
         value = values.get("value")
         multiplier = values.get("multiplier")
         calculated_value = value * 10**multiplier
-        if calculated_value > cls._max_limit or calculated_value < 0:
+        if calculated_value > cls._max_limit or calculated_value < cls._min_limit:
             raise ValueError(
                 f"{cls.__name__[2:]} value limit exceeded: {calculated_value} \n"
                 f"Max: {cls._max_limit} \n"
