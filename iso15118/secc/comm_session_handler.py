@@ -285,7 +285,6 @@ class CommunicationSessionHandler:
                     try:
                         await self.end_current_session(notification.peer_ip_address)
                     except KeyError:
-                        # TODO Need to check why this KeyError happens
                         pass
                 else:
                     logger.warning(
@@ -308,7 +307,7 @@ class CommunicationSessionHandler:
         self.tcp_server_handler = None
         self.udp_server.resume_udp_server()
 
-    async def start_tcp_server(self, tls_enabled: bool):
+    async def start_tcp_server(self, with_tls: bool):
         if self.tcp_server_handler is not None:
             """A TCP server is already available, ready to respond.
             (Perhaps created when the last SDP request was received.)
@@ -318,7 +317,7 @@ class CommunicationSessionHandler:
         server_ready_event: asyncio.Event = asyncio.Event()
         self.status_event_list.clear()
         self.status_event_list.append(server_ready_event)
-        if tls_enabled:
+        if with_tls:
             self.tcp_server_handler = asyncio.create_task(
                 self.tcp_server.start_tls(server_ready_event)
             )
