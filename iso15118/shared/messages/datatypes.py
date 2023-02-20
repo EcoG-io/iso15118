@@ -477,7 +477,7 @@ class PVEVSEPresentVoltageDin(PVEVSEPresentVoltage):
     In DIN there is no range for the value specified. There are EVs that sometimes send values below zero.
     """
 
-    _max_limit: int = -10
+    _min_limit: int = -10
     unit: Literal[UnitSymbol.VOLTAGE] = Field(None, alias="Unit")
 
 
