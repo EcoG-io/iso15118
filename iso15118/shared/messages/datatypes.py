@@ -484,8 +484,12 @@ class PVEVTargetCurrentDin(PVEVTargetCurrent):
     See section 9.5.2.4 in DIN SPEC 70121
 
     In DIN the Element unit is optional, in ISO it is mandatory.
+    In DIN there is no range for the value specified.
+    There are EVs that sometimes send values below zero
+    (e.g. Skoda Enyaq).
     """
 
+    _min_limit: int = -10
     unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
 
 
