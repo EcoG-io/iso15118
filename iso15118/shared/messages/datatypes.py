@@ -474,8 +474,10 @@ class PVEVSEPresentVoltageDin(PVEVSEPresentVoltage):
     See section 9.5.2.4 in DIN SPEC 70121
 
     In DIN the Element unit is optional, in ISO it is mandatory.
+    In DIN there is no range for the value specified. There are EVs that sometimes send values below zero.
     """
 
+    _max_limit: int = -10
     unit: Literal[UnitSymbol.VOLTAGE] = Field(None, alias="Unit")
 
 
