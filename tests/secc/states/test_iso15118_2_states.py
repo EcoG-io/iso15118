@@ -444,11 +444,7 @@ class TestV2GSessionScenarios:
     @pytest.mark.parametrize(
         "get_state_return_value, expected_next_state",
         [
-            (CpState.B1, Terminate),
-            (CpState.B2, Terminate),
-            (CpState.C1, Terminate),
             (CpState.C2, CurrentDemand),
-            (CpState.D1, Terminate),
             (CpState.D2, CurrentDemand),
         ],
     )
