@@ -1534,17 +1534,13 @@ class PowerDelivery(StateSECC):
             # Before closing the contactor, we need to check to
             # ensure the CP is in state C or D
             if not await self.wait_for_state_c_or_d():
-                logger.error("Cp state is not C2 or D2 after PowerDeliveryReq")
-                self.stop_state_machine(
-                    "State is not C or D",
-                    message,
-                    ResponseCode.FAILED,
+                logger.warning(
+                    "C2/D2 CP state not detected after 250ms in PowerDelivery"
                 )
-                return
 
             if not await self.comm_session.evse_controller.is_contactor_closed():
                 self.stop_state_machine(
-                    "Contactor didnt close",
+                    "Contactor not closed on time.",
                     message,
                     ResponseCode.FAILED_CONTACTOR_ERROR,
                 )
