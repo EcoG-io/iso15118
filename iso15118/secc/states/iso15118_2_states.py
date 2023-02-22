@@ -42,6 +42,7 @@ from iso15118.shared.messages.enums import (
     IsolationLevel,
     Namespace,
     Protocol,
+    SessionStopAction,
 )
 from iso15118.shared.messages.iso15118_2.body import (
     EMAID,
@@ -172,7 +173,10 @@ class SessionSetup(StateSECC):
             self.response_code = ResponseCode.OK_NEW_SESSION_ESTABLISHED
             self.comm_session.ev_session_context = EVSessionContext15118()
             self.comm_session.ev_session_context.session_id = session_id
-        elif msg.header.session_id == self.comm_session.ev_session_context.session_id:
+        elif (
+            self.comm_session.ev_session_context.session_id
+            and msg.header.session_id == self.comm_session.ev_session_context.session_id
+        ):
             # The EV wants to resume the previously paused charging session
             session_id = self.comm_session.session_id
             self.response_code = ResponseCode.OK_OLD_SESSION_JOINED
@@ -1938,19 +1942,23 @@ class SessionStop(StateSECC):
         msg = self.check_msg_v2(message, [SessionStopReq])
         if not msg:
             return
-        session_status = msg.body.session_stop_req.charging_session.lower()
-        self.comm_session.stop_reason = StopNotification(
-            True,
-            f"EV Requested to {session_status} the communication session",
-            self.comm_session.writer.get_extra_info("peername"),
-        )
+
         if msg.body.session_stop_req.charging_session == ChargingSession.PAUSE:
             next_state = Pause
+            session_stop_state = SessionStopAction.PAUSE
         else:
             next_state = Terminate
+            session_stop_state = SessionStopAction.TERMINATE
             # EVSessionContext stores information for resuming a paused session.
             # As Terminate is requested, clear context information.
             self.comm_session.ev_session_context = None
+
+        self.comm_session.stop_reason = StopNotification(
+            True,
+            f"EV requested to {session_stop_state.value} the communication session",
+            self.comm_session.writer.get_extra_info("peername"),
+            session_stop_state,
+        )
         self.create_next_message(
             next_state,
             SessionStopRes(response_code=ResponseCode.OK),

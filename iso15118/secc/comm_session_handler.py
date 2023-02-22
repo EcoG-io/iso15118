@@ -38,6 +38,7 @@ from iso15118.shared.messages.enums import (
     ISOV2PayloadTypes,
     ISOV20PayloadTypes,
     Protocol,
+    SessionStopAction,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain as CertificateChainV2,
@@ -129,7 +130,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         # CurrentDemandRes. The SECC must send a copy in the MeteringReceiptReq
         # TODO Add support for ISO 15118-20 MeterInfo
         self.sent_meter_info: Optional[MeterInfoV2] = None
-        self.ev_session_context: Optional[EVSessionContext15118] = None
+        self.ev_session_context: EVSessionContext15118 = EVSessionContext15118()
         self.is_tls = self._is_tls(transport)
 
     def save_session_info(self):
@@ -288,7 +289,9 @@ class CommunicationSessionHandler:
                     self.comm_sessions[notification.ip_address] = (comm_session, task)
                 elif isinstance(notification, StopNotification):
                     try:
-                        await self.end_current_session(notification.peer_ip_address)
+                        await self.end_current_session(
+                            notification.peer_ip_address, notification.stop_action
+                        )
                     except KeyError:
                         pass
                 else:
@@ -301,10 +304,17 @@ class CommunicationSessionHandler:
             finally:
                 queue.task_done()
 
-    async def end_current_session(self, peer_ip_address: str):
+    async def end_current_session(
+        self, peer_ip_address: str, session_stop_action: SessionStopAction
+    ):
         try:
+            if session_stop_action == SessionStopAction.TERMINATE:
+                del self.comm_sessions[peer_ip_address]
+            else:
+                logger.debug(
+                    f"Preserved session state: {self.comm_sessions[peer_ip_address][0].ev_session_context}"  # noqa
+                )
             await cancel_task(self.comm_sessions[peer_ip_address][1])
-            del self.comm_sessions[peer_ip_address]
             await cancel_task(self.tcp_server_handler)
         except Exception as e:
             logger.warning(f"Unexpected error ending current session: {e}")
