@@ -1154,7 +1154,8 @@ class SessionStop(StateSECC):
 
         self.comm_session.stop_reason = StopNotification(
             True,
-            f"Communication session {session_stop_state.value}d. EV Info: {termination_info}",
+            f"Communication session {session_stop_state.value}d. "
+            f"EV Info: {termination_info}",
             self.comm_session.writer.get_extra_info("peername"),
             session_stop_state,
         )
