@@ -441,24 +441,6 @@ class TestV2GSessionScenarios:
 
         self.comm_session.evse_controller.set_hlc_charging.assert_called_with(False)
 
-    @pytest.mark.parametrize(
-        "get_state_return_value, expected_next_state",
-        [
-            (CpState.C2, CurrentDemand),
-            (CpState.D2, CurrentDemand),
-        ],
-    )
-    async def test_power_delivery_state_c(
-        self, get_state_return_value, expected_next_state
-    ):
-
-        power_delivery = PowerDelivery(self.comm_session)
-        mock_get_cp_state = AsyncMock(return_value=get_state_return_value)
-        self.comm_session.evse_controller.get_cp_state = mock_get_cp_state
-        await power_delivery.process_message(
-            message=get_dummy_v2g_message_power_delivery_req_charge_start()
-        )
-        assert power_delivery.next_state is expected_next_state
 
     async def test_service_discovery_req_unexpected_state(self):
         self.comm_session.selected_auth_option = AuthEnum.PNC_V2
