@@ -441,7 +441,6 @@ class TestV2GSessionScenarios:
 
         self.comm_session.evse_controller.set_hlc_charging.assert_called_with(False)
 
-
     async def test_service_discovery_req_unexpected_state(self):
         self.comm_session.selected_auth_option = AuthEnum.PNC_V2
         self.comm_session.config.free_charging_service = False
