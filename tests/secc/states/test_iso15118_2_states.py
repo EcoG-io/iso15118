@@ -22,7 +22,6 @@ from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
     AuthorizationTokenType,
-    CpState,
     EVSEProcessing,
 )
 from iso15118.shared.messages.iso15118_2.body import ResponseCode
