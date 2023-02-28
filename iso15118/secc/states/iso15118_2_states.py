@@ -1540,7 +1540,7 @@ class PowerDelivery(StateSECC):
 
             if not await self.comm_session.evse_controller.is_contactor_closed():
                 self.stop_state_machine(
-                    "Contactor didn't close within the allotted time.",
+                    "[V2G2-860] Contactor didn't close within the allotted 3 seconds.",
                     message,
                     ResponseCode.FAILED_CONTACTOR_ERROR,
                 )
