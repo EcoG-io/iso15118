@@ -1584,14 +1584,14 @@ class PowerDelivery(StateSECC):
             # no later than 3s after measuring CP State C or D.
             # Before closing the contactor, we need to check to
             # ensure the CP is in state C or D
-            if not await self.wait_for_state_c_or_d():
-                logger.error("Cp state is not C2 or D2 after PowerDeliveryReq")
-                self.stop_state_machine(
-                    "State is not C or D",
-                    message,
-                    ResponseCode.FAILED,
-                )
-                return
+            # if not await self.wait_for_state_c_or_d():
+            #     logger.error("Cp state is not C2 or D2 after PowerDeliveryReq")
+            #     self.stop_state_machine(
+            #         "State is not C or D",
+            #         message,
+            #         ResponseCode.FAILED,
+            #     )
+            #     return
 
             if not await self.comm_session.evse_controller.is_contactor_closed():
                 self.stop_state_machine(
