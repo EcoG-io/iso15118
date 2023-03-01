@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2023-03-01
+
+### Changed
+* Start TCP server after an SDP request is received. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/199
+* AB#4208 Not detecting C/D shouldn't stop charging session. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/201
+
 ## [0.16.0] - 2023-01-27
 
 ### Fixed
