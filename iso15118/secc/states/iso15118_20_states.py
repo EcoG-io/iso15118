@@ -1309,6 +1309,20 @@ class ACChargeLoop(StateSECC):
         selected_energy_service = self.comm_session.selected_energy_service
         control_mode = self.comm_session.control_mode
 
+        if control_mode == ControlMode.DYNAMIC:
+            # For now we just do this for the Dynamic Mode
+            # TODO: check if the conversion to dict will actually provide
+            # the correct values given the Rational type of them
+            ev_charge_parameters = ac_charge_loop_req.dynamic_params.dict()
+            ev_bpt_charge_parameters = ac_charge_loop_req.bpt_dynamic_params.dict()
+            self.comm_session.evse_controller.ev_data_context.update(ev_charge_parameters)
+            self.comm_session.evse_controller.ev_data_context.update(ev_bpt_charge_parameters)
+            await self.comm_session.evse_controller.send_charging_power_limits(
+                self.comm_session.protocol,
+                control_mode,
+                selected_energy_service.service
+            )
+
         if selected_energy_service.service == ServiceV20.AC:
             if control_mode == ControlMode.SCHEDULED:
                 scheduled_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa

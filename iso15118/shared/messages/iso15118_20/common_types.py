@@ -170,6 +170,9 @@ class RationalNumber(BaseModel):
     # XSD type short (16 bit integer) with value range [-32768..32767]
     value: int = Field(..., ge=INT_16_MIN, le=INT_16_MAX, alias="Value")
 
+    def get_decimal_value(self) -> float:
+        return self.value * 10**self.exponent
+
 
 class EVSENotification(str, Enum):
     """See section 8.3.5.3.26 in ISO 15118-20"""

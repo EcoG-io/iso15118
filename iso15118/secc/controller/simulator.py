@@ -578,6 +578,48 @@ class SimEVSEController(EVSEControllerInterface):
     async def set_present_protocol_state(self, state_name: str):
         pass
 
+    async def send_charging_power_limits(
+            self,
+            protocol: Protocol,
+            control_mode: ControlMode,
+            selected__energy_service: ServiceV20
+    ) -> None:
+        """
+        This method shall merge the EV-EVSE charging power limits and send it
+
+        Args:
+            protocol: protocol selected (DIN, ISO 15118-2, ISO 15118-20_AC,..)
+            control_mode: Control mode for this session - Scheduled/Dynamic
+            selected__energy_service: Enum for this Service - AC/AC_BPT/DC/DC_BPT
+
+        Returns: None
+
+        """
+        if protocol == Protocol.ISO_15118_20_AC:
+            if selected__energy_service in [ServiceV20.AC, ServiceV20.AC_BPT]:
+                charge_parameters = await self.get_ac_charge_params_v20(
+                    selected__energy_service
+                )
+            else:
+                charge_parameters = await self.get_dc_charge_params_v20(
+                    selected__energy_service
+                )
+
+            ev_power_limits = self.get_ev_data_context()
+
+            max_charge_power = min(ev_power_limits.ev_max_charge_power,
+                                   charge_parameters.evse_max_charge_power.get_decimal_value())
+            max_discharge_power = min(ev_power_limits.ev_max_discharge_power,
+                                      charge_parameters.evse_max_discharge_power.get_decimal_value())
+            min_charge_power = max(ev_power_limits.ev_min_charge_power,
+                                   charge_parameters.evse_min_charge_power.get_decimal_value())
+            min_discharge_power = max(ev_power_limits.ev_min_discharge_power,
+                                      charge_parameters.evse_min_discharge_power.get_decimal_value())
+
+            # NOTE: Currently reactive limits are not available
+            # https://iso15118.elaad.io/pt2/15118-20/user-group/-/issues/65
+        return
+
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
