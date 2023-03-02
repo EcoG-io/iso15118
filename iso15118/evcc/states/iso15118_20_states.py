@@ -507,7 +507,7 @@ class ServiceDetail(StateEVCC):
 
         service_detail_res: ServiceDetailRes = msg
 
-        self.store_service_details(service_detail_res)
+        self.store_parameter_sets(service_detail_res)
 
         # Each ServiceDetailReq returns ParameterSet for a specified service.
         # Send ServiceDetailReq to EVSE if there are more parameter sets
@@ -605,10 +605,19 @@ class ServiceDetail(StateEVCC):
             for param in parameter_set.parameters:
                 if param.name == ParameterName.CONTROL_MODE:
                     self.comm_session.control_mode = ControlMode(param.int_value)
+                    logger.info(f"Selected Control Mode: {self.comm_session.control_mode}")
                     control_mode_set = True
         return control_mode_set
 
-    def store_service_details(self, service_detail_res: ServiceDetailRes):
+    def store_parameter_sets(self, service_detail_res: ServiceDetailRes):
+        """
+        Saves the parameter sets associated with the service id requested
+        Args:
+            service_detail_res: Service Detail Response for the service requested
+
+        Returns:
+
+        """
         for service in self.comm_session.matched_services_v20:
             # Save the parameter sets for a particular service
             if service.service.id == service_detail_res.service_id:
@@ -905,24 +914,23 @@ class PowerDelivery(StateEVCC):
         ev_controller = self.comm_session.ev_controller
 
         if selected_energy_service.service in [ServiceV20.AC, ServiceV20.AC_BPT]:
+            charging_loop_params = await ev_controller.get_ac_charge_loop_params_v20(
+                control_mode,
+                selected_energy_service.service
+            )
             if selected_energy_service.service == ServiceV20.AC:
                 if control_mode == ControlMode.SCHEDULED:
-                    scheduled_params = (
-                        await ev_controller.get_scheduled_ac_charge_loop_params()
-                    )
+                    scheduled_params = charging_loop_params
                 else:
-                    dynamic_params = (
-                        await ev_controller.get_dynamic_ac_charge_loop_params()
-                    )
-            elif selected_energy_service.service == ServiceV20.AC_BPT:
+                    # Dynamic
+                    dynamic_params = charging_loop_params
+            else:
+                # AC_BPT
                 if control_mode == ControlMode.SCHEDULED:
-                    bpt_scheduled_params = (
-                        await ev_controller.get_bpt_scheduled_ac_charge_loop_params()
-                    )
+                    bpt_scheduled_params = charging_loop_params
                 else:
-                    bpt_dynamic_params = (
-                        await ev_controller.get_bpt_dynamic_ac_charge_loop_params()
-                    )
+                    # Dynamic
+                    bpt_dynamic_params = charging_loop_params
 
             ac_charge_loop_req = ACChargeLoopReq(
                 header=MessageHeader(
@@ -1191,7 +1199,7 @@ class ACChargeLoop(StateEVCC):
         # evse_status field in ACChargeLoopRes is optional
         if ac_charge_loop_res.evse_status:
             if (
-                ac_charge_loop_res.evse_notification
+                ac_charge_loop_res.evse_status.evse_notification
                 == EVSENotification.SERVICE_RENEGOTIATION
             ):
                 self.comm_session.renegotiation_requested = True
@@ -1201,27 +1209,29 @@ class ACChargeLoop(StateEVCC):
             bpt_scheduled_params, bpt_dynamic_params = None, None
             selected_energy_service = self.comm_session.selected_energy_service
             control_mode = self.comm_session.control_mode
+            ev_controller = self.comm_session.ev_controller
 
             # TODO You might want to change certain request params based on the values
             #      in the response
-            if selected_energy_service.service == ServiceV20.AC:
-                if control_mode == ControlMode.SCHEDULED:
-                    scheduled_params = (
-                        await self.comm_session.ev_controller.get_scheduled_ac_charge_loop_params()  # noqa
-                    )
+
+            if selected_energy_service.service in [ServiceV20.AC, ServiceV20.AC_BPT]:
+                charging_loop_params = await ev_controller.get_ac_charge_loop_params_v20(  # noqa
+                    control_mode,
+                    selected_energy_service.service
+                )
+                if selected_energy_service.service == ServiceV20.AC:
+                    if control_mode == ControlMode.SCHEDULED:
+                        scheduled_params = charging_loop_params
+                    else:
+                        # Dynamic
+                        dynamic_params = charging_loop_params
                 else:
-                    dynamic_params = (
-                        await self.comm_session.ev_controller.get_dynamic_ac_charge_loop_params()  # noqa
-                    )
-            elif selected_energy_service.service == ServiceV20.AC_BPT:
-                if control_mode == ControlMode.SCHEDULED:
-                    bpt_scheduled_params = (
-                        await self.comm_session.ev_controller.get_bpt_scheduled_ac_charge_loop_params()  # noqa
-                    )
-                else:
-                    bpt_dynamic_params = (
-                        await self.comm_session.ev_controller.get_bpt_dynamic_ac_charge_loop_params()  # noqa
-                    )
+                    # AC_BPT
+                    if control_mode == ControlMode.SCHEDULED:
+                        bpt_scheduled_params = charging_loop_params
+                    else:
+                        # Dynamic
+                        bpt_dynamic_params = charging_loop_params
             else:
                 logger.error(
                     f"This shouldn't happen. {selected_energy_service.service} "

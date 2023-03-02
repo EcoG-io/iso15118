@@ -104,7 +104,10 @@ class EVDataContext:
     ev_min_v2x_energy_request: Optional[float] = None
 
     def update(self, new: dict):
-        self.__dict__.update(**new)
+        self.__dict__.update(new)
+
+    def as_dict(self):
+        return self.__dict__
 
 
 class ServiceStatus(str, Enum):

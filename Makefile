@@ -39,15 +39,15 @@ tests: .install-poetry
 	poetry run pytest -vv tests
 
 # Generate test -2 certificates
-.generate_v2_certs:
+generate_v2_certs:
 	cd iso15118/shared/pki; ./create_certs.sh -v iso-2
 
 # Generate test -20 certificates
-.generate_v20_certs:
+generate_v20_certs:
 	cd iso15118/shared/pki; ./create_certs.sh -v iso-20
 
 # Build docker images
-build: .generate_v2_certs
+build: generate_v2_certs
 	@# `xargs` will copy the Dockerfile template, so that it can be individually
 	@# used by the secc and evcc services
 	@xargs -n 1 cp -v template.Dockerfile<<<"iso15118/evcc/Dockerfile iso15118/secc/Dockerfile"

@@ -19,7 +19,7 @@ from iso15118.shared.messages.din_spec.datatypes import DCEVStatus as DCEVStatus
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
-from iso15118.shared.messages.enums import Protocol, ServiceV20
+from iso15118.shared.messages.enums import Protocol, ServiceV20, ControlMode
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
@@ -497,48 +497,29 @@ class EVControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_scheduled_ac_charge_loop_params(
-        self,
-    ) -> ScheduledACChargeLoopReqParams:
+    async def get_ac_charge_loop_params_v20(
+            self, control_mode: ControlMode, selected_service: ServiceV20
+    ) -> Union[
+        ScheduledACChargeLoopReqParams,
+        BPTScheduledACChargeLoopReqParams,
+        DynamicACChargeLoopReqParams,
+        BPTDynamicACChargeLoopReqParams,
+    ]:
         """
-        Gets the parameters for the ACChargeLoopReq in the Scheduled control mode
-
-        Relevant for:
-        - ISO 15118-20
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_bpt_scheduled_ac_charge_loop_params(
-        self,
-    ) -> BPTScheduledACChargeLoopReqParams:
-        """
-        Gets the parameters for the ACChargeLoopReq in the Scheduled control mode for
-        bi-directional power transfer (BPT)
-
-        Relevant for:
-        - ISO 15118-20
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_dynamic_ac_charge_loop_params(self) -> DynamicACChargeLoopReqParams:
-        """
-        Gets the parameters for the ACChargeLoopReq in the Dynamic control mode
-
-        Relevant for:
-        - ISO 15118-20
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_bpt_dynamic_ac_charge_loop_params(
-        self,
-    ) -> BPTDynamicACChargeLoopReqParams:
-        """
-        Gets the parameters for the ACChargeLoopReq in the Dynamic control mode for
-        bi-directional power transfer (BPT)
-
+        Gets the parameters for the ACChargeLoopReq for the currently set control mode
+         and service.
+        Args:
+            control_mode: Control mode for this session - Scheduled/Dynamic
+            selected_service: Enum for this Service - AC/AC_BPT
+        Returns:
+            ChargeLoop params depending on the selected mode. Return object could be
+            one of the following types:
+            [
+                ScheduledACChargeLoopReqParams,
+                BPTScheduledACChargeLoopReqParams,
+                DynamicACChargeLoopReqParams,
+                BPTDynamicACChargeLoopReqParams,
+            ]
         Relevant for:
         - ISO 15118-20
         """
