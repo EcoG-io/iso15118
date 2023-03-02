@@ -467,10 +467,10 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     async def send_charging_power_limits(
-            self,
-            protocol: Protocol,
-            control_mode: ControlMode,
-            selected_energy_service: ServiceV20
+        self,
+        protocol: Protocol,
+        control_mode: ControlMode,
+        selected_energy_service: ServiceV20,
     ) -> None:
         """
         This method shall merge the EV-EVSE charging power limits and send it

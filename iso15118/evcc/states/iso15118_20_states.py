@@ -605,7 +605,9 @@ class ServiceDetail(StateEVCC):
             for param in parameter_set.parameters:
                 if param.name == ParameterName.CONTROL_MODE:
                     self.comm_session.control_mode = ControlMode(param.int_value)
-                    logger.info(f"Selected Control Mode: {self.comm_session.control_mode}")
+                    logger.info(
+                        f"Selected Control Mode: {self.comm_session.control_mode}"
+                    )
                     control_mode_set = True
         return control_mode_set
 
@@ -915,8 +917,7 @@ class PowerDelivery(StateEVCC):
 
         if selected_energy_service.service in [ServiceV20.AC, ServiceV20.AC_BPT]:
             charging_loop_params = await ev_controller.get_ac_charge_loop_params_v20(
-                control_mode,
-                selected_energy_service.service
+                control_mode, selected_energy_service.service
             )
             if selected_energy_service.service == ServiceV20.AC:
                 if control_mode == ControlMode.SCHEDULED:
@@ -1215,9 +1216,10 @@ class ACChargeLoop(StateEVCC):
             #      in the response
 
             if selected_energy_service.service in [ServiceV20.AC, ServiceV20.AC_BPT]:
-                charging_loop_params = await ev_controller.get_ac_charge_loop_params_v20(  # noqa
-                    control_mode,
-                    selected_energy_service.service
+                charging_loop_params = (
+                    await ev_controller.get_ac_charge_loop_params_v20(  # noqa
+                        control_mode, selected_energy_service.service
+                    )
                 )
                 if selected_energy_service.service == ServiceV20.AC:
                     if control_mode == ControlMode.SCHEDULED:

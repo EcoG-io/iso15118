@@ -258,17 +258,17 @@ class SimEVController(EVControllerInterface):
     ]:
         """Overrides EVControllerInterface.get_charge_params_v20()."""
         ac_cpd_params = ACChargeParameterDiscoveryReqParams(
-                ev_max_charge_power=RationalNumber(exponent=3, value=11),
-                ev_min_charge_power=RationalNumber(exponent=0, value=100),
-            )
+            ev_max_charge_power=RationalNumber(exponent=3, value=11),
+            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+        )
         dc_cpd_params = DCChargeParameterDiscoveryReqParams(
-                ev_max_charge_power=RationalNumber(exponent=3, value=300),
-                ev_min_charge_power=RationalNumber(exponent=0, value=100),
-                ev_max_charge_current=RationalNumber(exponent=0, value=300),
-                ev_min_charge_current=RationalNumber(exponent=0, value=10),
-                ev_max_voltage=RationalNumber(exponent=0, value=1000),
-                ev_min_voltage=RationalNumber(exponent=0, value=10),
-            )
+            ev_max_charge_power=RationalNumber(exponent=3, value=300),
+            ev_min_charge_power=RationalNumber(exponent=0, value=100),
+            ev_max_charge_current=RationalNumber(exponent=0, value=300),
+            ev_min_charge_current=RationalNumber(exponent=0, value=10),
+            ev_max_voltage=RationalNumber(exponent=0, value=1000),
+            ev_min_voltage=RationalNumber(exponent=0, value=10),
+        )
         if selected_service.service == ServiceV20.AC:
             return ac_cpd_params
         elif selected_service.service == ServiceV20.AC_BPT:
@@ -603,12 +603,12 @@ class SimEVController(EVControllerInterface):
             scheduled_params = ScheduledACChargeLoopReqParams(
                 ev_present_active_power=RationalNumber(exponent=3, value=200),
                 # Add more optional fields if wanted
-        )
+            )
             if selected_service == ServiceV20.AC_BPT:
                 bpt_scheduled_params = BPTScheduledACChargeLoopReqParams(
                     **(scheduled_params.dict()),
                     # Add more optional fields if wanted
-                    )
+                )
                 return bpt_scheduled_params
             return scheduled_params
         else:

@@ -19,7 +19,7 @@ from iso15118.shared.messages.din_spec.datatypes import DCEVStatus as DCEVStatus
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
-from iso15118.shared.messages.enums import Protocol, ServiceV20, ControlMode
+from iso15118.shared.messages.enums import ControlMode, Protocol, ServiceV20
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
@@ -498,7 +498,7 @@ class EVControllerInterface(ABC):
 
     @abstractmethod
     async def get_ac_charge_loop_params_v20(
-            self, control_mode: ControlMode, selected_service: ServiceV20
+        self, control_mode: ControlMode, selected_service: ServiceV20
     ) -> Union[
         ScheduledACChargeLoopReqParams,
         BPTScheduledACChargeLoopReqParams,

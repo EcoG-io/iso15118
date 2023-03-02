@@ -579,10 +579,10 @@ class SimEVSEController(EVSEControllerInterface):
         pass
 
     async def send_charging_power_limits(
-            self,
-            protocol: Protocol,
-            control_mode: ControlMode,
-            selected__energy_service: ServiceV20
+        self,
+        protocol: Protocol,
+        control_mode: ControlMode,
+        selected__energy_service: ServiceV20,
     ) -> None:
         """
         This method shall merge the EV-EVSE charging power limits and send it
@@ -607,15 +607,29 @@ class SimEVSEController(EVSEControllerInterface):
             ev_data_context = self.get_ev_data_context()
             logger.info(f"EV data context: {ev_data_context}")
 
-            max_charge_power = min(ev_data_context.ev_max_charge_power,
-                                   charge_parameters.evse_max_charge_power.get_decimal_value())
-            max_discharge_power = min(ev_data_context.ev_max_discharge_power,
-                                      charge_parameters.evse_max_discharge_power.get_decimal_value())
-            min_charge_power = max(ev_data_context.ev_min_charge_power,
-                                   charge_parameters.evse_min_charge_power.get_decimal_value())
-            min_discharge_power = max(ev_data_context.ev_min_discharge_power,
-                                      charge_parameters.evse_min_discharge_power.get_decimal_value())
-
+            max_charge_power = min(
+                ev_data_context.ev_max_charge_power,
+                charge_parameters.evse_max_charge_power.get_decimal_value(),
+            )
+            max_discharge_power = min(
+                ev_data_context.ev_max_discharge_power,
+                charge_parameters.evse_max_discharge_power.get_decimal_value(),
+            )
+            min_charge_power = max(
+                ev_data_context.ev_min_charge_power,
+                charge_parameters.evse_min_charge_power.get_decimal_value(),
+            )
+            min_discharge_power = max(
+                ev_data_context.ev_min_discharge_power,
+                charge_parameters.evse_min_discharge_power.get_decimal_value(),
+            )
+            logger.info(
+                f"\n Power limits \n"
+                f"max_charge_power: {max_charge_power}\n"
+                f"min_charge_power: {min_charge_power}\n"
+                f"max_discharge_power: {max_discharge_power}\n"
+                f"min_discharge_power: {min_discharge_power}\n"
+            )
             # NOTE: Currently reactive limits are not available
             # https://iso15118.elaad.io/pt2/15118-20/user-group/-/issues/65
         return
