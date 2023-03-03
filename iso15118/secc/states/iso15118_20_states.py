@@ -1327,6 +1327,26 @@ class ACChargeLoop(StateSECC):
                 bpt_dynamic_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
                     ControlMode.DYNAMIC, ServiceV20.AC_BPT
                 )  # noqa
+
+                # For now we just do this for the Dynamic Mode
+                ev_bpt_charge_parameters = ac_charge_loop_req.bpt_dynamic_params.dict()
+                # extract only the power limits and convert them to decimal
+                # representation
+                ev_power_limits = {}
+                for k, v in ev_bpt_charge_parameters.items():
+                    if v:
+                        ev_power_limits.update({k: v["value"] * 10 ** v["exponent"]})
+                # update the dict with the decimal values
+                ev_bpt_charge_parameters.update(ev_power_limits)
+                # update the ev_data_context
+                self.comm_session.evse_controller.ev_data_context.update(
+                    ev_bpt_charge_parameters
+                )
+                await self.comm_session.evse_controller.send_charging_power_limits(
+                    self.comm_session.protocol,
+                    control_mode,
+                    selected_energy_service.service,
+                )
         else:
             logger.error(
                 f"Energy service {selected_energy_service.service} not yet supported"
