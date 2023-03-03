@@ -582,7 +582,7 @@ class SimEVSEController(EVSEControllerInterface):
         self,
         protocol: Protocol,
         control_mode: ControlMode,
-        selected__energy_service: ServiceV20,
+        selected_energy_service: ServiceV20,
     ) -> None:
         """
         This method shall merge the EV-EVSE charging power limits and send it
@@ -590,19 +590,19 @@ class SimEVSEController(EVSEControllerInterface):
         Args:
             protocol: protocol selected (DIN, ISO 15118-2, ISO 15118-20_AC,..)
             control_mode: Control mode for this session - Scheduled/Dynamic
-            selected__energy_service: Enum for this Service - AC/AC_BPT/DC/DC_BPT
+            selected_energy_service: Enum for this Service - AC/AC_BPT/DC/DC_BPT
 
         Returns: None
 
         """
         if protocol == Protocol.ISO_15118_20_AC:
-            if selected__energy_service in [ServiceV20.AC, ServiceV20.AC_BPT]:
+            if selected_energy_service in [ServiceV20.AC, ServiceV20.AC_BPT]:
                 charge_parameters = await self.get_ac_charge_params_v20(
-                    selected__energy_service
+                    selected_energy_service
                 )
             else:
                 charge_parameters = await self.get_dc_charge_params_v20(
-                    selected__energy_service
+                    selected_energy_service
                 )
             ev_data_context = self.get_ev_data_context()
             logger.info(f"EV data context: {ev_data_context}")
