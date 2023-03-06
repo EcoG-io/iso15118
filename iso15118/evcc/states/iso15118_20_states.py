@@ -396,9 +396,13 @@ class Authorization(StateEVCC):
                 header=MessageHeader(
                     session_id=self.comm_session.session_id,
                     timestamp=time.time(),
-                    signature=self.comm_session.authorization_req_message.header.signature,
+                    signature=(
+                        self.comm_session.authorization_req_message.header.signature
+                    ),
                 ),
-                selected_auth_service=self.comm_session.authorization_req_message.selected_auth_service,
+                selected_auth_service=(
+                    self.comm_session.authorization_req_message.selected_auth_service
+                ),
                 pnc_params=self.comm_session.authorization_req_message.pnc_params,
                 eim_params=self.comm_session.authorization_req_message.eim_params,
             )
