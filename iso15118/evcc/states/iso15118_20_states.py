@@ -80,6 +80,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DCWeldingDetectionReq,
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
+from iso15118.shared.messages.timeouts import Timeouts as TimeoutsShared
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.security import (
@@ -294,6 +295,10 @@ class AuthorizationSetup(StateEVCC):
             eim_params=eim_params,
         )
 
+        # Caching this in case, we need to loop AuthorizationReq/Res
+        # [V2G20-1582] If EVSEProcessing is set to Ongoing, EVCC shall send another
+        # unaltered AuthorizationReq (with the exception of timestamp)
+        self.comm_session.authorization_req_message = auth_req
         self.create_next_message(
             Authorization,
             auth_req,
@@ -355,21 +360,63 @@ class Authorization(StateEVCC):
         #      (and delete the # noqa: F841)
         # TODO: V2G20-2221 demands to send CertificateInstallationReq if necessary
 
-        service_discovery_req = ServiceDiscoveryReq(
-            header=MessageHeader(
-                session_id=self.comm_session.session_id,
-                timestamp=time.time(),
-            )
-            # To limit the list of requested VAS services, set supported_service_ids
-        )
+        if auth_res.evse_processing == Processing.FINISHED:
+            # Reset the Ongoing timer
+            self.comm_session.ongoing_timer = -1
 
-        self.create_next_message(
-            ServiceDiscovery,
-            service_discovery_req,
-            Timeouts.SERVICE_DISCOVERY_REQ,
-            Namespace.ISO_V20_COMMON_MSG,
-            ISOV20PayloadTypes.MAINSTREAM,
-        )
+            service_discovery_req = ServiceDiscoveryReq(
+                header=MessageHeader(
+                    session_id=self.comm_session.session_id,
+                    timestamp=time.time(),
+                )
+                # To limit the list of requested VAS services, set supported_service_ids
+            )
+
+            self.create_next_message(
+                ServiceDiscovery,
+                service_discovery_req,
+                Timeouts.SERVICE_DISCOVERY_REQ,
+                Namespace.ISO_V20_COMMON_MSG,
+                ISOV20PayloadTypes.MAINSTREAM,
+            )
+        else:
+            logger.debug("SECC is still processing the Authorization")
+            elapsed_time: float = 0
+            if self.comm_session.ongoing_timer >= 0:
+                elapsed_time = time.time() - self.comm_session.ongoing_timer
+                if elapsed_time > TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT:
+                    self.stop_state_machine(
+                        "Ongoing timer timed out for " "AuthorizationRes"
+                    )
+                    return
+            else:
+                self.comm_session.ongoing_timer = time.time()
+
+            auth_req = AuthorizationReq(
+                header=MessageHeader(
+                    session_id=self.comm_session.session_id,
+                    timestamp=time.time(),
+                    signature=(
+                        self.comm_session.authorization_req_message.header.signature
+                    ),
+                ),
+                selected_auth_service=(
+                    self.comm_session.authorization_req_message.selected_auth_service
+                ),
+                pnc_params=self.comm_session.authorization_req_message.pnc_params,
+                eim_params=self.comm_session.authorization_req_message.eim_params,
+            )
+
+            self.create_next_message(
+                Authorization,
+                auth_req,
+                min(
+                    Timeouts.AUTHORIZATION_REQ,
+                    TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT - elapsed_time,
+                ),
+                Namespace.ISO_V20_COMMON_MSG,
+                ISOV20PayloadTypes.MAINSTREAM,
+            )
 
 
 class ServiceDiscovery(StateEVCC):
