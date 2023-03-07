@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2023-03-07
+
+### Changed
+* Support to report the charging power limits during the charging loop by @tropxy in https://github.com/SwitchEV/iso15118/pull/204
+* Handle "Ongoing"  from EVSE during authorization. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/205
+
 ## [0.17.0] - 2023-03-01
 
 ### Changed
