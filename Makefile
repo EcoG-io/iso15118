@@ -126,5 +126,5 @@ code-quality: reformat mypy flake8
 
 # Bump project version with poetry
 release: .install-poetry
-	@echo "Please remember to update the CHANGELOG.md, before tagging the release"
+	@echo "Please remember to update the CHANGELOG.md and __init__.py under iso15118 dir, before tagging the release"
 	@poetry version ${version}
