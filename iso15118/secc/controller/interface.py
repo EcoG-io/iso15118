@@ -445,7 +445,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_evse_status(self) -> EVSEStatus:
+    async def get_evse_status(self) -> Optional[EVSEStatus]:
         """
         Gets the status of the EVSE
 
