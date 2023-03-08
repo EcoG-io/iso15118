@@ -124,9 +124,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     TaxRule,
     TaxRuleList,
 )
-from iso15118.shared.messages.iso15118_20.common_types import (
-    EVSENotification as EVSENotificationV20,
-)
 from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
 from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
@@ -580,6 +577,12 @@ class SimEVSEController(EVSEControllerInterface):
         #       to decide on providing the -2ß EVSEStatus or the
         #       -2 AC or DC one and the `selected_charging_type_is_ac` in -2
         #       to decide on returning the ACEVSEStatus or the DCEVSEStatus
+        #
+        # Just as an example, here is how the return could look like
+        # return EVSEStatus(
+        #        notification_max_delay=0,
+        #        evse_notification=EVSENotificationV20.TERMINATE
+        #    )
         return None
 
     async def set_present_protocol_state(self, state_name: str):

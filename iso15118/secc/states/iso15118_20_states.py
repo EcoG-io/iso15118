@@ -1358,7 +1358,9 @@ class ACChargeLoop(StateSECC):
         if ac_charge_loop_req.meter_info_requested:
             meter_info = await self.comm_session.evse_controller.get_meter_info_v20()
 
-        evse_status: Optional[EVSEStatus] = await self.comm_session.evse_controller.get_evse_status()
+        evse_status: Optional[
+            EVSEStatus
+        ] = await self.comm_session.evse_controller.get_evse_status()
 
         ac_charge_loop_res = ACChargeLoopRes(
             header=MessageHeader(
@@ -1700,7 +1702,9 @@ class DCChargeLoop(StateSECC):
             )
             response_code = ResponseCode.FAILED_SERVICE_SELECTION_INVALID
 
-        evse_status: Optional[EVSEStatus] = await self.comm_session.evse_controller.get_evse_status()
+        evse_status: Optional[
+            EVSEStatus
+        ] = await self.comm_session.evse_controller.get_evse_status()
 
         dc_charge_loop_res = DCChargeLoopRes(
             header=MessageHeader(
