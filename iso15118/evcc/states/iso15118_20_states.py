@@ -39,7 +39,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationSetupRes,
     CertificateInstallationReq,
     ChannelSelection,
-    ChargeProgress,
     ChargingSession,
     EIMAuthReqParams,
     MatchedService,
@@ -1246,12 +1245,23 @@ class ACChargeLoop(StateEVCC):
         # check if SECC requested a renegotiation.
         # evse_status field in ACChargeLoopRes is optional
         if ac_charge_loop_res.evse_status:
-            if (
-                ac_charge_loop_res.evse_status.evse_notification
-                == EVSENotification.SERVICE_RENEGOTIATION
-            ):
-                self.comm_session.renegotiation_requested = True
-                self.stop_charging(True)
+            renegotiation = False
+            evse_notification = ac_charge_loop_res.evse_status.evse_notification
+            if evse_notification not in [
+                EVSENotification.SERVICE_RENEGOTIATION,
+                EVSENotification.TERMINATE,
+            ]:
+                raise NotImplementedError(
+                    f"Processing for EVSE Notification "
+                    f"{evse_notification} is not "
+                    f"supported at the moment"
+                )
+            if evse_notification == EVSENotification.SERVICE_RENEGOTIATION:
+                renegotiation = True
+            self.stop_charging(
+                next_state=PowerDelivery, renegotiate_requested=renegotiation
+            )
+
         elif await self.comm_session.ev_controller.continue_charging():
             scheduled_params, dynamic_params = None, None
             bpt_scheduled_params, bpt_dynamic_params = None, None
@@ -1308,38 +1318,7 @@ class ACChargeLoop(StateEVCC):
                 ISOV20PayloadTypes.AC_MAINSTREAM,
             )
         else:
-            self.stop_charging(False)
-            return
-
-    def stop_charging(self, renegotiate_requested: bool):
-        power_delivery_req = PowerDeliveryReq(
-            header=MessageHeader(
-                session_id=self.comm_session.session_id,
-                timestamp=time.time(),
-            ),
-            ev_processing=Processing.FINISHED,
-            charge_progress=ChargeProgress.STOP,
-        )
-
-        self.create_next_message(
-            PowerDelivery,
-            power_delivery_req,
-            Timeouts.POWER_DELIVERY_REQ,
-            Namespace.ISO_V20_COMMON_MSG,
-            ISOV20PayloadTypes.MAINSTREAM,
-        )
-
-        if renegotiate_requested:
-            self.comm_session.charging_session_stop_v20 = (
-                ChargingSession.SERVICE_RENEGOTIATION
-            )
-            logger.debug(
-                f"ChargeProgress is set to {ChargeProgress.SCHEDULE_RENEGOTIATION}"
-            )
-        else:
-            self.comm_session.charging_session_stop_v20 = ChargingSession.TERMINATE
-            # TODO Implement also a mechanism for pausing
-            logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
+            self.stop_charging(next_state=PowerDelivery)
 
 
 # ============================================================================
@@ -1638,9 +1617,27 @@ class DCChargeLoop(StateEVCC):
         charge_loop_res: DCChargeLoopRes = msg  # noqa
 
         # if charge_loop_res.evse_power_limit_achieved:
-        #     await self.stop_charging(False)
+        #     self.stop_charging(False)
 
-        if await self.comm_session.ev_controller.continue_charging():
+        if charge_loop_res.evse_status:
+            renegotiation = False
+            evse_notification = charge_loop_res.evse_status.evse_notification
+            if evse_notification not in [
+                EVSENotification.SERVICE_RENEGOTIATION,
+                EVSENotification.TERMINATE,
+            ]:
+                raise NotImplementedError(
+                    f"Processing for EVSE Notification "
+                    f"{evse_notification} is not "
+                    f"supported at the moment"
+                )
+            if evse_notification == EVSENotification.SERVICE_RENEGOTIATION:
+                renegotiation = True
+            self.stop_charging(
+                next_state=PowerDelivery, renegotiate_requested=renegotiation
+            )
+
+        elif await self.comm_session.ev_controller.continue_charging():
             current_demand_req = await self.build_current_demand_data()
 
             self.create_next_message(
@@ -1651,7 +1648,7 @@ class DCChargeLoop(StateEVCC):
                 ISOV20PayloadTypes.DC_MAINSTREAM,
             )
         else:
-            await self.stop_charging(False)
+            self.stop_charging(next_state=PowerDelivery)
 
     async def build_current_demand_data(self):
         scheduled_params, dynamic_params = None, None
@@ -1688,36 +1685,6 @@ class DCChargeLoop(StateEVCC):
             meter_info_requested=False,
         )
         return dc_charge_loop_req
-
-    async def stop_charging(self, renegotiate_requested: bool):
-        power_delivery_req = PowerDeliveryReq(
-            header=MessageHeader(
-                session_id=self.comm_session.session_id,
-                timestamp=time.time(),
-            ),
-            ev_processing=Processing.FINISHED,
-            charge_progress=ChargeProgress.STOP,
-        )
-
-        self.create_next_message(
-            PowerDelivery,
-            power_delivery_req,
-            Timeouts.POWER_DELIVERY_REQ,
-            Namespace.ISO_V20_COMMON_MSG,
-            ISOV20PayloadTypes.MAINSTREAM,
-        )
-
-        if renegotiate_requested:
-            self.comm_session.charging_session_stop_v20 = (
-                ChargingSession.SERVICE_RENEGOTIATION
-            )
-            logger.debug(
-                f"ChargeProgress is set to {ChargeProgress.SCHEDULE_RENEGOTIATION}"
-            )
-        else:
-            self.comm_session.charging_session_stop_v20 = ChargingSession.TERMINATE
-            # TODO Implement also a mechanism for pausing
-            logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
 
 
 class DCWeldingDetection(StateEVCC):

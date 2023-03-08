@@ -579,6 +579,9 @@ class SimEVSEController(EVSEControllerInterface):
         #       to decide on returning the ACEVSEStatus or the DCEVSEStatus
         #
         # Just as an example, here is how the return could look like
+        # from iso15118.shared.messages.iso15118_20.common_types import (
+        #    EVSENotification as EVSENotificationV20,
+        # )
         # return EVSEStatus(
         #        notification_max_delay=0,
         #        evse_notification=EVSENotificationV20.TERMINATE
