@@ -124,9 +124,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     TaxRule,
     TaxRuleList,
 )
-from iso15118.shared.messages.iso15118_20.common_types import (
-    EVSENotification as EVSENotificationV20,
-)
 from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
 from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
@@ -569,11 +566,27 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.is_contactor_opened()."""
         return True
 
-    async def get_evse_status(self) -> EVSEStatus:
+    async def get_evse_status(self) -> Optional[EVSEStatus]:
         """Overrides EVSEControllerInterface.get_evse_status()."""
-        return EVSEStatus(
-            notification_max_delay=0, evse_notification=EVSENotificationV20.TERMINATE
-        )
+        # TODO: this function can be generic to all protocols.
+        #       We can make use of the method `get_evse_id`
+        #       or other way to get the evse_id to request
+        #       status of a specific evse_id. We can also use the
+        #       `self.comm_session.protocol` obtained during SAP,
+        #       and inject its value into the `get_evse_status`
+        #       to decide on providing the -2ß EVSEStatus or the
+        #       -2 AC or DC one and the `selected_charging_type_is_ac` in -2
+        #       to decide on returning the ACEVSEStatus or the DCEVSEStatus
+        #
+        # Just as an example, here is how the return could look like
+        # from iso15118.shared.messages.iso15118_20.common_types import (
+        #    EVSENotification as EVSENotificationV20,
+        # )
+        # return EVSEStatus(
+        #        notification_max_delay=0,
+        #        evse_notification=EVSENotificationV20.TERMINATE
+        #    )
+        return None
 
     async def set_present_protocol_state(self, state_name: str):
         pass
@@ -623,12 +636,12 @@ class SimEVSEController(EVSEControllerInterface):
                 ev_data_context.ev_min_discharge_power,
                 charge_parameters.evse_min_discharge_power.get_decimal_value(),
             )
-            logger.info(
-                f"\n Power limits \n"
-                f"max_charge_power: {max_charge_power}\n"
-                f"min_charge_power: {min_charge_power}\n"
-                f"max_discharge_power: {max_discharge_power}\n"
-                f"min_discharge_power: {min_discharge_power}\n"
+            logger.debug(
+                f"\n\r --- EV-EVSE System Power Limits ---  \n"
+                f"max_charge_power [W]: {max_charge_power}\n"
+                f"min_charge_power [W]: {min_charge_power}\n"
+                f"max_discharge_power [W]: {max_discharge_power}\n"
+                f"min_discharge_power [W]: {min_discharge_power}\n"
             )
             # NOTE: Currently reactive limits are not available
             # https://iso15118.elaad.io/pt2/15118-20/user-group/-/issues/65
