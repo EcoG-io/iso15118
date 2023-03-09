@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.0] - 2023-03-09
+
+### Added
+* Report of the evse status during the charging loop of both AC and DC in -20 by @tropxy in https://github.com/SwitchEV/iso15118/pull/207
+* saved selected protocol in evse controller interface by @tropxy in https://github.com/SwitchEV/iso15118/pull/208
+
 ## [0.18.0] - 2023-03-07
 
 ### Changed
