@@ -135,6 +135,7 @@ class EVChargeParamsLimits:
 class EVSEControllerInterface(ABC):
     def __init__(self):
         self.ev_data_context = EVDataContext()
+        self._selected_protocol = Optional[Protocol]
 
     def reset_ev_data_context(self):
         self.ev_data_context = EVDataContext()
@@ -470,6 +471,18 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-2
         """
         raise NotImplementedError
+
+    def set_selected_protocol(self, protocol: Protocol) -> None:
+        """Set the selected Protocol.
+
+        Args:
+            protocol: An EV communication protocol supported by Josev.
+        """
+        self._selected_protocol = protocol
+
+    def get_selected_protocol(self) -> Protocol:
+        """Get the selected Protocol."""
+        return self._selected_protocol
 
     @abstractmethod
     async def send_charging_power_limits(
