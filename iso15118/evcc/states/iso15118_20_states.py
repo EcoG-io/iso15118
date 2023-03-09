@@ -1258,7 +1258,7 @@ class ACChargeLoop(StateEVCC):
                 )
             if evse_notification == EVSENotification.SERVICE_RENEGOTIATION:
                 renegotiation = True
-            self.stop_charging(
+            self.stop_v20_charging(
                 next_state=PowerDelivery, renegotiate_requested=renegotiation
             )
 
@@ -1318,7 +1318,7 @@ class ACChargeLoop(StateEVCC):
                 ISOV20PayloadTypes.AC_MAINSTREAM,
             )
         else:
-            self.stop_charging(next_state=PowerDelivery)
+            self.stop_v20_charging(next_state=PowerDelivery)
 
 
 # ============================================================================
@@ -1617,7 +1617,7 @@ class DCChargeLoop(StateEVCC):
         charge_loop_res: DCChargeLoopRes = msg  # noqa
 
         # if charge_loop_res.evse_power_limit_achieved:
-        #     self.stop_charging(False)
+        #     self.stop_v20_charging(False)
 
         if charge_loop_res.evse_status:
             renegotiation = False
@@ -1633,7 +1633,7 @@ class DCChargeLoop(StateEVCC):
                 )
             if evse_notification == EVSENotification.SERVICE_RENEGOTIATION:
                 renegotiation = True
-            self.stop_charging(
+            self.stop_v20_charging(
                 next_state=PowerDelivery, renegotiate_requested=renegotiation
             )
 
@@ -1648,7 +1648,7 @@ class DCChargeLoop(StateEVCC):
                 ISOV20PayloadTypes.DC_MAINSTREAM,
             )
         else:
-            self.stop_charging(next_state=PowerDelivery)
+            self.stop_v20_charging(next_state=PowerDelivery)
 
     async def build_current_demand_data(self):
         scheduled_params, dynamic_params = None, None

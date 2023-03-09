@@ -1335,7 +1335,7 @@ class ACChargeLoop(StateSECC):
                 # representation
                 ev_power_limits = {}
                 for k, v in ev_bpt_charge_parameters.items():
-                    if v:
+                    if type(v) is dict:
                         ev_power_limits.update({k: v["value"] * 10 ** v["exponent"]})
                 # update the dict with the decimal values
                 ev_bpt_charge_parameters.update(ev_power_limits)

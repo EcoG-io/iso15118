@@ -243,7 +243,7 @@ class StateEVCC(State, ABC):
 
         self.next_state = Terminate
 
-    def stop_charging(
+    def stop_v20_charging(
         self, next_state: Type["State"], renegotiate_requested: bool = False
     ):
         power_delivery_req = PowerDeliveryReq(

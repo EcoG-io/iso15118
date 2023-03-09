@@ -614,11 +614,12 @@ class SimEVController(EVControllerInterface):
         else:
             # Dynamic Mode
             dynamic_params = DynamicACChargeLoopReqParams(
+                departure_time=2000,
                 ev_target_energy_request=RationalNumber(exponent=3, value=40),
                 ev_max_energy_request=RationalNumber(exponent=3, value=60),
                 ev_min_energy_request=RationalNumber(exponent=3, value=-20),
                 ev_max_charge_power=RationalNumber(exponent=3, value=300),
-                ev_min_charge_power=RationalNumber(exponent=0, value=-100),
+                ev_min_charge_power=RationalNumber(exponent=0, value=100),
                 ev_present_active_power=RationalNumber(exponent=3, value=200),
                 ev_present_reactive_power=RationalNumber(exponent=3, value=20),
                 # Add more optional fields if wanted

@@ -81,6 +81,11 @@ class EVDataContext:
     soc: Optional[int] = None  # 0-100
 
     # from ISO 15118-20 AC
+    departure_time: Optional[int] = None
+    ev_target_energy_request: float = 0.0
+    ev_max_energy_request: float = 0.0
+    ev_min_energy_request: float = 0.0
+
     ev_max_charge_power: float = 0.0
     ev_max_charge_power_l2: Optional[float] = None
     ev_max_charge_power_l3: Optional[float] = None
@@ -94,6 +99,7 @@ class EVDataContext:
     ev_present_reactive_power_l2: Optional[float] = None
     ev_present_reactive_power_l3: Optional[float] = None
 
+    # BPT values
     ev_max_discharge_power: float = 0.0
     ev_max_discharge_power_l2: Optional[float] = None
     ev_max_discharge_power_l3: Optional[float] = None
