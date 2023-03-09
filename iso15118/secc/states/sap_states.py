@@ -143,4 +143,5 @@ class SupportedAppProtocol(StateSECC):
             Namespace.SAP,
         )
         self.comm_session.protocol = selected_protocol
+        self.comm_session.evse_controller.set_selected_protocol(selected_protocol)
         logger.info(f"Chosen protocol: {self.comm_session.protocol}")
