@@ -323,7 +323,7 @@ class State(ABC):
             if exi_payload:
                 logger.info(
                     f"Already EXI encoded. Content: "
-                    f"{str(EXI().from_exi(exi_payload, next_msg.namespace))}"
+                    f"{str(EXI().from_exi(exi_payload, next_msg.namespace.value))}"
                 )
         else:
             to_be_exi_encoded = next_msg
