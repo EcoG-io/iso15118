@@ -669,8 +669,10 @@ class CertificateInstallation(StateSECC):
                         base64_certificate_install_req, Namespace.ISO_V2_MSG_DEF
                     )
                 )
-                logger.debug(f"The raw EXI CertificateInstallationRes message : "
-                             f"{base64_certificate_installation_res}")
+                logger.debug(
+                    f"The raw EXI CertificateInstallationRes message : "
+                    f"{base64_certificate_installation_res}"
+                )
                 certificate_installation_res: Base64 = Base64(
                     message=base64_certificate_installation_res,
                     message_name=CertificateInstallationRes.__name__,
