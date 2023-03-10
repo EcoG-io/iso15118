@@ -672,7 +672,7 @@ class CertificateInstallation(StateSECC):
                 certificate_installation_res: Base64 = Base64(
                     message=base64_certificate_installation_res,
                     message_name=CertificateInstallationRes.__name__,
-                    name_space=Namespace.ISO_V2_MSG_DEF,
+                    namespace=Namespace.ISO_V2_MSG_DEF,
                 )
             else:
                 (

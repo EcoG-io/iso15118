@@ -58,7 +58,7 @@ if TYPE_CHECKING:
 
 
 class Base64:
-    def __init__(self, message: str, message_name: str, name_space):
+    def __init__(self, message: str, message_name: str, namespace: Namespace):
         """
         This was added to help indicate the type of payload for base64 encoded types.
         Used for CertificateInstallationRes received from backend.
@@ -68,7 +68,7 @@ class Base64:
         """
         self.message = message
         self.message_name = message_name
-        self.name_space = name_space
+        self.namespace = namespace
 
     def __str__(self):
         return self.message_name
@@ -322,7 +322,8 @@ class State(ABC):
             exi_payload = base64.b64decode(next_msg.message)
             if exi_payload:
                 logger.info(
-                    f"Response: {EXI().from_exi(exi_payload, next_msg.name_space)}"
+                    f"Already EXI encoded. Content: "
+                    f"{str(EXI().from_exi(exi_payload, next_msg.namespace))}"
                 )
         else:
             to_be_exi_encoded = next_msg
