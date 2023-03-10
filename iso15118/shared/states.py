@@ -322,7 +322,7 @@ class State(ABC):
             exi_payload = base64.b64decode(next_msg.message)
             if exi_payload:
                 logger.info(
-                    f"Response: {EXI().from_exi(exi_payload, self.message.name_space)}"
+                    f"Response: {EXI().from_exi(exi_payload, next_msg.name_space)}"
                 )
         else:
             to_be_exi_encoded = next_msg
