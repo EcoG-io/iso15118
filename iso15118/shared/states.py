@@ -64,7 +64,7 @@ class Base64:
         Used for CertificateInstallationRes received from backend.
         self.message = base64 encoded payload type
         self.message_type = A string representing the type of the message.
-        self.name_space = Namespace of the message
+        self.namespace = The namespace of the message
         """
         self.message = message
         self.message_name = message_name
