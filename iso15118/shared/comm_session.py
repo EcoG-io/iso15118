@@ -470,8 +470,7 @@ class V2GCommunicationSession(SessionStateMachine):
                             f"while waiting for SupportedAppProtocolReq"
                         )
                 else:
-                    error_msg = (f"{exc.__class__.__name__} occurred."
-                                 f"{str(exc)}")
+                    error_msg = f"{exc.__class__.__name__} occurred." f"{str(exc)}"
 
                 self.stop_reason = StopNotification(False, error_msg, self.peer_name)
 
