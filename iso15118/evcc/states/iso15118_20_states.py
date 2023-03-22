@@ -7,6 +7,7 @@ SessionStopRes.
 import logging
 import time
 from typing import Any, List, Union
+import os
 
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.states.evcc_state import StateEVCC
@@ -86,6 +87,7 @@ from iso15118.shared.security import (
     load_priv_key,
 )
 from iso15118.shared.states import Terminate
+from iso15118.shared.settings import get_PKI_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -174,13 +176,13 @@ class AuthorizationSetup(StateEVCC):
         ):
             # TODO: Find a more generic way to search for all available
             #       V2GRootCA certificates
-            issuer, serial = get_cert_issuer_serial(CertPath.V2G_ROOT_DER)
+            issuer, serial = get_cert_issuer_serial(os.path.join(get_PKI_PATH(), CertPath.V2G_ROOT_DER))
 
             oem_prov_cert_chain = load_cert_chain(
                 protocol=self.comm_session.protocol,
-                leaf_path=CertPath.OEM_LEAF_DER,
-                sub_ca2_path=CertPath.OEM_SUB_CA2_DER,
-                sub_ca1_path=CertPath.OEM_SUB_CA1_DER,
+                leaf_path=os.path.join(get_PKI_PATH(), CertPath.OEM_LEAF_DER),
+                sub_ca2_path=os.path.join(get_PKI_PATH(), CertPath.OEM_SUB_CA2_DER),
+                sub_ca1_path=os.path.join(get_PKI_PATH(), CertPath.OEM_SUB_CA1_DER),
                 id="id1",
             )
 
@@ -197,9 +199,9 @@ class AuthorizationSetup(StateEVCC):
                         )
                     ],
                     load_priv_key(
-                        KeyPath.OEM_LEAF_PEM,
+                        os.path.join(get_PKI_PATH(), KeyPath.OEM_LEAF_PEM),
                         KeyEncoding.PEM,
-                        KeyPasswordPath.OEM_LEAF_KEY_PASSWORD,
+                        os.path.join(get_PKI_PATH(), KeyPasswordPath.OEM_LEAF_KEY_PASSWORD),
                     ),
                 )
 
@@ -244,9 +246,9 @@ class AuthorizationSetup(StateEVCC):
                 gen_challenge=auth_setup_res.pnc_as_res.gen_challenge,
                 contract_cert_chain=load_cert_chain(
                     protocol=self.comm_session.protocol,
-                    leaf_path=CertPath.CONTRACT_LEAF_DER,
-                    sub_ca2_path=CertPath.MO_SUB_CA2_DER,
-                    sub_ca1_path=CertPath.MO_SUB_CA1_DER,
+                    leaf_path=os.path.join(get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER),
+                    sub_ca2_path=os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA2_DER),
+                    sub_ca1_path=os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA1_DER),
                 ),
                 id="id1",
             )
@@ -260,9 +262,9 @@ class AuthorizationSetup(StateEVCC):
             try:
                 # The private key to be used for the signature
                 signature_key = load_priv_key(
-                    KeyPath.CONTRACT_LEAF_PEM,
+                    os.path.join(get_PKI_PATH(), KeyPath.CONTRACT_LEAF_PEM),
                     KeyEncoding.PEM,
-                    KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD,
+                    os.path.join(get_PKI_PATH(), KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD),
                 )
                 signature = create_signature(elements_to_sign, signature_key)
             except PrivateKeyReadError as exc:

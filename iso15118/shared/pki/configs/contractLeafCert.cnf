@@ -4,8 +4,8 @@ distinguished_name		= ca_dn
 
 [ca_dn]
 commonName				= UKSWI123456789A
-organizationName		= Switch
-countryName				= UK
+organizationName		= EVerest
+countryName				= DE
 domainComponent			= MO
 
 [ext]

@@ -4,12 +4,12 @@ distinguished_name		= ca_dn
 
 [ca_dn]
 commonName				= CPOSubCA1
-organizationName		= Switch
-countryName				= UK
+organizationName		= EVerest
+countryName				= DE
 domainComponent			= V2G
 
 [ext]
 basicConstraints		= critical,CA:true,pathlen:1
 keyUsage				= critical,keyCertSign,cRLSign
 subjectKeyIdentifier	= hash
-
+authorityInfoAccess = OCSP;URI:https://www.example.com/, caIssuers;URI:https://www.example.com/Intermediate-CA.cer

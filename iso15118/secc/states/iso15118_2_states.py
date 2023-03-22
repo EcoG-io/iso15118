@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import logging
 import time
 from typing import List, Optional, Type, Union
+import os
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.interface import EVChargeParamsLimits
@@ -50,6 +51,8 @@ from iso15118.shared.messages.iso15118_2.body import (
     CableCheckRes,
     CertificateInstallationReq,
     CertificateInstallationRes,
+    CertificateUpdateReq,
+    CertificateUpdateRes,
     ChargeParameterDiscoveryReq,
     ChargeParameterDiscoveryRes,
     ChargingStatusReq,
@@ -127,6 +130,7 @@ from iso15118.shared.security import (
     verify_signature,
 )
 from iso15118.shared.states import Base64, Pause, State, Terminate
+from iso15118.shared.settings import get_PKI_PATH
 
 # *** EVerest code start ***
 from everest_iso15118 import p_Charger
@@ -340,7 +344,7 @@ class ServiceDiscovery(StateSECC):
         # Value-added services (VAS), like installation of contract certificates
         # and the Internet service, are only allowed with TLS-secured comm.
         if self.comm_session.is_tls:
-            if self.comm_session.config.allow_cert_install_service and (
+            if await self.comm_session.evse_controller.allow_cert_install_service() and (
                 category_filter is None
                 or category_filter == ServiceCategory.CERTIFICATE
             ):
@@ -461,6 +465,11 @@ class ServiceDetail(StateSECC):
                 parameter_set_id=1, parameters=[install_parameter]
             )
             parameter_set.append(install_parameter_set)
+            update_parameter = Parameter(name="Service", str_value="Update")
+            update_parameter_set = ParameterSet(
+                parameter_set_id=2, parameters=[update_parameter]
+            )
+            parameter_set.append(update_parameter_set)
 
         # To offer an Internet service, add the service parameter set here
         if service_detail_req.service_id == ServiceID.INTERNET:
@@ -538,6 +547,12 @@ class PaymentServiceSelection(StateSECC):
 
         if msg.body.certificate_installation_req:
             await CertificateInstallation(self.comm_session).process_message(
+                message, message_exi
+            )
+            return
+        
+        if msg.body.certificate_update_req:
+            await CertificateUpdate(self.comm_session).process_message(
                 message, message_exi
             )
             return
@@ -681,6 +696,14 @@ class CertificateInstallation(StateSECC):
                     "utf-8"
                 )
 
+                exiRequest: dict = dict([
+                    ("exiRequest", base64_certificate_install_req),
+                    ("iso15118SchemaVersion", Namespace.ISO_V2_MSG_DEF),
+                    ("certificateAction", "Install")
+                ])
+
+                p_Charger().publish_Certificate_Request(exiRequest)
+
                 # The response received below is EXI response in base64 encoded form.
                 # Decoding to EXI happens later just before V2GTP packet is built.
                 base64_certificate_installation_res = (
@@ -733,10 +756,10 @@ class CertificateInstallation(StateSECC):
 
         try:
             sub_ca_certificates_oem = [
-                load_cert(CertPath.OEM_SUB_CA2_DER),
-                load_cert(CertPath.OEM_SUB_CA1_DER),
+                load_cert(os.path.join(get_PKI_PATH(), CertPath.OEM_SUB_CA2_DER)),
+                load_cert(os.path.join(get_PKI_PATH(), CertPath.OEM_SUB_CA1_DER)),
             ]
-            root_ca_certificate_oem = load_cert(CertPath.OEM_ROOT_DER)
+            root_ca_certificate_oem = load_cert(os.path.join(get_PKI_PATH(), CertPath.OEM_ROOT_DER))
         except (FileNotFoundError, IOError):
             pass
 
@@ -763,11 +786,11 @@ class CertificateInstallation(StateSECC):
         # CertificateInstallationReq must be used.
         try:
             dh_pub_key, encrypted_priv_key_bytes = encrypt_priv_key(
-                oem_prov_cert=load_cert(CertPath.OEM_LEAF_DER),
+                oem_prov_cert=load_cert(os.path.join(get_PKI_PATH(), CertPath.OEM_LEAF_DER)),
                 priv_key_to_encrypt=load_priv_key(
-                    KeyPath.CONTRACT_LEAF_PEM,
+                    os.path.join(get_PKI_PATH(), KeyPath.CONTRACT_LEAF_PEM),
                     KeyEncoding.PEM,
-                    KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD,
+                    os.path.join(get_PKI_PATH(), KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD),
                 ),
             )
         except EncryptionError:
@@ -784,11 +807,11 @@ class CertificateInstallation(StateSECC):
         # The elements that need to be part of the signature
         contract_cert_chain = CertificateChain(
             id="id1",
-            certificate=load_cert(CertPath.CONTRACT_LEAF_DER),
+            certificate=load_cert(os.path.join(get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER)),
             sub_certificates=SubCertificates(
                 certificates=[
-                    load_cert(CertPath.MO_SUB_CA2_DER),
-                    load_cert(CertPath.MO_SUB_CA1_DER),
+                    load_cert(os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA2_DER)),
+                    load_cert(os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA1_DER)),
                 ]
             ),
         )
@@ -797,14 +820,14 @@ class CertificateInstallation(StateSECC):
         )
         dh_public_key = DHPublicKey(id="id3", value=dh_pub_key)
         emaid = EMAID(
-            id="id4", value=get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER))
+            id="id4", value=get_cert_cn(load_cert(os.path.join(get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER)))
         )
         cps_certificate_chain = CertificateChain(
-            certificate=load_cert(CertPath.CPS_LEAF_DER),
+            certificate=load_cert(os.path.join(get_PKI_PATH(), CertPath.CPS_LEAF_DER)),
             sub_certificates=SubCertificates(
                 certificates=[
-                    load_cert(CertPath.CPS_SUB_CA2_DER),
-                    load_cert(CertPath.CPS_SUB_CA1_DER),
+                    load_cert(os.path.join(get_PKI_PATH(), CertPath.CPS_SUB_CA2_DER)),
+                    load_cert(os.path.join(get_PKI_PATH(), CertPath.CPS_SUB_CA1_DER)),
                 ]
             ),
         )
@@ -849,9 +872,9 @@ class CertificateInstallation(StateSECC):
             ]
             # The private key to be used for the signature
             signature_key = load_priv_key(
-                KeyPath.CPS_LEAF_PEM,
+                os.path.join(get_PKI_PATH(), KeyPath.CPS_LEAF_PEM),
                 KeyEncoding.PEM,
-                KeyPasswordPath.CPS_LEAF_KEY_PASSWORD,
+                os.path.join(get_PKI_PATH(), KeyPasswordPath.CPS_LEAF_KEY_PASSWORD),
             )
 
             signature = create_signature(elements_to_sign, signature_key)
@@ -865,6 +888,106 @@ class CertificateInstallation(StateSECC):
 
         return cert_install_res, signature
 
+
+class CertificateUpdate(StateSECC):
+    """
+    The ISO 15118-2 state in which the SECC processes a
+    CertificateUpdateReq message from the EVCC.
+    """
+    def __init__(self, comm_session: SECCCommunicationSession):
+        super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
+    
+    async def process_message(
+        self,
+        message: Union[
+            SupportedAppProtocolReq,
+            SupportedAppProtocolRes,
+            V2GMessageV2,
+            V2GMessageV20,
+            V2GMessageDINSPEC,
+        ],
+        message_exi: bytes = None,
+    ):
+        msg = self.check_msg_v2(message, [CertificateUpdateReq])
+        if not msg:
+            return
+
+        if not self.validate_message_signature(msg):
+            self.stop_state_machine(
+                "Signature verification failed for " "CertificateUpdateReq",
+                message,
+                ResponseCode.FAILED_SIGNATURE_ERROR,
+            )
+            return
+        
+        signature = None
+        try:
+            logger.info("Using CPO backend to fetch CertificateUpdateRes")
+            # CertificateInstallationReq must be base64 encoded before forwarding
+            # to backend.
+            # Call to b64encode returns byte[] - hence the .decode("utf-8")
+            base64_certificate_update_req = base64.b64encode(message_exi).decode(
+                "utf-8"
+            )
+
+            exiRequest: dict = dict([
+                ("exiRequest", base64_certificate_update_req),
+                ("iso15118SchemaVersion", Namespace.ISO_V2_MSG_DEF),
+                ("certificateAction", "Update")
+            ])
+
+            p_Charger().publish_Certificate_Request(exiRequest)
+
+            # The response received below is EXI response in base64 encoded form.
+            # Decoding to EXI happens later just before V2GTP packet is built.
+            base64_certificate_update_res = (
+                await self.comm_session.evse_controller.get_15118_ev_certificate(
+                    base64_certificate_update_req, Namespace.ISO_V2_MSG_DEF
+                )
+            )
+            certificate_update_res: Base64 = Base64(
+                message=base64_certificate_update_res,
+                message_name=CertificateUpdateRes.__name__,
+            )
+        except Exception as e:
+            error = f"Error building CertificateUpdateRes: {e}"
+            logger.error(error)
+            self.stop_state_machine(
+                error,
+                message,
+                ResponseCode.FAILED_NO_CERTIFICATE_AVAILABLE,
+            )
+            return
+
+        self.create_next_message(
+            PaymentDetails,
+            certificate_update_res,
+            Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
+            Namespace.ISO_V2_MSG_DEF,
+            signature=signature,
+        )
+
+    def validate_message_signature(self, message: V2GMessageV2) -> bool:
+        # For the CertificateUpdate, the min. the SECC can do is
+        # to verify the message signature, using the contract certificate
+        # (public key) - this is available in the cert update req.
+
+        cert_update_req: CertificateUpdateReq = (
+            message.body.certificate_update_req
+        )
+
+        return verify_signature(
+            signature=message.header.signature,
+            elements_to_sign=[
+                (
+                    cert_update_req.id,
+                    EXI().to_exi(cert_update_req, Namespace.ISO_V2_MSG_DEF),
+                )
+            ],
+            leaf_cert=cert_update_req.contract_cert_chain.certificate,
+            sub_ca_certs=None,
+            root_ca_cert=None,
+        )
 
 class PaymentDetails(StateSECC):
     """
@@ -894,7 +1017,7 @@ class PaymentDetails(StateSECC):
 
     def _mobility_operator_root_cert_path(self) -> str:
         """Return the path to the MO root.  Included to be patched in tests."""
-        return CertPath.MO_ROOT_DER
+        return os.path.join(get_PKI_PATH(), CertPath.MO_ROOT_DER)
 
     async def process_message(
         self,
@@ -944,16 +1067,20 @@ class PaymentDetails(StateSECC):
             hash_data = get_certificate_hash_data(
                 self.comm_session.contract_cert_chain, root_cert
             )
-            pem_certificate_chain = build_pem_certificate_chain(
-                self.comm_session.contract_cert_chain, root_cert
-            )
+            pem_certificate_chain = build_pem_certificate_chain(payment_details_req.cert_chain, None)
+
+            # Todo_SL: HashData
+            ProvidedIdToken: dict = dict([
+                ("id_token", payment_details_req.emaid),
+                ("type", "PlugAndCharge"),
+                ("certificate", pem_certificate_chain),
+            ])
+
+            p_Charger().publish_Require_Auth_PnC(ProvidedIdToken)
 
             authorization_result = (
                 await self.comm_session.evse_controller.is_authorized(
-                    id_token=payment_details_req.emaid,
                     id_token_type=AuthorizationTokenType.EMAID,
-                    certificate_chain=pem_certificate_chain,
-                    hash_data=hash_data,
                 )
             )
 
@@ -977,6 +1104,8 @@ class PaymentDetails(StateSECC):
             else:
                 # TODO: investigate if it is feasible to get a more detailed
                 # response code error
+
+                # TODO_SL: Send the correct ResponseCode (for the CertificateStatus too)
                 self.stop_state_machine(
                     "Authorization was rejected",
                     message,
@@ -1046,7 +1175,6 @@ class Authorization(StateSECC):
         # only do the signature validation once
         self.signature_verified_once = False
         # EVerest code start #
-        self.authorizationFinished = AuthorizationStatus.ONGOING
         self.authorizationRequested = False
         # EVerest code end #
 
@@ -1111,40 +1239,39 @@ class Authorization(StateSECC):
                     )
                     return
 
-        # TODO: The authorization process can start already in the PaymentDetailsReq.
-        # An evse_controller method must be crated to receive as arguments
-        # the eMAID, the contract certificate chain (leaf, MO-Sub-1 and MO-Sub-2)
-        # and the OCSP iso15118CertificateHashData as mentioned in OCPP 2.0.1
-        # use case C07.
-        # If the current `is_authorized` is to be used, then we need to modify
-        # it to add those arguments.
-        # Note: The contract chain is saved within the
-        # self.comm_session.contract_cert_chain attribute.
+        auth_status: EVSEProcessing = EVSEProcessing.ONGOING
+        next_state: Optional[Type[State]] = None
+
         if await self.comm_session.evse_controller.is_free() is True:
             self.authorizationFinished = AuthorizationStatus.ACCEPTED
         else: 
-            if self.isAuthorizationRequested() is False:
-                if self.comm_session.selected_auth_option is AuthEnum.EIM_V2:
-                    p_Charger().publish_Require_Auth_EIM(None)
-                elif self.comm_session.selected_auth_option is AuthEnum.PNC_V2:
-                    p_Charger().publish_Require_Auth_PnC(None)
+            if (self.isAuthorizationRequested() is False and
+                self.comm_session.selected_auth_option is AuthEnum.EIM_V2
+            ):
+                p_Charger().publish_Require_Auth_EIM(None)
                 self.authorizationRequested = True
 
-            if (self.comm_session.selected_auth_option is AuthEnum.EIM_V2 and await self.comm_session.evse_controller.is_eim_authorized() is True) or (
-                self.comm_session.selected_auth_option is AuthEnum.PNC_V2 and await self.comm_session.evse_controller.is_eim_authorized() is True
-            ):
-                self.authorizationFinished = AuthorizationStatus.ACCEPTED
-
-        next_state: Optional[Type[State]] = None
-        if self.isAuthorizationFinished() == AuthorizationStatus.ACCEPTED:
+        # note that the certificate_chain and hashed_data are empty here
+        # as they were already send previously in the PaymentDetails state
+        authorization_result = await self.comm_session.evse_controller.is_authorized(
+            id_token_type=(
+                AuthorizationTokenType.EMAID
+                if self.comm_session.selected_auth_option == AuthEnum.PNC_V2
+                else AuthorizationTokenType.EXTERNAL
+            )
+        )    
+        
+        if authorization_result == AuthorizationStatus.ACCEPTED:
             auth_status = EVSEProcessing.FINISHED
             next_state = ChargeParameterDiscovery
-        elif self.isAuthorizationFinished() == AuthorizationStatus.REJECTED:
+        elif authorization_result == AuthorizationStatus.REJECTED:
             # according to table 112 of ISO 15118-2, the Response code
             # for this message can only be one of the following:
             # FAILED, FAILED_Challenge_Invalid,
             # Failed_SEQUENCE_ERROR, Failed_SIGNATURE_ERROR,
             # FAILED_Certificate_Revoked and Failed_UNKNOWN_SESSION
+
+            # TODO_SL: Send the correct ResponseCode (for the CertificateStatus too)
             self.stop_state_machine(
                 "Authorization was rejected",
                 message,
@@ -1152,15 +1279,15 @@ class Authorization(StateSECC):
             )
             return
         else:
+            # According to requirement [V2G2-854]
+            # If identification mode EIM has been selected by the
+            # parameter SelectedPaymentOption equal to "External Payment"
+            # in message ServicePaymentSelectReq and no positive EIM information
+            # is available an SECC shall set the parameter EVSEProcessing to
+            # „Ongoing_WaitingForCustomerInteraction“ in AuthorizationRes.
             if self.comm_session.selected_auth_option is AuthEnum.EIM_V2:
                 auth_status = EVSEProcessing.ONGOING_WAITING_FOR_CUSTOMER
-            else:
-                auth_status = EVSEProcessing.ONGOING
             
-        # TODO GitHub#54: handle REJECTED case
-        # TODO Need to distinguish between ONGOING and
-        #      ONGOING_WAITING_FOR_CUSTOMER
-
         authorization_res = AuthorizationRes(
             response_code=ResponseCode.OK, evse_processing=auth_status
         )
@@ -1175,9 +1302,6 @@ class Authorization(StateSECC):
     # EVerest code start #
     def isAuthorizationRequested(self) -> bool:
         return self.authorizationRequested
-
-    def isAuthorizationFinished(self) -> AuthorizationStatus:
-        return self.authorizationFinished
     # EVerest code end #
 
 
@@ -1412,9 +1536,9 @@ class ChargeParameterDiscovery(StateSECC):
                             ),
                         )
                         signature_key = load_priv_key(
-                            KeyPath.MO_SUB_CA2_PEM,
+                            os.path.join(get_PKI_PATH(), KeyPath.MO_SUB_CA2_PEM),
                             KeyEncoding.PEM,
-                            KeyPasswordPath.MO_SUB_CA2_PASSWORD,
+                            os.path.join(get_PKI_PATH(), KeyPasswordPath.MO_SUB_CA2_PASSWORD),
                         )
                         signature = create_signature([element_to_sign], signature_key)
                     except PrivateKeyReadError as exc:
@@ -2122,7 +2246,7 @@ class ChargingStatus(StateSECC):
         if self.comm_session.selected_auth_option == AuthEnum.EIM_V2:
             receipt_required = False # Always false
         else:
-            receipt_required = self.comm_session.evse_controller.get_receipt_required()
+            receipt_required = await self.comm_session.evse_controller.get_receipt_required()
         # EVerest code end #
 
         # We don't care about signed meter values from the EVCC, but if you
@@ -2686,6 +2810,7 @@ def get_state_by_msg_type(message_type: Type[BodyBase]) -> Optional[Type[State]]
         ServiceDetailReq: ServiceDetail,
         PaymentServiceSelectionReq: PaymentServiceSelection,
         CertificateInstallationReq: CertificateInstallation,
+        CertificateUpdateReq: CertificateUpdate,
         PaymentDetailsReq: PaymentDetails,
         AuthorizationReq: Authorization,
         CableCheckReq: CableCheck,

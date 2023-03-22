@@ -8,6 +8,7 @@ import math
 import time, calendar
 from typing import Dict, List, Optional
 import dateutil.parser
+import os
 
 from aiofile import async_open
 from pydantic import BaseModel, Field
@@ -146,7 +147,7 @@ from iso15118.shared.security import (
     load_cert,
     load_priv_key,
 )
-from iso15118.shared.settings import V20_EVSE_SERVICES_CONFIG
+from iso15118.shared.settings import V20_EVSE_SERVICES_CONFIG, get_PKI_PATH
 
 from everest_iso15118 import ChargerWrapper
 from everest_iso15118 import float2Value_Multiplier
@@ -436,7 +437,25 @@ class SimEVSEController(EVSEControllerInterface):
         hash_data: Optional[List[Dict[str, str]]] = None,
     ) -> AuthorizationStatus:
         """Overrides EVSEControllerInterface.is_authorized()."""
-        return AuthorizationStatus.ACCEPTED
+
+        if id_token_type is AuthorizationTokenType.EXTERNAL:
+
+            eim_auth_status: bool = ChargerWrapper.get_Auth_Okay_EIM()
+
+            if eim_auth_status is True:
+                return AuthorizationStatus.ACCEPTED 
+
+        elif id_token_type is AuthorizationTokenType.EMAID:
+
+            pnc_auth_status: str = ChargerWrapper.get_Auth_PnC_Status()
+            certificate_status = ChargerWrapper.get_Auth_Certificate_Status()
+
+            if pnc_auth_status == "Accepted" and certificate_status in ['Ongoing', 'Accepted']:
+                return AuthorizationStatus.ACCEPTED
+            elif (pnc_auth_status == "Ongoing" and certificate_status == "Ongoing"):
+                return AuthorizationStatus.ONGOING
+            else:
+                return AuthorizationStatus.REJECTED
 
     async def get_sa_schedule_list_dinspec(
         self, max_schedule_entries: Optional[int], departure_time: int = 0
@@ -490,33 +509,10 @@ class SimEVSEController(EVSEControllerInterface):
             schedule_entries=[p_max_schedule_entry_1, p_max_schedule_entry_2]
         )
 
-        # SalesTariff
-        sales_tariff_entries: List[SalesTariffEntry] = []
-        sales_tariff_entry_1 = SalesTariffEntry(
-            e_price_level=1,
-            time_interval=RelativeTimeInterval(start=0),
-        )
-        sales_tariff_entry_2 = SalesTariffEntry(
-            e_price_level=2,
-            time_interval=RelativeTimeInterval(
-                start=math.floor(departure_time / 2),
-                duration=math.ceil(departure_time / 2),
-            ),
-        )
-        sales_tariff_entries.append(sales_tariff_entry_1)
-        sales_tariff_entries.append(sales_tariff_entry_2)
-        sales_tariff = SalesTariff(
-            id="id1",
-            sales_tariff_id=10,  # a random id
-            sales_tariff_entry=sales_tariff_entries,
-            num_e_price_levels=2,
-        )
-
         # Putting the list of SAScheduleTuple entries together
         sa_schedule_tuple = SAScheduleTuple(
             sa_schedule_tuple_id=1,
             p_max_schedule=p_max_schedule,
-            sales_tariff=sales_tariff,
         )
 
         # TODO We could also implement an optional SalesTariff, but for the sake of
@@ -619,14 +615,11 @@ class SimEVSEController(EVSEControllerInterface):
     async def is_free(self) -> bool:
         return ChargerWrapper.get_FreeService()
 
-    async def is_eim_authorized(self) -> bool:
-        return ChargerWrapper.get_Auth_Okay_EIM()
-
-    async def is_pnc_authorized(self) -> bool:
-        return ChargerWrapper.get_Auth_Okay_PnC()
-
     async def set_present_protocol_state(self, state_name: str):
         pass
+
+    async def allow_cert_install_service(self) -> bool:
+        return ChargerWrapper.get_Certificate_Service_Supported()
 
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
@@ -931,133 +924,33 @@ class SimEVSEController(EVSEControllerInterface):
         """
         Overrides EVSEControllerInterface.get_15118_ev_certificate().
 
-        Here we simply mock the actions of the backend.
-        The code here is almost the same as what is done if USE_CPO_BACKEND
-        is set to False. Except that both the request and response is base64 encoded.
+        # Here we simply mock the actions of the backend.
+        # The code here is almost the same as what is done if USE_CPO_BACKEND
+        # is set to False. Except that both the request and response is base64 encoded.
         """
-        cert_install_req_exi = base64.b64decode(base64_encoded_cert_installation_req)
-        cert_install_req = EXI().from_exi(cert_install_req_exi, namespace)
-        try:
-            dh_pub_key, encrypted_priv_key_bytes = encrypt_priv_key(
-                oem_prov_cert=load_cert(CertPath.OEM_LEAF_DER),
-                priv_key_to_encrypt=load_priv_key(
-                    KeyPath.CONTRACT_LEAF_PEM,
-                    KeyEncoding.PEM,
-                    KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD,
-                ),
-            )
-        except EncryptionError:
-            raise EncryptionError(
-                "EncryptionError while trying to encrypt the private key for the "
-                "contract certificate"
-            )
-        except PrivateKeyReadError as exc:
-            raise PrivateKeyReadError(
-                f"Can't read private key to encrypt for CertificateInstallationRes:"
-                f" {exc}"
-            )
 
-        # The elements that need to be part of the signature
-        contract_cert_chain = CertificateChain(
-            id="id1",
-            certificate=load_cert(CertPath.CONTRACT_LEAF_DER),
-            sub_certificates=SubCertificates(
-                certificates=[
-                    load_cert(CertPath.MO_SUB_CA2_DER),
-                    load_cert(CertPath.MO_SUB_CA1_DER),
-                ]
-            ),
-        )
-        encrypted_priv_key = EncryptedPrivateKey(
-            id="id2", value=encrypted_priv_key_bytes
-        )
-        dh_public_key = DHPublicKey(id="id3", value=dh_pub_key)
-        emaid = EMAID(
-            id="id4", value=get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER))
-        )
-        cps_certificate_chain = CertificateChain(
-            certificate=load_cert(CertPath.CPS_LEAF_DER),
-            sub_certificates=SubCertificates(
-                certificates=[
-                    load_cert(CertPath.CPS_SUB_CA2_DER),
-                    load_cert(CertPath.CPS_SUB_CA1_DER),
-                ]
-            ),
-        )
+        startTime_ns: int = time.time_ns()
+        timeout: int = 0
+        PERFORMANCE_TIMEOUT: int = 4500
+        
+        while timeout < PERFORMANCE_TIMEOUT:
 
-        cert_install_res = CertificateInstallationRes(
-            response_code=ResponseCode.OK,
-            cps_cert_chain=cps_certificate_chain,
-            contract_cert_chain=contract_cert_chain,
-            encrypted_private_key=encrypted_priv_key,
-            dh_public_key=dh_public_key,
-            emaid=emaid,
-        )
-
-        try:
-            # Elements to sign, containing its id and the exi encoded stream
-            contract_cert_tuple = (
-                cert_install_res.contract_cert_chain.id,
-                EXI().to_exi(
-                    cert_install_res.contract_cert_chain, Namespace.ISO_V2_MSG_DEF
-                ),
-            )
-            encrypted_priv_key_tuple = (
-                cert_install_res.encrypted_private_key.id,
-                EXI().to_exi(
-                    cert_install_res.encrypted_private_key, Namespace.ISO_V2_MSG_DEF
-                ),
-            )
-            dh_public_key_tuple = (
-                cert_install_res.dh_public_key.id,
-                EXI().to_exi(cert_install_res.dh_public_key, Namespace.ISO_V2_MSG_DEF),
-            )
-            emaid_tuple = (
-                cert_install_res.emaid.id,
-                EXI().to_exi(cert_install_res.emaid, Namespace.ISO_V2_MSG_DEF),
-            )
-
-            elements_to_sign = [
-                contract_cert_tuple,
-                encrypted_priv_key_tuple,
-                dh_public_key_tuple,
-                emaid_tuple,
-            ]
-            # The private key to be used for the signature
-            signature_key = load_priv_key(
-                KeyPath.CPS_LEAF_PEM,
-                KeyEncoding.PEM,
-                KeyPasswordPath.CPS_LEAF_KEY_PASSWORD,
-            )
-
-            signature = create_signature(elements_to_sign, signature_key)
-
-        except PrivateKeyReadError as exc:
-            raise Exception(
-                "Can't read private key needed to create signature "
-                f"for CertificateInstallationRes: {exc}",
-            )
-        except Exception as exc:
-            raise Exception(f"Error creating signature {exc}")
-
-        header = MessageHeaderV2(
-            session_id=cert_install_req.header.session_id,
-            signature=signature,
-        )
-        body = Body.parse_obj({"CertificateInstallationRes": cert_install_res.dict()})
-        to_be_exi_encoded = V2GMessageV2(header=header, body=body)
-        exi_encoded_cert_installation_res = EXI().to_exi(
-            to_be_exi_encoded, Namespace.ISO_V2_MSG_DEF
-        )
-
-        # base64.b64encode in Python is a binary transform so the return value is byte[]
-        # But the CPO expects exi_encoded_cert_installation_res as a string, hence the
-        # added .decode("utf-8")
-        base64_encode_cert_install_res = base64.b64encode(
-            exi_encoded_cert_installation_res
-        ).decode("utf-8")
-
-        return base64_encode_cert_install_res
+            Response: dict = ChargerWrapper.get_Certificate_Response()
+            if Response:
+                if Response["certificateAction"] == "Install":
+                    if Response["status"] == "Accepted":
+                        exiResponse: str = str(Response["exiResponse"])
+                        return exiResponse
+                    elif Response["status"] == "Failed":
+                        raise Exception("The CSMS reported: Processing of the message was not successful")
+                elif Response["certificateAction"] == "Update":
+                    action: str = str(Response["certificateAction"])
+                    raise Exception(f"The wrong message was generated by the backend: {action}")
+                
+            timeout = (time.time_ns() - startTime_ns) / pow(10, 6)
+            await asyncio.sleep(0.001)
+        
+        raise Exception("Timeout - The backend takes too long to generate the CertificateInstallationRes")
 
     async def update_data_link(self, action: SessionStopAction) -> None:
         """

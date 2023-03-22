@@ -79,7 +79,7 @@ from iso15118.shared.messages.xmldsig import (
     Transform,
     Transforms,
 )
-from iso15118.shared.settings import ENABLE_TLS_1_3, PKI_PATH
+from iso15118.shared.settings import ENABLE_TLS_1_3, get_PKI_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -140,9 +140,9 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
     if server_side:
         try:
             ssl_context.load_cert_chain(
-                certfile=CertPath.CPO_CERT_CHAIN_PEM,
-                keyfile=KeyPath.SECC_LEAF_PEM,
-                password=load_priv_key_pass(KeyPasswordPath.SECC_LEAF_KEY_PASSWORD),
+                certfile=os.path.join(get_PKI_PATH(), CertPath.CPO_CERT_CHAIN_PEM),
+                keyfile=os.path.join(get_PKI_PATH(), KeyPath.SECC_LEAF_PEM),
+                password=load_priv_key_pass(os.path.join(get_PKI_PATH(), KeyPasswordPath.SECC_LEAF_KEY_PASSWORD)),
             )
         except SSLError:
             logger.exception(
@@ -165,7 +165,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             # (Table 5 in V2G20 specification)
             # Marc/André - this suggests we will need mutual auth 15118-2 if
             # TLS1.3 is enabled.
-            ssl_context.load_verify_locations(cafile=CertPath.OEM_ROOT_PEM)
+            ssl_context.load_verify_locations(cafile=os.path.join(get_PKI_PATH(), CertPath.OEM_ROOT_PEM))
             ssl_context.verify_mode = VerifyMode.CERT_REQUIRED
         else:
             # In ISO 15118-2, we only verify the SECC's certificates
@@ -188,7 +188,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
         # Load the V2G Root CA certificate(s) to validate the SECC's leaf and
         # Sub-CA CPO certificates. The cafile string is the path to a file of
         # concatenated (if several exist) V2G Root CA certificates in PEM format
-        ssl_context.load_verify_locations(cafile=CertPath.V2G_ROOT_PEM)
+        ssl_context.load_verify_locations(cafile=os.path.join(get_PKI_PATH(), CertPath.V2G_ROOT_PEM))
         ssl_context.check_hostname = False
         ssl_context.verify_mode = VerifyMode.CERT_REQUIRED
         # In 15118-20, the EVCC must support all cipher suites in the spec [V2G20-2459]
@@ -203,9 +203,9 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
         if ENABLE_TLS_1_3:
             try:
                 ssl_context.load_cert_chain(
-                    certfile=CertPath.OEM_CERT_CHAIN_PEM,
-                    keyfile=KeyPath.OEM_LEAF_PEM,
-                    password=load_priv_key_pass(KeyPasswordPath.OEM_LEAF_KEY_PASSWORD),
+                    certfile=os.path.join(get_PKI_PATH(), CertPath.OEM_CERT_CHAIN_PEM),
+                    keyfile=os.path.join(get_PKI_PATH(), KeyPath.OEM_LEAF_PEM),
+                    password=load_priv_key_pass(os.path.join(get_PKI_PATH(), KeyPasswordPath.OEM_LEAF_KEY_PASSWORD)),
                 )
             except SSLError:
                 logger.exception(
@@ -1435,34 +1435,34 @@ class CertPath(str, Enum):
     """
 
     # Mobility operator (MO)
-    CONTRACT_LEAF_DER = os.path.join(PKI_PATH, "iso15118_2/certs/contractLeafCert.der")
-    MO_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/moSubCA2Cert.der")
-    MO_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/moSubCA1Cert.der")
-    MO_ROOT_DER = os.path.join(PKI_PATH, "iso15118_2/certs/moRootCACert.der")
+    CONTRACT_LEAF_DER = "client/mo/MO_LEAF.der"
+    MO_SUB_CA2_DER = "ca/mo/MO_SUB_CA2.der"
+    MO_SUB_CA1_DER = "ca/mo/MO_SUB_CA1.der"
+    MO_ROOT_DER = "ca/mo/MO_ROOT_CA.der"
 
     # Charge point operator (CPO)
-    SECC_LEAF_DER = os.path.join(PKI_PATH, "iso15118_2/certs/seccLeafCert.der")
-    SECC_LEAF_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/seccLeafCert.pem")
-    CPO_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpoSubCA2Cert.der")
-    CPO_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpoSubCA1Cert.der")
-    V2G_ROOT_DER = os.path.join(PKI_PATH, "iso15118_2/certs/v2gRootCACert.der")
-    V2G_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/v2gRootCACert.pem")
+    SECC_LEAF_DER = "client/cso/SECC_LEAF.der"
+    SECC_LEAF_PEM = "client/cso/SECC_LEAF.pem"
+    CPO_SUB_CA2_DER = "ca/cso/CPO_SUB_CA2.der"
+    CPO_SUB_CA1_DER = "ca/cso/CPO_SUB_CA1.der"
+    V2G_ROOT_DER = "ca/v2g/V2G_ROOT_CA.der"
+    V2G_ROOT_PEM = "ca/v2g/V2G_ROOT_CA.pem"
     # Needed for the 'certfile' parameter in ssl_context.load_cert_chain()
-    CPO_CERT_CHAIN_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/cpoCertChain.pem")
+    CPO_CERT_CHAIN_PEM = "client/cso/CPO_CERT_CHAIN.pem"
 
     # Certificate provisioning service (CPS)
-    CPS_LEAF_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpsLeafCert.der")
-    CPS_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpsSubCA2Cert.der")
-    CPS_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/cpsSubCA1Cert.der")
+    CPS_LEAF_DER = "client/cps/CPS_LEAF.der"
+    CPS_SUB_CA2_DER = "ca/cps/CPS_SUB_CA2.der"
+    CPS_SUB_CA1_DER = "ca/cps/CPS_SUB_CA1.der"
     # The root is the V2G_ROOT
 
     # EV manufacturer (OEM)
-    OEM_LEAF_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemLeafCert.der")
-    OEM_SUB_CA2_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemSubCA2Cert.der")
-    OEM_SUB_CA1_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemSubCA1Cert.der")
-    OEM_ROOT_DER = os.path.join(PKI_PATH, "iso15118_2/certs/oemRootCACert.der")
-    OEM_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/oemRootCACert.pem")
-    OEM_CERT_CHAIN_PEM = os.path.join(PKI_PATH, "iso15118_2/certs/oemCertChain.pem")
+    OEM_LEAF_DER = "client/oem/OEM_LEAF.der"
+    OEM_SUB_CA2_DER = "ca/oem/OEM_SUB_CA2.der"
+    OEM_SUB_CA1_DER = "ca/oem/OEM_SUB_CA1.der"
+    OEM_ROOT_DER = "ca/oem/OEM_ROOT_CA.der"
+    OEM_ROOT_PEM = "ca/oem/OEM_ROOT_CA.pem"
+    OEM_CERT_CHAIN_PEM = "client/oem/OEM_CERT_CHAIN.pem"
 
 
 class KeyPath(str, Enum):
@@ -1475,30 +1475,28 @@ class KeyPath(str, Enum):
     """
 
     # Mobility operator (MO)
-    CONTRACT_LEAF_PEM = os.path.join(
-        PKI_PATH, "iso15118_2/private_keys/contractLeaf" ".key"
-    )
-    MO_SUB_CA2_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/moSubCA2.key")
-    MO_SUB_CA1_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/moSubCA1.key")
-    MO_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/moRootCA.key")
+    CONTRACT_LEAF_PEM = "client/mo/MO_LEAF.key"
+    MO_SUB_CA2_PEM = "client/mo/MO_SUB_CA2.key"
+    MO_SUB_CA1_PEM = "client/mo/MO_SUB_CA1.key"
+    MO_ROOT_PEM = "client/mo/MO_ROOT_CA.key"
 
     # Charge point operator (CPO)
-    SECC_LEAF_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/seccLeaf.key")
-    CPO_SUB_CA2_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpoSubCA2.key")
-    CPO_SUB_CA1_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpoSubCA1.key")
-    V2G_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/v2gRootCA.key")
+    SECC_LEAF_PEM = "client/cso/SECC_LEAF.key"
+    CPO_SUB_CA2_PEM = "client/cso/CPO_SUB_CA2.key"
+    CPO_SUB_CA1_PEM = "client/cso/CPO_SUB_CA1.key"
+    V2G_ROOT_PEM = "client/v2g/V2G_ROOT_CA.key"
 
     # Certificate provisioning service (CPS)
-    CPS_LEAF_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpsLeaf.key")
-    CPS_SUB_CA2_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpsSubCA2.key")
-    CPS_SUB_CA1_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/cpsSubCA1.key")
+    CPS_LEAF_PEM = "client/cps/CPS_LEAF.key"
+    CPS_SUB_CA2_PEM = "client/cps/CPS_SUB_CA2.key"
+    CPS_SUB_CA1_PEM = "client/cps/CPS_SUB_CA1.key"
     # The root is the V2G_ROOT
 
     # EV manufacturer (OEM)
-    OEM_LEAF_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/oemLeaf.key")
-    OEM_SUB_CA2_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/oemSubCA2.key")
-    OEM_SUB_CA1_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/oemSubCA1.key")
-    OEM_ROOT_PEM = os.path.join(PKI_PATH, "iso15118_2/private_keys/oemRootCA.key")
+    OEM_LEAF_PEM = "client/oem/OEM_LEAF.key"
+    OEM_SUB_CA2_PEM = "client/oem/OEM_SUB_CA2.key"
+    OEM_SUB_CA1_PEM = "client/oem/OEM_SUB_CA1.key"
+    OEM_ROOT_PEM = "client/oem/OEM_ROOT_CA.key"
 
 
 class KeyPasswordPath(str, Enum):
@@ -1510,18 +1508,8 @@ class KeyPasswordPath(str, Enum):
     """
 
     # Private key password paths
-    SECC_LEAF_KEY_PASSWORD = os.path.join(
-        PKI_PATH, "iso15118_2/private_keys/seccLeafPassword.txt"
-    )
-    OEM_LEAF_KEY_PASSWORD = os.path.join(
-        PKI_PATH, "iso15118_2/private_keys/oemLeafPassword.txt"
-    )
-    CONTRACT_LEAF_KEY_PASSWORD = os.path.join(
-        PKI_PATH, "iso15118_2/private_keys/contractLeafPassword.txt"
-    )
-    CPS_LEAF_KEY_PASSWORD = os.path.join(
-        PKI_PATH, "iso15118_2/private_keys/cpsLeafPassword.txt"
-    )
-    MO_SUB_CA2_PASSWORD = os.path.join(
-        PKI_PATH, "iso15118_2/private_keys/moSubCA2LeafPassword.txt"
-    )
+    SECC_LEAF_KEY_PASSWORD = "client/cso/SECC_LEAF_PASSWORD.txt"
+    OEM_LEAF_KEY_PASSWORD = "client/oem/OEM_LEAF_PASSWORD.txt"
+    CONTRACT_LEAF_KEY_PASSWORD = "client/mo/MO_LEAF_PASSWORD.txt"
+    CPS_LEAF_KEY_PASSWORD = "client/cps/CPS_LEAF_PASSWORD.txt"
+    MO_SUB_CA2_PASSWORD = "client/cso/CPO_SUB_CA2_PASSWORD.txt"

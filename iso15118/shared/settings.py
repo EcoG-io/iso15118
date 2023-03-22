@@ -7,7 +7,14 @@ WORK_DIR = os.getcwd()
 
 ENV_PATH = WORK_DIR + "/libexec/everest/3rd_party/josev/.env"
 
-PKI_PATH = SHARED_CWD + "/pki/"
+PKI_Path = ""
+
+def set_PKI_PATH(path: str) -> None:
+    global PKI_Path
+    PKI_Path = path
+
+def get_PKI_PATH() -> str:
+    return PKI_Path
 
 MESSAGE_LOG_JSON = True
 MESSAGE_LOG_EXI = False

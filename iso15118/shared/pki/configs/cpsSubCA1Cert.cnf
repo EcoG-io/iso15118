@@ -4,8 +4,8 @@ distinguished_name		= ca_dn
 
 [ca_dn]
 commonName				= ProvSubCA1
-organizationName		= Switch
-countryName				= UK
+organizationName		= EVerest
+countryName				= DE
 domainComponent			= CPS
 
 [ext]

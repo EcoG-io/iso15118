@@ -560,8 +560,13 @@ def debugV2GMessages(decoded_message, v2gtp_msg):
     import json
     from iso15118.shared.exi_codec import CustomJSONEncoder
     import base64
+    from iso15118.shared.states import Base64
 
     if ChargerWrapper.get_debug_mode() == "Full":
+
+        if isinstance(decoded_message, Base64):
+            return
+
         msg_to_dct: dict = decoded_message.dict(by_alias=True, exclude_none=True)
         if isinstance(decoded_message, V2GMessageV2) or isinstance(
             decoded_message, V2GMessageDINSPEC

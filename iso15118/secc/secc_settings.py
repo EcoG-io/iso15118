@@ -181,7 +181,7 @@ class Config:
         
         self.load_requested_protocols(protocols)
 
-        self.use_cpo_backend = False
+        self.use_cpo_backend = True
         logger.info(f"Using CPO Backend: {self.use_cpo_backend}")
 
         self.load_requested_auth_modes(self.default_auth_modes)

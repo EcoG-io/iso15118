@@ -4,8 +4,8 @@ distinguished_name		= ca_dn
 
 [ca_dn]
 commonName				= V2GRootCA
-organizationName		= Switch
-countryName				= UK
+organizationName		= EVerest
+countryName				= DE
 domainComponent			= V2G
 
 [ext]

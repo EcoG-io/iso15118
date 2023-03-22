@@ -4,8 +4,8 @@ distinguished_name		= ca_dn
 
 [ca_dn]
 commonName				= PKI-Ext_CRT_MO_SUB1_VALID
-organizationName		= Switch
-countryName				= UK
+organizationName		= EVerest
+countryName				= DE
 domainComponent			= MO
 
 [ext]

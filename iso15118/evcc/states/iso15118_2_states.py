@@ -7,6 +7,7 @@ SessionStopRes.
 import logging
 from time import time
 from typing import Any, List, Union
+import os
 
 from iso15118.evcc import evcc_settings
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
@@ -101,6 +102,8 @@ from iso15118.shared.security import (
     verify_signature,
 )
 from iso15118.shared.states import Terminate
+
+from iso15118.shared.settings import get_PKI_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -416,10 +419,10 @@ class PaymentServiceSelection(StateEVCC):
             if await self.comm_session.ev_controller.is_cert_install_needed():
                 # TODO: Find a more generic way to serach for all available
                 #       V2GRootCA certificates
-                issuer, serial = get_cert_issuer_serial(CertPath.V2G_ROOT_DER)
+                issuer, serial = get_cert_issuer_serial(os.path.join(get_PKI_PATH(), CertPath.V2G_ROOT_DER))
                 cert_install_req = CertificateInstallationReq(
                     id="id1",
-                    oem_provisioning_cert=load_cert(CertPath.OEM_LEAF_DER),
+                    oem_provisioning_cert=load_cert(os.path.join(get_PKI_PATH(), CertPath.OEM_LEAF_DER)),
                     list_of_root_cert_ids=RootCertificateIDList(
                         x509_issuer_serials=[
                             X509IssuerSerial(
@@ -440,9 +443,9 @@ class PaymentServiceSelection(StateEVCC):
                             )
                         ],
                         load_priv_key(
-                            KeyPath.OEM_LEAF_PEM,
+                            os.path.join(get_PKI_PATH(), KeyPath.OEM_LEAF_PEM),
                             KeyEncoding.PEM,
-                            KeyPasswordPath.OEM_LEAF_KEY_PASSWORD,
+                            os.path.join(get_PKI_PATH(), KeyPasswordPath.OEM_LEAF_KEY_PASSWORD),
                         ),
                     )
 
@@ -462,12 +465,12 @@ class PaymentServiceSelection(StateEVCC):
             else:
                 try:
                     payment_details_req = PaymentDetailsReq(
-                        emaid=eMAID(get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER))),
+                        emaid=eMAID(get_cert_cn(load_cert(os.path.join(get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER)))),
                         cert_chain=load_cert_chain(
                             protocol=Protocol.ISO_15118_2,
-                            leaf_path=CertPath.CONTRACT_LEAF_DER,
-                            sub_ca2_path=CertPath.MO_SUB_CA2_DER,
-                            sub_ca1_path=CertPath.MO_SUB_CA1_DER,
+                            leaf_path=os.path.join(get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER),
+                            sub_ca2_path=os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA2_DER),
+                            sub_ca1_path=os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA1_DER),
                         ),
                     )
                 except FileNotFoundError as exc:
@@ -545,7 +548,7 @@ class CertificateInstallation(StateEVCC):
             ],
             leaf_cert=cert_install_res.cps_cert_chain.certificate,
             sub_ca_certs=cert_install_res.cps_cert_chain.sub_certificates.certificates,
-            root_ca_cert=load_cert(CertPath.V2G_ROOT_DER),
+            root_ca_cert=load_cert(os.path.join(get_PKI_PATH(), CertPath.V2G_ROOT_DER)),
         ):
             self.stop_state_machine(
                 "Signature verification of " "CertificateInstallationRes failed"
@@ -556,9 +559,9 @@ class CertificateInstallation(StateEVCC):
             decrypted_priv_key = decrypt_priv_key(
                 encrypted_priv_key_with_iv=cert_install_res.encrypted_private_key.value,
                 ecdh_priv_key=load_priv_key(
-                    KeyPath.OEM_LEAF_PEM,
+                    os.path.join(get_PKI_PATH(), KeyPath.OEM_LEAF_PEM),
                     KeyEncoding.PEM,
-                    KeyPasswordPath.OEM_LEAF_KEY_PASSWORD,
+                    os.path.join(get_PKI_PATH(), KeyPasswordPath.OEM_LEAF_KEY_PASSWORD),
                 ),
                 ecdh_pub_key=to_ec_pub_key(cert_install_res.dh_public_key.value),
             )
@@ -580,12 +583,12 @@ class CertificateInstallation(StateEVCC):
             return
 
         payment_details_req = PaymentDetailsReq(
-            emaid=get_cert_cn(load_cert(CertPath.CONTRACT_LEAF_DER)),
+            emaid=get_cert_cn(load_cert(os.path.join(get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER))),
             cert_chain=load_cert_chain(
                 protocol=Protocol.ISO_15118_2,
-                leaf_path=CertPath.CONTRACT_LEAF_DER,
-                sub_ca2_path=CertPath.MO_SUB_CA2_DER,
-                sub_ca1_path=CertPath.MO_SUB_CA1_DER,
+                leaf_path=os.path.join(get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER),
+                sub_ca2_path=os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA2_DER),
+                sub_ca1_path=os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA1_DER),
             ),
         )
 
@@ -636,9 +639,9 @@ class PaymentDetails(StateEVCC):
                     )
                 ],
                 load_priv_key(
-                    KeyPath.CONTRACT_LEAF_PEM,
+                    os.path.join(get_PKI_PATH(), KeyPath.CONTRACT_LEAF_PEM),
                     KeyEncoding.PEM,
-                    KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD,
+                    os.path.join(get_PKI_PATH(), KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD),
                 ),
             )
 
@@ -1136,9 +1139,9 @@ class ChargingStatus(StateEVCC):
                         )
                     ],
                     load_priv_key(
-                        KeyPath.CONTRACT_LEAF_PEM,
+                        os.path.join(get_PKI_PATH(), KeyPath.CONTRACT_LEAF_PEM),
                         KeyEncoding.PEM,
-                        KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD,
+                        os.path.join(get_PKI_PATH(), KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD),
                     ),
                 )
 
