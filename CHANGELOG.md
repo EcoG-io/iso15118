@@ -5,6 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2023-03-22
+
+### Fixed
+* ConnectionResetError has been added for receive by @ikaratass in https://github.com/SwitchEV/iso15118/pull/214
+
+### Added
+* debug message added for cretificateintallationres by @ikaratass in https://github.com/SwitchEV/iso15118/pull/210
+
 ## [0.19.0] - 2023-03-09
 
 ### Added
