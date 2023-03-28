@@ -274,9 +274,18 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     ResponseCode as ResponseCodeV20,
 )
 from iso15118.shared.messages.iso15118_20.dc import (
+    DCCableCheckReq,
+    DCCableCheckRes,
+    DCChargeLoopReq,
+    DCChargeLoopRes,
     DCChargeParameterDiscoveryReq,
     DCChargeParameterDiscoveryRes,
     DCChargeParameterDiscoveryResParams,
+    DCPreChargeReq,
+    DCPreChargeRes,
+    DCWeldingDetectionReq,
+    DCWeldingDetectionRes,
+    ScheduledDCChargeLoopResParams,
 )
 
 
@@ -751,9 +760,22 @@ def init_failed_responses_iso_v20() -> dict:
             Namespace.ISO_V20_AC,
             ISOV20PayloadTypes.AC_MAINSTREAM,
         ),
-        # DCChargeLoopReq:
-        # TODO Need to add DC messages for ISO 15118-20
-        #     None,
+        DCChargeLoopReq: (
+            DCChargeLoopRes(
+                header=header,
+                response_code=ResponseCodeV20.FAILED,
+                evse_present_current=RationalNumber(exponent=0, value=0),
+                evse_present_voltage=RationalNumber(exponent=0, value=0),
+                evse_power_limit_achieved=True,
+                evse_current_limit_achieved=True,
+                evse_voltage_limit_achieved=True,
+                scheduled_dc_charge_loop_res=ScheduledDCChargeLoopResParams(
+                    evse_maximum_charge_power=RationalNumber(exponent=0, value=0)
+                ),
+            ),
+            Namespace.ISO_V20_DC,
+            ISOV20PayloadTypes.DC_MAINSTREAM,
+        ),
         # WPTChargeLoopReq:
         # TODO Need to add WPT messages for ISO 15118-20
         #     None,
@@ -764,9 +786,33 @@ def init_failed_responses_iso_v20() -> dict:
             Namespace.ISO_V20_COMMON_MSG,
             ISOV20PayloadTypes.MAINSTREAM,
         ),
-        # DCWeldingDetectionReq:
-        # TODO Need to add DC messages for ISO 15118-20
-        #     None,
+        DCPreChargeReq: (
+            DCPreChargeRes(
+                header=header,
+                response_code=ResponseCodeV20.FAILED,
+                evse_present_voltage=RationalNumber(exponent=0, value=0),
+            ),
+            Namespace.ISO_V20_DC,
+            ISOV20PayloadTypes.DC_MAINSTREAM,
+        ),
+        DCCableCheckReq: (
+            DCCableCheckRes(
+                header=header,
+                response_code=ResponseCodeV20.FAILED,
+                evse_processing=Processing.FINISHED,
+            ),
+            Namespace.ISO_V20_DC,
+            ISOV20PayloadTypes.DC_MAINSTREAM,
+        ),
+        DCWeldingDetectionReq: (
+            DCWeldingDetectionRes(
+                header=header,
+                response_code=ResponseCodeV20.FAILED,
+                evse_present_voltage=RationalNumber(exponent=0, value=0),
+            ),
+            Namespace.ISO_V20_DC,
+            ISOV20PayloadTypes.DC_MAINSTREAM,
+        ),
         # VehicleCheckInReq:
         # TODO Need to add messages for ISO 15118-20
         #     None,

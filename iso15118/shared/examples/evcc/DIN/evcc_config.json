@@ -1,0 +1,8 @@
+{
+	"supportedProtocols": [
+		"DIN_SPEC_70121"
+	],
+	"energyTransferMode": "DC_extended",
+	"isCertInstallNeeded": false,
+	"useTls": false
+}

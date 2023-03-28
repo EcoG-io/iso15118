@@ -44,6 +44,7 @@ class UDPServer(asyncio.DatagramProtocol):
         self._session_handler_queue: asyncio.Queue = session_handler_queue
         self._rcv_queue: asyncio.Queue = asyncio.Queue()
         self._transport: Optional[DatagramTransport] = None
+        self.pause_server: bool = False
 
     @staticmethod
     async def _create_socket(iface: str) -> "socket":
@@ -72,6 +73,10 @@ class UDPServer(asyncio.DatagramProtocol):
             full_ipv6_address = await get_link_local_full_addr(SDP_SERVER_PORT, iface)
             sock.bind(full_ipv6_address)
         else:
+            # Required if running on a Linux VM on Windows
+            if not hasattr(socket, "SO_BINDTODEVICE"):
+                socket.SO_BINDTODEVICE = 25
+
             sock.setsockopt(
                 socket.SOL_SOCKET,
                 socket.SO_BINDTODEVICE,
@@ -141,6 +146,12 @@ class UDPServer(asyncio.DatagramProtocol):
             addr: The address of the peer sending the data; the exact format
             depends on the transport.
         """
+        if self.pause_server:
+            """
+            If the server is in paused state, ignore incoming datagrams.
+            """
+            return
+
         logger.debug(f"Message received from {addr}: {data.hex()}")
         try:
             udp_packet = UDPPacketNotification(bytearray(data), addr)
@@ -177,6 +188,23 @@ class UDPServer(asyncio.DatagramProtocol):
         name of the last message sent for debugging purposes.
         """
         self._transport.sendto(message.to_bytes(), addr)
+
+    def pause_udp_server(self):
+        """
+        This method will be called once a TCP connection is established with the EVCC.
+        All following UDP messages will be ignored until resume_udp_server() is called
+        again.
+        """
+        logger.info("UDP server has been paused.")
+        self.pause_server = True
+
+    def resume_udp_server(self):
+        """
+        Used to indicate the UDP server is ready to accept new UDP packets. Called
+        once an existing TCP connection is terminated.
+        """
+        logger.info("UDP server has been resumed.")
+        self.pause_server = False
 
     async def rcv_task(self, timeout: int = None):
         """

@@ -30,9 +30,12 @@ from iso15118.shared.messages.din_spec.datatypes import (
 from iso15118.shared.messages.enums import (
     AuthorizationStatus,
     AuthorizationTokenType,
+    ControlMode,
     CpState,
     EnergyTransferModeEnum,
+    IsolationLevel,
     Protocol,
+    ServiceV20,
     SessionStopAction,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
@@ -58,20 +61,59 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ServiceList,
     ServiceParameterList,
 )
-from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
+from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus, RationalNumber
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryResParams,
+    BPTDynamicDCChargeLoopRes,
+    BPTScheduledDCChargeLoopResParams,
     DCChargeParameterDiscoveryResParams,
+    DynamicDCChargeLoopRes,
+    ScheduledDCChargeLoopResParams,
 )
 
 
 @dataclass
 class EVDataContext:
-    dc_current: Optional[int] = None
-    dc_voltage: Optional[int] = None
+    dc_current: Optional[float] = None
+    dc_voltage: Optional[float] = None
     ac_current: Optional[dict] = None  # {"l1": 10, "l2": 10, "l3": 10}
     ac_voltage: Optional[dict] = None  # {"l1": 230, "l2": 230, "l3": 230}
     soc: Optional[int] = None  # 0-100
+
+    # from ISO 15118-20 AC
+    departure_time: Optional[int] = None
+    ev_target_energy_request: float = 0.0
+    ev_max_energy_request: float = 0.0
+    ev_min_energy_request: float = 0.0
+
+    ev_max_charge_power: float = 0.0
+    ev_max_charge_power_l2: Optional[float] = None
+    ev_max_charge_power_l3: Optional[float] = None
+    ev_min_charge_power: float = 0.0
+    ev_min_charge_power_l2: Optional[float] = None
+    ev_min_charge_power_l3: Optional[float] = None
+    ev_present_active_power: float = 0.0
+    ev_present_active_power_l2: Optional[float] = None
+    ev_present_active_power_l3: Optional[float] = None
+    ev_present_reactive_power: float = 0.0
+    ev_present_reactive_power_l2: Optional[float] = None
+    ev_present_reactive_power_l3: Optional[float] = None
+
+    # BPT values
+    ev_max_discharge_power: float = 0.0
+    ev_max_discharge_power_l2: Optional[float] = None
+    ev_max_discharge_power_l3: Optional[float] = None
+    ev_min_discharge_power: float = 0.0
+    ev_min_discharge_power_l2: Optional[float] = None
+    ev_min_discharge_power_l3: Optional[float] = None
+    ev_max_v2x_energy_request: Optional[float] = None
+    ev_min_v2x_energy_request: Optional[float] = None
+
+    def update(self, new: dict):
+        self.__dict__.update(new)
+
+    def as_dict(self):
+        return self.__dict__
 
 
 class ServiceStatus(str, Enum):
@@ -93,9 +135,13 @@ class EVChargeParamsLimits:
 class EVSEControllerInterface(ABC):
     def __init__(self):
         self.ev_data_context = EVDataContext()
+        self._selected_protocol = Optional[Protocol]
 
     def reset_ev_data_context(self):
         self.ev_data_context = EVDataContext()
+
+    def get_ev_data_context(self) -> EVDataContext:
+        return self.ev_data_context
 
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
@@ -198,9 +244,9 @@ class EVSEControllerInterface(ABC):
         """
         raise NotImplementedError
 
-    async def is_external_authorization_done(self) -> bool:
+    def is_eim_authorized(self) -> bool:
         """
-        it returns true when an external authentication before plugging in.
+        it returns true when an rfid authentication before plugging in.
         Relevant for:
         - ISO 15118-2
         - ISO 15118-20
@@ -406,7 +452,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_evse_status(self) -> EVSEStatus:
+    async def get_evse_status(self) -> Optional[EVSEStatus]:
         """
         Gets the status of the EVSE
 
@@ -423,6 +469,38 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - DIN SPEC 70121
         - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    def set_selected_protocol(self, protocol: Protocol) -> None:
+        """Set the selected Protocol.
+
+        Args:
+            protocol: An EV communication protocol supported by Josev.
+        """
+        self._selected_protocol = protocol
+
+    def get_selected_protocol(self) -> Protocol:
+        """Get the selected Protocol."""
+        return self._selected_protocol
+
+    @abstractmethod
+    async def send_charging_power_limits(
+        self,
+        protocol: Protocol,
+        control_mode: ControlMode,
+        selected_energy_service: ServiceV20,
+    ) -> None:
+        """
+        This method shall merge the EV-EVSE charging power limits and send it
+
+        Args:
+            protocol: protocol selected (DIN, ISO 15118-2, ISO 15118-20_AC,..)
+            control_mode: Control mode for this session - Scheduled/Dynamic
+            selected_energy_service: Enum for this Service - AC/AC_BPT/DC/DC_BPT
+
+        Returns: None
+
         """
         raise NotImplementedError
 
@@ -451,10 +529,14 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_ac_charge_params_v20(self) -> ACChargeParameterDiscoveryResParams:
+    async def get_ac_charge_params_v20(
+        self, selected_service: ServiceV20
+    ) -> Union[
+        ACChargeParameterDiscoveryResParams, BPTACChargeParameterDiscoveryResParams
+    ]:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
-        AC charging.
+        AC/AC_BPT charging.
 
         Relevant for:
         - ISO 15118-20
@@ -462,61 +544,29 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_ac_bpt_charge_params_v20(
-        self,
-    ) -> BPTACChargeParameterDiscoveryResParams:
+    async def get_ac_charge_loop_params_v20(
+        self, control_mode: ControlMode, selected_service: ServiceV20
+    ) -> Union[
+        ScheduledACChargeLoopResParams,
+        BPTScheduledACChargeLoopResParams,
+        DynamicACChargeLoopResParams,
+        BPTDynamicACChargeLoopResParams,
+    ]:
         """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
-        bidirectional AC charging.
-
-        Relevant for:
-        - ISO 15118-20
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_scheduled_ac_charge_loop_params(
-        self,
-    ) -> ScheduledACChargeLoopResParams:
-        """
-        Gets the parameters for the ACChargeLoopRes in the Scheduled control mode
-
-        Relevant for:
-        - ISO 15118-20
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_bpt_scheduled_ac_charge_loop_params(
-        self,
-    ) -> BPTScheduledACChargeLoopResParams:
-        """
-        Gets the parameters for the ACChargeLoopRes in the Scheduled control mode for
-        bidirectional power transfer (BPT)
-
-        Relevant for:
-        - ISO 15118-20
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_dynamic_ac_charge_loop_params(self) -> DynamicACChargeLoopResParams:
-        """
-        Gets the parameters for the ACChargeLoopRes in the Dynamic control mode
-
-        Relevant for:
-        - ISO 15118-20
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_bpt_dynamic_ac_charge_loop_params(
-        self,
-    ) -> BPTDynamicACChargeLoopResParams:
-        """
-        Gets the parameters for the ACChargeLoopRes in the Dynamic control mode for
-        bidirectional power transfer (BPT)
-
+        Gets the parameters for the ACChargeLoopRes for the currently set control mode
+         and service.
+        Args:
+            control_mode: Control mode for this session - Scheduled/Dynamic
+            selected_service: Enum for this Service - AC/AC_BPT
+        Returns:
+            ChargeLoop params depending on the selected mode. Return object could be
+            one of the following types:
+            [
+                ScheduledACChargeLoopResParams,
+                BPTScheduledACChargeLoopResParams,
+                DynamicACChargeLoopResParams,
+                BPTDynamicACChargeLoopResParams,
+            ]
         Relevant for:
         - ISO 15118-20
         """
@@ -547,22 +597,30 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_evse_present_voltage(self) -> PVEVSEPresentVoltage:
+    async def get_evse_present_voltage(
+        self, protocol: Protocol
+    ) -> Union[PVEVSEPresentVoltage, RationalNumber]:
         """
         Gets the presently available voltage at the EVSE
 
         Relevant for:
         - ISO 15118-2
+        - ISO 15118-20
+        - DINSPEC
         """
         raise NotImplementedError
 
     @abstractmethod
-    async def get_evse_present_current(self) -> PVEVSEPresentCurrent:
+    async def get_evse_present_current(
+        self, protocol: Protocol
+    ) -> Union[PVEVSEPresentCurrent, RationalNumber]:
         """
         Gets the presently available voltage at the EVSE
 
         Relevant for:
         - ISO 15118-2
+        - ISO 15118-20
+        - DINSPEC
         """
         raise NotImplementedError
 
@@ -590,6 +648,18 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - DIN SPEC 70121
         - ISO 15118-2
+        - ISO 15118-20
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_cable_check_status(self) -> Union[IsolationLevel, None]:
+        """
+        This method is called at the beginning of the state CableCheck.
+        Gets's the status of a previously started CableCheck
+
+        Relevant for:
+        - ISO 15118-20
         """
         raise NotImplementedError
 
@@ -659,7 +729,11 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_dc_charge_params_v20(self) -> DCChargeParameterDiscoveryResParams:
+    async def get_dc_charge_params_v20(
+        self, selected_service: ServiceV20
+    ) -> Union[
+        DCChargeParameterDiscoveryResParams, BPTDCChargeParameterDiscoveryResParams
+    ]:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
         DC charging.
@@ -677,13 +751,29 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_dc_bpt_charge_params_v20(
-        self,
-    ) -> BPTDCChargeParameterDiscoveryResParams:
+    async def get_dc_charge_loop_params_v20(
+        self, control_mode: ControlMode, selected_service: ServiceV20
+    ) -> Union[
+        ScheduledDCChargeLoopResParams,
+        BPTScheduledDCChargeLoopResParams,
+        DynamicDCChargeLoopRes,
+        BPTDynamicDCChargeLoopRes,
+    ]:
         """
-        Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
-        bidirectional DC charging.
-
+        Gets the parameters for the DCChargeLoopRes for the currently set control mode
+         and service.
+        Args:
+            control_mode: Control mode for this session - Scheduled/Dynamic
+            selected_service: Enum for this Service - DC/DC_BPT
+        Returns:
+            ChargeLoop params depending on the selected mode. Return object could be
+            one of the following types:
+            [
+                ScheduledDCChargeLoopResParams,
+                BPTScheduledDCChargeLoopResParams,
+                DynamicDCChargeLoopRes,
+                BPTDynamicDCChargeLoopRes,
+            ]
         Relevant for:
         - ISO 15118-20
         """

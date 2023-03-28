@@ -60,7 +60,7 @@ class PhysicalValue(BaseModel):
                 raise ValueError(message)
         return values
 
-    def get_physical_value(self) -> float:
+    def get_decimal_value(self) -> float:
         return self.value * 10**self.multiplier
 
 

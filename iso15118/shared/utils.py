@@ -1,8 +1,83 @@
 import asyncio
 import logging
-from typing import Coroutine, List
+from typing import Coroutine, List, Optional
+
+from iso15118.shared.exceptions import (
+    NoSupportedAuthenticationModes,
+    NoSupportedEnergyServices,
+    NoSupportedProtocols,
+)
+from iso15118.shared.messages.enums import AuthEnum, Protocol, ServiceV20
 
 logger = logging.getLogger(__name__)
+
+
+def _format_list(read_settings: List[str]) -> List[str]:
+    read_settings = list(filter(None, read_settings))
+    read_settings = [setting.strip().upper() for setting in read_settings]
+    read_settings = list(set(read_settings))
+    return read_settings
+
+
+def load_requested_protocols(read_protocols: Optional[List[str]]) -> List[Protocol]:
+    supported_protocols = [
+        "ISO_15118_2",
+        "ISO_15118_20_AC",
+        "ISO_15118_20_DC",
+        "DIN_SPEC_70121",
+    ]
+
+    protocols = _format_list(read_protocols)
+    valid_protocols = list(set(protocols).intersection(supported_protocols))
+    if not valid_protocols:
+        raise NoSupportedProtocols(
+            f"No supported protocols configured. Supported protocols are "
+            f"{supported_protocols} and could be configured in evcc_config.json"
+        )
+    supported_protocols = [Protocol[x] for x in valid_protocols]
+    return supported_protocols
+
+
+def load_requested_energy_services(
+    read_services: Optional[List[str]],
+) -> List[ServiceV20]:
+    supported_services = [
+        "AC",
+        "DC",
+        "WPT",
+        "DC_ACDP",
+        "AC_BPT",
+        "DC_BPT",
+        "DC_ACDP_BPT",
+        "INTERNET",
+        "PARKING_STATUS",
+    ]
+
+    services = _format_list(read_services)
+    valid_services = list(set(services).intersection(supported_services))
+    if not valid_services:
+        raise NoSupportedEnergyServices(
+            f"No supported energy services configured. Supported energy services are "
+            f"{supported_services} and could be configured in evcc_config.json"
+        )
+    supported_services = [ServiceV20[x] for x in valid_services]
+    return supported_services
+
+
+def load_requested_auth_modes(read_auth_modes: Optional[List[str]]) -> List[AuthEnum]:
+    default_auth_modes = [
+        "EIM",
+        "PNC",
+    ]
+    auth_modes = _format_list(read_auth_modes)
+    valid_auth_options = list(set(auth_modes).intersection(default_auth_modes))
+    if not valid_auth_options:
+        raise NoSupportedAuthenticationModes(
+            f"No supported authentication modes configured. Supported auth modes"
+            f" are {default_auth_modes} and could be configured in .env"
+            f" file with key 'AUTH_MODES'"
+        )
+    return [AuthEnum[x] for x in valid_auth_options]
 
 
 async def cancel_task(task):

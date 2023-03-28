@@ -19,7 +19,7 @@ def get_PKI_PATH() -> str:
 MESSAGE_LOG_JSON = True
 MESSAGE_LOG_EXI = False
 
-V20_EVSE_SERVICES_CONFIG = SHARED_CWD + "/examples/15118_20_evse_service_config.json"
+V20_EVSE_SERVICES_CONFIG = SHARED_CWD + "/examples/secc/15118_20/service_config.json"
 
 ENABLE_TLS_1_3 = False
 shared_settings = None

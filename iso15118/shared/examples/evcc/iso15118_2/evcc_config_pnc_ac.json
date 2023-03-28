@@ -1,0 +1,11 @@
+{
+	"supportedProtocols": [
+		"ISO_15118_2"
+	],
+	"supportedEnergyServices": [
+		"AC"
+	],
+	"energyTransferMode": "AC_three_phase_core",
+	"isCertInstallNeeded": false,
+	"useTls": true
+}

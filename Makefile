@@ -39,15 +39,15 @@ tests: .install-poetry
 	poetry run pytest -vv tests
 
 # Generate test -2 certificates
-.generate_v2_certs:
+generate_v2_certs:
 	cd iso15118/shared/pki; ./create_certs.sh -v iso-2
 
 # Generate test -20 certificates
-.generate_v20_certs:
+generate_v20_certs:
 	cd iso15118/shared/pki; ./create_certs.sh -v iso-20
 
 # Build docker images
-build: .generate_v2_certs
+build: generate_v2_certs
 	@# `xargs` will copy the Dockerfile template, so that it can be individually
 	@# used by the secc and evcc services
 	@xargs -n 1 cp -v template.Dockerfile<<<"iso15118/evcc/Dockerfile iso15118/secc/Dockerfile"
@@ -56,6 +56,8 @@ build: .generate_v2_certs
 	@# This conversion is required, otherwise we wouldn't be able to spawn the evcc start script.
 	@# @ is used as a separator and allows us to escape '/', so we can substitute the '/' itself
 	@sed -i.bkp 's@/secc/g@/evcc/g@g' iso15118/evcc/Dockerfile
+	@# Add a delay on EVCC to give SECC time to start up 
+	@sed -i'.bkp' -e 's@CMD /venv/bin/iso15118@CMD echo "Waiting for 5 seconds to start EVCC" \&\& sleep 5 \&\& /venv/bin/iso15118@g' iso15118/evcc/Dockerfile
 	docker-compose build
 
 # Run using dev env vars
@@ -81,7 +83,7 @@ poetry-shell:
 
 # Run evcc with python
 run-evcc:
-	$(shell which python) iso15118/evcc/main.py
+	$(shell which python) iso15118/evcc/main.py $(config)
 
 # Run secc with python
 run-secc:
@@ -124,5 +126,5 @@ code-quality: reformat mypy flake8
 
 # Bump project version with poetry
 release: .install-poetry
-	@echo "Please remember to update the CHANGELOG.md, before tagging the release"
+	@echo "Please remember to update the CHANGELOG.md and __init__.py under iso15118 dir, before tagging the release"
 	@poetry version ${version}

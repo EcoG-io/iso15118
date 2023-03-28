@@ -27,6 +27,8 @@ class TCPServer(asyncio.Protocol):
         self.port_no_tls = get_tcp_port()
         self.port_tls = get_tcp_port()
         self.iface = iface
+        self.server = None
+        self.is_tls_enabled = False
 
         # Making sure the TCP and TLS port are definitely different
         while self.port_no_tls == self.port_tls:
@@ -77,26 +79,51 @@ class TCPServer(asyncio.Protocol):
         port = self.port_no_tls
         ssl_context = None
         server_type = "TCP"
+        self.is_tls_enabled = False
         if tls:
             port = self.port_tls
             ssl_context = get_ssl_context(True)
-            server_type = "TLS"
-        # Initialise socket for IPv6 TCP packets
-        # Address family (determines network layer protocol, here IPv6)
-        # Socket type (stream, determines transport layer protocol TCP)
-        sock = socket.socket(family=socket.AF_INET6, type=socket.SOCK_STREAM)
+            if ssl_context is not None:
+                server_type = "TLS"
+                self.is_tls_enabled = True
+            else:
+                logger.warning(
+                    "SSL context not created. Falling back to TCP connection."
+                )
 
-        # Allows address to be reused
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        MAX_RETRIES: int = 3
+        BACK_OFF_SECONDS: float = 0.5
+        # Note: When the socket is being created inside a container,
+        # sometimes the network interface is not ready yet and the binding
+        # process fails the first time.
+        # Therefore, a wait-and-retry block has been added.
+        for i in range(MAX_RETRIES):
+            # Initialise socket for IPv6 TCP packets
+            # Address family (determines network layer protocol, here IPv6)
+            # Socket type (stream, determines transport layer protocol TCP)
+            sock = socket.socket(family=socket.AF_INET6, type=socket.SOCK_STREAM)
 
-        self.full_ipv6_address = await get_link_local_full_addr(port, self.iface)
-        self.ipv6_address_host = self.full_ipv6_address[0]
+            # Allows address to be reused
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        # Bind the socket to the IP address and port for receiving
-        # TCP packets
-        sock.bind(self.full_ipv6_address)
+            self.full_ipv6_address = await get_link_local_full_addr(port, self.iface)
+            self.ipv6_address_host = self.full_ipv6_address[0]
 
-        server = await asyncio.start_server(
+            # Bind the socket to the IP address and port for receiving
+            # TCP packets
+            try:
+                sock.bind(self.full_ipv6_address)
+                break
+            except OSError as e:
+                # Once the max amount of retries has been reached, reraise the exception
+                if i == MAX_RETRIES - 1:
+                    raise e
+                else:
+                    logger.info(f"{e} on {server_type} server. Retrying...")
+                    await asyncio.sleep(BACK_OFF_SECONDS)
+                    continue
+
+        self.server = await asyncio.start_server(
             # The client_connected_cb callback, which is the __call__ method of
             # this class) is called whenever a new client connection is
             # established. It receives a StreamReader and StreamWriter pair.
@@ -119,11 +146,11 @@ class TCPServer(asyncio.Protocol):
             # closing the opening connections
             # Shield when cancelled, does not cancel the task within.
             # So, instead, we can control what to do with the task
-            await asyncio.shield(server.wait_closed())
+            await asyncio.shield(self.server.wait_closed())
         except asyncio.CancelledError:
             logger.warning("Closing TCP server")
-            server.close()
-            await server.wait_closed()
+            self.server.close()
+            await self.server.wait_closed()
 
     async def __call__(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter

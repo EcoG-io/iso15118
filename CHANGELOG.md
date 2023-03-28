@@ -5,6 +5,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2023-03-22
+
+### Fixed
+* ConnectionResetError has been added for receive by @ikaratass in https://github.com/SwitchEV/iso15118/pull/214
+
+### Added
+* debug message added for cretificateintallationres by @ikaratass in https://github.com/SwitchEV/iso15118/pull/210
+
+## [0.19.0] - 2023-03-09
+
+### Added
+* Report of the evse status during the charging loop of both AC and DC in -20 by @tropxy in https://github.com/SwitchEV/iso15118/pull/207
+* saved selected protocol in evse controller interface by @tropxy in https://github.com/SwitchEV/iso15118/pull/208
+
+## [0.18.0] - 2023-03-07
+
+### Changed
+* Support to report the charging power limits during the charging loop by @tropxy in https://github.com/SwitchEV/iso15118/pull/204
+* Handle "Ongoing"  from EVSE during authorization. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/205
+
+## [0.17.0] - 2023-03-01
+
+### Changed
+* Start TCP server after an SDP request is received. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/199
+* AB#4208 Not detecting C/D shouldn't stop charging session. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/201
+
+## [0.16.0] - 2023-01-27
+
+### Fixed
+* AB#3740: Removed check in SalesTariff validator by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/188
+* Fix for UDP server failing to start on Linux VM by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/187
+* AB#3669 Inverted cable check contactor status check order by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/186
+* Update datatypes.py - fixed range for ChargingProfileEntryMaxPower by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/185
+* Fix: SessionSetupReq in -20 had the wrong V2GTP type by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/183
+* Feat/update docker config by @santiagosalamandri in https://github.com/SwitchEV/iso15118/pull/195
+
+### Changed
+* env variables are moved to json config file by @ikaratass in https://github.com/SwitchEV/iso15118/pull/172
+* fix: bump cryptography to v39.0.0 by @snorkman88 in https://github.com/SwitchEV/iso15118/pull/189
+* the name of is_external_authorization method has changed to is_eim_au… by @ikaratass in https://github.com/SwitchEV/iso15118/pull/191
+
+## [0.15.0] - 2022-12-20
+
+### Fixed
+* fix: changed the link to the switch blog page on ISO 15118-20 by @tropxy in https://github.com/SwitchEV/iso15118/pull/175
+* feat: remove argument from UDP server by @snorkman88 in https://github.com/SwitchEV/iso15118/pull/178
+
+### Changed
+* Feat/log secc settings by @santiagosalamandri in https://github.com/SwitchEV/iso15118/pull/176
+
+### Added
+* Support 15118-20 DC BPT by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/169
+
 ## [0.14.2] - 2022-12-05
 
 ### Changed

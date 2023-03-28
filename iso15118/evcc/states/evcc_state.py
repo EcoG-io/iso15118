@@ -2,6 +2,8 @@
 This module contains the abstract class for an EVCC-specific state,
 which extends the state shared between the EVCC and SECC.
 """
+import logging
+import time
 from abc import ABC
 from typing import Optional, Type, TypeVar, Union
 
@@ -16,6 +18,7 @@ from iso15118.shared.messages.din_spec.body import (
     SessionSetupRes as SessionSetupResDINSPEC,
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
+from iso15118.shared.messages.enums import ISOV20PayloadTypes, Namespace
 from iso15118.shared.messages.iso15118_2.body import BodyBase as BodyBaseV2
 from iso15118.shared.messages.iso15118_2.body import Response as ResponseV2
 from iso15118.shared.messages.iso15118_2.body import (
@@ -23,16 +26,25 @@ from iso15118.shared.messages.iso15118_2.body import (
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_messages import (
+    ChargeProgress,
+    ChargingSession,
+    PowerDeliveryReq,
+)
+from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionSetupRes as SessionSetupResV20,
 )
+from iso15118.shared.messages.iso15118_20.common_types import MessageHeader, Processing
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GResponse as V2GResponseV20,
 )
+from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
+
+logger = logging.getLogger(__name__)
 
 
 class StateEVCC(State, ABC):
@@ -230,3 +242,43 @@ class StateEVCC(State, ABC):
         )
 
         self.next_state = Terminate
+
+    def stop_v20_charging(
+        self, next_state: Type["State"], renegotiate_requested: bool = False
+    ):
+        power_delivery_req = PowerDeliveryReq(
+            header=MessageHeader(
+                session_id=self.comm_session.session_id,
+                timestamp=time.time(),
+            ),
+            ev_processing=Processing.FINISHED,
+            charge_progress=ChargeProgress.STOP,
+        )
+
+        if next_state.__name__ != "PowerDelivery":
+            raise ValueError(
+                f"Attempt to stop charging by going to "
+                f"state {next_state.__name__} when "
+                f" 'PowerDelivery' was expected"
+            )
+
+        self.create_next_message(
+            next_state,
+            power_delivery_req,
+            Timeouts.POWER_DELIVERY_REQ,
+            Namespace.ISO_V20_COMMON_MSG,
+            ISOV20PayloadTypes.MAINSTREAM,
+        )
+
+        if renegotiate_requested:
+            self.comm_session.renegotiation_requested = True
+            self.comm_session.charging_session_stop_v20 = (
+                ChargingSession.SERVICE_RENEGOTIATION
+            )
+            logger.debug(
+                f"ChargeProgress is set to {ChargeProgress.SCHEDULE_RENEGOTIATION}"
+            )
+        else:
+            self.comm_session.charging_session_stop_v20 = ChargingSession.TERMINATE
+            # TODO Implement also a mechanism for pausing
+            logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")

@@ -170,6 +170,9 @@ class RationalNumber(BaseModel):
     # XSD type short (16 bit integer) with value range [-32768..32767]
     value: int = Field(..., ge=INT_16_MIN, le=INT_16_MAX, alias="Value")
 
+    def get_decimal_value(self) -> float:
+        return self.value * 10**self.exponent
+
 
 class EVSENotification(str, Enum):
     """See section 8.3.5.3.26 in ISO 15118-20"""
@@ -306,10 +309,10 @@ class DynamicChargeLoopReqParams(BaseModel, ABC):
     See page 464 of Annex A in ISO 15118-20
     """
 
+    departure_time: int = Field(None, ge=0, le=UINT_32_MAX, alias="DepartureTime")
     ev_target_energy_request: RationalNumber = Field(..., alias="EVTargetEnergyRequest")
     ev_max_energy_request: RationalNumber = Field(..., alias="EVMaximumEnergyRequest")
     ev_min_energy_request: RationalNumber = Field(..., alias="EVMinimumEnergyRequest")
-    departure_time: int = Field(None, ge=0, le=UINT_32_MAX, alias="DepartureTime")
 
 
 class DynamicChargeLoopResParams(BaseModel):
