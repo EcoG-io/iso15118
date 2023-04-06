@@ -56,6 +56,7 @@ from iso15118.shared.messages.din_spec.timeouts import Timeouts
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
+    AuthorizationTokenType,
     DCEVErrorCode,
     EVSEProcessing,
     IsolationLevel,
@@ -314,7 +315,6 @@ class ContractAuthentication(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
          # EVerest code start #
-        self.authorizationFinished = AuthorizationStatus.ONGOING
         self.authorizationRequested = False
         # EVerest code end #
 
@@ -332,32 +332,28 @@ class ContractAuthentication(StateSECC):
         msg = self.check_msg_dinspec(message, [ContractAuthenticationReq])
         if not msg:
             return
+        
+        authorization_result: AuthorizationStatus = AuthorizationStatus.ONGOING
 
         if await self.comm_session.evse_controller.is_free() is True:
-            self.authorizationFinished = AuthorizationStatus.ACCEPTED
+            authorization_result = AuthorizationStatus.ACCEPTED
         else: 
             if self.isAuthorizationRequested() is False:
                 p_Charger().publish_Require_Auth_EIM(None)
                 self.authorizationRequested = True
 
-            if await self.comm_session.evse_controller.is_eim_authorized() is True:
-                self.authorizationFinished = AuthorizationStatus.ACCEPTED
+            authorization_result = await self.comm_session.evse_controller.is_authorized(
+                id_token_type=(AuthorizationTokenType.EXTERNAL)
+            )  
 
         next_state: Type["State"] = None
 
-        if self.isAuthorizationFinished() == AuthorizationStatus.ACCEPTED:
+        if authorization_result == AuthorizationStatus.ACCEPTED:
             auth_status = EVSEProcessing.FINISHED
             next_state = ChargeParameterDiscovery
         else:
             auth_status = EVSEProcessing.ONGOING
             
-        # if (
-        #     await self.comm_session.evse_controller.is_authorized()
-        #     == AuthorizationStatus.ACCEPTED
-        # ):
-        #     evse_processing = EVSEProcessing.FINISHED
-        #     next_state = ChargeParameterDiscovery
-
         contract_authentication_res: ContractAuthenticationRes = (
             ContractAuthenticationRes(
                 response_code=ResponseCode.OK, evse_processing=auth_status
@@ -374,9 +370,6 @@ class ContractAuthentication(StateSECC):
     # EVerest code start #
     def isAuthorizationRequested(self) -> bool:
         return self.authorizationRequested
-
-    def isAuthorizationFinished(self) -> AuthorizationStatus:
-        return self.authorizationFinished
     # EVerest code end #
 
 
