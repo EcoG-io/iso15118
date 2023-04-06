@@ -32,6 +32,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ServiceDetails,
     ServiceName,
 )
+from iso15118.transport.security import get_random_bytes
 from tests.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
@@ -51,7 +52,6 @@ from tests.secc.states.test_messages import (
     get_v2g_message_power_delivery_req_charging_profile_in_boundary_valid,
     get_v2g_message_service_detail_req,
 )
-from iso15118.transport.security import get_random_bytes
 
 
 @patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b"01"))
