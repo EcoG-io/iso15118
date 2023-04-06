@@ -2,7 +2,7 @@
 import pytest
 from cryptography.x509 import ExtensionNotFound
 
-from iso15118.shared.security import (
+from iso15118.transport.security import (
     all_certificates_from_chain,
     certificate_to_pem_string,
     derive_certificate_hash_data,

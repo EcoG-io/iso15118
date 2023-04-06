@@ -23,8 +23,6 @@ from iso15118.secc.failed_responses import (
     init_failed_responses_iso_v20,
 )
 from iso15118.secc.secc_settings import Config
-from iso15118.secc.transport.tcp_server import TCPServer
-from iso15118.secc.transport.udp_server import UDPServer
 from iso15118.shared.comm_session import V2GCommunicationSession
 from iso15118.shared.exceptions import InvalidSDPRequestError, InvalidV2GTPMessageError
 from iso15118.shared.exi_codec import EXI
@@ -54,6 +52,8 @@ from iso15118.shared.notifications import (
     UDPPacketNotification,
 )
 from iso15118.shared.utils import cancel_task, wait_for_tasks
+from iso15118.transport.secc.tcp_server import TCPServer
+from iso15118.transport.secc.udp_server import UDPServer
 
 logger = logging.getLogger(__name__)
 

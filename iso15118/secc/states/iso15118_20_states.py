@@ -95,8 +95,8 @@ from iso15118.shared.messages.iso15118_20.dc import (
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.notifications import StopNotification
-from iso15118.shared.security import get_random_bytes, verify_signature
 from iso15118.shared.states import State, Terminate
+from iso15118.transport.security import get_random_bytes, verify_signature
 
 logger = logging.getLogger(__name__)
 

@@ -82,7 +82,8 @@ from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.messages.timeouts import Timeouts as TimeoutsShared
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
 from iso15118.shared.notifications import StopNotification
-from iso15118.shared.security import (
+from iso15118.shared.states import Terminate
+from iso15118.transport.security import (
     CertPath,
     KeyEncoding,
     KeyPasswordPath,
@@ -92,7 +93,6 @@ from iso15118.shared.security import (
     load_cert_chain,
     load_priv_key,
 )
-from iso15118.shared.states import Terminate
 
 logger = logging.getLogger(__name__)
 

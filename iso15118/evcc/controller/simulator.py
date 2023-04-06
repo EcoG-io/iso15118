@@ -102,7 +102,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DynamicDCChargeLoopReqParams,
     ScheduledDCChargeLoopReqParams,
 )
-from iso15118.shared.network import get_nic_mac_address
+from iso15118.transport.network import get_nic_mac_address
 
 logger = logging.getLogger(__name__)
 

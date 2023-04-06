@@ -3,9 +3,9 @@ import logging
 import socket
 from typing import Tuple
 
-from iso15118.shared.network import get_link_local_full_addr, get_tcp_port
 from iso15118.shared.notifications import TCPClientNotification
-from iso15118.shared.security import get_ssl_context
+from iso15118.transport.network import get_link_local_full_addr, get_tcp_port
+from iso15118.transport.security import get_ssl_context
 
 logger = logging.getLogger(__name__)
 

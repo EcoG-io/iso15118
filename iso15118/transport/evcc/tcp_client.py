@@ -3,7 +3,7 @@ import logging
 import socket
 from ipaddress import IPv6Address
 
-from iso15118.shared.security import get_ssl_context
+from iso15118.transport.security import get_ssl_context
 
 logger = logging.getLogger(__name__)
 

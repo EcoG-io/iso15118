@@ -17,8 +17,6 @@ from pydantic.error_wrappers import ValidationError
 
 from iso15118.evcc.controller.interface import EVControllerInterface
 from iso15118.evcc.evcc_config import EVCCConfig
-from iso15118.evcc.transport.tcp_client import TCPClient
-from iso15118.evcc.transport.udp_client import UDPClient
 from iso15118.shared.comm_session import V2GCommunicationSession
 from iso15118.shared.exceptions import (
     InvalidSDPResponseError,
@@ -59,6 +57,8 @@ from iso15118.shared.notifications import (
     UDPPacketNotification,
 )
 from iso15118.shared.utils import cancel_task, wait_for_tasks
+from iso15118.transport.evcc.tcp_client import TCPClient
+from iso15118.transport.evcc.udp_client import UDPClient
 
 logger = logging.getLogger(__name__)
 

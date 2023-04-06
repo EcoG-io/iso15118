@@ -63,8 +63,8 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
 from iso15118.shared.notifications import StopNotification
-from iso15118.shared.security import get_random_bytes
 from iso15118.shared.states import State, Terminate
+from iso15118.transport.security import get_random_bytes
 
 logger = logging.getLogger(__name__)
 

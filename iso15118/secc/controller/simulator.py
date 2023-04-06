@@ -135,7 +135,8 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DynamicDCChargeLoopRes,
     ScheduledDCChargeLoopResParams,
 )
-from iso15118.shared.security import (
+from iso15118.shared.settings import V20_EVSE_SERVICES_CONFIG
+from iso15118.transport.security import (
     CertPath,
     KeyEncoding,
     KeyPasswordPath,
@@ -146,7 +147,6 @@ from iso15118.shared.security import (
     load_cert,
     load_priv_key,
 )
-from iso15118.shared.settings import V20_EVSE_SERVICES_CONFIG
 
 logger = logging.getLogger(__name__)
 
