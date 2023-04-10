@@ -1065,9 +1065,9 @@ class PaymentDetails(StateSECC):
             self.comm_session.emaid = payment_details_req.emaid
             self.comm_session.contract_cert_chain = payment_details_req.cert_chain
 
-            hash_data = get_certificate_hash_data(
-                self.comm_session.contract_cert_chain, root_cert
-            )
+            # hash_data = get_certificate_hash_data(
+            #     self.comm_session.contract_cert_chain, root_cert
+            # )
             pem_certificate_chain = build_pem_certificate_chain(payment_details_req.cert_chain, None)
 
             # Todo_SL: HashData

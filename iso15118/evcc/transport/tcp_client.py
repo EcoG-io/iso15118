@@ -22,7 +22,12 @@ class TCPClient(asyncio.Protocol):
         self._last_message_sent = None
         self.ssl_context = None
         if is_tls:
-            self.ssl_context = get_ssl_context(False)
+            # In 15118-20, the EVCC must support all cipher suites in the spec [V2G20-2459]
+            # In 15118-2, the EVCC must support only one cipher suite, so let's choose the
+            # more secure one (ECDHE enables perfect forward secrecy)
+            # TODO: Make this configurable
+            self.ciphersuites = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-ECDSA-AES128-SHA256"
+            self.ssl_context = get_ssl_context(False, self.ciphersuites)
 
     @staticmethod
     async def create(

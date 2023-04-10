@@ -199,7 +199,7 @@ class CommunicationSessionHandler:
         self.udp_server = UDPServer(self._rcv_queue, iface)
         udp_ready_event: asyncio.Event = asyncio.Event()
         self.status_event_list.append(udp_ready_event)
-        self.tcp_server = TCPServer(self._rcv_queue, iface)
+        self.tcp_server = TCPServer(self._rcv_queue, iface, self.config.ciphersuites)
 
         self.list_of_tasks = [
             self.get_from_rcv_queue(self._rcv_queue),

@@ -97,7 +97,7 @@ def get_random_bytes(nbytes: int) -> bytes:
     return secrets.token_bytes(nbytes)
 
 
-def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
+def get_ssl_context(server_side: bool, ciphersuites: str = None) -> Optional[SSLContext]:
     """
     Creates an SSLContext object for the TCP client or TCP server.
     An SSL context holds various data longer-lived than single SSL
@@ -170,20 +170,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
         else:
             # In ISO 15118-2, we only verify the SECC's certificates
             ssl_context.verify_mode = VerifyMode.CERT_NONE
-        # The SECC must support both ciphers defined in ISO 15118-20
-        # OpenSSL 1.3 supports TLS 1.3 cipher suites by default.
-        # Calling .set_ciphers to be more evident about what is available.
-        # Cipher suites for both 15118-20 and 15118-2 are provided to be compatible with
-        # both 15118 families [V2G20-2059]. The order is as specified in the
-        # specification [V2G20-1856]
-        # TODO: A configuration mechanism could be provided to add/remove cipher
-        #  suite in case where a vulnerability is identified with any of them
-        ssl_context.set_ciphers(
-            "TLS_AES_256_GCM_SHA384:"
-            "TLS_CHACHA20_POLY1305_SHA256:"
-            "ECDH-ECDSA-AES128-SHA256:"
-            "ECDHE-ECDSA-AES128-SHA256"
-        )
+        ssl_context.set_ciphers(ciphersuites)
     else:
         # Load the V2G Root CA certificate(s) to validate the SECC's leaf and
         # Sub-CA CPO certificates. The cafile string is the path to a file of
@@ -191,14 +178,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
         ssl_context.load_verify_locations(cafile=os.path.join(get_PKI_PATH(), CertPath.V2G_ROOT_PEM))
         ssl_context.check_hostname = False
         ssl_context.verify_mode = VerifyMode.CERT_REQUIRED
-        # In 15118-20, the EVCC must support all cipher suites in the spec [V2G20-2459]
-        # In 15118-2, the EVCC must support only one cipher suite, so let's choose the
-        # more secure one (ECDHE enables perfect forward secrecy)
-        ssl_context.set_ciphers(
-            "TLS_AES_256_GCM_SHA384:"
-            "TLS_CHACHA20_POLY1305_SHA256:"
-            "ECDHE-ECDSA-AES128-SHA256"
-        )
+        ssl_context.set_ciphers(ciphersuites)
 
         if ENABLE_TLS_1_3:
             try:

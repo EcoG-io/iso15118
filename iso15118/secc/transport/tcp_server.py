@@ -21,7 +21,7 @@ class TCPServer(asyncio.Protocol):
     # (host, port, flowinfo, scope_id)
     ipv6_address_host: str
 
-    def __init__(self, session_handler_queue: asyncio.Queue, iface: str) -> None:
+    def __init__(self, session_handler_queue: asyncio.Queue, iface: str, ciphersuites: str) -> None:
         self._session_handler_queue = session_handler_queue
         # The dynamic TCP port number in the range of (49152-65535)
         self.port_no_tls = get_tcp_port()
@@ -29,6 +29,7 @@ class TCPServer(asyncio.Protocol):
         self.iface = iface
         self.server = None
         self.is_tls_enabled = False
+        self.ciphersuites = ciphersuites
 
         # Making sure the TCP and TLS port are definitely different
         while self.port_no_tls == self.port_tls:
@@ -82,7 +83,7 @@ class TCPServer(asyncio.Protocol):
         self.is_tls_enabled = False
         if tls:
             port = self.port_tls
-            ssl_context = get_ssl_context(True)
+            ssl_context = get_ssl_context(True, self.ciphersuites)
             if ssl_context is not None:
                 server_type = "TLS"
                 self.is_tls_enabled = True
