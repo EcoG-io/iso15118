@@ -149,6 +149,8 @@ fi
 echo "Password used is: '$password'"
 
 # 0) Create directories if not yet existing
+rm -rf $ISO_FOLDER
+
 CERT_PATH=$ISO_FOLDER/certs
 CSR_PATH=$ISO_FOLDER/csrs
 
@@ -502,13 +504,16 @@ fi
 
 if [ "$install_everest_core" == "1" ];
 then
-    cp $CA_CSMS_PATH/* $everest_core_path/config/certs/ca/csms/
-    cp $CA_CSO_PATH/* $everest_core_path/config/certs/ca/cso/
-    cp $CA_MO_PATH/* $everest_core_path/config/certs/ca/mo/
-    cp $CA_V2G_PATH/* $everest_core_path/config/certs/ca/v2g/
+    mkdir -p $everest_core_path/config/certs/ca/csms/ && cp $CA_CSMS_PATH/* $everest_core_path/config/certs/ca/csms/
+    mkdir -p $everest_core_path/config/certs/ca/cso/ && cp $CA_CSO_PATH/* $everest_core_path/config/certs/ca/cso/
+    mkdir -p $everest_core_path/config/certs/ca/mo/ && cp $CA_MO_PATH/* $everest_core_path/config/certs/ca/mo/
+    mkdir -p $everest_core_path/config/certs/ca/v2g/ && cp $CA_V2G_PATH/* $everest_core_path/config/certs/ca/v2g/
+    mkdir -p $everest_core_path/config/certs/ca/cps/ && cp $CA_CPS_PATH/* $everest_core_path/config/certs/ca/cps/
+    mkdir -p $everest_core_path/config/certs/ca/oem/ && cp $CA_OEM_PATH/* $everest_core_path/config/certs/ca/oem/
 
-    cp $CLIENT_CPS_PATH/* $everest_core_path/config/certs/client/cps
-    cp $CLIENT_CSMS_PATH/* $everest_core_path/config/certs/client/csms
-    cp $CLIENT_CSO_PATH/* $everest_core_path/config/certs/client/cso
-    cp $CLIENT_OEM_PATH/*.jks $everest_core_path/config/certs/client/oem
+    mkdir -p $everest_core_path/config/certs/client/cps && cp $CLIENT_CPS_PATH/* $everest_core_path/config/certs/client/cps
+    mkdir -p $everest_core_path/config/certs/client/csms && cp $CLIENT_CSMS_PATH/* $everest_core_path/config/certs/client/csms
+    mkdir -p $everest_core_path/config/certs/client/cso && cp $CLIENT_CSO_PATH/* $everest_core_path/config/certs/client/cso
+    mkdir -p $everest_core_path/config/certs/client/oem && cp $CLIENT_OEM_PATH/* $everest_core_path/config/certs/client/oem
+    mkdir -p $everest_core_path/config/certs/client/mo && cp $CLIENT_MO_PATH/* $everest_core_path/config/certs/client/mo
 fi
