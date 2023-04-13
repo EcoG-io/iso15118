@@ -2672,7 +2672,7 @@ class CurrentDemand(StateSECC):
         if self.comm_session.selected_auth_option == AuthEnum.EIM_V2:
             receipt_required = False # Always false
         else:
-            receipt_required = self.comm_session.evse_controller.get_receipt_required()
+            receipt_required = await self.comm_session.evse_controller.get_receipt_required()
         # EVerest code end #
 
         # We don't care about signed meter values from the EVCC, but if you
