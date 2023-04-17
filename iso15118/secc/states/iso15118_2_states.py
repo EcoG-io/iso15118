@@ -699,6 +699,7 @@ class CertificateInstallation(StateSECC):
                 certificate_installation_res: Base64 = Base64(
                     message=base64_certificate_installation_res,
                     message_name=CertificateInstallationRes.__name__,
+                    namespace=Namespace.ISO_V2_MSG_DEF,
                 )
             else:
                 (
@@ -1584,18 +1585,15 @@ class PowerDelivery(StateSECC):
             # no later than 3s after measuring CP State C or D.
             # Before closing the contactor, we need to check to
             # ensure the CP is in state C or D
-            # if not await self.wait_for_state_c_or_d():
-            #     logger.error("Cp state is not C2 or D2 after PowerDeliveryReq")
-            #     self.stop_state_machine(
-            #         "State is not C or D",
-            #         message,
-            #         ResponseCode.FAILED,
-            #     )
-            #     return
+
+            if not await self.wait_for_state_c_or_d():
+                logger.warning(
+                    "C2/D2 CP state not detected after 250ms in PowerDelivery"
+                )
 
             if not await self.comm_session.evse_controller.is_contactor_closed():
                 self.stop_state_machine(
-                    "Contactor didnt close",
+                    "[V2G2-860] Contactor didn't close within the allotted 3 seconds.",
                     message,
                     ResponseCode.FAILED_CONTACTOR_ERROR,
                 )

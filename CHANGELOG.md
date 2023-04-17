@@ -5,6 +5,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2023-03-22
+
+### Fixed
+* ConnectionResetError has been added for receive by @ikaratass in https://github.com/SwitchEV/iso15118/pull/214
+
+### Added
+* debug message added for cretificateintallationres by @ikaratass in https://github.com/SwitchEV/iso15118/pull/210
+
+## [0.19.0] - 2023-03-09
+
+### Added
+* Report of the evse status during the charging loop of both AC and DC in -20 by @tropxy in https://github.com/SwitchEV/iso15118/pull/207
+* saved selected protocol in evse controller interface by @tropxy in https://github.com/SwitchEV/iso15118/pull/208
+
+## [0.18.0] - 2023-03-07
+
+### Changed
+* Support to report the charging power limits during the charging loop by @tropxy in https://github.com/SwitchEV/iso15118/pull/204
+* Handle "Ongoing"  from EVSE during authorization. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/205
+
+## [0.17.0] - 2023-03-01
+
+### Changed
+* Start TCP server after an SDP request is received. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/199
+* AB#4208 Not detecting C/D shouldn't stop charging session. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/201
+
 ## [0.16.0] - 2023-01-27
 
 ### Fixed

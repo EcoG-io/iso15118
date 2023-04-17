@@ -76,11 +76,46 @@ from iso15118.shared.messages.iso15118_20.dc import (
 
 @dataclass
 class EVDataContext:
-    dc_current: Optional[int] = None
-    dc_voltage: Optional[int] = None
+    dc_current: Optional[float] = None
+    dc_voltage: Optional[float] = None
     ac_current: Optional[dict] = None  # {"l1": 10, "l2": 10, "l3": 10}
     ac_voltage: Optional[dict] = None  # {"l1": 230, "l2": 230, "l3": 230}
     soc: Optional[int] = None  # 0-100
+
+    # from ISO 15118-20 AC
+    departure_time: Optional[int] = None
+    ev_target_energy_request: float = 0.0
+    ev_max_energy_request: float = 0.0
+    ev_min_energy_request: float = 0.0
+
+    ev_max_charge_power: float = 0.0
+    ev_max_charge_power_l2: Optional[float] = None
+    ev_max_charge_power_l3: Optional[float] = None
+    ev_min_charge_power: float = 0.0
+    ev_min_charge_power_l2: Optional[float] = None
+    ev_min_charge_power_l3: Optional[float] = None
+    ev_present_active_power: float = 0.0
+    ev_present_active_power_l2: Optional[float] = None
+    ev_present_active_power_l3: Optional[float] = None
+    ev_present_reactive_power: float = 0.0
+    ev_present_reactive_power_l2: Optional[float] = None
+    ev_present_reactive_power_l3: Optional[float] = None
+
+    # BPT values
+    ev_max_discharge_power: float = 0.0
+    ev_max_discharge_power_l2: Optional[float] = None
+    ev_max_discharge_power_l3: Optional[float] = None
+    ev_min_discharge_power: float = 0.0
+    ev_min_discharge_power_l2: Optional[float] = None
+    ev_min_discharge_power_l3: Optional[float] = None
+    ev_max_v2x_energy_request: Optional[float] = None
+    ev_min_v2x_energy_request: Optional[float] = None
+
+    def update(self, new: dict):
+        self.__dict__.update(new)
+
+    def as_dict(self):
+        return self.__dict__
 
 
 class ServiceStatus(str, Enum):
@@ -118,9 +153,13 @@ class EVSessionContext15118:
 class EVSEControllerInterface(ABC):
     def __init__(self):
         self.ev_data_context = EVDataContext()
+        self._selected_protocol = Optional[Protocol]
 
     def reset_ev_data_context(self):
         self.ev_data_context = EVDataContext()
+
+    def get_ev_data_context(self) -> EVDataContext:
+        return self.ev_data_context
 
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
@@ -431,7 +470,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_evse_status(self) -> EVSEStatus:
+    async def get_evse_status(self) -> Optional[EVSEStatus]:
         """
         Gets the status of the EVSE
 
@@ -448,6 +487,38 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - DIN SPEC 70121
         - ISO 15118-2
+        """
+        raise NotImplementedError
+
+    def set_selected_protocol(self, protocol: Protocol) -> None:
+        """Set the selected Protocol.
+
+        Args:
+            protocol: An EV communication protocol supported by Josev.
+        """
+        self._selected_protocol = protocol
+
+    def get_selected_protocol(self) -> Protocol:
+        """Get the selected Protocol."""
+        return self._selected_protocol
+
+    @abstractmethod
+    async def send_charging_power_limits(
+        self,
+        protocol: Protocol,
+        control_mode: ControlMode,
+        selected_energy_service: ServiceV20,
+    ) -> None:
+        """
+        This method shall merge the EV-EVSE charging power limits and send it
+
+        Args:
+            protocol: protocol selected (DIN, ISO 15118-2, ISO 15118-20_AC,..)
+            control_mode: Control mode for this session - Scheduled/Dynamic
+            selected_energy_service: Enum for this Service - AC/AC_BPT/DC/DC_BPT
+
+        Returns: None
+
         """
         raise NotImplementedError
 

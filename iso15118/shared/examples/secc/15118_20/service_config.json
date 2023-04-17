@@ -111,7 +111,7 @@
             },
             {
               "Name": "ControlMode",
-              "intValue": 1
+              "intValue": 2
             },
             {
               "Name": "EVSENominalVoltage",
@@ -148,7 +148,7 @@
             },
             {
               "Name": "ControlMode",
-              "intValue": 2
+              "intValue": 1
             },
             {
               "Name": "EVSENominalVoltage",

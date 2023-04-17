@@ -124,9 +124,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     TaxRule,
     TaxRuleList,
 )
-from iso15118.shared.messages.iso15118_20.common_types import (
-    EVSENotification as EVSENotificationV20,
-)
 from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
 from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
@@ -411,7 +408,7 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_energy_service_list()."""
         # AC = 1, DC = 2, AC_BPT = 5, DC_BPT = 6;
         # DC_ACDP = 4 and DC_ADCP_BPT NOT supported
-        service_ids = [2, 6]
+        service_ids = [5]
         service_list: ServiceList = ServiceList(services=[])
         for service_id in service_ids:
             service_list.services.append(
@@ -569,14 +566,86 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.is_contactor_opened()."""
         return True
 
-    async def get_evse_status(self) -> EVSEStatus:
+    async def get_evse_status(self) -> Optional[EVSEStatus]:
         """Overrides EVSEControllerInterface.get_evse_status()."""
-        return EVSEStatus(
-            notification_max_delay=0, evse_notification=EVSENotificationV20.TERMINATE
-        )
+        # TODO: this function can be generic to all protocols.
+        #       We can make use of the method `get_evse_id`
+        #       or other way to get the evse_id to request
+        #       status of a specific evse_id. We can also use the
+        #       `self.comm_session.protocol` obtained during SAP,
+        #       and inject its value into the `get_evse_status`
+        #       to decide on providing the -2ß EVSEStatus or the
+        #       -2 AC or DC one and the `selected_charging_type_is_ac` in -2
+        #       to decide on returning the ACEVSEStatus or the DCEVSEStatus
+        #
+        # Just as an example, here is how the return could look like
+        # from iso15118.shared.messages.iso15118_20.common_types import (
+        #    EVSENotification as EVSENotificationV20,
+        # )
+        # return EVSEStatus(
+        #        notification_max_delay=0,
+        #        evse_notification=EVSENotificationV20.TERMINATE
+        #    )
+        return None
 
     async def set_present_protocol_state(self, state_name: str):
         pass
+
+    async def send_charging_power_limits(
+        self,
+        protocol: Protocol,
+        control_mode: ControlMode,
+        selected_energy_service: ServiceV20,
+    ) -> None:
+        """
+        This method shall merge the EV-EVSE charging power limits and send it
+
+        Args:
+            protocol: protocol selected (DIN, ISO 15118-2, ISO 15118-20_AC,..)
+            control_mode: Control mode for this session - Scheduled/Dynamic
+            selected_energy_service: Enum for this Service - AC/AC_BPT/DC/DC_BPT
+
+        Returns: None
+
+        """
+        if protocol == Protocol.ISO_15118_20_AC:
+            if selected_energy_service in [ServiceV20.AC, ServiceV20.AC_BPT]:
+                charge_parameters = await self.get_ac_charge_params_v20(
+                    selected_energy_service
+                )
+            else:
+                charge_parameters = await self.get_dc_charge_params_v20(
+                    selected_energy_service
+                )
+            ev_data_context = self.get_ev_data_context()
+            logger.info(f"EV data context: {ev_data_context}")
+
+            max_charge_power = min(
+                ev_data_context.ev_max_charge_power,
+                charge_parameters.evse_max_charge_power.get_decimal_value(),
+            )
+            max_discharge_power = min(
+                ev_data_context.ev_max_discharge_power,
+                charge_parameters.evse_max_discharge_power.get_decimal_value(),
+            )
+            min_charge_power = max(
+                ev_data_context.ev_min_charge_power,
+                charge_parameters.evse_min_charge_power.get_decimal_value(),
+            )
+            min_discharge_power = max(
+                ev_data_context.ev_min_discharge_power,
+                charge_parameters.evse_min_discharge_power.get_decimal_value(),
+            )
+            logger.debug(
+                f"\n\r --- EV-EVSE System Power Limits ---  \n"
+                f"max_charge_power [W]: {max_charge_power}\n"
+                f"min_charge_power [W]: {min_charge_power}\n"
+                f"max_discharge_power [W]: {max_discharge_power}\n"
+                f"min_discharge_power [W]: {min_discharge_power}\n"
+            )
+            # NOTE: Currently reactive limits are not available
+            # https://iso15118.elaad.io/pt2/15118-20/user-group/-/issues/65
+        return
 
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
@@ -646,43 +715,35 @@ class SimEVSEController(EVSEControllerInterface):
         BPTDynamicACChargeLoopResParams,
     ]:
         """Overrides EVSEControllerInterface.get_ac_charge_loop_params()."""
-        if selected_service == ServiceV20.AC:
-            if control_mode == ControlMode.SCHEDULED:
-                scheduled_params = ScheduledACChargeLoopResParams(
-                    evse_present_active_power=RationalNumber(exponent=3, value=3),
-                    evse_present_active_power_l2=RationalNumber(exponent=3, value=3),
-                    evse_present_active_power_l3=RationalNumber(exponent=3, value=3),
-                    # Add more optional fields if wanted
-                )
-                return scheduled_params
-            elif control_mode == ControlMode.DYNAMIC:
-                dynamic_params = DynamicACChargeLoopResParams(
-                    evse_target_active_power=RationalNumber(exponent=3, value=3),
-                    evse_target_active_power_l2=RationalNumber(exponent=3, value=3),
-                    evse_target_active_power_l3=RationalNumber(exponent=3, value=3),
-                    # Add more optional fields if wanted
-                )
-                return dynamic_params
-        elif selected_service == ServiceV20.AC_BPT:
-            if control_mode == ControlMode.SCHEDULED:
+        if control_mode == ControlMode.SCHEDULED:
+            scheduled_params = ScheduledACChargeLoopResParams(
+                evse_present_active_power=RationalNumber(exponent=3, value=3),
+                evse_present_active_power_l2=RationalNumber(exponent=3, value=3),
+                evse_present_active_power_l3=RationalNumber(exponent=3, value=3),
+                # Add more optional fields if wanted
+            )
+            if selected_service == ServiceV20.AC_BPT:
                 bpt_scheduled_params = BPTScheduledACChargeLoopResParams(
-                    evse_present_active_power=RationalNumber(exponent=3, value=3),
-                    evse_present_active_power_l2=RationalNumber(exponent=3, value=3),
-                    evse_present_active_power_l3=RationalNumber(exponent=3, value=3),
+                    **(scheduled_params.dict()),
                     # Add more optional fields if wanted
                 )
                 return bpt_scheduled_params
-            else:
+            return scheduled_params
+        else:
+            # Dynamic Mode
+            dynamic_params = DynamicACChargeLoopResParams(
+                evse_target_active_power=RationalNumber(exponent=3, value=3),
+                evse_target_active_power_l2=RationalNumber(exponent=3, value=3),
+                evse_target_active_power_l3=RationalNumber(exponent=3, value=3),
+                # Add more optional fields if wanted
+            )
+            if selected_service == ServiceV20.AC_BPT:
                 bpt_dynamic_params = BPTDynamicACChargeLoopResParams(
-                    evse_target_active_power=RationalNumber(exponent=3, value=3),
-                    evse_target_active_power_l2=RationalNumber(exponent=3, value=3),
-                    evse_target_active_power_l3=RationalNumber(exponent=3, value=3),
+                    **(dynamic_params.dict()),
                     # Add more optional fields if wanted
                 )
                 return bpt_dynamic_params
-        else:
-            logger.error(f"Energy service {selected_service.service} not yet supported")
-            return
+            return dynamic_params
 
     # ============================================================================
     # |                          DC-SPECIFIC FUNCTIONS                           |

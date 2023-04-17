@@ -72,6 +72,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionStopRes,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
+    EVSEStatus,
     MessageHeader,
     Processing,
     ResponseCode,
@@ -1330,6 +1331,26 @@ class ACChargeLoop(StateSECC):
                 bpt_dynamic_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
                     ControlMode.DYNAMIC, ServiceV20.AC_BPT
                 )  # noqa
+
+                # For now we just do this for the Dynamic Mode
+                ev_bpt_charge_parameters = ac_charge_loop_req.bpt_dynamic_params.dict()
+                # extract only the power limits and convert them to decimal
+                # representation
+                ev_power_limits = {}
+                for k, v in ev_bpt_charge_parameters.items():
+                    if type(v) is dict:
+                        ev_power_limits.update({k: v["value"] * 10 ** v["exponent"]})
+                # update the dict with the decimal values
+                ev_bpt_charge_parameters.update(ev_power_limits)
+                # update the ev_data_context
+                self.comm_session.evse_controller.ev_data_context.update(
+                    ev_bpt_charge_parameters
+                )
+                await self.comm_session.evse_controller.send_charging_power_limits(
+                    self.comm_session.protocol,
+                    control_mode,
+                    selected_energy_service.service,
+                )
         else:
             logger.error(
                 f"Energy service {selected_energy_service.service} not yet supported"
@@ -1340,11 +1361,16 @@ class ACChargeLoop(StateSECC):
         if ac_charge_loop_req.meter_info_requested:
             meter_info = await self.comm_session.evse_controller.get_meter_info_v20()
 
+        evse_status: Optional[
+            EVSEStatus
+        ] = await self.comm_session.evse_controller.get_evse_status()
+
         ac_charge_loop_res = ACChargeLoopRes(
             header=MessageHeader(
                 session_id=self.comm_session.session_id,
                 timestamp=time.time(),
             ),
+            evse_status=evse_status,
             # TODO Check for other failed or warning response codes
             response_code=ResponseCode.OK,
             scheduled_params=scheduled_params,
@@ -1654,6 +1680,7 @@ class DCChargeLoop(StateSECC):
         bpt_scheduled_params, bpt_dynamic_params = None, None
         selected_energy_service = self.comm_session.selected_energy_service
         control_mode = self.comm_session.control_mode
+        response_code = ResponseCode.OK
         if selected_energy_service.service == ServiceV20.DC:
             if control_mode == ControlMode.SCHEDULED:
                 scheduled_params = await self.comm_session.evse_controller.get_dc_charge_loop_params_v20(  # noqa
@@ -1676,13 +1703,18 @@ class DCChargeLoop(StateSECC):
             logger.error(
                 f"Energy service {selected_energy_service.service} not yet supported"
             )
-            return
+            response_code = ResponseCode.FAILED_SERVICE_SELECTION_INVALID
+
+        evse_status: Optional[
+            EVSEStatus
+        ] = await self.comm_session.evse_controller.get_evse_status()
 
         dc_charge_loop_res = DCChargeLoopRes(
             header=MessageHeader(
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
-            response_code=ResponseCode.OK,
+            evse_status=evse_status,
+            response_code=response_code,
             evse_present_current=await self.comm_session.evse_controller.get_evse_present_current(  # noqa
                 Protocol.ISO_15118_20_DC
             ),  # noqa
