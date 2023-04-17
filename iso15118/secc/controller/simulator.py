@@ -491,14 +491,21 @@ class SimEVSEController(EVSEControllerInterface):
             while remaining_charge_duration > 0:
                 if current_pmax_val == 7000:
                     p_max = PVPMax(multiplier=0, value=11000, unit=UnitSymbol.WATT)
-                    current_pmax_val=11000
+                    current_pmax_val = 11000
                 else:
                     p_max = PVPMax(multiplier=0, value=7000, unit=UnitSymbol.WATT)
                     current_pmax_val = 7000
 
-                p_max_schedule_entry = PMaxScheduleEntry(p_max=p_max, time_interval=RelativeTimeInterval(start=start))
+                p_max_schedule_entry = PMaxScheduleEntry(
+                    p_max=p_max, time_interval=RelativeTimeInterval(start=start)
+                )
                 if remaining_charge_duration <= 86400:
-                    p_max_schedule_entry = PMaxScheduleEntry(p_max=p_max, time_interval=RelativeTimeInterval(start=start, duration=remaining_charge_duration))
+                    p_max_schedule_entry = PMaxScheduleEntry(
+                        p_max=p_max,
+                        time_interval=RelativeTimeInterval(
+                            start=start, duration=remaining_charge_duration
+                        ),
+                    )
                 remaining_charge_duration -= 86400
                 start += 86400
                 schedule_entries.append(p_max_schedule_entry)
@@ -527,9 +534,17 @@ class SimEVSEController(EVSEControllerInterface):
             counter = 1
             start = 0
             while remaining_charge_duration > 0:
-                sales_tariff_entry = SalesTariffEntry(e_price_level=counter, time_interval=RelativeTimeInterval(start=start))
+                sales_tariff_entry = SalesTariffEntry(
+                    e_price_level=counter,
+                    time_interval=RelativeTimeInterval(start=start),
+                )
                 if remaining_charge_duration < 86400:
-                    sales_tariff_entry = SalesTariffEntry(e_price_level=counter, time_interval=RelativeTimeInterval(start=start, duration=remaining_charge_duration))
+                    sales_tariff_entry = SalesTariffEntry(
+                        e_price_level=counter,
+                        time_interval=RelativeTimeInterval(
+                            start=start, duration=remaining_charge_duration
+                        ),
+                    )
                 sales_tariff_entries.append(sales_tariff_entry)
                 remaining_charge_duration -= 86400
                 counter += 1
