@@ -26,6 +26,7 @@ from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
     AuthorizationTokenType,
+    EnergyTransferModeEnum,
     EVSEProcessing,
     Protocol,
 )
