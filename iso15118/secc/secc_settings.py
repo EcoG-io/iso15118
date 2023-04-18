@@ -107,6 +107,7 @@ class Config:
         self.secc_env = env.dump()
 
     def log_settings(self):
+        logger.info("TEST BUILD _ CHARIN")
         logger.info("SECC settings:")
         for key, value in shared_settings.items():
             logger.info(f"{key:30}: {value}")
