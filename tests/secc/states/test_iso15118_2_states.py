@@ -136,7 +136,7 @@ class TestV2GSessionScenarios:
 
     @pytest.mark.parametrize(
         "auth_type, is_authorized_return_value, expected_next_state,"
-        "expected_response_code, expected_evse_processing",
+        "expected_response_code, expected_evse_processing, is_ready_to_charge",
         [
             (
                 AuthEnum.EIM,
@@ -144,6 +144,15 @@ class TestV2GSessionScenarios:
                 ChargeParameterDiscovery,
                 ResponseCode.OK,
                 EVSEProcessing.FINISHED,
+                True,
+            ),
+            (
+                AuthEnum.EIM,
+                AuthorizationStatus.ACCEPTED,
+                None,
+                ResponseCode.OK,
+                EVSEProcessing.ONGOING,
+                False,
             ),
             (
                 AuthEnum.EIM,
@@ -151,6 +160,7 @@ class TestV2GSessionScenarios:
                 None,
                 ResponseCode.OK,
                 EVSEProcessing.ONGOING,
+                True,
             ),
             (
                 AuthEnum.EIM,
@@ -158,6 +168,7 @@ class TestV2GSessionScenarios:
                 Terminate,
                 ResponseCode.FAILED,
                 EVSEProcessing.FINISHED,
+                True,
             ),
             (
                 AuthEnum.PNC_V2,
@@ -165,6 +176,15 @@ class TestV2GSessionScenarios:
                 ChargeParameterDiscovery,
                 ResponseCode.OK,
                 EVSEProcessing.FINISHED,
+                True,
+            ),
+            (
+                AuthEnum.PNC_V2,
+                AuthorizationStatus.ACCEPTED,
+                None,
+                ResponseCode.OK,
+                EVSEProcessing.ONGOING,
+                False,
             ),
             (
                 AuthEnum.PNC_V2,
@@ -172,6 +192,7 @@ class TestV2GSessionScenarios:
                 None,
                 ResponseCode.OK,
                 EVSEProcessing.ONGOING,
+                True,
             ),
             (
                 AuthEnum.PNC_V2,
@@ -179,6 +200,7 @@ class TestV2GSessionScenarios:
                 Terminate,
                 ResponseCode.FAILED,
                 EVSEProcessing.FINISHED,
+                True,
             ),
         ],
     )
@@ -189,8 +211,10 @@ class TestV2GSessionScenarios:
         expected_next_state: StateSECC,
         expected_response_code: ResponseCode,
         expected_evse_processing: EVSEProcessing,
+        is_ready_to_charge: bool,
     ):
-
+        mock_is_ready_to_charge = Mock(return_value=is_ready_to_charge)
+        self.comm_session.evse_controller.ready_to_charge = mock_is_ready_to_charge
         self.comm_session.selected_auth_option = auth_type
         mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
         self.comm_session.evse_controller.is_authorized = mock_is_authorized

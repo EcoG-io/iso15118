@@ -1108,7 +1108,10 @@ class Authorization(StateSECC):
             ),
         )
 
-        if authorization_result == AuthorizationStatus.ACCEPTED:
+        if (
+            authorization_result == AuthorizationStatus.ACCEPTED
+            and self.comm_session.evse_controller.ready_to_charge()
+        ):
             auth_status = EVSEProcessing.FINISHED
             next_state = ChargeParameterDiscovery
         elif authorization_result == AuthorizationStatus.REJECTED:
