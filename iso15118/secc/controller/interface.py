@@ -158,6 +158,13 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def set_status_secc_session(self, status: ServiceStatus) -> None:
+        """
+        Sets the status of the secc_session for the EVSE Controller
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     async def get_evse_id(self, protocol: Protocol) -> str:
         """
         Gets the ID of the EVSE (Electric Vehicle Supply Equipment), which is

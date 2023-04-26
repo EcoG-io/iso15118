@@ -203,6 +203,9 @@ class SimEVSEController(EVSEControllerInterface):
     async def set_status(self, status: ServiceStatus) -> None:
         logger.debug(f"New Status: {status}")
 
+    async def set_status_secc_session(self, status: ServiceStatus) -> None:
+        pass
+
     async def get_evse_id(self, protocol: Protocol) -> str:
         if protocol == Protocol.DIN_SPEC_70121:
             #  To transform a string-based DIN SPEC 91286 EVSE ID to hexBinary

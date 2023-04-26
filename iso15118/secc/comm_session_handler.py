@@ -281,6 +281,7 @@ class CommunicationSessionHandler:
                         )
                     )
                     self.comm_sessions[notification.ip_address] = (comm_session, task)
+                    await self.evse_controller.set_status_secc_session(ServiceStatus.STARTING)
                 elif isinstance(notification, StopNotification):
                     try:
                         await self.end_current_session(notification.peer_ip_address)
@@ -301,6 +302,7 @@ class CommunicationSessionHandler:
             await cancel_task(self.comm_sessions[peer_ip_address][1])
             del self.comm_sessions[peer_ip_address]
             await cancel_task(self.tcp_server_handler)
+            await self.evse_controller.set_status_secc_session(ServiceStatus.STOPPING)
         except Exception as e:
             logger.warning(f"Unexpected error ending current session: {e}")
 
