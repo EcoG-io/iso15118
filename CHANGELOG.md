@@ -5,6 +5,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.0] - 2023-04-26
+* is_ready_to_charge control added for Authorization by @ikaratass in https://github.com/SwitchEV/iso15118/pull/227
+
 ## [0.20.0] - 2023-03-22
 
 ### Fixed
