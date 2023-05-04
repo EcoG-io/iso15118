@@ -763,6 +763,11 @@ class CurrentDemand(StateSECC):
             current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
         )
 
+        evse_max_voltage_limit = await self.comm_session.evse_controller.get_evse_max_voltage_limit()
+        evse_max_current_limit = await self.comm_session.evse_controller.get_evse_max_current_limit()
+        evse_max_power_limit = await self.comm_session.evse_controller.get_evse_max_power_limit()
+
+
         current_demand_res: CurrentDemandRes = CurrentDemandRes(
             response_code=ResponseCode.OK,
             dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
@@ -783,6 +788,9 @@ class CurrentDemand(StateSECC):
             evse_power_limit_achieved=(
                 await self.comm_session.evse_controller.is_evse_power_limit_achieved()
             ),
+            evse_max_voltage_limit=evse_max_voltage_limit,
+            evse_max_current_limit=evse_max_current_limit,
+            evse_max_power_limit=evse_max_power_limit,
         )
 
         self.create_next_message(
