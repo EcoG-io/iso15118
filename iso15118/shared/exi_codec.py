@@ -247,7 +247,9 @@ class EXI:
         try:
             exi_stream = self.exi_codec.encode(msg_content, protocol_ns)
         except Exception as exc:
-            logger.error(f"EXIEncodingError in {protocol_ns} with {str(msg_content)}: {exc}")
+            logger.error(
+                f"EXIEncodingError in {protocol_ns} with {str(msg_content)}: {exc}"
+            )
             raise EXIEncodingError(
                 f"EXIEncodingError for {str(msg_element)}: " f"{exc}"
             ) from exc

@@ -281,7 +281,9 @@ class CommunicationSessionHandler:
                         )
                     )
                     self.comm_sessions[notification.ip_address] = (comm_session, task)
-                    await self.evse_controller.set_status_secc_session(ServiceStatus.STARTING)
+                    await self.evse_controller.set_status_secc_session(
+                        ServiceStatus.STARTING
+                    )
                 elif isinstance(notification, StopNotification):
                     try:
                         await self.end_current_session(notification.peer_ip_address)
