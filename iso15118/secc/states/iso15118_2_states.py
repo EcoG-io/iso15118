@@ -1261,12 +1261,20 @@ class ChargeParameterDiscovery(StateSECC):
             ev_energy_request = (
                 charge_params_req.dc_ev_charge_parameter.ev_energy_request
             )
+            ev_max_power = (
+                charge_params_req.dc_ev_charge_parameter.ev_maximum_power_limit
+            )
             ev_charge_params_limits = EVChargeParamsLimits(
                 ev_max_voltage=ev_max_voltage,
                 ev_max_current=ev_max_current,
+                ev_max_power=ev_max_power,
                 ev_energy_request=ev_energy_request,
             )
             departure_time = charge_params_req.dc_ev_charge_parameter.departure_time
+
+        self.comm_session.evse_controller.ev_charge_params_limits = (
+            ev_charge_params_limits
+        )
 
         if not departure_time:
             departure_time = 0
@@ -2274,10 +2282,8 @@ class CurrentDemand(StateSECC):
             else current_demand_req.remaining_time_to_full_soc.get_decimal_value()
         )
 
-        self.comm_session.evse_controller.ev_data_context.ev_max_current_limit = (
-            None
-            if current_demand_req.ev_max_current_limit is None
-            else current_demand_req.ev_max_current_limit.get_decimal_value()
+        self.comm_session.evse_controller.ev_charge_params_limits.ev_max_current = (
+            current_demand_req.ev_max_current_limit
         )
 
         await self.comm_session.evse_controller.send_charging_command(

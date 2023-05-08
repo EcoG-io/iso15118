@@ -23,6 +23,7 @@ from iso15118.shared.messages.datatypes import (
     PVEVSEPresentVoltage,
     PVEVTargetCurrent,
     PVEVTargetVoltage,
+    PVEVMaxPowerLimit,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
@@ -82,7 +83,6 @@ class EVDataContext:
     remaining_time_to_full_soc_s: Optional[int] = None
     remaining_time_to_bulk_soc_s: Optional[int] = None
     evcc_id: Optional[str] = None
-    ev_max_current_limit: Optional[int] = None
 
     # from ISO 15118-20 AC
     departure_time: Optional[int] = None
@@ -132,6 +132,7 @@ class ServiceStatus(str, Enum):
 class EVChargeParamsLimits:
     ev_max_voltage: Optional[Union[PVEVMaxVoltageLimit, PVEVMaxVoltage]] = None
     ev_max_current: Optional[Union[PVEVMaxCurrentLimit, PVEVMaxCurrent]] = None
+    ev_max_power: Optional[PVEVMaxPowerLimit] = None
     e_amount: Optional[PVEAmount] = None
     ev_energy_request: Optional[PVEVEnergyRequest] = None
 
@@ -139,10 +140,12 @@ class EVChargeParamsLimits:
 class EVSEControllerInterface(ABC):
     def __init__(self):
         self.ev_data_context = EVDataContext()
+        self.ev_charge_params_limits = EVChargeParamsLimits()
         self._selected_protocol = Optional[Protocol]
 
     def reset_ev_data_context(self):
         self.ev_data_context = EVDataContext()
+        self.ev_charge_params_limits = EVChargeParamsLimits()
 
     def get_ev_data_context(self) -> EVDataContext:
         return self.ev_data_context

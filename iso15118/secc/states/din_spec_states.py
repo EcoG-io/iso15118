@@ -9,6 +9,7 @@ import time
 from typing import Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.secc.controller.interface import EVChargeParamsLimits
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
@@ -379,6 +380,29 @@ class ChargeParameterDiscovery(StateSECC):
 
         self.comm_session.selected_energy_mode = (
             charge_parameter_discovery_req.requested_energy_mode
+        )
+
+        ev_max_voltage = (
+            charge_parameter_discovery_req.dc_ev_charge_parameter.ev_maximum_voltage_limit
+        )
+        ev_max_current = (
+            charge_parameter_discovery_req.dc_ev_charge_parameter.ev_maximum_current_limit
+        )
+        ev_energy_request = (
+            charge_parameter_discovery_req.dc_ev_charge_parameter.ev_energy_request
+        )
+        ev_max_power = (
+            charge_parameter_discovery_req.dc_ev_charge_parameter.ev_maximum_power_limit
+        )
+        ev_charge_params_limits = EVChargeParamsLimits(
+            ev_max_voltage=ev_max_voltage,
+            ev_max_current=ev_max_current,
+            ev_max_power=ev_max_power,
+            ev_energy_request=ev_energy_request,
+        )
+
+        self.comm_session.evse_controller.ev_charge_params_limits = (
+            ev_charge_params_limits
         )
 
         dc_evse_charge_params = (
@@ -762,6 +786,23 @@ class CurrentDemand(StateSECC):
         self.comm_session.evse_controller.ev_data_context.soc = (
             current_demand_req.dc_ev_status.ev_ress_soc
         )
+
+        self.comm_session.evse_controller.ev_data_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
+            None
+            if current_demand_req.remaining_time_to_bulk_soc is None
+            else current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
+        )
+
+        self.comm_session.evse_controller.ev_data_context.remaining_time_to_full_soc_s = (  # noqa: E501
+            None
+            if current_demand_req.remaining_time_to_full_soc is None
+            else current_demand_req.remaining_time_to_full_soc.get_decimal_value()
+        )
+
+        self.comm_session.evse_controller.ev_charge_params_limits.ev_max_current = (
+            current_demand_req.ev_max_current_limit
+        )
+
         await self.comm_session.evse_controller.send_charging_command(
             current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
         )
