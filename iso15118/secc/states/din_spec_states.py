@@ -383,10 +383,10 @@ class ChargeParameterDiscovery(StateSECC):
         )
 
         ev_max_voltage = (
-            charge_parameter_discovery_req.dc_ev_charge_parameter.ev_maximum_voltage_limit
+            charge_parameter_discovery_req.dc_ev_charge_parameter.ev_maximum_voltage_limit  # noqa: E501
         )
         ev_max_current = (
-            charge_parameter_discovery_req.dc_ev_charge_parameter.ev_maximum_current_limit
+            charge_parameter_discovery_req.dc_ev_charge_parameter.ev_maximum_current_limit  # noqa: E501
         )
         ev_energy_request = (
             charge_parameter_discovery_req.dc_ev_charge_parameter.ev_energy_request
