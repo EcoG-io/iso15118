@@ -189,6 +189,9 @@ class SessionSetup(StateSECC):
         )
 
         self.comm_session.evcc_id = session_setup_req.evcc_id
+        self.comm_session.evse_controller.ev_data_context.evcc_id = (
+            session_setup_req.evcc_id
+        )
         self.comm_session.session_id = session_id
 
         self.create_next_message(

@@ -81,6 +81,7 @@ class EVDataContext:
     soc: Optional[int] = None  # 0-100
     remaining_time_to_full_soc_s: Optional[int] = None
     remaining_time_to_bulk_soc_s: Optional[int] = None
+    evcc_id: Optional[str] = None
     ev_max_current_limit: Optional[int] = None
 
     # from ISO 15118-20 AC
