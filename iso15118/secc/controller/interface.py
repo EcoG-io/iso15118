@@ -14,6 +14,7 @@ from iso15118.shared.messages.datatypes import (
     PVEVEnergyRequest,
     PVEVMaxCurrent,
     PVEVMaxCurrentLimit,
+    PVEVMaxPowerLimit,
     PVEVMaxVoltage,
     PVEVMaxVoltageLimit,
     PVEVSEMaxCurrentLimit,
@@ -23,7 +24,6 @@ from iso15118.shared.messages.datatypes import (
     PVEVSEPresentVoltage,
     PVEVTargetCurrent,
     PVEVTargetVoltage,
-    PVEVMaxPowerLimit,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
