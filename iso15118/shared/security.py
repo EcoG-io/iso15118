@@ -13,15 +13,19 @@ from cryptography.hazmat.backends.openssl.backend import Backend
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import (
     SECP256R1,
+    SECP521R1,
     EllipticCurvePrivateKey,
     EllipticCurvePublicKey,
+)
+from cryptography.hazmat.primitives.asymmetric.ed448 import (
+    Ed448PublicKey,
 )
 from cryptography.hazmat.primitives.asymmetric.utils import (
     decode_dss_signature,
     encode_dss_signature,
 )
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.hashes import SHA256, Hash, HashAlgorithm
+from cryptography.hazmat.primitives.hashes import SHA256, SHA512, Hash, HashAlgorithm
 from cryptography.hazmat.primitives.kdf.concatkdf import ConcatKDFHash
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
@@ -113,7 +117,10 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
     (as given in ISO 15118-2) map to the OpenSSL cipher suite names
     - ECDH-ECDSA-AES128-SHA256 and
     - ECDHE-ECDSA-AES128-SHA256,
-    respectively. See https://testssl.sh/openssl-iana.mapping.html
+    respectively.
+    Check:
+        * https://testssl.sh/openssl-iana.mapping.html
+        * https://www.openssl.org/docs/man1.1.1/man1/ciphers.html
     TODO More/other cipher suites are allowed in ISO 15118-20
 
     Args:
@@ -224,6 +231,8 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
                 return None
 
     # The OpenSSL name for ECDH curve secp256r1 is prime256v1
+    # The OpenSSL name for ECDH curve secp521r1 is secp521r1
+    # The OpenSSL name for ECDH curve x448 is x448
     ssl_context.set_ecdh_curve("prime256v1")
 
     return ssl_context
@@ -590,6 +599,11 @@ def verify_certs(
                     ec.ECDSA(SHA256()),
                 )
             else:
+                pub_key.verify(
+                    leaf_cert.signature,
+                    leaf_cert.tbs_certificate_bytes,
+                    ec.ECDSA(SHA512()),
+                )
                 # TODO Add support for ISO 15118-20 public key types
                 raise KeyTypeError(
                     f"Unexpected public key type " f"{type(root_ca_cert.public_key())}"
@@ -598,12 +612,28 @@ def verify_certs(
             logger.error("Sub-CA 2 certificate missing in public cert chain")
             raise CertChainLengthError(allowed_num_sub_cas=2, num_sub_cas=0)
         else:
-            if isinstance(pub_key := sub_ca2_cert.public_key(), EllipticCurvePublicKey):
+            pub_key = sub_ca2_cert.public_key()
+            if isinstance(pub_key, EllipticCurvePublicKey):
+                ec_curve_name = pub_key.curve.name
+                if ec_curve_name == "secp256r1":
+                    hash_algorithm = SHA256()
+                elif ec_curve_name == "secp521r1":
+                    hash_algorithm = SHA512()
+                else:
+                    raise KeyTypeError(
+                        f"Unexpected curve name " f"{ec_curve_name}."
+                        f"None of secp256r1, secp521r1"
+                    )
                 pub_key.verify(
                     leaf_cert.signature,
                     leaf_cert.tbs_certificate_bytes,
                     # TODO Find a way to read id dynamically from the certificate
-                    ec.ECDSA(SHA256()),
+                    ec.ECDSA(hash_algorithm),
+                )
+            elif isinstance(pub_key, Ed448PublicKey):
+                pub_key.verify(
+                    leaf_cert.signature,
+                    leaf_cert.tbs_certificate_bytes,
                 )
             else:
                 # TODO Add support for ISO 15118-20 public key types
@@ -623,6 +653,11 @@ def verify_certs(
                         ec.ECDSA(SHA256()),
                     )
                 else:
+                    pub_key.verify(
+                        sub_ca2_cert.signature,
+                        sub_ca2_cert.tbs_certificate_bytes,
+                        ec.ECDSA(SHA512()),
+                    )
                     # TODO Add support for ISO 15118-20 public key types
                     raise KeyTypeError(
                         f"Unexpected public key type "
@@ -640,6 +675,11 @@ def verify_certs(
                         ec.ECDSA(SHA256()),
                     )
                 else:
+                    pub_key.verify(
+                        sub_ca1_cert.signature,
+                        sub_ca1_cert.tbs_certificate_bytes,
+                        ec.ECDSA(SHA512()),
+                    )
                     # TODO Add support for ISO 15118-20 public key types
                     raise KeyTypeError(
                         f"Unexpected public key type "
@@ -657,6 +697,11 @@ def verify_certs(
                         ec.ECDSA(SHA256()),
                     )
                 else:
+                    pub_key.verify(
+                        sub_ca2_cert.signature,
+                        sub_ca2_cert.tbs_certificate_bytes,
+                        ec.ECDSA(SHA512()),
+                    )
                     # TODO Add support for ISO 15118-20 public key types
                     raise KeyTypeError(
                         f"Unexpected public key type "
