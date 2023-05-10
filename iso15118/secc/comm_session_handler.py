@@ -308,12 +308,6 @@ class CommunicationSessionHandler:
         self.udp_server.resume_udp_server()
 
     async def start_tcp_server(self, with_tls: bool):
-        if self.tcp_server_handler is not None:
-            """A TCP server is already available, ready to respond.
-            (Perhaps created when the last SDP request was received.)
-            """
-            return
-
         server_ready_event: asyncio.Event = asyncio.Event()
         self.status_event_list.clear()
         self.status_event_list.append(server_ready_event)
