@@ -485,6 +485,38 @@ def log_certs_details(certs: List[bytes]):
         logger.debug("===")
 
 
+def _validate_signature(
+        cert_to_check,
+        parent_pub_key: Union[EllipticCurvePublicKey,
+                              Ed448PublicKey]
+) -> None:
+    if isinstance(parent_pub_key, EllipticCurvePublicKey):
+        ec_curve_name = parent_pub_key.curve.name
+        if ec_curve_name == "secp256r1":
+            hash_algorithm = SHA256()
+        elif ec_curve_name == "secp521r1":
+            hash_algorithm = SHA512()
+        else:
+            raise KeyTypeError(
+                f"Unexpected curve name " f"{ec_curve_name}."
+                f"None of secp256r1, secp521r1"
+            )
+        parent_pub_key.verify(
+            cert_to_check.signature,
+            cert_to_check.tbs_certificate_bytes,
+            ec.ECDSA(hash_algorithm),
+        )
+    elif isinstance(parent_pub_key, Ed448PublicKey):
+        parent_pub_key.verify(
+            cert_to_check.signature,
+            cert_to_check.tbs_certificate_bytes,
+        )
+    else:
+        raise KeyTypeError(
+            f"Unexpected public key type " f"{type(parent_pub_key)}"
+        )
+
+
 def verify_certs(
     leaf_cert_bytes: bytes,
     sub_ca_certs_bytes: List[bytes],
@@ -581,9 +613,13 @@ def verify_certs(
             raise CertChainLengthError(allowed_num_sub_cas=2, num_sub_cas=path_len)
 
     if not sub_ca2_cert and not private_environment:
+        logger.error("Sub-CA 2 certificate missing in public cert chain")
         raise CertChainLengthError(allowed_num_sub_cas=2, num_sub_cas=0)
 
     if (sub_ca2_cert or sub_ca1_cert) and private_environment:
+        logger.error("Sub-CA 1 and 2 certificate are included and "
+                     "PE is set at the same time. "
+                     "In a PE there are no Sub-CA certs")
         raise CertChainLengthError(allowed_num_sub_cas=0, num_sub_cas=1)
 
     # Step 1.b: Now that we have established the right order of sub-CA
@@ -592,121 +628,31 @@ def verify_certs(
     cert_to_check = leaf_cert
     try:
         if private_environment:
-            if isinstance(pub_key := root_ca_cert.public_key(), EllipticCurvePublicKey):
-                pub_key.verify(
-                    leaf_cert.signature,
-                    leaf_cert.tbs_certificate_bytes,
-                    ec.ECDSA(SHA256()),
-                )
-            else:
-                pub_key.verify(
-                    leaf_cert.signature,
-                    leaf_cert.tbs_certificate_bytes,
-                    ec.ECDSA(SHA512()),
-                )
-                # TODO Add support for ISO 15118-20 public key types
-                raise KeyTypeError(
-                    f"Unexpected public key type " f"{type(root_ca_cert.public_key())}"
-                )
-        elif not sub_ca2_cert:
-            logger.error("Sub-CA 2 certificate missing in public cert chain")
-            raise CertChainLengthError(allowed_num_sub_cas=2, num_sub_cas=0)
+            # In a PE there is no SubCAs, which means the
+            # root signs directly the leaf
+            parent_cert_pub_key = root_ca_cert.public_key()
+            _validate_signature(cert_to_check, parent_cert_pub_key)
         else:
-            pub_key = sub_ca2_cert.public_key()
-            if isinstance(pub_key, EllipticCurvePublicKey):
-                ec_curve_name = pub_key.curve.name
-                if ec_curve_name == "secp256r1":
-                    hash_algorithm = SHA256()
-                elif ec_curve_name == "secp521r1":
-                    hash_algorithm = SHA512()
-                else:
-                    raise KeyTypeError(
-                        f"Unexpected curve name " f"{ec_curve_name}."
-                        f"None of secp256r1, secp521r1"
-                    )
-                pub_key.verify(
-                    leaf_cert.signature,
-                    leaf_cert.tbs_certificate_bytes,
-                    # TODO Find a way to read id dynamically from the certificate
-                    ec.ECDSA(hash_algorithm),
-                )
-            elif isinstance(pub_key, Ed448PublicKey):
-                pub_key.verify(
-                    leaf_cert.signature,
-                    leaf_cert.tbs_certificate_bytes,
-                )
-            else:
-                # TODO Add support for ISO 15118-20 public key types
-                raise KeyTypeError(
-                    f"Unexpected public key type " f"{type(sub_ca2_cert.public_key())}"
-                )
+           
+            parent_cert_pub_key = sub_ca2_cert.public_key()
+            _validate_signature(cert_to_check, parent_cert_pub_key)
 
             if sub_ca1_cert:
+                # check subca2 signature
                 cert_to_check = sub_ca2_cert
-
-                if isinstance(
-                    pub_key := sub_ca1_cert.public_key(), EllipticCurvePublicKey
-                ):
-                    pub_key.verify(
-                        sub_ca2_cert.signature,
-                        sub_ca2_cert.tbs_certificate_bytes,
-                        ec.ECDSA(SHA256()),
-                    )
-                else:
-                    pub_key.verify(
-                        sub_ca2_cert.signature,
-                        sub_ca2_cert.tbs_certificate_bytes,
-                        ec.ECDSA(SHA512()),
-                    )
-                    # TODO Add support for ISO 15118-20 public key types
-                    raise KeyTypeError(
-                        f"Unexpected public key type "
-                        f"{type(sub_ca1_cert.public_key())}"
-                    )
-
+                parent_cert_pub_key = sub_ca1_cert.public_key()
+                _validate_signature(cert_to_check, parent_cert_pub_key)
+                
+                # check subca1 signature
                 cert_to_check = sub_ca1_cert
-
-                if isinstance(
-                    pub_key := root_ca_cert.public_key(), EllipticCurvePublicKey
-                ):
-                    pub_key.verify(
-                        sub_ca1_cert.signature,
-                        sub_ca1_cert.tbs_certificate_bytes,
-                        ec.ECDSA(SHA256()),
-                    )
-                else:
-                    pub_key.verify(
-                        sub_ca1_cert.signature,
-                        sub_ca1_cert.tbs_certificate_bytes,
-                        ec.ECDSA(SHA512()),
-                    )
-                    # TODO Add support for ISO 15118-20 public key types
-                    raise KeyTypeError(
-                        f"Unexpected public key type "
-                        f"{type(root_ca_cert.public_key())}"
-                    )
+                parent_cert_pub_key = root_ca_cert.public_key()
+                _validate_signature(cert_to_check, parent_cert_pub_key)
             else:
+                # the chain contains only the root and subca2, ie
+                # the subca2 is directly signed by the root
                 cert_to_check = sub_ca2_cert
-
-                if isinstance(
-                    pub_key := root_ca_cert.public_key(), EllipticCurvePublicKey
-                ):
-                    pub_key.verify(
-                        sub_ca2_cert.signature,
-                        sub_ca2_cert.tbs_certificate_bytes,
-                        ec.ECDSA(SHA256()),
-                    )
-                else:
-                    pub_key.verify(
-                        sub_ca2_cert.signature,
-                        sub_ca2_cert.tbs_certificate_bytes,
-                        ec.ECDSA(SHA512()),
-                    )
-                    # TODO Add support for ISO 15118-20 public key types
-                    raise KeyTypeError(
-                        f"Unexpected public key type "
-                        f"{type(root_ca_cert.public_key())}"
-                    )
+                parent_cert_pub_key = root_ca_cert.public_key()
+                _validate_signature(cert_to_check, parent_cert_pub_key)
     except InvalidSignature as exc:
         raise CertSignatureError(
             subject=cert_to_check.subject.__str__(),
@@ -998,13 +944,27 @@ def verify_signature(
 
     try:
         if isinstance(pub_key, EllipticCurvePublicKey):
+            ec_curve_name = pub_key.curve.name
+            if ec_curve_name == "secp256r1":
+                hash_algorithm = SHA256()
+            elif ec_curve_name == "secp521r1":
+                hash_algorithm = SHA512()
+            else:
+                raise KeyTypeError(
+                    f"Unexpected curve name " f"{ec_curve_name}."
+                    f"None of secp256r1, secp521r1"
+                )
             pub_key.verify(
                 signature=der_encoded_signature,
                 data=exi_encoded_signed_info,
-                signature_algorithm=ec.ECDSA(SHA256()),
+                signature_algorithm=ec.ECDSA(hash_algorithm),
+            )
+        elif isinstance(pub_key, Ed448PublicKey):
+            pub_key.verify(
+                signature=der_encoded_signature,
+                data=exi_encoded_signed_info,
             )
         else:
-            # TODO Add support for ISO 15118-20 public key types
             raise KeyTypeError(f"Unexpected public key type " f"{type(pub_key)}")
     except InvalidSignature as e:
         pub_key_bytes = pub_key.public_bytes(
