@@ -114,7 +114,7 @@ class SessionSetup(StateSECC):
         if session_setup_req.evcc_id.find(':') == -1:
             for i in range (MAC_COLONS):
                 evcc_id+=':' + session_setup_req.evcc_id[i*2+2:i*2+4]
-        p_Charger().publish_EVCCIDD(evcc_id)
+        p_Charger().publish_EVCCIDD(evcc_id.upper())
         await self.comm_session.evse_controller.reset_evse_values()
         # EVerest code end #     
 
