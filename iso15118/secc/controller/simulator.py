@@ -504,7 +504,7 @@ class SimEVSEController(EVSEControllerInterface):
             sales_tariff_entry=sales_tariff_entries,
             num_e_price_levels=2,
         )
-
+        sales_tariff = None
         # Putting the list of SAScheduleTuple entries together
         sa_schedule_tuple = SAScheduleTuple(
             sa_schedule_tuple_id=1,
