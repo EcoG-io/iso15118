@@ -45,6 +45,8 @@ class Config:
     # specification [V2G20-1856]
     ciphersuites: List[str] = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDH-ECDSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256"
 
+    verify_contract_cert_chain = False
+
     def load_envs(self, env_path: Optional[str] = None) -> None:
         """
         Tries to load the .env file containing all the project settings.
@@ -167,3 +169,6 @@ class Config:
 
         if 'ciphersuites' in everest_config:
             self.ciphersuites = everest_config["ciphersuites"]
+
+        if 'verify_contract_cert_chain' in everest_config:
+            self.verify_contract_cert_chain = everest_config["verify_contract_cert_chain"]

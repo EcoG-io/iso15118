@@ -140,10 +140,13 @@ def get_ssl_context(server_side: bool, ciphersuites: str = None) -> Optional[SSL
     if server_side:
         try:
             ssl_context.load_cert_chain(
-                certfile=os.path.join(get_PKI_PATH(), CertPath.CPO_CERT_CHAIN_PEM),
+                certfile=os.path.join(get_PKI_PATH(), CertPath.SECC_LEAF_PEM),
                 keyfile=os.path.join(get_PKI_PATH(), KeyPath.SECC_LEAF_PEM),
-                password=load_priv_key_pass(os.path.join(get_PKI_PATH(), KeyPasswordPath.SECC_LEAF_KEY_PASSWORD)),
+                password=load_priv_key_pass(os.path.join(
+                    get_PKI_PATH(), KeyPasswordPath.SECC_LEAF_KEY_PASSWORD)),
             )
+            ssl_context.load_verify_locations(os.path.join(get_PKI_PATH(), CertPath.CPO_SUB_CA1_PEM))
+            ssl_context.load_verify_locations(os.path.join(get_PKI_PATH(), CertPath.CPO_SUB_CA2_PEM))
         except SSLError:
             logger.exception(
                 "SSLError, can't load SECC certificate chain for SSL "
@@ -165,7 +168,8 @@ def get_ssl_context(server_side: bool, ciphersuites: str = None) -> Optional[SSL
             # (Table 5 in V2G20 specification)
             # Marc/André - this suggests we will need mutual auth 15118-2 if
             # TLS1.3 is enabled.
-            ssl_context.load_verify_locations(cafile=os.path.join(get_PKI_PATH(), CertPath.OEM_ROOT_PEM))
+            ssl_context.load_verify_locations(
+                cafile=os.path.join(get_PKI_PATH(), CertPath.OEM_ROOT_PEM))
             ssl_context.verify_mode = VerifyMode.CERT_REQUIRED
         else:
             # In ISO 15118-2, we only verify the SECC's certificates
@@ -175,7 +179,8 @@ def get_ssl_context(server_side: bool, ciphersuites: str = None) -> Optional[SSL
         # Load the V2G Root CA certificate(s) to validate the SECC's leaf and
         # Sub-CA CPO certificates. The cafile string is the path to a file of
         # concatenated (if several exist) V2G Root CA certificates in PEM format
-        ssl_context.load_verify_locations(cafile=os.path.join(get_PKI_PATH(), CertPath.V2G_ROOT_PEM))
+        ssl_context.load_verify_locations(
+            cafile=os.path.join(get_PKI_PATH(), CertPath.V2G_ROOT_PEM))
         ssl_context.check_hostname = False
         ssl_context.verify_mode = VerifyMode.CERT_REQUIRED
         ssl_context.set_ciphers(ciphersuites)
@@ -185,7 +190,8 @@ def get_ssl_context(server_side: bool, ciphersuites: str = None) -> Optional[SSL
                 ssl_context.load_cert_chain(
                     certfile=os.path.join(get_PKI_PATH(), CertPath.OEM_CERT_CHAIN_PEM),
                     keyfile=os.path.join(get_PKI_PATH(), KeyPath.OEM_LEAF_PEM),
-                    password=load_priv_key_pass(os.path.join(get_PKI_PATH(), KeyPasswordPath.OEM_LEAF_KEY_PASSWORD)),
+                    password=load_priv_key_pass(os.path.join(
+                        get_PKI_PATH(), KeyPasswordPath.OEM_LEAF_KEY_PASSWORD)),
                 )
             except SSLError:
                 logger.exception(
@@ -1286,7 +1292,7 @@ def get_ocsp_url_for_certificate(certificate: Certificate) -> str:
             ExtensionOID.AUTHORITY_INFORMATION_ACCESS
         ).value
     except ExtensionNotFound:
-        logger.debug(
+        logger.warning(
             f"Authority Information Access extension not "
             f"found for {certificate.subject.__str__()}."
         )
@@ -1425,10 +1431,10 @@ class CertPath(str, Enum):
     SECC_LEAF_PEM = "client/cso/SECC_LEAF.pem"
     CPO_SUB_CA2_DER = "ca/cso/CPO_SUB_CA2.der"
     CPO_SUB_CA1_DER = "ca/cso/CPO_SUB_CA1.der"
+    CPO_SUB_CA1_PEM = "ca/cso/CPO_SUB_CA1.pem"
+    CPO_SUB_CA2_PEM = "ca/cso/CPO_SUB_CA2.pem"
     V2G_ROOT_DER = "ca/v2g/V2G_ROOT_CA.der"
     V2G_ROOT_PEM = "ca/v2g/V2G_ROOT_CA.pem"
-    # Needed for the 'certfile' parameter in ssl_context.load_cert_chain()
-    CPO_CERT_CHAIN_PEM = "client/cso/CPO_CERT_CHAIN.pem"
 
     # Certificate provisioning service (CPS)
     CPS_LEAF_DER = "client/cps/CPS_LEAF.der"

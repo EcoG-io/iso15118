@@ -1052,12 +1052,20 @@ class PaymentDetails(StateSECC):
             #      could be used to verify, need to be flexible with regards
             #      to the PKI that is used.
             root_cert_path = self._mobility_operator_root_cert_path()
+            pem_certificate_chain = None
+
             try:
                 root_cert = load_cert(root_cert_path)
-                verify_certs(leaf_cert, sub_ca_certs, root_cert)
+                # verify contract certificate against MO root if this is enabled
+                if (self.comm_session.config.verify_contract_cert_chain):
+                    verify_certs(leaf_cert, sub_ca_certs, root_cert)
+                else:
+                    root_cert = None
+                    pem_certificate_chain = build_pem_certificate_chain(payment_details_req.cert_chain, root_cert)
             except FileNotFoundError:
                 logger.warning(f"MO Root Cert cannot be found {root_cert_path}")
                 root_cert = None
+                pem_certificate_chain = build_pem_certificate_chain(payment_details_req.cert_chain, root_cert)
 
             # Note that the eMAID format (14 or 15 characters) will be validated
             # by the definition of the eMAID type in
@@ -1065,17 +1073,24 @@ class PaymentDetails(StateSECC):
             self.comm_session.emaid = payment_details_req.emaid
             self.comm_session.contract_cert_chain = payment_details_req.cert_chain
 
-            # hash_data = get_certificate_hash_data(
-            #     self.comm_session.contract_cert_chain, root_cert
-            # )
-            pem_certificate_chain = build_pem_certificate_chain(payment_details_req.cert_chain, None)
-
-            # Todo_SL: HashData
+            try:
+                hash_data = get_certificate_hash_data(
+                    self.comm_session.contract_cert_chain, root_cert
+                )
+            except Exception as e:
+                logger.warning("Could not retrieve OCSP request data from certificate")
+                hash_data = None
+            
             ProvidedIdToken: dict = dict([
                 ("id_token", payment_details_req.emaid),
                 ("type", "PlugAndCharge"),
-                ("certificate", pem_certificate_chain),
             ])
+ 
+            if hash_data is not None:
+                ProvidedIdToken.update({"iso15118CertificateHashData": hash_data})
+            
+            if pem_certificate_chain is not None:
+                ProvidedIdToken.update({"certificate": pem_certificate_chain})
 
             p_Charger().publish_Require_Auth_PnC(ProvidedIdToken)
 
