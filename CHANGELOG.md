@@ -5,6 +5,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.2a2] - 2023-05-11
+* Specify purpose when creating ssl context.
+
 ## [0.21.2a1] - 2023-05-11
 * Removed sales tariff from the returned simulated schedule.
 
