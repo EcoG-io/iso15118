@@ -3,7 +3,6 @@ This module contains the EVCC's States used to process the SECC's incoming
 V2GMessage objects of the ISO 15118-20 protocol, from SessionSetupRes to
 SessionStopRes.
 """
-
 import logging
 import time
 from typing import Any, List, Union, cast

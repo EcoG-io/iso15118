@@ -43,7 +43,7 @@ class EVCCConfig(BaseModel):
     # the EV can store. That value is used in the CertificateInstallationReq.
     # Must be an integer between 0 and 65535, should be bigger than 0.
     max_contract_certs: Optional[int] = Field(3, alias="maxContractCerts")
-    # Indicates whether or not the EVCC should always enforce a TLS-secured
+    # Indicates whether the EVCC should always enforce a TLS-secured
     # communication session.
     # If True, the EVCC will only continue setting up a communication session if
     # the SECC's SDP response has the Security field set
