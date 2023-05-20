@@ -135,17 +135,21 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
          as well as read the password.
     """
 
-    if ENABLE_TLS_1_3:
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-    else:
-        # Specifying protocol as `PROTOCOL_TLS` does best effort.
-        # TLSv1.3 will be attempted and would fallback to 1.2 if not possible.
-        # However, there may be TLS clients that can't perform
-        # 1.2 fallback, here we explicitly set the TLS version
-        # to 1.2, to be sure we won't fall into connection issues
-        ssl_context = SSLContext(protocol=ssl.PROTOCOL_TLSv1_2)
-
+    #ssl_context = ssl.create_default_context(
+    #    purpose=ssl.Purpose.CLIENT_AUTH if server_side else ssl.Purpose.SERVER_AUTH,
+    #    cafile=CertPath.OEM_ROOT_PEM if server_side else CertPath.V2G_ROOT_PEM,
+    #)
     if server_side:
+        ssl_context = SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        if ENABLE_TLS_1_3:  # Change to FORCE_CLIENT_AUTH
+            # In 15118-20 we should also verify EVCC's certificate chain.
+            # The spec however says TLS 1.3 should also support 15118-2
+            # (Table 5 in V2G20 specification)
+            ssl_context.load_verify_locations(cafile=CertPath.OEM_ROOT_PEM)
+            ssl_context.verify_mode = VerifyMode.CERT_REQUIRED
+        else:
+            # In ISO 15118-2, we only verify the SECC's certificates
+            ssl_context.verify_mode = VerifyMode.CERT_NONE
         try:
             ssl_context.load_cert_chain(
                 certfile=CertPath.CPO_CERT_CHAIN_PEM,
@@ -167,17 +171,6 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             logger.exception(exc)
             return None
 
-        if ENABLE_TLS_1_3:
-            # In 15118-20 we should also verify EVCC's certificate chain.
-            # The spec however says TLS 1.3 should also support 15118-2
-            # (Table 5 in V2G20 specification)
-            # Marc/André - this suggests we will need mutual auth 15118-2 if
-            # TLS1.3 is enabled.
-            ssl_context.load_verify_locations(cafile=CertPath.OEM_ROOT_PEM)
-            ssl_context.verify_mode = VerifyMode.CERT_REQUIRED
-        else:
-            # In ISO 15118-2, we only verify the SECC's certificates
-            ssl_context.verify_mode = VerifyMode.CERT_NONE
         # The SECC must support both ciphers defined in ISO 15118-20
         # OpenSSL 1.3 supports TLS 1.3 cipher suites by default.
         # Calling .set_ciphers to be more evident about what is available.
@@ -193,6 +186,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             "ECDHE-ECDSA-AES128-SHA256"
         )
     else:
+        ssl_context = SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         # Load the V2G Root CA certificate(s) to validate the SECC's leaf and
         # Sub-CA CPO certificates. The cafile string is the path to a file of
         # concatenated (if several exist) V2G Root CA certificates in PEM format
@@ -208,7 +202,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             "ECDHE-ECDSA-AES128-SHA256"
         )
 
-        if ENABLE_TLS_1_3:
+        if ENABLE_TLS_1_3:  # Change to FORCE_CLIENT_AUTH
             try:
                 ssl_context.load_cert_chain(
                     certfile=CertPath.OEM_CERT_CHAIN_PEM,
@@ -233,7 +227,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
     # The OpenSSL name for ECDH curve secp256r1 is prime256v1
     # The OpenSSL name for ECDH curve secp521r1 is secp521r1
     # The OpenSSL name for ECDH curve x448 is x448
-    ssl_context.set_ecdh_curve("prime256v1")
+    # ssl_context.set_ecdh_curve("prime256v1")
 
     return ssl_context
 

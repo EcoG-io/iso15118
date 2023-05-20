@@ -391,8 +391,23 @@ class Authorization(StateEVCC):
             if self.comm_session.ongoing_timer >= 0:
                 elapsed_time = time.time() - self.comm_session.ongoing_timer
                 if elapsed_time > TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT:
-                    self.stop_state_machine(
-                        "Ongoing timer timed out for " "AuthorizationRes"
+                    debug_message = "Ongoing timer timed out for 'AuthorizationRes'"
+                    self.comm_session.charging_session_stop_v20 = \
+                        ChargingSession.TERMINATE
+                    session_stop_req = SessionStopReq(
+                        header=MessageHeader(
+                            session_id=self.comm_session.session_id,
+                            timestamp=time.time(),
+                        ),
+                        charging_session=self.comm_session.charging_session_stop_v20,
+                        ev_termination_explanation=debug_message
+                    )
+                    self.create_next_message(
+                        SessionStop,
+                        session_stop_req,
+                        Timeouts.SESSION_STOP_REQ,
+                        Namespace.ISO_V20_COMMON_MSG,
+                        ISOV20PayloadTypes.MAINSTREAM,
                     )
                     return
             else:
