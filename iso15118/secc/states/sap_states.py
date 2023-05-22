@@ -29,7 +29,7 @@ from iso15118.shared.states import State, Terminate
 
 
 # *** EVerest code start ***
-from everest_iso15118 import p_Charger
+from iso15118.secc.everest import context as EVEREST_CTX
 # *** EVerest code end ***
 
 logger = logging.getLogger(__name__)
@@ -142,7 +142,7 @@ class SupportedAppProtocol(StateSECC):
                     )
                     break
         
-        p_Charger().publish_EV_AppProtocol(p_AppProtocols)
+        EVEREST_CTX.publish('EV_AppProtocol', p_AppProtocols)
 
 
         if not sap_res:

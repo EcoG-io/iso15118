@@ -7,7 +7,7 @@ import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.enums import AuthEnum, Protocol
-from iso15118.shared.settings import shared_settings, set_ignoring_value_range
+from iso15118.shared.settings import shared_settings
 from iso15118.shared.utils import load_requested_auth_modes, load_requested_protocols
 
 logger = logging.getLogger(__name__)
@@ -121,54 +121,3 @@ class Config:
             logger.info(f"{key:30}: {value}")
         for key, value in self.secc_env.items():
             logger.info(f"{key:30}: {value}")
-
-    def load_everest_config(self, everest_config: dict) -> None:
-
-        self.iface = str(everest_config["device"])
-
-        self.log_level = "INFO"
-
-        if everest_config["enforce_tls"] is True:
-            self.enforce_tls = True
-        else:
-            self.enforce_tls = False
-
-        if everest_config["free_cert_install_service"] is True:
-            self.free_cert_install_service = True
-        else:
-            self.free_cert_install_service = False
-
-        if everest_config["allow_cert_install_service"] is True:
-            self.allow_cert_install_service = True
-        else:
-            self.allow_cert_install_service = False
-
-        protocols: List[str] = self.default_protocols
-        if not everest_config["supported_DIN70121"]:
-            protocols.remove("DIN_SPEC_70121")
-
-        if not everest_config["supported_ISO15118_2"]:
-            protocols.remove("ISO_15118_2")
-
-        if not everest_config["supported_ISO15118_20_AC"]:
-            protocols.remove("ISO_15118_20_AC")
-
-        if not everest_config["supported_ISO15118_20_DC"]:
-            protocols.remove("ISO_15118_20_DC")
-
-        self.supported_protocols = load_requested_protocols(protocols)
-
-        self.use_cpo_backend = True
-        logger.info(f"Using CPO Backend: {self.use_cpo_backend}")
-
-        self.supported_auth_options = load_requested_auth_modes(self.default_auth_modes)
-
-        self.standby_allowed = False
-
-        set_ignoring_value_range(everest_config["ignore_physical_values_limits"])
-
-        if 'ciphersuites' in everest_config:
-            self.ciphersuites = everest_config["ciphersuites"]
-
-        if 'verify_contract_cert_chain' in everest_config:
-            self.verify_contract_cert_chain = everest_config["verify_contract_cert_chain"]

@@ -554,14 +554,13 @@ class V2GCommunicationSession(SessionStateMachine):
                 return
 
 def debugV2GMessages(decoded_message, v2gtp_msg):
-    from everest_iso15118 import ChargerWrapper
-    from everest_iso15118 import p_Charger
+    from iso15118.secc.everest import context as EVEREST_CTX
     import json
     from iso15118.shared.exi_codec import CustomJSONEncoder
     import base64
     from iso15118.shared.states import Base64
 
-    if ChargerWrapper.get_debug_mode() == "Full":
+    if EVEREST_CTX.charger_state.debug_mode == "Full":
 
         if isinstance(decoded_message, Base64):
             return
@@ -592,4 +591,4 @@ def debugV2GMessages(decoded_message, v2gtp_msg):
             ("V2G_Message_EXI_Base64", base64.b64encode(v2gtp_msg.payload).hex())
         ])
 
-        p_Charger().publish_V2G_Messages(v2gmessages)
+        EVEREST_CTX.publish('V2G_Messages', v2gmessages)

@@ -1,18 +1,11 @@
 import logging.config
 
-from iso15118.shared.logging.everesthandler import EverestHandler
-
 # TODO: find a way to inject the log level setting from the evcc_settings or
 # secc_settings Config file, instead of getting the log level again from the .env here
 
 LOG_LEVEL = "INFO"
 
 def _init_logger():
-    eh = EverestHandler()
-    formatter = logging.Formatter("%(levelname)s - %(name)s (%(lineno)d): %(message)s")
-    eh.setFormatter(formatter)
-    
-    logging.getLogger().addHandler(eh)
     logging.getLogger().setLevel(LOG_LEVEL)
 
     # An extra logging level if required.
