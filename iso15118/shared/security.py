@@ -84,7 +84,7 @@ from iso15118.shared.messages.xmldsig import (
     Transform,
     Transforms,
 )
-from iso15118.shared.settings import ENABLE_TLS_1_3, PKI_PATH
+from iso15118.shared.settings import FORCE_TLS_CLIENT_AUTH, PKI_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -134,14 +134,9 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
          Need to figure out a way to securely store those certs and keys
          as well as read the password.
     """
-
-    #ssl_context = ssl.create_default_context(
-    #    purpose=ssl.Purpose.CLIENT_AUTH if server_side else ssl.Purpose.SERVER_AUTH,
-    #    cafile=CertPath.OEM_ROOT_PEM if server_side else CertPath.V2G_ROOT_PEM,
-    #)
     if server_side:
         ssl_context = SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        if ENABLE_TLS_1_3:  # Change to FORCE_CLIENT_AUTH
+        if FORCE_TLS_CLIENT_AUTH:
             # In 15118-20 we should also verify EVCC's certificate chain.
             # The spec however says TLS 1.3 should also support 15118-2
             # (Table 5 in V2G20 specification)
@@ -202,7 +197,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             "ECDHE-ECDSA-AES128-SHA256"
         )
 
-        if ENABLE_TLS_1_3:  # Change to FORCE_CLIENT_AUTH
+        if FORCE_TLS_CLIENT_AUTH:
             try:
                 ssl_context.load_cert_chain(
                     certfile=CertPath.OEM_CERT_CHAIN_PEM,
@@ -223,6 +218,25 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             except Exception as exc:
                 logger.exception(exc)
                 return None
+
+    if hasattr(ssl_context, 'keylog_filename'):
+        # It is possible to decrypt the TLS frames, using wireshark
+        # if the keylogfile is generated with the pre-master secret
+        # The file is generated when DEBUG level mode is set and
+        # the file must be loaded in wireshark as explained here:
+        # https://wiki.wireshark.org/TLS#using-the-pre-master-secret
+        # References:
+        # https://wiki.wireshark.org/TLS
+        # https://docs.python.org/3/library/ssl.html#ssl.create_default_context
+        # https://docs.python.org/3/library/ssl.html#ssl.SSLContext.keylog_filename
+        # https://github.com/python/cpython/blob/3.11/Lib/ssl.py#L777
+        keylogfile = os.path.join(PKI_PATH, "keylogfile.txt")
+        if logging.getLogger().level == logging.DEBUG:
+            if not os.path.exists(keylogfile):
+                with open(keylogfile, 'w'):
+                    pass
+            logger.debug(f"TLS (Pre)-Master-Secret log filename path: {keylogfile}")
+            ssl_context.keylog_filename = keylogfile
 
     # The OpenSSL name for ECDH curve secp256r1 is prime256v1
     # The OpenSSL name for ECDH curve secp521r1 is secp521r1

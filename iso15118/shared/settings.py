@@ -22,7 +22,7 @@ V20_EVSE_SERVICES_CONFIG = env.str(
     default=SHARED_CWD + "/examples/secc/15118_20/service_config.json",
 )
 
-ENABLE_TLS_1_3 = env.bool("ENABLE_TLS_1_3", default=False)
+FORCE_TLS_CLIENT_AUTH = env.bool("FORCE_TLS_CLIENT_AUTH", default=False)
 
 env.seal()  # raise all errors at once, if any
 shared_settings = env.dump()
