@@ -314,11 +314,8 @@ class CommunicationSessionHandler:
                 logger.debug(
                     f"Preserved session state: {self.comm_sessions[peer_ip_address][0].ev_session_context}"  # noqa
                 )
-            logger.info("Cancel tcp_server_handler.")
             await cancel_task(self.tcp_server_handler)
-            logger.info("Cancel comm_sessions[peer_id_address][1]")
             await cancel_task(self.comm_sessions[peer_ip_address][1])
-            logger.info("All good.")
         except Exception as e:
             logger.warning(f"Unexpected error ending current session: {e}")
 

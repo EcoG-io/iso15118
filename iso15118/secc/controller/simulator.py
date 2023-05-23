@@ -470,7 +470,7 @@ class SimEVSEController(EVSEControllerInterface):
         # PMaxSchedule
         if departure_time <= 172800:
             p_max_1 = PVPMax(multiplier=0, value=11000, unit=UnitSymbol.WATT)
-            p_max_2 = PVPMax(multiplier=0, value=12000, unit=UnitSymbol.WATT)
+            p_max_2 = PVPMax(multiplier=0, value=7000, unit=UnitSymbol.WATT)
             p_max_schedule_entry_1 = PMaxScheduleEntry(
                 p_max=p_max_1, time_interval=RelativeTimeInterval(start=0)
             )
