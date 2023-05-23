@@ -2268,6 +2268,11 @@ class ChargingStatus(StateSECC):
         # We don't care about signed meter values from the EVCC, but if you
         # do, then set receipt_required to True and set the field meter_info
         evse_controller = self.comm_session.evse_controller
+
+        evse_max_current = None
+        if self.comm_session.selected_auth_option == AuthEnum.EIM_V2:
+            evse_max_current=await self.comm_session.evse_controller.get_ac_evse_max_current()
+
         charging_status_res = ChargingStatusRes(
             response_code=ResponseCode.OK,
             evse_id=await evse_controller.get_evse_id(Protocol.ISO_15118_2),
@@ -2280,7 +2285,7 @@ class ChargingStatus(StateSECC):
             #      a charging session). If true, set MeterInfo.
             meter_info=await self.comm_session.evse_controller.get_meter_info_v2(),
             receipt_required=receipt_required,
-            evse_max_current=await self.comm_session.evse_controller.get_ac_evse_max_current(),
+            evse_max_current=evse_max_current,
             # EVerest code end #
         )
 
