@@ -951,6 +951,7 @@ class PowerDelivery(StateEVCC):
                     session_stop_req,
                     Timeouts.SESSION_STOP_REQ,
                     Namespace.ISO_V20_COMMON_MSG,
+                    ISOV20PayloadTypes.MAINSTREAM,
                 )
 
             return
