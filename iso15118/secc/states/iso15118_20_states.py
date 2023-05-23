@@ -402,8 +402,11 @@ class Authorization(StateSECC):
             if auth_req.pnc_params.gen_challenge != self.comm_session.gen_challenge:
                 response_code = ResponseCode.WARN_CHALLENGE_INVALID
 
-        if await self.comm_session.evse_controller.is_authorized() == (
-            AuthorizationStatus.ACCEPTED
+        auth_status = Processing.ONGOING
+        if (
+            await self.comm_session.evse_controller.is_authorized()
+            == AuthorizationStatus.ACCEPTED
+            and self.comm_session.evse_controller.ready_to_charge()
         ):
             auth_status = Processing.FINISHED
         elif await self.comm_session.evse_controller.is_authorized() == (

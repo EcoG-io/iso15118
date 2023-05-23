@@ -828,3 +828,11 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-20 and ISO 15118-2
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def ready_to_charge(self) -> bool:
+        """
+        Used by Authorization state to indicate if we are
+        ready to start charging.
+        """
+        raise NotImplementedError

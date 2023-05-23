@@ -1103,3 +1103,9 @@ class SimEVSEController(EVSEControllerInterface):
         Overrides EVSEControllerInterface.update_data_link().
         """
         pass
+
+    def ready_to_charge(self) -> bool:
+        """
+        Overrides EVSEControllerInterface.ready_to_charge().
+        """
+        return True
