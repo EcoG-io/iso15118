@@ -136,6 +136,22 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
     """
     if server_side:
         ssl_context = SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        # By default, the min TLS version is set to TLS 1.2
+        # if one wants to change the min or max version, it can do
+        # it with:
+        # ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+        # ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
+
+        # The setting above could be paired with an ENV variable to
+        # force TLS 1.3 and setting one of the ciphers that -20 allows:
+        # The OpenSSL name for ECDH curve secp256r1 is prime256v1
+        # The OpenSSL name for ECDH curve secp521r1 is secp521r1
+        # The OpenSSL name for ECDH curve x448 is x448
+        # The `set_ecdh_curve` could be used to set a curve that the server
+        # supports, but we would be limited to only that curve and
+        # we wouldnt be able to use be compliant with -20 and -2
+        # requirements at the same time
+        #  ssl_context.set_ecdh_curve("prime256v1")
         if FORCE_TLS_CLIENT_AUTH:
             # In 15118-20 we should also verify EVCC's certificate chain.
             # The spec however says TLS 1.3 should also support 15118-2
@@ -237,11 +253,6 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
                     pass
             logger.debug(f"TLS (Pre)-Master-Secret log filename path: {keylogfile}")
             ssl_context.keylog_filename = keylogfile
-
-    # The OpenSSL name for ECDH curve secp256r1 is prime256v1
-    # The OpenSSL name for ECDH curve secp521r1 is secp521r1
-    # The OpenSSL name for ECDH curve x448 is x448
-    # ssl_context.set_ecdh_curve("prime256v1")
 
     return ssl_context
 
@@ -696,17 +707,28 @@ def verify_certs(
         if sub_ca1_cert:
             certs_to_check.append(sub_ca1_cert)
         certs_to_check.append(root_ca_cert)
-        check_validity(certs_to_check)
+        _check_validity(certs_to_check)
     except (CertNotYetValidError, CertExpiredError) as exc:
         raise exc
 
     # Step 3: Check the OCSP (Online Certificate Status Protocol) response to
     #         see whether or not a certificate has been revoked
+
+    # OCSP stapling is not possible with python ssl and an external library
+    # like PyOpenSSL shall be used. However, we cant use it directly as
+    # a context to the asyncio.start_server, because PyOpenSSL SSL.Context
+    # is not compatible with the CPython SSLContext; thus we must do like
+    # pymongo did and create a wrapper for PyOpenSSL:
+    # https://github.com/pyca/pyopenssl/issues/1022#issuecomment-920187014
+    # https://github.com/mongodb/mongo-python-driver/blob/3.12.0/pymongo/pyopenssl_context.py#L167  # noqa
+    # pymongo setup a client side, but we also need the server side:
+    # https://github.com/pyca/pyopenssl/blob/main/src/OpenSSL/SSL.py#L1653
+
     # TODO As OCSP is not supported for the CharIN Testival Europe 2021, we'll
     #      postpone that step a bit
 
 
-def check_validity(certs: List[Certificate]):
+def _check_validity(certs: List[Certificate]):
     """
     Checks that the current time is between the notBefore and notAfter
     timestamps of each certificate provided in the list.
