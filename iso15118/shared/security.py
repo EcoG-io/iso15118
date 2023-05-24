@@ -152,6 +152,17 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
         # we wouldnt be able to use be compliant with -20 and -2
         # requirements at the same time
         #  ssl_context.set_ecdh_curve("prime256v1")
+
+        # OCSP stapling is not possible with python ssl and an external library
+        # like PyOpenSSL shall be used. However, we cant use it directly as
+        # a context to the asyncio.start_server, because PyOpenSSL SSL.Context
+        # is not compatible with the CPython SSLContext; thus we must do like
+        # pymongo did and create a wrapper for PyOpenSSL:
+        # https://github.com/pyca/pyopenssl/issues/1022#issuecomment-920187014
+        # https://github.com/mongodb/mongo-python-driver/blob/3.12.0/pymongo/pyopenssl_context.py#L167  # noqa
+        # pymongo setup a client side, but we also need the server side:
+        # https://github.com/pyca/pyopenssl/blob/main/src/OpenSSL/SSL.py#L1653
+
         if FORCE_TLS_CLIENT_AUTH:
             # In 15118-20 we should also verify EVCC's certificate chain.
             # The spec however says TLS 1.3 should also support 15118-2
@@ -713,16 +724,6 @@ def verify_certs(
 
     # Step 3: Check the OCSP (Online Certificate Status Protocol) response to
     #         see whether or not a certificate has been revoked
-
-    # OCSP stapling is not possible with python ssl and an external library
-    # like PyOpenSSL shall be used. However, we cant use it directly as
-    # a context to the asyncio.start_server, because PyOpenSSL SSL.Context
-    # is not compatible with the CPython SSLContext; thus we must do like
-    # pymongo did and create a wrapper for PyOpenSSL:
-    # https://github.com/pyca/pyopenssl/issues/1022#issuecomment-920187014
-    # https://github.com/mongodb/mongo-python-driver/blob/3.12.0/pymongo/pyopenssl_context.py#L167  # noqa
-    # pymongo setup a client side, but we also need the server side:
-    # https://github.com/pyca/pyopenssl/blob/main/src/OpenSSL/SSL.py#L1653
 
     # TODO As OCSP is not supported for the CharIN Testival Europe 2021, we'll
     #      postpone that step a bit
