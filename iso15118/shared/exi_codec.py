@@ -195,7 +195,9 @@ class EXI:
         Returns:
             A bytes object, representing the EXI encoded message
         """
+        logger.debug("1")
         msg_to_dct: dict = msg_element.dict(by_alias=True, exclude_none=True)
+        logger.debug("2")
         try:
             # Pydantic does not export the name of the model itself to a dict,
             # so we need to add it (the message names like 'SessionSetupReq')
@@ -233,7 +235,7 @@ class EXI:
                 message_dict = {"V2G_Message": msg_to_dct}
             else:
                 message_dict = {str(msg_element): msg_to_dct}
-
+            logger.debug("3")
             msg_content = json.dumps(message_dict, cls=CustomJSONEncoder)
         except Exception as exc:
             raise EXIEncodingError(
@@ -245,6 +247,7 @@ class EXI:
             logger.info(f"Message to encode (ns={protocol_ns}): {msg_content}")
 
         try:
+            logger.debug("5")
             exi_stream = self.exi_codec.encode(msg_content, protocol_ns)
         except Exception as exc:
             logger.error(f"EXIEncodingError for {str(msg_element)}: {exc}")
