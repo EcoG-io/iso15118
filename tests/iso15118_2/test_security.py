@@ -8,7 +8,7 @@ from iso15118.shared.security import (
     derive_certificate_hash_data,
     get_certificate_hash_data,
 )
-from tests.sample_certs.load_certs import (
+from tests.iso15118_2.sample_certs.load_certs import (
     load_certificate_chain,
     load_contract_certificate,
     load_no_ocsp_root_certificate,

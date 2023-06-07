@@ -3,7 +3,9 @@ from typing import List, Optional
 from iso15118.shared.messages.datatypes import (
     PVEAmount,
     PVEVMaxCurrent,
+    PVEVMaxCurrentLimit,
     PVEVMaxVoltage,
+    PVEVMaxVoltageLimit,
     PVEVMinCurrent,
 )
 from iso15118.shared.messages.enums import EnergyTransferModeEnum, UnitSymbol
@@ -16,6 +18,7 @@ from iso15118.shared.messages.iso15118_2.body import (
     PowerDeliveryReq,
     ServiceDetailReq,
     ServiceDiscoveryReq,
+    SessionSetupReq,
     SessionStopReq,
     WeldingDetectionReq,
 )
@@ -24,6 +27,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargeProgress,
     ChargingProfile,
     ChargingSession,
+    DCEVChargeParameter,
     DCEVErrorCode,
     DCEVStatus,
     PMaxSchedule,
@@ -37,7 +41,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 )
 from iso15118.shared.messages.iso15118_2.header import MessageHeader
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage
-from tests.sample_certs.load_certs import load_certificate_chain
+from tests.iso15118_2.sample_certs.load_certs import load_certificate_chain
 from tests.tools import MOCK_SESSION_ID
 
 
@@ -516,4 +520,71 @@ def get_v2g_message_service_detail_req(service_id) -> V2GMessage:
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(service_detail_req=service_detail_req),
+    )
+
+
+def get_v2g_message_session_stop_with_pause() -> V2GMessage:
+    session_stop_pause_req = SessionStopReq(ChargingSession=ChargingSession.PAUSE)
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(session_stop_req=session_stop_pause_req),
+    )
+
+
+def get_v2g_message_session_setup_from_pause(session_id: str) -> V2GMessage:
+    session_setup_req = SessionSetupReq(evcc_id="ABCDEF123456")
+    return V2GMessage(
+        header=MessageHeader(session_id=session_id),
+        body=Body(session_setup_req=session_setup_req),
+    )
+
+
+def get_v2g_message_service_discovery_req() -> V2GMessage:
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(service_discovery_req=ServiceDiscoveryReq()),
+    )
+
+
+def get_v2g_message_charge_parameter_discovery_req(
+    energy_transfer_mode: EnergyTransferModeEnum,
+) -> V2GMessage:
+    ac_cp = None
+    dc_cp = None
+    if energy_transfer_mode.startswith("AC"):
+        ac_cp = ACEVChargeParameter(
+            e_amount=PVEAmount(value=1, multiplier=1, unit=UnitSymbol.WATT_HOURS),
+            ev_max_voltage=PVEVMaxVoltage(
+                value=1, multiplier=1, unit=UnitSymbol.VOLTAGE
+            ),
+            ev_max_current=PVEVMaxCurrent(
+                value=2, multiplier=1, unit=UnitSymbol.AMPERE
+            ),
+            ev_min_current=PVEVMinCurrent(
+                value=1, multiplier=1, unit=UnitSymbol.AMPERE
+            ),
+        )
+    else:
+        dc_cp = DCEVChargeParameter(
+            dc_ev_status=DCEVStatus(
+                ev_ready=True,
+                ev_error_code=DCEVErrorCode.NO_ERROR,
+                ev_ress_soc=50,
+            ),
+            ev_maximum_current_limit=PVEVMaxCurrentLimit(
+                value=1, multiplier=1, unit=UnitSymbol.AMPERE
+            ),
+            ev_maximum_voltage_limit=PVEVMaxVoltageLimit(
+                value=1, multiplier=1, unit=UnitSymbol.VOLTAGE
+            ),
+        )
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(
+            charge_parameter_discovery_req=ChargeParameterDiscoveryReq(
+                requested_energy_mode=energy_transfer_mode,
+                ac_ev_charge_parameter=ac_cp,
+                dc_ev_charge_parameter=dc_cp,
+            )
+        ),
     )
