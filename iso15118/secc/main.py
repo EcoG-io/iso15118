@@ -33,6 +33,7 @@ def gb_callback_example(phase, info):
    logger.info(f"GC : {phase} - {info}")
 
 gc.callbacks.append(gb_callback_example)
+logger.info("KARATAS")
 
 def run():
     try:
