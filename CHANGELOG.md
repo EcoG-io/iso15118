@@ -5,6 +5,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.2a2] - 2023-05-11
+* Specify purpose when creating ssl context.
+
+## [0.21.2a1] - 2023-05-11
+* Removed sales tariff from the returned simulated schedule.
+
+## [0.21.2a0] - 2023-05-11
+* Temp fix for tcp/tls switching issue.
+
 ## [0.21.1] - 2023-05-10
 * Updated cryptography to 40.0.1 by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/234
 
