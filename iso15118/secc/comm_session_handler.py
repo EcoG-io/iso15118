@@ -309,7 +309,7 @@ class CommunicationSessionHandler:
 
     async def start_tcp_server(self, with_tls: bool):
         if self.tcp_server_handler and self.tcp_server.is_tls_enabled == with_tls:
-            return True
+            return
 
         if self.tcp_server_handler:
             logger.info("Reset current tcp handler.")
