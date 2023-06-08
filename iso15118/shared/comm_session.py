@@ -6,6 +6,7 @@ receiving, and processing messages during an ISO 15118 communication session.
 """
 
 import asyncio
+import gc
 import logging
 from abc import ABC, abstractmethod
 from asyncio.streams import StreamReader, StreamWriter
