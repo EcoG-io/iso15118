@@ -497,7 +497,11 @@ class V2GCommunicationSession(SessionStateMachine):
                     self.comm_session.session_handler_queue.put_nowait(
                         self.comm_session.stop_reason
                     )
-                    return
+                    return     s
+                if hasattr(self.comm_session, "evse_controller"):
+                    await self.comm_session.evse_controller.set_present_protocol_state(
+                        str(self.current_state)
+                    )
                 timeout = self.current_state.next_msg_timeout
                 self.go_to_next_state()
             except (
