@@ -420,6 +420,7 @@ class V2GCommunicationSession(SessionStateMachine):
         Args:
             message: A V2GTPMessage
         """
+
         # TODO: we may also check for writer exceptions
         self.writer.write(message.to_bytes())
         await self.writer.drain()
@@ -499,16 +500,17 @@ class V2GCommunicationSession(SessionStateMachine):
                 if gc_was_enabled:
                     gc.enable()
 
+                if hasattr(self.comm_session, "evse_controller"):
+                    await self.comm_session.evse_controller.set_present_protocol_state(
+                        str(self.current_state)
+                    )
                 if self.current_state.next_state in (Terminate, Pause):
                     await self.stop(reason=self.comm_session.stop_reason.reason)
                     self.comm_session.session_handler_queue.put_nowait(
                         self.comm_session.stop_reason
                     )
-                    return     s
-                if hasattr(self.comm_session, "evse_controller"):
-                    await self.comm_session.evse_controller.set_present_protocol_state(
-                        str(self.current_state)
-                    )
+                    return
+
                 timeout = self.current_state.next_msg_timeout
                 self.go_to_next_state()
             except (

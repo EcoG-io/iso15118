@@ -161,21 +161,14 @@ class V2GTPMessage:
         return is_valid
 
     def to_bytes(self) -> bytes:
-        byte_array =  bytearray()
-        byte_array.extend(self.protocol_version.to_bytes(1, "big"))
-        byte_array.extend(self.inv_protocol_version.to_bytes(1, "big"))
-        byte_array.extend(self.payload_type.to_bytes(2, "big"))
-        byte_array.extend(self.payload_length.to_bytes(4, "big"))
-        byte_array.extend(self.payload)
-        return byte_array
-        # header = (
-        #     self.protocol_version.to_bytes(1, "big")
-        #     + self.inv_protocol_version.to_bytes(1, "big")
-        #     + self.payload_type.to_bytes(2, "big")
-        #     + self.payload_length.to_bytes(4, "big")
-        # )
-        #
-        # return bytes(header) + self.payload
+        header = (
+            self.protocol_version.to_bytes(1, "big")
+            + self.inv_protocol_version.to_bytes(1, "big")
+            + self.payload_type.to_bytes(2, "big")
+            + self.payload_length.to_bytes(4, "big")
+        )
+
+        return bytes(header) + self.payload
 
     @classmethod
     def from_bytes(cls, protocol: Protocol, data: bytes) -> "V2GTPMessage":
