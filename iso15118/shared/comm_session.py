@@ -424,7 +424,7 @@ class V2GCommunicationSession(SessionStateMachine):
         self.writer.write(message.to_bytes())
         await self.writer.drain()
         self.last_message_sent = message
-        logger.debug(f"Sending {str(self.current_state.message)}")
+        logger.info(f"Sent {str(self.current_state.message)}")
 
     async def rcv_loop(self, timeout: float):
         """
