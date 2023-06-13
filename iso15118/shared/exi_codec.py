@@ -233,6 +233,7 @@ class EXI:
                 message_dict = {"V2G_Message": msg_to_dct}
             else:
                 message_dict = {str(msg_element): msg_to_dct}
+
             msg_content = json.dumps(message_dict, cls=CustomJSONEncoder)
         except Exception as exc:
             raise EXIEncodingError(
