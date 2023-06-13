@@ -606,8 +606,7 @@ class SimEVSEController(EVSEControllerInterface):
         return None
 
     async def set_present_protocol_state(self, state: State):
-        state_name = str(state)
-        logger.info(f"iso15118 state: {state_name}")
+        logger.info(f"iso15118 state: {str(state)}")
 
     async def send_charging_power_limits(
         self,
