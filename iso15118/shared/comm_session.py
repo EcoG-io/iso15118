@@ -486,17 +486,20 @@ class V2GCommunicationSession(SessionStateMachine):
                     # next_v2gtp_msg would not be set only if the next state is either
                     # Terminate or Pause on the EVCC side
                     await self.send(self.current_state.next_v2gtp_msg)
-
+                if hasattr(self.comm_session, "evse_controller"):
+                    await self.comm_session.evse_controller.set_present_protocol_state(
+                        self.current_state
+                    )
                 if self.current_state.next_state in (Terminate, Pause):
                     await self.stop(reason=self.comm_session.stop_reason.reason)
                     self.comm_session.session_handler_queue.put_nowait(
                         self.comm_session.stop_reason
                     )
+                    if hasattr(self.comm_session, "evse_controller"):
+                        await self.comm_session.evse_controller.set_present_protocol_state(
+                            self.current_state.next_state
+                        )
                     return
-                if hasattr(self.comm_session, "evse_controller"):
-                    await self.comm_session.evse_controller.set_present_protocol_state(
-                        self.current_state
-                    )
                 timeout = self.current_state.next_msg_timeout
                 self.go_to_next_state()
             except (
