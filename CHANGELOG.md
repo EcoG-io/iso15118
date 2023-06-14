@@ -5,6 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.2] - 2023-06-14
+* Fix: iso20 SessionStopReq incorrect payload type 0x8001 by @aadritG in https://github.com/SwitchEV/iso15118/pull/228
+* terminate java gateway on exit by @rstanchak in https://github.com/SwitchEV/iso15118/pull/231
+* Fix tls_no_tls_switching_issue. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/237
+* Support pause/wakeup in 15118-2 by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/198
+* AB#4965 : Fixed dummy schedule generation by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/241
+* imp/state info by @ikaratass in https://github.com/SwitchEV/iso15118/pull/243
+
 ## [0.21.2a2] - 2023-05-11
 * Specify purpose when creating ssl context.
 
