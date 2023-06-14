@@ -518,7 +518,7 @@ class SimEVSEController(EVSEControllerInterface):
             id="id1",
             sales_tariff_id=10,  # a random id
             sales_tariff_entry=sales_tariff_entries,
-            num_e_price_levels=counter,
+            num_e_price_levels=len(sales_tariff_entries),
         )
 
         # Putting the list of SAScheduleTuple entries together
