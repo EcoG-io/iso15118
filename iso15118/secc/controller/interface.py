@@ -72,6 +72,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DynamicDCChargeLoopRes,
     ScheduledDCChargeLoopResParams,
 )
+from iso15118.shared.states import State
 
 
 @dataclass
@@ -480,7 +481,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def set_present_protocol_state(self, state_name: str):
+    async def set_present_protocol_state(self, state: State):
         """
         This method sets the present state of the charging protocol.
 

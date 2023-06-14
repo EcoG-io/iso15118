@@ -146,6 +146,7 @@ from iso15118.shared.security import (
     load_priv_key,
 )
 from iso15118.shared.settings import V20_EVSE_SERVICES_CONFIG
+from iso15118.shared.states import State
 
 logger = logging.getLogger(__name__)
 
@@ -604,8 +605,8 @@ class SimEVSEController(EVSEControllerInterface):
         #    )
         return None
 
-    async def set_present_protocol_state(self, state_name: str):
-        pass
+    async def set_present_protocol_state(self, state: State):
+        logger.info(f"iso15118 state: {str(state)}")
 
     async def send_charging_power_limits(
         self,
