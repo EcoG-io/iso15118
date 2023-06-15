@@ -259,7 +259,7 @@ class ServicePaymentSelection(StateSECC):
                 ResponseCode.FAILED_PAYMENT_SELECTION_INVALID,
             )
             return
-
+        self.comm_session.selected_auth_option = AuthEnum.EIM_V2
         if (
             len(service_payment_selection_req.selected_service_list.selected_service)
             == 0

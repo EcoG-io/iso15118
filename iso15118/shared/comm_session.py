@@ -496,7 +496,6 @@ class V2GCommunicationSession(SessionStateMachine):
                     self.comm_session.session_handler_queue.put_nowait(
                         self.comm_session.stop_reason
                     )
-                    await self._update_state_info(self.current_state.next_state)
                     return
                 timeout = self.current_state.next_msg_timeout
                 self.go_to_next_state()
