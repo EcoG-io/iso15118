@@ -366,6 +366,10 @@ class V2GCommunicationSession(SessionStateMachine):
     def save_session_info(self):
         raise NotImplementedError
 
+    async def _update_state_info(self, state: State):
+        if hasattr(self.comm_session, "evse_controller"):
+            await self.comm_session.evse_controller.set_present_protocol_state(state)
+
     async def stop(self, reason: str):
         """
         Closes the TCP connection after 5 seconds and terminates or pauses the
@@ -482,22 +486,18 @@ class V2GCommunicationSession(SessionStateMachine):
                 # This will create the values needed for the next state, such as
                 # next_state, next_v2gtp_message, next_message_payload_type etc.
                 await self.process_message(message)
-                if hasattr(self.comm_session, "evse_controller"):
-                    await self.comm_session.evse_controller.set_present_protocol_state(
-                        str(self.current_state)
-                    )
                 if self.current_state.next_v2gtp_msg:
                     # next_v2gtp_msg would not be set only if the next state is either
                     # Terminate or Pause on the EVCC side
                     await self.send(self.current_state.next_v2gtp_msg)
-
+                    await self._update_state_info(self.current_state)
                 if self.current_state.next_state in (Terminate, Pause):
                     await self.stop(reason=self.comm_session.stop_reason.reason)
                     self.comm_session.session_handler_queue.put_nowait(
                         self.comm_session.stop_reason
                     )
+                    await self._update_state_info(self.current_state.next_state)
                     return
-
                 timeout = self.current_state.next_msg_timeout
                 self.go_to_next_state()
             except (

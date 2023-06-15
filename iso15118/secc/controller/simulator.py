@@ -4,7 +4,6 @@ This module contains the code to retrieve (hardware-related) data from the EVSE
 """
 import base64
 import logging
-import math
 import time
 from typing import Dict, List, Optional, Union
 
@@ -147,6 +146,7 @@ from iso15118.shared.security import (
     load_priv_key,
 )
 from iso15118.shared.settings import V20_EVSE_SERVICES_CONFIG
+from iso15118.shared.states import State
 
 logger = logging.getLogger(__name__)
 
@@ -466,43 +466,60 @@ class SimEVSEController(EVSEControllerInterface):
             # time intervals shall be greater than or equal to 24 hours.
             departure_time = 86400
 
-        # PMaxSchedule
-        p_max_1 = PVPMax(multiplier=0, value=11000, unit=UnitSymbol.WATT)
-        p_max_2 = PVPMax(multiplier=0, value=7000, unit=UnitSymbol.WATT)
-        p_max_schedule_entry_1 = PMaxScheduleEntry(
-            p_max=p_max_1, time_interval=RelativeTimeInterval(start=0)
-        )
-        p_max_schedule_entry_2 = PMaxScheduleEntry(
-            p_max=p_max_2,
-            time_interval=RelativeTimeInterval(
-                start=math.floor(departure_time / 2),
-                duration=math.ceil(departure_time / 2),
-            ),
-        )
-        p_max_schedule = PMaxSchedule(
-            schedule_entries=[p_max_schedule_entry_1, p_max_schedule_entry_2]
-        )
-
+        # PMaxSchedule entries
+        schedule_entries = []
         # SalesTariff
         sales_tariff_entries: List[SalesTariffEntry] = []
-        sales_tariff_entry_1 = SalesTariffEntry(
-            e_price_level=1,
-            time_interval=RelativeTimeInterval(start=0),
-        )
-        sales_tariff_entry_2 = SalesTariffEntry(
-            e_price_level=2,
-            time_interval=RelativeTimeInterval(
-                start=math.floor(departure_time / 2),
-                duration=math.ceil(departure_time / 2),
-            ),
-        )
-        sales_tariff_entries.append(sales_tariff_entry_1)
-        sales_tariff_entries.append(sales_tariff_entry_2)
+        remaining_charge_duration = departure_time
+        counter = 1
+        start = 0
+        current_pmax_val = 7000
+        while remaining_charge_duration > 0:
+
+            if current_pmax_val == 7000:
+                p_max = PVPMax(multiplier=0, value=11000, unit=UnitSymbol.WATT)
+                current_pmax_val = 11000
+            else:
+                p_max = PVPMax(multiplier=0, value=7000, unit=UnitSymbol.WATT)
+                current_pmax_val = 7000
+
+            p_max_schedule_entry = PMaxScheduleEntry(
+                p_max=p_max, time_interval=RelativeTimeInterval(start=start)
+            )
+
+            sales_tariff_entry = SalesTariffEntry(
+                e_price_level=counter,
+                time_interval=RelativeTimeInterval(start=start),
+            )
+
+            if remaining_charge_duration <= 86400:
+                p_max_schedule_entry = PMaxScheduleEntry(
+                    p_max=p_max,
+                    time_interval=RelativeTimeInterval(
+                        start=start, duration=remaining_charge_duration
+                    ),
+                )
+
+                sales_tariff_entry = SalesTariffEntry(
+                    e_price_level=counter,
+                    time_interval=RelativeTimeInterval(
+                        start=start, duration=remaining_charge_duration
+                    ),
+                )
+
+            remaining_charge_duration -= 86400
+            start += 86400
+            counter += 1
+            schedule_entries.append(p_max_schedule_entry)
+            sales_tariff_entries.append(sales_tariff_entry)
+
+        p_max_schedule = PMaxSchedule(schedule_entries=schedule_entries)
+
         sales_tariff = SalesTariff(
             id="id1",
             sales_tariff_id=10,  # a random id
             sales_tariff_entry=sales_tariff_entries,
-            num_e_price_levels=2,
+            num_e_price_levels=len(sales_tariff_entries),
         )
 
         # Putting the list of SAScheduleTuple entries together
@@ -588,8 +605,8 @@ class SimEVSEController(EVSEControllerInterface):
         #    )
         return None
 
-    async def set_present_protocol_state(self, state_name: str):
-        pass
+    async def set_present_protocol_state(self, state: State):
+        logger.info(f"iso15118 state: {str(state)}")
 
     async def send_charging_power_limits(
         self,
@@ -1051,3 +1068,9 @@ class SimEVSEController(EVSEControllerInterface):
         Overrides EVSEControllerInterface.update_data_link().
         """
         pass
+
+    def ready_to_charge(self) -> bool:
+        """
+        Overrides EVSEControllerInterface.ready_to_charge().
+        """
+        return True

@@ -21,7 +21,7 @@ class ExificientEXICodec(IEXICodec):
         logging.getLogger("py4j").setLevel(logging.CRITICAL)
         self.gateway = JavaGateway.launch_gateway(
             classpath=JAR_FILE_PATH,
-            die_on_exit=False,
+            die_on_exit=True,
             javaopts=["--add-opens", "java.base/java.lang=ALL-UNNAMED"],
         )
 

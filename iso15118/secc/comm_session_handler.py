@@ -16,7 +16,11 @@ import socket
 from asyncio.streams import StreamReader, StreamWriter
 from typing import Dict, List, Optional, Tuple, Union
 
-from iso15118.secc.controller.interface import EVSEControllerInterface, ServiceStatus
+from iso15118.secc.controller.interface import (
+    EVSEControllerInterface,
+    EVSessionContext15118,
+    ServiceStatus,
+)
 from iso15118.secc.failed_responses import (
     init_failed_responses_din_spec_70121,
     init_failed_responses_iso_v2,
@@ -34,6 +38,7 @@ from iso15118.shared.messages.enums import (
     ISOV2PayloadTypes,
     ISOV20PayloadTypes,
     Protocol,
+    SessionStopAction,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain as CertificateChainV2,
@@ -125,6 +130,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         # CurrentDemandRes. The SECC must send a copy in the MeteringReceiptReq
         # TODO Add support for ISO 15118-20 MeterInfo
         self.sent_meter_info: Optional[MeterInfoV2] = None
+        self.ev_session_context: EVSessionContext15118 = EVSessionContext15118()
         self.is_tls = self._is_tls(transport)
 
     def save_session_info(self):
@@ -283,7 +289,9 @@ class CommunicationSessionHandler:
                     self.comm_sessions[notification.ip_address] = (comm_session, task)
                 elif isinstance(notification, StopNotification):
                     try:
-                        await self.end_current_session(notification.peer_ip_address)
+                        await self.end_current_session(
+                            notification.peer_ip_address, notification.stop_action
+                        )
                     except KeyError:
                         pass
                 else:
@@ -296,11 +304,18 @@ class CommunicationSessionHandler:
             finally:
                 queue.task_done()
 
-    async def end_current_session(self, peer_ip_address: str):
+    async def end_current_session(
+        self, peer_ip_address: str, session_stop_action: SessionStopAction
+    ):
         try:
-            await cancel_task(self.comm_sessions[peer_ip_address][1])
-            del self.comm_sessions[peer_ip_address]
+            if session_stop_action == SessionStopAction.TERMINATE:
+                del self.comm_sessions[peer_ip_address]
+            else:
+                logger.debug(
+                    f"Preserved session state: {self.comm_sessions[peer_ip_address][0].ev_session_context}"  # noqa
+                )
             await cancel_task(self.tcp_server_handler)
+            await cancel_task(self.comm_sessions[peer_ip_address][1])
         except Exception as e:
             logger.warning(f"Unexpected error ending current session: {e}")
 
@@ -308,11 +323,16 @@ class CommunicationSessionHandler:
         self.udp_server.resume_udp_server()
 
     async def start_tcp_server(self, with_tls: bool):
-        if self.tcp_server_handler is not None:
-            """A TCP server is already available, ready to respond.
-            (Perhaps created when the last SDP request was received.)
-            """
+        if self.tcp_server_handler and self.tcp_server.is_tls_enabled == with_tls:
             return
+
+        if self.tcp_server_handler:
+            logger.info("Reset current tcp handler.")
+            try:
+                await cancel_task(self.tcp_server_handler)
+            except Exception as e:
+                logger.warning(f"Error cancelling existing tcp server handler: {e}")
+            self.tcp_server_handler = None
 
         server_ready_event: asyncio.Event = asyncio.Event()
         self.status_event_list.clear()

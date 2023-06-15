@@ -27,6 +27,7 @@ from iso15118.shared.messages.enums import (
     ParameterName,
     Protocol,
     ServiceV20,
+    SessionStopAction,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.ac import (
@@ -401,8 +402,11 @@ class Authorization(StateSECC):
             if auth_req.pnc_params.gen_challenge != self.comm_session.gen_challenge:
                 response_code = ResponseCode.WARN_CHALLENGE_INVALID
 
-        if await self.comm_session.evse_controller.is_authorized() == (
-            AuthorizationStatus.ACCEPTED
+        auth_status = Processing.ONGOING
+        if (
+            await self.comm_session.evse_controller.is_authorized()
+            == AuthorizationStatus.ACCEPTED
+            and self.comm_session.evse_controller.ready_to_charge()
         ):
             auth_status = Processing.FINISHED
         elif await self.comm_session.evse_controller.is_authorized() == (
@@ -1135,11 +1139,11 @@ class SessionStop(StateSECC):
             and await evse_controller.service_renegotiation_supported()
         ):
             next_state = ServiceDiscoveryReq
-            stopped = "paused"
+            session_stop_state = SessionStopAction.PAUSE
         elif session_stop_req.charging_session == ChargingSession.TERMINATE:
-            stopped = "terminated"
+            session_stop_state = SessionStopAction.TERMINATE
         else:
-            stopped = "paused"
+            session_stop_state = SessionStopAction.PAUSE
 
         termination_info = ""
         if (
@@ -1154,8 +1158,10 @@ class SessionStop(StateSECC):
 
         self.comm_session.stop_reason = StopNotification(
             True,
-            f"Communication session {stopped}. EV Info: {termination_info}",
+            f"Communication session {session_stop_state.value}d. "
+            f"EV Info: {termination_info}",
             self.comm_session.writer.get_extra_info("peername"),
+            session_stop_state,
         )
 
         session_stop_res = SessionStopRes(
