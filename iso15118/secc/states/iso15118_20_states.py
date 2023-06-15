@@ -381,7 +381,7 @@ class Authorization(StateSECC):
         response_code: ResponseCode = ResponseCode.OK
 
         self.comm_session.selected_auth_option = AuthEnum(
-            auth_req.selected_auth_option.value
+            auth_req.selected_auth_service.value
         )
         if auth_req.pnc_params:
             if not verify_signature(
