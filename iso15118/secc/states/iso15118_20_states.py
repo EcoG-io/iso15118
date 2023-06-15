@@ -380,6 +380,8 @@ class Authorization(StateSECC):
         auth_req: AuthorizationReq = msg
         response_code: ResponseCode = ResponseCode.OK
 
+        self.comm_session.selected_auth_option = auth_req.selected_auth_service
+
         if auth_req.pnc_params:
             if not verify_signature(
                 auth_req.header.signature,
