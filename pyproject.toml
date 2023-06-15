@@ -21,7 +21,7 @@ py4j = "^0.10.9"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.1.1"
-pytest-asyncio = "^0.18.3"
+pytest-asyncio = ">=0.18.3,<0.22.0"
 asynctest = "^0.13.0"
 freezegun = "^1.2.1"
 black = "22.3.0"
