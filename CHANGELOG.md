@@ -5,6 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.0] - 2023-06-16
+* feat: add dependabot GHA by @mdwcrft in https://github.com/SwitchEV/iso15118/pull/224
+* chore(deps): bump actions/setup-python from 2 to 4 by @dependabot in https://github.com/SwitchEV/iso15118/pull/246
+* chore(deps-dev): bump pytest-asyncio from 0.18.3 to 0.21.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/247
+* chore(deps-dev): bump flake8 from 4.0.1 to 6.0.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/248
+* Fix/terminate status by @ikaratass in https://github.com/SwitchEV/iso15118/pull/245
+* AB#5093 Skip SalesTariff if free service. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/249
+
 ## [0.21.2] - 2023-06-14
 * Fix: iso20 SessionStopReq incorrect payload type 0x8001 by @aadritG in https://github.com/SwitchEV/iso15118/pull/228
 * terminate java gateway on exit by @rstanchak in https://github.com/SwitchEV/iso15118/pull/231
