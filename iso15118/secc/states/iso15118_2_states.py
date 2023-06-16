@@ -1295,7 +1295,10 @@ class ChargeParameterDiscovery(StateSECC):
         if not departure_time:
             departure_time = 0
         sa_schedule_list = await self.comm_session.evse_controller.get_sa_schedule_list(
-            ev_charge_params_limits, max_schedule_entries, departure_time
+            ev_charge_params_limits,
+            self.comm_session.config.free_charging_service,
+            max_schedule_entries,
+            departure_time,
         )
 
         sa_schedule_list_valid = self.validate_sa_schedule_list(

@@ -455,6 +455,7 @@ class SimEVSEController(EVSEControllerInterface):
     async def get_sa_schedule_list(
         self,
         ev_charge_params_limits: EVChargeParamsLimits,
+        is_free_charging_service: bool,
         max_schedule_entries: Optional[int],
         departure_time: int = 0,
     ) -> Optional[List[SAScheduleTuple]]:
@@ -526,7 +527,7 @@ class SimEVSEController(EVSEControllerInterface):
         sa_schedule_tuple = SAScheduleTuple(
             sa_schedule_tuple_id=1,
             p_max_schedule=p_max_schedule,
-            sales_tariff=sales_tariff,
+            sales_tariff=None if is_free_charging_service else sales_tariff,
         )
 
         # TODO We could also implement an optional SalesTariff, but for the sake of
