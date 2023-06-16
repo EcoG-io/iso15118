@@ -710,3 +710,34 @@ class TestV2GSessionScenarios:
             assert len(filtered_list) == 1
         else:
             assert len(filtered_list) == 0
+
+    @pytest.mark.parametrize(
+        "free_charging_service",
+        [
+            False,
+            True,
+        ],
+    )
+    async def test_sales_tariff_in_free_charging_schedules(self, free_charging_service):
+        self.comm_session.config.free_charging_service = free_charging_service
+        charge_parameter_discovery = ChargeParameterDiscovery(self.comm_session)
+        energy_transfer_modes = (
+            await self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+                Protocol.ISO_15118_2
+            )
+        )
+        await charge_parameter_discovery.process_message(
+            message=get_v2g_message_charge_parameter_discovery_req(
+                energy_transfer_modes[0]
+            )
+        )
+        for (
+            schedule_tuple
+        ) in (
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res.sa_schedule_list.schedule_tuples  # noqa
+        ):
+            assert (
+                schedule_tuple.sales_tariff is None
+                if free_charging_service
+                else not None
+            )

@@ -297,6 +297,7 @@ class EVSEControllerInterface(ABC):
     async def get_sa_schedule_list(
         self,
         ev_charge_params_limits: EVChargeParamsLimits,
+        is_free_charging_service: bool,
         max_schedule_entries: Optional[int],
         departure_time: int = 0,
     ) -> Optional[List[SAScheduleTuple]]:
@@ -310,6 +311,7 @@ class EVSEControllerInterface(ABC):
         Args:
             ev_charge_params_limits: Lists the maximum limits of the EV: max_voltage,
                             max_current and e_amount(AC)/energy_requested(DC)
+            is_free_charging_service: Indicates if free sa schedules are to be returned.
             max_schedule_entries: The maximum amount of schedule entries the EVCC
                                   can handle, or None if not provided
             departure_time: The departure time given in seconds from the time of
