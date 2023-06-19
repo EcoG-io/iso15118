@@ -105,6 +105,11 @@ class SessionSetupRes(Response):
     The SECC and the EVCC shall use the format for EVSEID as defined
     in DIN SPEC 91286.
 
+    See section 9.4.1.2.3 Table 30 in DIN SPEC 70121
+    "If an SECC cannot provide such ID data, the value of the EVSEID
+    is set to zero (00hex)."
+    => min_length = 2
+
     For EVSE ID format see section 5.3.2:
     "Each <EVSEID> has a variable length with at least five characters (one
     digit <Country Code>, three digits <Spot Operator ID>, one digit <Power Outlet ID>)
@@ -119,7 +124,7 @@ class SessionSetupRes(Response):
      as “0x49 0xA8 0x9A 0x63 0x60”.
     """
 
-    evse_id: str = Field(..., min_length=7, max_length=32, alias="EVSEID")
+    evse_id: str = Field(..., min_length=2, max_length=32, alias="EVSEID")
     datetime_now: int = Field(None, alias="DateTimeNow")
 
 

@@ -8,6 +8,7 @@ from iso15118.evcc import EVCCConfig
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.controller.simulator import SimEVController
 from iso15118.evcc.states.din_spec_states import (
+    SessionSetup,
     CableCheck,
     ChargeParameterDiscovery,
     ContractAuthentication,
@@ -21,6 +22,7 @@ from iso15118.shared.messages.enums import AuthEnum, EnergyTransferModeEnum, Pro
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import Terminate
 from tests.dinspec.evcc.evcc_mock_messages import (
+    get_session_setup_evseid_zero,
     get_charge_parameter_discovery_message,
     get_charge_parameter_discovery_on_going_message,
     get_contract_authentication_message,
@@ -164,6 +166,13 @@ class TestEvScenarios:
             message=get_charge_parameter_discovery_on_going_message()
         )
         assert charge_parameter_discovery.next_state is Terminate
+
+    async def test_session_setup_to_service_discovery(self):
+        session_setup = SessionSetup(self.comm_session_mock)
+        await session_setup.process_message(
+            message=get_session_setup_evseid_zero()
+        )
+        assert session_setup.next_state is ServiceDiscovery
 
     async def cable_check_req_to_pre_charge(self):
         pass

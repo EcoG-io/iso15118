@@ -1,3 +1,4 @@
+import time
 from typing import List, Optional
 
 from iso15118.shared.messages.datatypes import (
@@ -16,6 +17,7 @@ from iso15118.shared.messages.datatypes import (
 )
 from iso15118.shared.messages.din_spec.body import (
     Body,
+    SessionSetupRes,
     ChargeParameterDiscoveryRes,
     ContractAuthenticationRes,
     CurrentDemandRes,
@@ -342,4 +344,16 @@ def get_welding_detection_on_going_message():
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(welding_detection_res=welding_detection),
+    )
+
+
+def get_session_setup_evseid_zero():
+    session_setup: SessionSetupRes = SessionSetupRes(
+        response_code=ResponseCode.OK,
+        evse_id="00",
+        datetime_now=time.time()
+    )
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(session_setup_res=session_setup),
     )
