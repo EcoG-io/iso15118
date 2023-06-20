@@ -1024,7 +1024,6 @@ class PowerDelivery(StateSECC):
                     )
                     return
             else:
-
                 # The only ChargeProgress options left are START and
                 # SCHEDULE_RENEGOTIATION, although the latter is only allowed after we
                 # entered the charge loop

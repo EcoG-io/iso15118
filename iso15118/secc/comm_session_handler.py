@@ -170,7 +170,6 @@ class CommunicationSessionHandler:
     def __init__(
         self, config: Config, codec: IEXICodec, evse_controller: EVSEControllerInterface
     ):
-
         self.list_of_tasks = []
         self.udp_server = None
         self.tcp_server = None
