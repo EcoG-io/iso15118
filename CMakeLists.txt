@@ -13,3 +13,8 @@ install(
     FILES iso15118/__init__.py
     DESTINATION "${THIRD_PARTY_APP_DST}/josev/iso15118"
 )
+
+install(
+    DIRECTORY iso15118/evcc/
+    DESTINATION "${THIRD_PARTY_APP_DST}/josev/iso15118/evcc"
+)

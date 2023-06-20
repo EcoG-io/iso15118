@@ -29,6 +29,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVStatus,
     EnergyTransferModeEnum,
     SAScheduleTuple,
+    CertificateChain,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -340,7 +341,7 @@ class EVControllerInterface(ABC):
 
     @abstractmethod
     async def store_contract_cert_and_priv_key(
-        self, contract_cert: bytes, priv_key: bytes
+        self, contract_cert_chain: CertificateChain, priv_key: bytes
     ):
         """
         Stores the contract certificate and associated private key, both needed

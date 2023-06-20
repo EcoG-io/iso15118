@@ -12,7 +12,11 @@ import os
 from iso15118.evcc import evcc_settings
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.states.evcc_state import StateEVCC
-from iso15118.shared.exceptions import DecryptionError, PrivateKeyReadError
+from iso15118.shared.exceptions import (
+    DecryptionError,
+    PrivateKeyReadError,
+    CertChainLengthError,
+)
 from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
@@ -107,6 +111,9 @@ from iso15118.shared.settings import get_PKI_PATH
 
 logger = logging.getLogger(__name__)
 
+# *** EVerest code start ***
+from iso15118.evcc.everest import context as EVEREST_CTX
+# *** EVerest code end ***
 
 # ============================================================================
 # |    COMMON EVCC STATES (FOR BOTH AC AND DC CHARGING) - ISO 15118-2        |
@@ -567,7 +574,7 @@ class CertificateInstallation(StateEVCC):
             )
 
             await self.comm_session.ev_controller.store_contract_cert_and_priv_key(
-                cert_install_res.contract_cert_chain.certificate, decrypted_priv_key
+                cert_install_res.contract_cert_chain, decrypted_priv_key
             )
         except DecryptionError:
             self.stop_state_machine(
@@ -579,6 +586,13 @@ class CertificateInstallation(StateEVCC):
                 "Can't read private key needed to decrypt "
                 "encrypted private key contained in "
                 f"CertificateInstallationRes. {exc}"
+            )
+            return
+        except CertChainLengthError:
+            self.stop_state_machine(
+                f"CertChainLengthError, max "
+                f"{exc.allowed_num_sub_cas} sub-CAs allowed "
+                f"but {exc.num_sub_cas} sub-CAs provided"
             )
             return
 
@@ -773,6 +787,10 @@ class ChargeParameterDiscovery(StateEVCC):
             ) = await ev_controller.process_sa_schedules_v2(
                 charge_params_res.sa_schedule_list.schedule_tuples
             )
+
+            # EVerest code start #
+            EVEREST_CTX.publish('AC_EVPowerReady', True)
+            # EVerest code end #
 
             if self.comm_session.selected_charging_type_is_ac:
 
@@ -1118,6 +1136,12 @@ class ChargingStatus(StateEVCC):
         charging_status_res: ChargingStatusRes = msg.body.charging_status_res
         ac_evse_status: ACEVSEStatus = charging_status_res.ac_evse_status
 
+        # EVerest code start #
+        if charging_status_res.evse_max_current:
+            evse_max_current = charging_status_res.evse_max_current.value * pow(10, charging_status_res.evse_max_current.multiplier)
+            EVEREST_CTX.publish('AC_EVSEMaxCurrent', evse_max_current)
+        # EVerest code end #
+
         if charging_status_res.receipt_required and self.comm_session.is_tls:
             logger.debug("SECC requested MeteringReceipt")
 
@@ -1172,6 +1196,7 @@ class ChargingStatus(StateEVCC):
             )
             logger.debug(f"ChargeProgress is set to {ChargeProgress.RENEGOTIATE}")
         elif ac_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
+            EVEREST_CTX.publish('AC_StopFromCharger', None)
             await self.stop_charging()
 
         elif await self.comm_session.ev_controller.continue_charging():
@@ -1319,6 +1344,9 @@ class PreCharge(StateEVCC):
                     await ev_controller.get_dc_ev_power_delivery_parameter()
                 ),
             )
+
+            EVEREST_CTX.publish('DC_PowerOn', None)
+
             self.create_next_message(
                 PowerDelivery,
                 power_delivery_req,

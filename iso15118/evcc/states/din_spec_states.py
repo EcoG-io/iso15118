@@ -71,6 +71,9 @@ from iso15118.shared.states import Terminate
 
 logger = logging.getLogger(__name__)
 
+# *** EVerest code start ***
+from iso15118.evcc.everest import context as EVEREST_CTX
+# *** EVerest code end ***
 
 # ============================================================================
 # |    EVCC STATES- DIN SPEC 70121                                           |
@@ -383,6 +386,10 @@ class ChargeParameterDiscovery(StateEVCC):
                 charge_parameter_discovery_res.sa_schedule_list.values
             )
 
+            # EVerest code start #
+            EVEREST_CTX.publish('AC_EVPowerReady', True)
+            # EVerest code end #
+
             cable_check_req = CableCheckReq(
                 dc_ev_status=await ev_controller.get_dc_ev_status_dinspec(),
             )
@@ -567,6 +574,9 @@ class PreCharge(StateEVCC):
         ):
             self.comm_session.ongoing_timer = -1
             power_delivery_req: PowerDeliveryReq = await self.build_power_delivery_req()
+            
+            EVEREST_CTX.publish('DC_PowerOn', None)
+
             self.create_next_message(
                 PowerDelivery,
                 power_delivery_req,

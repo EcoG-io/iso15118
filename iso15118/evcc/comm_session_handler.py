@@ -556,6 +556,7 @@ class CommunicationSessionHandler:
                         except SDPFailedError as exc:
                             logger.exception(exc)
                             # TODO not sure what else to do here
+                    break
                 else:
                     logger.warning(
                         "Communication session handler received "

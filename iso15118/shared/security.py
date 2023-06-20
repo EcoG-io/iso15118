@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.asymmetric.ec import (
     SECP256R1,
     EllipticCurvePrivateKey,
     EllipticCurvePublicKey,
+    derive_private_key,
 )
 from cryptography.hazmat.primitives.asymmetric.utils import (
     decode_dss_signature,
@@ -350,6 +351,40 @@ def to_ec_pub_key(public_key_bytes: bytes) -> EllipticCurvePublicKey:
             "convert byets to EllipticCurvePublicKey instance"
         )
         raise exc
+
+def to_ec_priv_key(private_key_bytes: bytes) -> EllipticCurvePrivateKey:
+    """
+    Takes a private key in bytes for the named elliptic curve secp256R1, as used
+    ISO 15118-2, and returns it as an instance of EllipticCurvePrivateKey.
+
+    Args:
+        private_key_bytes: The elliptic curve private key, serialised as bytes.
+
+    Returns:
+        An instance of EllipticCurvePrivateKey corresponding to the provided
+        bytes object.
+
+    Raises:
+        ValueError, TypeError
+    """
+
+    try:
+        priv_key_value = int.from_bytes(private_key_bytes, "big")
+        ec_priv_key = derive_private_key(priv_key_value, SECP256R1())
+        return ec_priv_key
+    except ValueError as exc:
+        logging.exception(
+            "An invalid point is supplied, can't convert "
+            "bytes to EllipticCurvePublicKey instance"
+        )
+        raise exc
+    except TypeError as exc:
+        logging.exception(
+            "Curve provided is not an EllipticCurve, can't "
+            "convert byets to EllipticCurvePublicKey instance"
+        )
+        raise exc
+
 
 
 def load_cert(cert_path: str) -> bytes:

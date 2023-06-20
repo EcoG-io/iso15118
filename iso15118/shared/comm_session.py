@@ -490,6 +490,11 @@ class V2GCommunicationSession(SessionStateMachine):
                         str(self.current_state)
                     )
                 if self.current_state.next_v2gtp_msg:
+                    if self.comm_session.__class__.__name__ == "EVCCCommunicationSession":
+                        if self.current_state.message.__str__() == "CurrentDemandReq" or self.current_state.message.__str__() == "CurrentDemandRes":
+                            await asyncio.sleep(0.25)
+                        else:
+                            await asyncio.sleep(0.5)
                     # next_v2gtp_msg would not be set only if the next state is either
                     # Terminate or Pause on the EVCC side
                     await self.send(self.current_state.next_v2gtp_msg)

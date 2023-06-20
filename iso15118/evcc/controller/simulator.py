@@ -6,10 +6,23 @@ EVControllerInterface.
 import logging
 import random
 from typing import List, Optional, Tuple, Union
+import os
+from pathlib import Path
+
+from cryptography.x509 import load_der_x509_certificate, ExtensionOID
+from cryptography.hazmat.primitives.serialization import (
+    BestAvailableEncryption,
+    Encoding,
+    PrivateFormat,
+)
 
 from iso15118.evcc import EVCCConfig
 from iso15118.evcc.controller.interface import ChargeParamsV2, EVControllerInterface
-from iso15118.shared.exceptions import InvalidProtocolError, MACAddressNotFound
+from iso15118.shared.exceptions import (
+    InvalidProtocolError,
+    MACAddressNotFound,
+    CertChainLengthError,
+)
 from iso15118.shared.messages.datatypes import (
     DCEVChargeParams,
     PVEAmount,
@@ -59,6 +72,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     DCEVStatus,
     ProfileEntryDetails,
     SAScheduleTuple,
+    CertificateChain,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
@@ -104,8 +118,20 @@ from iso15118.shared.messages.iso15118_20.dc import (
 )
 from iso15118.shared.network import get_nic_mac_address
 
+from iso15118.shared.security import (
+    CertPath,
+    KeyEncoding,
+    KeyPasswordPath,
+    KeyPath,
+    to_ec_priv_key,
+)
+
+from iso15118.shared.settings import get_PKI_PATH
+
 logger = logging.getLogger(__name__)
 
+from iso15118.evcc.everest import context as EVEREST_CONTEXT
+EVEREST_EV_STATE = EVEREST_CONTEXT.ev_state
 
 class SimEVController(EVControllerInterface):
     """
@@ -135,7 +161,7 @@ class SimEVController(EVControllerInterface):
                 multiplier=0, value=1, unit=UnitSymbol.AMPERE
             ),
             dc_target_voltage=PVEVTargetVoltage(
-                multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
+                multiplier=0, value=200, unit=UnitSymbol.VOLTAGE
             ),
         )
 
@@ -168,7 +194,7 @@ class SimEVController(EVControllerInterface):
         self, protocol: Protocol
     ) -> EnergyTransferModeEnum:
         """Overrides EVControllerInterface.get_energy_transfer_mode()."""
-        return self.config.energy_transfer_mode
+        return EnergyTransferModeEnum(EVEREST_EV_STATE.EnergyTransferMode)
 
     async def get_supported_energy_services(self) -> List[ServiceV20]:
         """Overrides EVControllerInterface.get_energy_transfer_service()."""
@@ -444,7 +470,13 @@ class SimEVController(EVControllerInterface):
 
     async def is_cert_install_needed(self) -> bool:
         """Overrides EVControllerInterface.is_cert_install_needed()."""
-        return self.config.is_cert_install_needed
+        
+        contract_leaf_path = os.path.join(get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER)
+
+        if self.config.is_cert_install_needed or os.path.exists(contract_leaf_path) is False:
+            return True
+        else:
+            return False
 
     async def process_sa_schedules_dinspec(
         self, sa_schedules: List[SAScheduleTupleEntryDINSPEC]
@@ -525,23 +557,45 @@ class SimEVController(EVControllerInterface):
 
     async def continue_charging(self) -> bool:
         """Overrides EVControllerInterface.continue_charging()."""
-        if self.charging_loop_cycles == 10 or await self.is_charging_complete():
-            # To simulate a bit of a charging loop, we'll let it run 10 times
-            return False
-        else:
-            self.charging_loop_cycles += 1
-            # The line below can just be called once process_message in all states
-            # are converted to async calls
-            # await asyncio.sleep(0.5)
-            return True
+        return not EVEREST_EV_STATE.StopCharging
+    
+    async def reset_ev_values(self):
+        EVEREST_EV_STATE.reset()
+
 
     async def store_contract_cert_and_priv_key(
-        self, contract_cert: bytes, priv_key: bytes
+        self, contract_cert_chain: CertificateChain, priv_key: bytes
     ):
         """Overrides EVControllerInterface.store_contract_cert_and_priv_key()."""
-        # TODO Need to store the contract cert and private key
-        pass
 
+        priv_key_pwd = "123456"
+        ec_priv_key = to_ec_priv_key(priv_key)
+        serialized_priv_key = ec_priv_key.private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.PKCS8,
+            encryption_algorithm=BestAvailableEncryption(priv_key_pwd.encode(encoding="utf-8"))
+        )
+        with open(os.path.join(get_PKI_PATH(), KeyPath.CONTRACT_LEAF_PEM), 'wb') as f:
+            f.write(serialized_priv_key)
+        with open(os.path.join(get_PKI_PATH(), KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD), 'wb') as f:
+            f.write(priv_key_pwd.encode(encoding="utf-8"))
+        with open(os.path.join(get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER), 'wb') as f: 
+                f.write(contract_cert_chain.certificate)
+
+        for sub_ca_cert in contract_cert_chain.sub_certificates.certificates:
+            cert = load_der_x509_certificate(sub_ca_cert)
+            path_len = cert.extensions.get_extension_for_oid(
+                ExtensionOID.BASIC_CONSTRAINTS
+            ).value.path_length
+            if path_len == 0:
+                with open(os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA2_DER), 'wb') as f: 
+                    f.write(sub_ca_cert)
+            elif path_len == 1:
+                with open(os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA1_DER), 'wb') as f: 
+                    f.write(sub_ca_cert)
+            else:
+                raise CertChainLengthError(allowed_num_sub_cas=2, num_sub_cas=path_len)
+        
     async def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         return None
 

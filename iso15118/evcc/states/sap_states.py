@@ -148,6 +148,8 @@ class SupportedAppProtocol(StateEVCC):
                     )
                     raise MessageProcessingError("SupportedAppProtocolReq")
                 break
+        
+        await self.comm_session.ev_controller.reset_ev_values()
 
         if match:
             logger.info(f"Chosen protocol: {self.comm_session.protocol}")
