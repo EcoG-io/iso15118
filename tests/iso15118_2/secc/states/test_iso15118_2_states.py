@@ -130,7 +130,6 @@ class TestV2GSessionScenarios:
         is_authorized_return_value: AuthorizationStatus,
         expected_next_state: StateSECC,
     ):
-
         self.comm_session.selected_auth_option = AuthEnum.PNC_V2
         mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
         self.comm_session.evse_controller.is_authorized = mock_is_authorized
@@ -463,7 +462,6 @@ class TestV2GSessionScenarios:
     async def test_power_delivery_set_hlc_charging(
         self,
     ):
-
         power_delivery = PowerDelivery(self.comm_session)
         self.comm_session.evse_controller.set_hlc_charging = AsyncMock()
 

@@ -105,7 +105,6 @@ async def _get_full_ipv6_address(host: str, port: int) -> Tuple[str, int, int, i
 
 
 def validate_nic(nic: str) -> None:
-
     """
     Checks if the Network Interface Card (NIC) provided exists on the system
     and contains a link-local address

@@ -71,7 +71,6 @@ class ChargeParamsV2:
 
 
 class EVControllerInterface(ABC):
-
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================

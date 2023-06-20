@@ -476,7 +476,6 @@ class SimEVSEController(EVSEControllerInterface):
         start = 0
         current_pmax_val = 7000
         while remaining_charge_duration > 0:
-
             if current_pmax_val == 7000:
                 p_max = PVPMax(multiplier=0, value=11000, unit=UnitSymbol.WATT)
                 current_pmax_val = 11000
