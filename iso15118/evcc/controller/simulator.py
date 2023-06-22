@@ -114,7 +114,7 @@ class SimEVController(EVControllerInterface):
 
     def __init__(self, evcc_config: EVCCConfig):
         self.config = evcc_config
-        self.charging_loop_cycles: int = 0
+        self.charging_loop_cycles: int = evcc_config.charge_loop_cycle
         self.precharge_loop_cycles: int = 0
         self._charging_is_completed = False
         self._soc = 10
@@ -525,11 +525,12 @@ class SimEVController(EVControllerInterface):
 
     async def continue_charging(self) -> bool:
         """Overrides EVControllerInterface.continue_charging()."""
-        if self.charging_loop_cycles == 10 or await self.is_charging_complete():
-            # To simulate a bit of a charging loop, we'll let it run 10 times
+        if self.charging_loop_cycles == 0 or await self.is_charging_complete():
+            # To simulate a bit of a charging loop, we'll let it run chargingLoopCycle
+            # times specified in config file
             return False
         else:
-            self.charging_loop_cycles += 1
+            self.charging_loop_cycles -= 1
             # The line below can just be called once process_message in all states
             # are converted to async calls
             # await asyncio.sleep(0.5)
