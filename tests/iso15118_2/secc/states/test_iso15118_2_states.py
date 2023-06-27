@@ -5,7 +5,10 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from iso15118.secc import Config
-from iso15118.secc.controller.interface import EVSessionContext15118
+from iso15118.secc.controller.interface import (
+    AuthorizationResponse,
+    EVSessionContext15118,
+)
 from iso15118.secc.states.iso15118_2_states import (
     Authorization,
     ChargeParameterDiscovery,
@@ -119,9 +122,18 @@ class TestV2GSessionScenarios:
     @pytest.mark.parametrize(
         "is_authorized_return_value, expected_next_state",
         [
-            (AuthorizationStatus.ACCEPTED, Authorization),
-            (AuthorizationStatus.ONGOING, Authorization),
-            (AuthorizationStatus.REJECTED, Terminate),
+            (
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
+                Authorization,
+            ),
+            (
+                AuthorizationResponse(AuthorizationStatus.ONGOING, ResponseCode.OK),
+                Authorization,
+            ),
+            (
+                AuthorizationResponse(AuthorizationStatus.REJECTED, ResponseCode.OK),
+                Terminate,
+            ),
         ],
     )
     async def test_payment_details_next_state_on_payment_details_req_auth(
@@ -156,7 +168,7 @@ class TestV2GSessionScenarios:
         [
             (
                 AuthEnum.EIM,
-                AuthorizationStatus.ACCEPTED,
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
                 ChargeParameterDiscovery,
                 ResponseCode.OK,
                 EVSEProcessing.FINISHED,
@@ -164,7 +176,7 @@ class TestV2GSessionScenarios:
             ),
             (
                 AuthEnum.EIM,
-                AuthorizationStatus.ACCEPTED,
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
                 None,
                 ResponseCode.OK,
                 EVSEProcessing.ONGOING,
@@ -172,7 +184,7 @@ class TestV2GSessionScenarios:
             ),
             (
                 AuthEnum.EIM,
-                AuthorizationStatus.ONGOING,
+                AuthorizationResponse(AuthorizationStatus.ONGOING, ResponseCode.OK),
                 None,
                 ResponseCode.OK,
                 EVSEProcessing.ONGOING,
@@ -180,7 +192,9 @@ class TestV2GSessionScenarios:
             ),
             (
                 AuthEnum.EIM,
-                AuthorizationStatus.REJECTED,
+                AuthorizationResponse(
+                    AuthorizationStatus.REJECTED, ResponseCode.FAILED
+                ),
                 Terminate,
                 ResponseCode.FAILED,
                 EVSEProcessing.FINISHED,
@@ -188,7 +202,7 @@ class TestV2GSessionScenarios:
             ),
             (
                 AuthEnum.PNC_V2,
-                AuthorizationStatus.ACCEPTED,
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
                 ChargeParameterDiscovery,
                 ResponseCode.OK,
                 EVSEProcessing.FINISHED,
@@ -196,7 +210,7 @@ class TestV2GSessionScenarios:
             ),
             (
                 AuthEnum.PNC_V2,
-                AuthorizationStatus.ACCEPTED,
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
                 None,
                 ResponseCode.OK,
                 EVSEProcessing.ONGOING,
@@ -204,7 +218,7 @@ class TestV2GSessionScenarios:
             ),
             (
                 AuthEnum.PNC_V2,
-                AuthorizationStatus.ONGOING,
+                AuthorizationResponse(AuthorizationStatus.ONGOING, ResponseCode.OK),
                 None,
                 ResponseCode.OK,
                 EVSEProcessing.ONGOING,
@@ -212,9 +226,55 @@ class TestV2GSessionScenarios:
             ),
             (
                 AuthEnum.PNC_V2,
-                AuthorizationStatus.REJECTED,
+                AuthorizationResponse(
+                    AuthorizationStatus.REJECTED, ResponseCode.FAILED
+                ),
                 Terminate,
                 ResponseCode.FAILED,
+                EVSEProcessing.FINISHED,
+                True,
+            ),
+            (
+                AuthEnum.PNC_V2,
+                AuthorizationResponse(
+                    AuthorizationStatus.REJECTED,
+                    ResponseCode.FAILED_CERTIFICATE_REVOKED,
+                ),
+                Terminate,
+                ResponseCode.FAILED_CERTIFICATE_REVOKED,
+                EVSEProcessing.FINISHED,
+                True,
+            ),
+            (
+                AuthEnum.PNC_V2,
+                AuthorizationResponse(
+                    AuthorizationStatus.REJECTED,
+                    ResponseCode.FAILED_CERTIFICATE_NOT_ALLOWED_AT_THIS_EVSE,
+                ),
+                Terminate,
+                ResponseCode.FAILED_CERTIFICATE_NOT_ALLOWED_AT_THIS_EVSE,
+                EVSEProcessing.FINISHED,
+                True,
+            ),
+            (
+                AuthEnum.PNC_V2,
+                AuthorizationResponse(
+                    AuthorizationStatus.REJECTED,
+                    ResponseCode.FAILED_CERTIFICATE_EXPIRED,
+                ),
+                Terminate,
+                ResponseCode.FAILED_CERTIFICATE_EXPIRED,
+                EVSEProcessing.FINISHED,
+                True,
+            ),
+            (
+                AuthEnum.PNC_V2,
+                AuthorizationResponse(
+                    AuthorizationStatus.ACCEPTED,
+                    ResponseCode.OK_CERTIFICATE_EXPIRES_SOON,
+                ),
+                ChargeParameterDiscovery,
+                ResponseCode.OK_CERTIFICATE_EXPIRES_SOON,
                 EVSEProcessing.FINISHED,
                 True,
             ),

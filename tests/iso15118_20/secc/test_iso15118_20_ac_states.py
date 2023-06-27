@@ -1,11 +1,19 @@
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+import iso15118.shared.security
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.secc.controller.interface import AuthorizationResponse
 from iso15118.secc.controller.simulator import SimEVSEController
-from iso15118.secc.states.iso15118_20_states import ServiceDetail
-from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol, ServiceV20
+from iso15118.secc.states.iso15118_20_states import Authorization, ServiceDetail
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    AuthorizationStatus,
+    EnergyTransferModeEnum,
+    Protocol,
+    ServiceV20,
+)
 from iso15118.shared.messages.iso15118_20.common_messages import (
     MatchedService,
     Service,
@@ -13,8 +21,12 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 )
 from iso15118.shared.messages.iso15118_20.common_types import ResponseCode
 from iso15118.shared.notifications import StopNotification
+from iso15118.shared.security import verify_signature
 from tests.dinspec.secc.test_dinspec_secc_states import MockWriter
-from tests.iso15118_20.secc.test_messages import get_v2g_message_service_detail_req
+from tests.iso15118_20.secc.test_messages import (
+    get_v2g_message_authorization_req,
+    get_v2g_message_service_detail_req,
+)
 
 
 @patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b"01"))
@@ -72,3 +84,42 @@ class TestEvScenarios:
         )
         assert service_details.message.response_code is response_code
         assert isinstance(self.comm_session.current_state, ServiceDetail)
+
+    @pytest.mark.parametrize(
+        "is_authorized_response, auth_mode, next_req_is_auth_req",
+        [
+            (
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
+                AuthEnum.EIM,
+                False,
+            ),
+            (
+                AuthorizationResponse(AuthorizationStatus.ONGOING, ResponseCode.OK),
+                AuthEnum.EIM,
+                True,
+            ),
+            (
+                AuthorizationResponse(
+                    AuthorizationStatus.REJECTED, ResponseCode.FAILED
+                ),
+                AuthEnum.EIM,
+                False,
+            ),
+        ],
+    )
+    async def test_eim_authorization_15118_20(
+        self,
+        is_authorized_response,
+        auth_mode,
+        next_req_is_auth_req,
+    ):
+        self.comm_session.evse_controller = await SimEVSEController.create()
+        mock_is_authorized = AsyncMock(return_value=is_authorized_response)
+        self.comm_session.evse_controller.is_authorized = mock_is_authorized
+
+        authorization = Authorization(self.comm_session)
+
+        await authorization.process_message(
+            message=get_v2g_message_authorization_req(auth_mode)
+        )
+        assert authorization.expecting_authorization_req is next_req_is_auth_req
