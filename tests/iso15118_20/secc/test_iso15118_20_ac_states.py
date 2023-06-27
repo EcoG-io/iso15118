@@ -2,7 +2,6 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-import iso15118.shared.security
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.interface import AuthorizationResponse
 from iso15118.secc.controller.simulator import SimEVSEController
@@ -21,7 +20,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 )
 from iso15118.shared.messages.iso15118_20.common_types import ResponseCode
 from iso15118.shared.notifications import StopNotification
-from iso15118.shared.security import verify_signature
 from tests.dinspec.secc.test_dinspec_secc_states import MockWriter
 from tests.iso15118_20.secc.test_messages import (
     get_v2g_message_authorization_req,
