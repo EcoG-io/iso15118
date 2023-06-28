@@ -483,6 +483,10 @@ class V2GCommunicationSession(SessionStateMachine):
                 return
 
             try:
+                import gc
+                gc_was_enabled = gc.isenabled()
+                if gc_was_enabled:
+                    gc.disable()
                 # This will create the values needed for the next state, such as
                 # next_state, next_v2gtp_message, next_message_payload_type etc.
                 await self.process_message(message)
@@ -491,6 +495,10 @@ class V2GCommunicationSession(SessionStateMachine):
                     # Terminate or Pause on the EVCC side
                     await self.send(self.current_state.next_v2gtp_msg)
                     await self._update_state_info(self.current_state)
+                if gc_was_enabled:
+                    logger.info("KARATAS gc enabled")
+                    gc.enable()
+
                 if self.current_state.next_state in (Terminate, Pause):
                     await self.stop(reason=self.comm_session.stop_reason.reason)
                     self.comm_session.session_handler_queue.put_nowait(
