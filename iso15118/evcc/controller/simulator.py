@@ -722,3 +722,7 @@ class SimEVController(EVControllerInterface):
     async def get_target_voltage(self) -> RationalNumber:
         """Overrides EVControllerInterface.get_target_voltage()."""
         return RationalNumber(exponent=3, value=20)
+
+    async def enable_charging(self, enabled: bool) -> None:
+        """Overrides EVControllerInterface.enable_charging()."""
+        pass

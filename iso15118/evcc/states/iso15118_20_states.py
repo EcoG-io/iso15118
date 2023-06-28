@@ -923,6 +923,7 @@ class PowerDelivery(StateEVCC):
             ChargingSession.SERVICE_RENEGOTIATION,
             ChargingSession.TERMINATE,
         ):
+            await self.comm_session.ev_controller.enable_charging(False)
             if self.comm_session.selected_energy_service.service in [
                 ServiceV20.DC,
                 ServiceV20.DC_BPT,
