@@ -308,10 +308,13 @@ class ContractAuthentication(StateSECC):
         if not msg:
             return
 
+        current_authorization_status = (
+            await self.comm_session.evse_controller.is_authorized()
+        )
         evse_processing = EVSEProcessing.ONGOING
         next_state: Type["State"] = None
         if (
-            await self.comm_session.evse_controller.is_authorized()
+            current_authorization_status.authorization_status
             == AuthorizationStatus.ACCEPTED
         ):
             evse_processing = EVSEProcessing.FINISHED

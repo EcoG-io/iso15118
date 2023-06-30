@@ -957,7 +957,7 @@ class PaymentDetails(StateSECC):
                 self.comm_session.contract_cert_chain, root_cert
             )
 
-            authorization_result = (
+            current_authorization_status = (
                 await self.comm_session.evse_controller.is_authorized(
                     id_token=payment_details_req.emaid,
                     id_token_type=AuthorizationTokenType.EMAID,
@@ -966,13 +966,17 @@ class PaymentDetails(StateSECC):
                 )
             )
 
-            if authorization_result in [
+            response_code = ResponseCode.OK
+            if current_authorization_status.certificate_response_status:
+                response_code = current_authorization_status.certificate_response_status
+
+            if current_authorization_status.authorization_status in [
                 AuthorizationStatus.ACCEPTED,
                 AuthorizationStatus.ONGOING,
             ]:
                 self.comm_session.gen_challenge = get_random_bytes(16)
                 payment_details_res = PaymentDetailsRes(
-                    response_code=ResponseCode.OK,
+                    response_code=response_code,
                     gen_challenge=self.comm_session.gen_challenge,
                     evse_timestamp=time.time(),
                 )
@@ -984,12 +988,10 @@ class PaymentDetails(StateSECC):
                     Namespace.ISO_V2_MSG_DEF,
                 )
             else:
-                # TODO: investigate if it is feasible to get a more detailed
-                # response code error
                 self.stop_state_machine(
                     "Authorization was rejected",
                     message,
-                    ResponseCode.FAILED_CERTIFICATE_NOT_ALLOWED_AT_THIS_EVSE,
+                    response_code,
                 )
 
         except (
@@ -1126,22 +1128,34 @@ class Authorization(StateSECC):
         )
         # note that the certificate_chain and hashed_data are empty here
         # as they were already send previously in the PaymentDetails state
-        authorization_result = await self.comm_session.evse_controller.is_authorized(
-            id_token=id_token,
-            id_token_type=(
-                AuthorizationTokenType.EMAID
-                if self.comm_session.selected_auth_option == AuthEnum.PNC_V2
-                else AuthorizationTokenType.EXTERNAL
-            ),
+
+        current_authorization_status = (
+            await self.comm_session.evse_controller.is_authorized(
+                id_token=id_token,
+                id_token_type=(
+                    AuthorizationTokenType.EMAID
+                    if self.comm_session.selected_auth_option == AuthEnum.PNC_V2
+                    else AuthorizationTokenType.EXTERNAL
+                ),
+            )
         )
 
+        response_code = ResponseCode.OK
+        if current_authorization_status.certificate_response_status:
+            response_code = current_authorization_status.certificate_response_status
+
         if (
-            authorization_result == AuthorizationStatus.ACCEPTED
+            current_authorization_status.authorization_status
+            == AuthorizationStatus.ACCEPTED
             and self.comm_session.evse_controller.ready_to_charge()
         ):
             auth_status = EVSEProcessing.FINISHED
             next_state = ChargeParameterDiscovery
-        elif authorization_result == AuthorizationStatus.REJECTED:
+
+        elif (
+            current_authorization_status.authorization_status
+            == AuthorizationStatus.REJECTED
+        ):
             # according to table 112 of ISO 15118-2, the Response code
             # for this message can only be one of the following:
             # FAILED, FAILED_Challenge_Invalid,
@@ -1150,7 +1164,7 @@ class Authorization(StateSECC):
             self.stop_state_machine(
                 "Authorization was rejected",
                 message,
-                ResponseCode.FAILED,
+                response_code,
             )
             return
         else:
@@ -1167,7 +1181,7 @@ class Authorization(StateSECC):
                 auth_status = EVSEProcessing.ONGOING_WAITING_FOR_CUSTOMER
 
         authorization_res = AuthorizationRes(
-            response_code=ResponseCode.OK, evse_processing=auth_status
+            response_code=response_code, evse_processing=auth_status
         )
 
         self.create_next_message(

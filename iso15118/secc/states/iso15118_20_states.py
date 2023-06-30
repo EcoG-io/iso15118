@@ -405,26 +405,36 @@ class Authorization(StateSECC):
             if auth_req.pnc_params.gen_challenge != self.comm_session.gen_challenge:
                 response_code = ResponseCode.WARN_CHALLENGE_INVALID
 
-        auth_status = Processing.ONGOING
-        if (
+        current_authorization_status = (
             await self.comm_session.evse_controller.is_authorized()
+        )
+        evse_processing = Processing.ONGOING
+        response_code = ResponseCode.OK
+        if current_authorization_status.certificate_response_status:
+            response_code = current_authorization_status.certificate_response_status
+        if (
+            current_authorization_status.authorization_status
             == AuthorizationStatus.ACCEPTED
             and self.comm_session.evse_controller.ready_to_charge()
         ):
-            auth_status = Processing.FINISHED
-        elif await self.comm_session.evse_controller.is_authorized() == (
-            AuthorizationStatus.ONGOING
+            evse_processing = Processing.FINISHED
+        elif (
+            current_authorization_status.authorization_status
+            == AuthorizationStatus.ONGOING
         ):
-            auth_status = Processing.ONGOING
-        # TODO GitHub#56 Handle REJECTED case
-        # TODO Need to distinguish between ONGOING and WAITING_FOR_CUSTOMER
+            if self.comm_session.selected_auth_option == AuthEnum.EIM:
+                evse_processing = Processing.WAITING_FOR_CUSTOMER
+            else:
+                evse_processing = Processing.ONGOING
+        else:
+            evse_processing = Processing.FINISHED
 
         auth_res = AuthorizationRes(
             header=MessageHeader(
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
             response_code=response_code,
-            evse_processing=auth_status,
+            evse_processing=evse_processing,
         )
 
         self.create_next_message(
@@ -435,7 +445,7 @@ class Authorization(StateSECC):
             ISOV20PayloadTypes.MAINSTREAM,
         )
 
-        if auth_status == Processing.FINISHED:
+        if evse_processing == Processing.FINISHED:
             self.expecting_authorization_req = False
         else:
             self.expecting_authorization_req = True

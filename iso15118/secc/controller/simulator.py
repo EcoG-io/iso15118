@@ -11,6 +11,7 @@ from aiofile import async_open
 from pydantic import BaseModel, Field
 
 from iso15118.secc.controller.interface import (
+    AuthorizationResponse,
     EVChargeParamsLimits,
     EVDataContext,
     EVSEControllerInterface,
@@ -46,6 +47,9 @@ from iso15118.shared.messages.din_spec.datatypes import (
     RelativeTimeInterval as RelativeTimeIntervalDINSPEC,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
+    ResponseCode as ResponseCodeDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.enums import (
@@ -79,7 +83,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     PVEVSENominalVoltage,
     PVPMax,
     RelativeTimeInterval,
-    ResponseCode,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode as ResponseCodeV2
+from iso15118.shared.messages.iso15118_2.datatypes import (
     SalesTariff,
     SalesTariffEntry,
     SAScheduleTuple,
@@ -126,6 +132,9 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
 from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import (
+    ResponseCode as ResponseCodeV20,
+)
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryResParams,
     BPTDynamicDCChargeLoopRes,
@@ -408,7 +417,13 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_energy_service_list()."""
         # AC = 1, DC = 2, AC_BPT = 5, DC_BPT = 6;
         # DC_ACDP = 4 and DC_ADCP_BPT NOT supported
-        service_ids = [5]
+
+        current_protocol = self.get_selected_protocol()
+        if current_protocol == Protocol.ISO_15118_20_DC:
+            service_ids = [2, 6]
+        elif current_protocol == Protocol.ISO_15118_20_AC:
+            service_ids = [1, 5]
+
         service_list: ServiceList = ServiceList(services=[])
         for service_id in service_ids:
             service_list.services.append(
@@ -427,9 +442,19 @@ class SimEVSEController(EVSEControllerInterface):
         id_token_type: Optional[AuthorizationTokenType] = None,
         certificate_chain: Optional[bytes] = None,
         hash_data: Optional[List[Dict[str, str]]] = None,
-    ) -> AuthorizationStatus:
+    ) -> AuthorizationResponse:
         """Overrides EVSEControllerInterface.is_authorized()."""
-        return AuthorizationStatus.ACCEPTED
+        protocol = self.get_selected_protocol()
+        response_code = ResponseCodeV2.OK
+        if protocol == Protocol.DIN_SPEC_70121:
+            response_code = ResponseCodeDINSPEC.OK
+        elif protocol == Protocol.ISO_15118_20_COMMON_MESSAGES:
+            response_code = ResponseCodeV20.OK
+
+        return AuthorizationResponse(
+            authorization_status=AuthorizationStatus.ACCEPTED,
+            certificate_response_status=response_code,
+        )
 
     async def get_sa_schedule_list_dinspec(
         self, max_schedule_entries: Optional[int], departure_time: int = 0
@@ -990,7 +1015,7 @@ class SimEVSEController(EVSEControllerInterface):
         )
 
         cert_install_res = CertificateInstallationRes(
-            response_code=ResponseCode.OK,
+            response_code=ResponseCodeV2.OK,
             cps_cert_chain=cps_certificate_chain,
             contract_cert_chain=contract_cert_chain,
             encrypted_private_key=encrypted_priv_key,
