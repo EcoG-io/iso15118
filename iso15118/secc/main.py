@@ -27,6 +27,7 @@ async def main():
         config=config,
     ).start(config.iface)
 
+
 def run():
     try:
         asyncio.run(main())
