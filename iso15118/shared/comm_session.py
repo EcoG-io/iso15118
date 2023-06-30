@@ -482,10 +482,8 @@ class V2GCommunicationSession(SessionStateMachine):
                 await self.stop(reason=error_msg)
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
-
+            gc_was_enabled = gc.isenabled()
             try:
-                import gc
-                gc_was_enabled = gc.isenabled()
                 if gc_was_enabled:
                     gc.disable()
                 # This will create the values needed for the next state, such as
@@ -559,3 +557,6 @@ class V2GCommunicationSession(SessionStateMachine):
                 await self.stop(stop_reason)
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
+            finally:
+                if gc_was_enabled:
+                    gc.disable()
