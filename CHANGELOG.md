@@ -5,6 +5,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.0] - 2023-06-30
+* chore(deps-dev): bump mypy from 1.2.0 to 1.3.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/250
+* chore(deps): bump cryptography from 40.0.1 to 41.0.1 by @dependabot in https://github.com/SwitchEV/iso15118/pull/251
+* chore(deps-dev): bump pytest-cov from 3.0.0 to 4.1.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/253
+* chore(deps-dev): bump pytest from 7.2.2 to 7.3.2 by @dependabot in https://github.com/SwitchEV/iso15118/pull/254
+* chore(deps-dev): bump black from 22.3.0 to 23.3.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/260
+* chore(deps-dev): bump mypy from 1.3.0 to 1.4.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/261
+* Add missing optional fileds in CurrentDemandRes DIN70121 by @sdrabb in https://github.com/SwitchEV/iso15118/pull/259
+* Fix min_length of EVSE ID for DIN protocol by @adoebber in https://github.com/SwitchEV/iso15118/pull/257
+* chore(deps-dev): bump pytest from 7.3.2 to 7.4.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/263
+* AB#5144:support to return certificate validation status. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/265
+* Python gc by @ikaratass in https://github.com/SwitchEV/iso15118/pull/266
+
 ## [0.22.0] - 2023-06-16
 * feat: add dependabot GHA by @mdwcrft in https://github.com/SwitchEV/iso15118/pull/224
 * chore(deps): bump actions/setup-python from 2 to 4 by @dependabot in https://github.com/SwitchEV/iso15118/pull/246
