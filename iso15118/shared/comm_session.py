@@ -495,9 +495,6 @@ class V2GCommunicationSession(SessionStateMachine):
                     await self.send(self.current_state.next_v2gtp_msg)
                     await self._update_state_info(self.current_state)
 
-                if gc_enabled:
-                    gc.enable()
-
                 if self.current_state.next_state in (Terminate, Pause):
                     await self.stop(reason=self.comm_session.stop_reason.reason)
                     self.comm_session.session_handler_queue.put_nowait(
