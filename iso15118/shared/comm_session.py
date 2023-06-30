@@ -6,6 +6,7 @@ receiving, and processing messages during an ISO 15118 communication session.
 """
 
 import asyncio
+import gc
 import logging
 from abc import ABC, abstractmethod
 from asyncio.streams import StreamReader, StreamWriter
@@ -419,11 +420,12 @@ class V2GCommunicationSession(SessionStateMachine):
         Args:
             message: A V2GTPMessage
         """
-        logger.info(f"Sending {str(self.current_state.message)}")
+
         # TODO: we may also check for writer exceptions
         self.writer.write(message.to_bytes())
         await self.writer.drain()
         self.last_message_sent = message
+        logger.info(f"Sent {str(self.current_state.message)}")
 
     async def rcv_loop(self, timeout: float):
         """
@@ -446,7 +448,6 @@ class V2GCommunicationSession(SessionStateMachine):
                 # which is estimated to be maximum between 5k to 6k
                 # TODO check if that still holds with -20 (e.g. cross certs)
                 message = await asyncio.wait_for(self.reader.read(7000), timeout)
-
                 if message == b"" and self.reader.at_eof():
                     stop_reason: str = "TCP peer closed connection"
                     await self.stop(reason=stop_reason)
@@ -481,8 +482,10 @@ class V2GCommunicationSession(SessionStateMachine):
                 await self.stop(reason=error_msg)
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
-
+            gc_enabled = gc.isenabled()
             try:
+                if gc_enabled:
+                    gc.disable()
                 # This will create the values needed for the next state, such as
                 # next_state, next_v2gtp_message, next_message_payload_type etc.
                 await self.process_message(message)
@@ -491,12 +494,14 @@ class V2GCommunicationSession(SessionStateMachine):
                     # Terminate or Pause on the EVCC side
                     await self.send(self.current_state.next_v2gtp_msg)
                     await self._update_state_info(self.current_state)
+
                 if self.current_state.next_state in (Terminate, Pause):
                     await self.stop(reason=self.comm_session.stop_reason.reason)
                     self.comm_session.session_handler_queue.put_nowait(
                         self.comm_session.stop_reason
                     )
                     return
+
                 timeout = self.current_state.next_msg_timeout
                 self.go_to_next_state()
             except (
@@ -545,3 +550,6 @@ class V2GCommunicationSession(SessionStateMachine):
                 await self.stop(stop_reason)
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
+            finally:
+                if gc_enabled:
+                    gc.enable()
