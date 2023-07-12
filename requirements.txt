@@ -1,5 +1,5 @@
 environs>=9.5.0
-pydantic>=1.9.1
+pydantic==1.*
 psutil>=5.9.1
 cryptography>=3.4.6
 aiofile>=3.7.4
