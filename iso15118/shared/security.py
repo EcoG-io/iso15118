@@ -225,6 +225,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
         )
 
         if FORCE_TLS_CLIENT_AUTH:
+            logger.debug("LOADING CERTIFICATES OEM")
             try:
                 ssl_context.load_cert_chain(
                     certfile=CertPath.OEM_CERT_CHAIN_PEM,
