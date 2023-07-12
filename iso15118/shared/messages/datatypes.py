@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List, Literal
 
-from pydantic import Field, root_validator
+from pydantic import Field, model_validator
 
 from iso15118.shared.messages import BaseModel
 from iso15118.shared.messages.enums import (
@@ -34,7 +34,7 @@ class PhysicalValue(BaseModel):
     # XSD type byte with value range [-3..3]
     multiplier: int = Field(..., ge=-3, le=3, alias="Multiplier")
 
-    @root_validator
+    @model_validator(mode="after")
     def validate_value_range(cls, values):
         """
         Validator for the range of the PhysicalValue type

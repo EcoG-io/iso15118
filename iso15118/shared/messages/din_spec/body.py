@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from typing import Optional, Tuple, Type
 
-from pydantic import Field, root_validator, validator
+from pydantic import Field, validator, model_validator
 
 from iso15118.shared.exceptions import V2GMessageValidationError
 from iso15118.shared.messages import BaseModel
@@ -213,7 +213,7 @@ class ChargeParameterDiscoveryReq(BodyBase):
         None, alias="DC_EVChargeParameter"
     )
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
     def only_dc_charge_params(cls, values):
         """
         Only dc_ev_charge_parameter must be set,
@@ -233,7 +233,7 @@ class ChargeParameterDiscoveryReq(BodyBase):
         ):
             return values
 
-    @root_validator()
+    @model_validator(mode="after")
     def validate_requested_energy_mode(cls, values):
         """
         requested_energy_mode must be either DC_extended or DC_core
@@ -287,7 +287,7 @@ class ChargeParameterDiscoveryRes(Response):
 
     # TODO Reactivate the validator once you figured out how to deal with the
     #       failed_responses dict
-    # @root_validator(pre=True)
+    # @model_validator(mode="before")
     # def either_ac_or_dc_charge_params(cls, values):
     #     """
     #     Either ac_charge_parameter or dc_charge_parameter must be set,
@@ -308,7 +308,7 @@ class ChargeParameterDiscoveryRes(Response):
 
     # TODO Reactivate the validator once you figured out how to deal with the
     #       failed_responses dict
-    # @root_validator()
+    # @model_validator(mode="plain")
     # def schedule_must_be_set_if_processing_finished(cls, values):
     #     """
     #     Once the field evse_processing is set to EVSEProcessing.FINISHED, the
@@ -347,7 +347,7 @@ class PowerDeliveryRes(Response):
 
     # TODO Reactivate the validator once you figured out how to deal with the
     #       failed_responses dict
-    # @root_validator(pre=True)
+    # @model_validator(mode="before")
     # def either_ac_or_dc_status(cls, values):
     #     """
     #     Either ac_evse_status or dc_evse_status must be set,

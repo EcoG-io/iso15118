@@ -245,12 +245,12 @@ def get_v2g_message_power_delivery_req_charging_profile_in_boundary_valid():
         profile_entries=[
             ProfileEntryDetails(
                 start=0,
-                max_power=PVPMax(multiplier=0, value=11000, unit=UnitSymbol.WATT),
+                max_power=PVPMax(Multiplier=0, Value=11000, Unit=UnitSymbol.WATT),
                 max_phases_in_use=3,
             ),
             ProfileEntryDetails(
                 start=1800,
-                max_power=PVPMax(multiplier=0, value=7000, unit=UnitSymbol.WATT),
+                max_power=PVPMax(Multiplier=0, Value=7000, Unit=UnitSymbol.WATT),
                 max_phases_in_use=3,
             ),
         ]
