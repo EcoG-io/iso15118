@@ -130,7 +130,7 @@ from iso15118.shared.settings import get_PKI_PATH
 
 logger = logging.getLogger(__name__)
 
-from iso15118.evcc.everest import context as EVEREST_CONTEXT
+from iso15118.evcc.everest import context as EVEREST_CONTEXT, float2Value_Multiplier
 EVEREST_EV_STATE = EVEREST_CONTEXT.ev_state
 
 class SimEVController(EVControllerInterface):
@@ -144,24 +144,31 @@ class SimEVController(EVControllerInterface):
         self.precharge_loop_cycles: int = 0
         self._charging_is_completed = False
         self._soc = 10
+        max_current_limit_value, max_current_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_max_current_limit)
+        max_power_limit_value, max_power_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_max_power_limit)
+        max_voltage_limit_value, max_voltage_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_max_voltage_limit)
+        energy_capacity_value, energy_capacity_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_energy_capacity)
+        target_current_value, target_current_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_target_current)
+        target_voltage_value, target_voltage_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_target_voltage)
+
         self.dc_ev_charge_params: DCEVChargeParams = DCEVChargeParams(
-            dc_max_current_limit=PVEVMaxCurrentLimit(
-                multiplier=-3, value=32000, unit=UnitSymbol.AMPERE
+            dc_max_current_limit = PVEVMaxCurrentLimit(
+                multiplier=max_current_limit_multiplier, value=max_current_limit_value, unit=UnitSymbol.AMPERE
             ),
-            dc_max_power_limit=PVEVMaxPowerLimit(
-                multiplier=1, value=8000, unit=UnitSymbol.WATT
+            dc_max_power_limit = PVEVMaxPowerLimit(
+                multiplier=max_power_limit_multiplier, value=max_power_limit_value, unit=UnitSymbol.WATT
             ),
-            dc_max_voltage_limit=PVEVMaxVoltageLimit(
-                multiplier=1, value=40, unit=UnitSymbol.VOLTAGE
+            dc_max_voltage_limit = PVEVMaxVoltageLimit(
+                multiplier=max_voltage_limit_multiplier, value=max_voltage_limit_value, unit=UnitSymbol.VOLTAGE
             ),
-            dc_energy_capacity=PVEVEnergyCapacity(
-                multiplier=1, value=7000, unit=UnitSymbol.WATT_HOURS
+            dc_energy_capacity = PVEVEnergyCapacity(
+                multiplier=energy_capacity_multiplier, value=energy_capacity_value, unit=UnitSymbol.WATT_HOURS
             ),
-            dc_target_current=PVEVTargetCurrent(
-                multiplier=0, value=1, unit=UnitSymbol.AMPERE
+            dc_target_current = PVEVTargetCurrent(
+                multiplier=target_current_multiplier, value=target_current_value, unit=UnitSymbol.AMPERE
             ),
-            dc_target_voltage=PVEVTargetVoltage(
-                multiplier=0, value=200, unit=UnitSymbol.VOLTAGE
+            dc_target_voltage = PVEVTargetVoltage(
+                multiplier=target_voltage_multiplier, value=target_voltage_value, unit=UnitSymbol.VOLTAGE
             ),
         )
 
