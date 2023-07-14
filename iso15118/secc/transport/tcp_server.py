@@ -24,15 +24,10 @@ class TCPServer(asyncio.Protocol):
     def __init__(self, session_handler_queue: asyncio.Queue, iface: str) -> None:
         self._session_handler_queue = session_handler_queue
         # The dynamic TCP port number in the range of (49152-65535)
-        self.port_no_tls = get_tcp_port()
-        self.port_tls = get_tcp_port()
+        self.port = get_tcp_port()
         self.iface = iface
         self.server = None
         self.is_tls_enabled = False
-
-        # Making sure the TCP and TLS port are definitely different
-        while self.port_no_tls == self.port_tls:
-            self.port_tls = get_tcp_port()
 
     async def start_tls(self, ready_event: asyncio.Event):
         """
@@ -76,12 +71,10 @@ class TCPServer(asyncio.Protocol):
         Args:
             tls (bool): flag to decide either to use tls encryption or not
         """
-        port = self.port_no_tls
         ssl_context = None
         server_type = "TCP"
         self.is_tls_enabled = False
         if tls:
-            port = self.port_tls
             ssl_context = get_ssl_context(True)
             if ssl_context is not None:
                 server_type = "TLS"
@@ -106,7 +99,9 @@ class TCPServer(asyncio.Protocol):
             # Allows address to be reused
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-            self.full_ipv6_address = await get_link_local_full_addr(port, self.iface)
+            self.full_ipv6_address = await get_link_local_full_addr(
+                self.port, self.iface
+            )
             self.ipv6_address_host = self.full_ipv6_address[0]
 
             # Bind the socket to the IP address and port for receiving
@@ -117,9 +112,12 @@ class TCPServer(asyncio.Protocol):
             except OSError as e:
                 # Once the max amount of retries has been reached, reraise the exception
                 if i == MAX_RETRIES - 1:
+                    logger.error(f"{e} on {server_type} server.")
                     raise e
                 else:
-                    logger.info(f"{e} on {server_type} server. Retrying...")
+                    logger.warning(f"{e} on {server_type} server. Refreshing port...")
+                    self._refresh_port()
+                    logger.debug(f"Retrying on {self.port}")
                     await asyncio.sleep(BACK_OFF_SECONDS)
                     continue
 
@@ -136,7 +134,7 @@ class TCPServer(asyncio.Protocol):
         logger.info(
             f"{server_type} server started at "
             f"address {self.ipv6_address_host}%{self.iface} and "
-            f"port {port}"
+            f"port {self.port}"
         )
 
         ready_event.set()
@@ -171,3 +169,9 @@ class TCPServer(asyncio.Protocol):
         # or use a asyncio.Event
         # check:
         # https://github.com/python/cpython/blob/f790bc8084d3dfd723889740f9129ac8fcb2fa02/Lib/asyncio/streams.py#L310
+
+    def _refresh_port(self):
+        random_port = get_tcp_port()
+        while random_port != self.port:
+            random_port = get_tcp_port()
+        self.port = random_port
