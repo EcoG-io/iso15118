@@ -1083,7 +1083,8 @@ class PaymentDetails(StateSECC):
             
             ProvidedIdToken: dict = dict([
                 ("id_token", payment_details_req.emaid),
-                ("type", "PlugAndCharge"),
+                ("authorization_type", "PlugAndCharge"),
+                ("id_token_type", "eMAID"),
             ])
  
             if hash_data is not None:
