@@ -1,6 +1,9 @@
 import time
+from typing import Union
 
 from iso15118.shared.messages.enums import AuthEnum, ControlMode, ServiceV20
+from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReqParams, \
+    BPTACChargeParameterDiscoveryReqParams, ACChargeParameterDiscoveryReq
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
     ChargeProgress,
@@ -170,4 +173,48 @@ def get_power_delivery_req(processing: Processing, charge_progress: ChargeProgre
                 ]
             ),
         ),
+    )
+
+
+def get_dc_service_discovery_req(
+    params: Union[
+        DCChargeParameterDiscoveryReqParams, BPTDCChargeParameterDiscoveryReqParams
+    ],
+    service: ServiceV20,
+) -> DCChargeParameterDiscoveryReq:
+    dc_params = None
+    dc_bpt_params = None
+    if service == ServiceV20.DC:
+        dc_params = params
+    else:
+        dc_bpt_params = params
+    return DCChargeParameterDiscoveryReq(
+        header=MessageHeader(
+            session_id=MOCK_SESSION_ID,
+            timestamp=time.time(),
+        ),
+        dc_params=dc_params,
+        bpt_dc_params=dc_bpt_params,
+    )
+
+
+def get_ac_service_discovery_req(
+    params: Union[
+        ACChargeParameterDiscoveryReqParams, BPTACChargeParameterDiscoveryReqParams
+    ],
+    service: ServiceV20,
+) -> ACChargeParameterDiscoveryReq:
+    ac_params = None
+    ac_bpt_params = None
+    if service == ServiceV20.AC:
+        ac_params = params
+    else:
+        ac_bpt_params = params
+    return ACChargeParameterDiscoveryReq(
+        header=MessageHeader(
+            session_id=MOCK_SESSION_ID,
+            timestamp=time.time(),
+        ),
+        ac_params=ac_params,
+        bpt_ac_params=ac_bpt_params,
     )

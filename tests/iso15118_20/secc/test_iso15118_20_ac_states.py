@@ -3,9 +3,11 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.interface import AuthorizationResponse
+from iso15118.secc.controller.interface import AuthorizationResponse, EVDataContext
 from iso15118.secc.controller.simulator import SimEVSEController
-from iso15118.secc.states.iso15118_20_states import Authorization, ServiceDetail
+from iso15118.secc.failed_responses import init_failed_responses_iso_v20
+from iso15118.secc.states.iso15118_20_states import Authorization, ServiceDetail, \
+    ACChargeParameterDiscovery, ScheduleExchange
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
@@ -13,17 +15,20 @@ from iso15118.shared.messages.enums import (
     Protocol,
     ServiceV20,
 )
+from iso15118.shared.messages.iso15118_20.ac import \
+    BPTACChargeParameterDiscoveryReqParams, ACChargeParameterDiscoveryReqParams
 from iso15118.shared.messages.iso15118_20.common_messages import (
     MatchedService,
     Service,
-    ServiceList,
+    ServiceList, SelectedEnergyService,
 )
-from iso15118.shared.messages.iso15118_20.common_types import ResponseCode
+from iso15118.shared.messages.iso15118_20.common_types import ResponseCode, \
+    RationalNumber
 from iso15118.shared.notifications import StopNotification
 from tests.dinspec.secc.test_dinspec_secc_states import MockWriter
 from tests.iso15118_20.secc.test_messages import (
     get_v2g_message_authorization_req,
-    get_v2g_message_service_detail_req,
+    get_v2g_message_service_detail_req, get_ac_service_discovery_req,
 )
 
 
@@ -34,11 +39,13 @@ class TestEvScenarios:
     def _comm_session(self):
         self.comm_session = Mock(spec=SECCCommunicationSession)
         self.comm_session.session_id = "F9F9EE8505F55838"
-        self.comm_session.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
+        self.comm_session.selected_energy_mode = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
         self.comm_session.selected_charging_type_is_ac = False
         self.comm_session.stop_reason = StopNotification(False, "pytest")
         self.comm_session.protocol = Protocol.ISO_15118_20_AC
+        self.comm_session.failed_responses_isov20 = init_failed_responses_iso_v20()
         self.comm_session.writer = MockWriter()
+        self.comm_session.evse_controller = SimEVSEController()
 
     @pytest.mark.parametrize(
         "service_id_input, response_code",
@@ -121,3 +128,75 @@ class TestEvScenarios:
             message=get_v2g_message_authorization_req(auth_mode)
         )
         assert authorization.expecting_authorization_req is next_req_is_auth_req
+
+    @pytest.mark.parametrize(
+        "params, selected_service, expected_state, expected_ev_context",
+        [
+            (
+                ACChargeParameterDiscoveryReqParams(
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l2=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+                ),
+                ServiceV20.AC,
+                ScheduleExchange,
+                EVDataContext(
+                    ev_max_charge_power=30000,
+                    ev_min_charge_power=100,
+                    ev_max_charge_power_l2=30000,
+                    ev_min_charge_power_l2=100,
+                    ev_max_charge_power_l3=30000,
+                    ev_min_charge_power_l3=100,
+                ),
+            ),
+            (
+                BPTACChargeParameterDiscoveryReqParams(
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l2=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+                    ev_max_discharge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_discharge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_discharge_power_l2=RationalNumber(exponent=2, value=300),
+                    ev_min_discharge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_max_discharge_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_min_discharge_power_l3=RationalNumber(exponent=0, value=100),
+                ),
+                ServiceV20.AC_BPT,
+                ScheduleExchange,
+                EVDataContext(
+                    ev_max_charge_power=30000,
+                    ev_min_charge_power=100,
+                    ev_max_charge_power_l2=30000,
+                    ev_min_charge_power_l2=100,
+                    ev_max_charge_power_l3=30000,
+                    ev_min_charge_power_l3=100,
+                    ev_max_discharge_power=30000,
+                    ev_min_discharge_power=100,
+                    ev_max_discharge_power_l2=30000,
+                    ev_min_discharge_power_l2=100,
+                    ev_max_discharge_power_l3=30000,
+                    ev_min_discharge_power_l3=100,
+                ),
+            ),
+        ],
+    )
+    async def test_15118_20_ac_charge_parameter_discovery_res_ev_context_update(
+        self, params, selected_service, expected_state, expected_ev_context
+    ):
+        self.comm_session.selected_energy_service = SelectedEnergyService(
+            service=selected_service, is_free=True, parameter_set=None
+        )
+        ac_service_discovery = ACChargeParameterDiscovery(self.comm_session)
+        ac_service_discovery_req = get_ac_service_discovery_req(
+            params, selected_service
+        )
+        await ac_service_discovery.process_message(message=ac_service_discovery_req)
+        assert ac_service_discovery.next_state is expected_state
+        updated_ev_context = self.comm_session.evse_controller.ev_data_context
+        assert updated_ev_context == expected_ev_context

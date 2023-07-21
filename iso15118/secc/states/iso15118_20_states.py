@@ -3,7 +3,7 @@ This module contains the SECC's States used to process the EVCC's incoming
 V2GMessage objects of the ISO 15118-20 protocol, from SessionSetupReq to
 SessionStopReq.
 """
-
+import asyncio
 import logging
 import time
 from typing import List, Optional, Tuple, Type, Union
@@ -20,6 +20,7 @@ from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
     ControlMode,
+    CpState,
     EVSEProcessing,
     IsolationLevel,
     ISOV20PayloadTypes,
@@ -262,7 +263,7 @@ class AuthorizationSetup(StateSECC):
                 # PnC_ASResAuthorizationMode should be used, not both at the same time.
                 eim_as_res = EIMAuthSetupResParams()
 
-        # TODO [V2G20-2096], [V2G20-2570]
+        # TODO [V2G20-2570]
 
         self.comm_session.offered_auth_options = auth_options
 
@@ -1065,9 +1066,10 @@ class PowerDelivery(StateSECC):
                 # equals "Start" within V2G communication session.
                 # TODO: We may need to check the CP state is C or D before
                 #  closing the contactors.
+
                 if not await self.comm_session.evse_controller.is_contactor_closed():
                     self.stop_state_machine(
-                        "Contactor didnt close",
+                        "Contactor didn't close",
                         message,
                         ResponseCode.FAILED_CONTACTOR_ERROR,
                     )
@@ -1235,6 +1237,9 @@ class ACChargeParameterDiscovery(StateSECC):
         if energy_service == ServiceV20.AC and self.charge_parameter_valid(
             ac_cpd_req.ac_params
         ):
+            self.comm_session.evse_controller.ev_data_context.update(
+                ac_cpd_req.ac_params
+            )
             ac_params = (
                 await self.comm_session.evse_controller.get_ac_charge_params_v20(
                     ServiceV20.AC
@@ -1243,6 +1248,9 @@ class ACChargeParameterDiscovery(StateSECC):
         elif energy_service == ServiceV20.AC_BPT and self.charge_parameter_valid(
             ac_cpd_req.bpt_ac_params
         ):
+            self.comm_session.evse_controller.ev_data_context.update(
+                ac_cpd_req.bpt_ac_params
+            )
             bpt_ac_params = (
                 await self.comm_session.evse_controller.get_ac_charge_params_v20(
                     ServiceV20.AC_BPT
@@ -1330,37 +1338,35 @@ class ACChargeLoop(StateSECC):
 
         if selected_energy_service.service == ServiceV20.AC:
             if control_mode == ControlMode.SCHEDULED:
+                self.comm_session.evse_controller.ev_data_context.update(
+                    ac_charge_loop_req.scheduled_params
+                )
                 scheduled_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
                     ControlMode.SCHEDULED, ServiceV20.AC
                 )
             elif control_mode == ControlMode.DYNAMIC:
+                self.comm_session.evse_controller.ev_data_context.update(
+                    ac_charge_loop_req.dynamic_params
+                )
                 dynamic_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
                     ControlMode.DYNAMIC, ServiceV20.AC
                 )  # noqa
         elif selected_energy_service.service == ServiceV20.AC_BPT:
             if control_mode == ControlMode.SCHEDULED:
+                self.comm_session.evse_controller.ev_data_context.update(
+                    ac_charge_loop_req.bpt_scheduled_params
+                )
                 bpt_scheduled_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
                     ControlMode.SCHEDULED, ServiceV20.AC_BPT
                 )  # noqa
             else:
+                self.comm_session.evse_controller.ev_data_context.update(
+                    ac_charge_loop_req.bpt_dynamic_params
+                )
                 bpt_dynamic_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
                     ControlMode.DYNAMIC, ServiceV20.AC_BPT
                 )  # noqa
 
-                # For now we just do this for the Dynamic Mode
-                ev_bpt_charge_parameters = ac_charge_loop_req.bpt_dynamic_params.dict()
-                # extract only the power limits and convert them to decimal
-                # representation
-                ev_power_limits = {}
-                for k, v in ev_bpt_charge_parameters.items():
-                    if type(v) is dict:
-                        ev_power_limits.update({k: v["value"] * 10 ** v["exponent"]})
-                # update the dict with the decimal values
-                ev_bpt_charge_parameters.update(ev_power_limits)
-                # update the ev_data_context
-                self.comm_session.evse_controller.ev_data_context.update(
-                    ev_bpt_charge_parameters
-                )
                 await self.comm_session.evse_controller.send_charging_power_limits(
                     self.comm_session.protocol,
                     control_mode,
@@ -1451,6 +1457,9 @@ class DCChargeParameterDiscovery(StateSECC):
         if energy_service == ServiceV20.DC and self.charge_parameter_valid(
             dc_cpd_req.dc_params
         ):
+            self.comm_session.evse_controller.ev_data_context.update(
+                dc_cpd_req.dc_params
+            )
             dc_params = (
                 await self.comm_session.evse_controller.get_dc_charge_params_v20(
                     ServiceV20.DC
@@ -1459,6 +1468,9 @@ class DCChargeParameterDiscovery(StateSECC):
         elif energy_service == ServiceV20.DC_BPT and self.charge_parameter_valid(
             dc_cpd_req.bpt_dc_params
         ):
+            self.comm_session.evse_controller.ev_data_context.update(
+                dc_cpd_req.bpt_dc_params
+            )
             bpt_dc_params = (
                 await self.comm_session.evse_controller.get_dc_charge_params_v20(
                     ServiceV20.DC_BPT

@@ -51,10 +51,14 @@ from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfo
 from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode as ResponseCodeV2
 from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTuple
 from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeParameterDiscoveryReqParams,
     ACChargeParameterDiscoveryResParams,
+    BPTACChargeParameterDiscoveryReqParams,
     BPTACChargeParameterDiscoveryResParams,
+    BPTDynamicACChargeLoopReqParams,
     BPTDynamicACChargeLoopResParams,
     BPTScheduledACChargeLoopResParams,
+    DynamicACChargeLoopReqParams,
     DynamicACChargeLoopResParams,
     ScheduledACChargeLoopResParams,
 )
@@ -72,10 +76,14 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     ResponseCode as ResponseCodeV20,
 )
 from iso15118.shared.messages.iso15118_20.dc import (
+    BPTDCChargeParameterDiscoveryReqParams,
     BPTDCChargeParameterDiscoveryResParams,
+    BPTDynamicDCChargeLoopReqParams,
     BPTDynamicDCChargeLoopRes,
     BPTScheduledDCChargeLoopResParams,
+    DCChargeParameterDiscoveryReqParams,
     DCChargeParameterDiscoveryResParams,
+    DynamicDCChargeLoopReqParams,
     DynamicDCChargeLoopRes,
     ScheduledDCChargeLoopResParams,
 )
@@ -97,38 +105,74 @@ class EVDataContext:
     ac_current: Optional[dict] = None  # {"l1": 10, "l2": 10, "l3": 10}
     ac_voltage: Optional[dict] = None  # {"l1": 230, "l2": 230, "l3": 230}
     soc: Optional[int] = None  # 0-100
-
-    # from ISO 15118-20 AC
     departure_time: Optional[int] = None
-    ev_target_energy_request: float = 0.0
-    ev_max_energy_request: float = 0.0
-    ev_min_energy_request: float = 0.0
 
+    # Common to both ISO15118-20 AC and DC
     ev_max_charge_power: float = 0.0
+    ev_min_charge_power: float = 0.0
+
+    # Common to both ISO15118-20 AC-BPT and DC-BPT
+    ev_max_discharge_power: Optional[float] = None
+    ev_min_discharge_power: Optional[float] = None
+
+    # Specific to ISO 15118-20 AC
     ev_max_charge_power_l2: Optional[float] = None
     ev_max_charge_power_l3: Optional[float] = None
-    ev_min_charge_power: float = 0.0
     ev_min_charge_power_l2: Optional[float] = None
     ev_min_charge_power_l3: Optional[float] = None
-    ev_present_active_power: float = 0.0
+
+    # Specific to ISO 15118-20 AC BPT
+    ev_max_discharge_power_l2: Optional[float] = None
+    ev_max_discharge_power_l3: Optional[float] = None
+    ev_min_discharge_power_l2: Optional[float] = None
+    ev_min_discharge_power_l3: Optional[float] = None
+
+    # Specific to ISO 15118-20 DC
+    ev_max_charge_current: Optional[float] = None
+    ev_min_charge_current: Optional[float] = None
+    ev_max_voltage: Optional[float] = None
+    ev_min_voltage: Optional[float] = None
+    target_soc: Optional[int] = None
+
+    # Specific to ISO 15118-20 DC BPT
+    ev_max_discharge_current: Optional[float] = None
+    ev_min_discharge_current: Optional[float] = None
+
+    ev_target_energy_request: Optional[float] = None
+    ev_max_energy_request: Optional[float] = None
+    ev_min_energy_request: Optional[float] = None
+    ev_present_active_power: Optional[float] = None
     ev_present_active_power_l2: Optional[float] = None
     ev_present_active_power_l3: Optional[float] = None
-    ev_present_reactive_power: float = 0.0
+    ev_present_reactive_power: Optional[float] = None
     ev_present_reactive_power_l2: Optional[float] = None
     ev_present_reactive_power_l3: Optional[float] = None
 
-    # BPT values
-    ev_max_discharge_power: float = 0.0
-    ev_max_discharge_power_l2: Optional[float] = None
-    ev_max_discharge_power_l3: Optional[float] = None
-    ev_min_discharge_power: float = 0.0
-    ev_min_discharge_power_l2: Optional[float] = None
-    ev_min_discharge_power_l3: Optional[float] = None
     ev_max_v2x_energy_request: Optional[float] = None
     ev_min_v2x_energy_request: Optional[float] = None
 
-    def update(self, new: dict):
-        self.__dict__.update(new)
+    def update(
+        self,
+        ev_params: Union[
+            DCChargeParameterDiscoveryReqParams,
+            BPTDCChargeParameterDiscoveryReqParams,
+            ACChargeParameterDiscoveryReqParams,
+            BPTACChargeParameterDiscoveryReqParams,
+            DynamicACChargeLoopReqParams,
+            BPTDynamicACChargeLoopReqParams,
+            DynamicDCChargeLoopReqParams,
+            BPTDynamicDCChargeLoopReqParams,
+        ],
+    ):
+        params = ev_params.dict()
+        ev_params = {}
+        for k, v in params.items():
+            if type(v) is dict:
+                ev_params.update({k: v["value"] * 10 ** v["exponent"]})
+            elif type(v) is int:
+                ev_params.update({k: v})
+
+        self.__dict__.update(ev_params)
 
     def as_dict(self):
         return self.__dict__

@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.secc.controller.interface import EVDataContext
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.secc.failed_responses import init_failed_responses_iso_v20
 from iso15118.secc.states.iso15118_20_states import (
@@ -21,12 +22,17 @@ from iso15118.shared.messages.enums import (
     ServiceV20,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import SelectedEnergyService
-from iso15118.shared.messages.iso15118_20.common_types import Processing
+from iso15118.shared.messages.iso15118_20.common_types import Processing, RationalNumber
+from iso15118.shared.messages.iso15118_20.dc import (
+    BPTDCChargeParameterDiscoveryReqParams,
+    DCChargeParameterDiscoveryReqParams,
+)
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
 from tests.dinspec.secc.test_dinspec_secc_states import MockWriter
 from tests.iso15118_20.secc.test_messages import (
     get_cable_check_req,
+    get_dc_service_discovery_req,
     get_precharge_req,
     get_schedule_exchange_req_message,
     get_v2g_message_dc_charge_parameter_discovery_req,
@@ -163,3 +169,75 @@ class TestEvScenarios:
     async def test_15118_20_power_delivery(self):
         # TODO
         pass
+
+    @pytest.mark.parametrize(
+        "params, selected_service, expected_state, expected_ev_context",
+        [
+            (
+                DCChargeParameterDiscoveryReqParams(
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_current=RationalNumber(exponent=0, value=300),
+                    ev_min_charge_current=RationalNumber(exponent=0, value=10),
+                    ev_max_voltage=RationalNumber(exponent=0, value=1000),
+                    ev_min_voltage=RationalNumber(exponent=0, value=10),
+                    target_soc=80,
+                ),
+                ServiceV20.DC,
+                ScheduleExchange,
+                EVDataContext(
+                    ev_max_charge_power=30000,
+                    ev_min_charge_power=100,
+                    ev_max_charge_current=300,
+                    ev_min_charge_current=10,
+                    ev_max_voltage=1000,
+                    ev_min_voltage=10,
+                    target_soc=80
+                ),
+            ),
+            (
+                BPTDCChargeParameterDiscoveryReqParams(
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_current=RationalNumber(exponent=0, value=300),
+                    ev_min_charge_current=RationalNumber(exponent=0, value=10),
+                    ev_max_voltage=RationalNumber(exponent=0, value=1000),
+                    ev_min_voltage=RationalNumber(exponent=0, value=10),
+                    target_soc=80,
+                    ev_max_discharge_power=RationalNumber(exponent=0, value=11),
+                    ev_min_discharge_power=RationalNumber(exponent=3, value=1),
+                    ev_max_discharge_current=RationalNumber(exponent=0, value=11),
+                    ev_min_discharge_current=RationalNumber(exponent=0, value=10),
+                ),
+                ServiceV20.DC_BPT,
+                ScheduleExchange,
+                EVDataContext(
+                    ev_max_charge_power=30000,
+                    ev_min_charge_power=100,
+                    ev_max_charge_current=300,
+                    ev_min_charge_current=10,
+                    ev_max_voltage=1000,
+                    ev_min_voltage=10,
+                    target_soc=80,
+                    ev_max_discharge_power=11,
+                    ev_min_discharge_power=1000,
+                    ev_max_discharge_current=11,
+                    ev_min_discharge_current=10,
+                ),
+            ),
+        ],
+    )
+    async def test_15118_20_dc_charge_parameter_discovery_res_ev_context_update(
+        self, params, selected_service, expected_state, expected_ev_context
+    ):
+        self.comm_session.selected_energy_service = SelectedEnergyService(
+            service=selected_service, is_free=True, parameter_set=None
+        )
+        dc_service_discovery = DCChargeParameterDiscovery(self.comm_session)
+        dc_service_discovery_req = get_dc_service_discovery_req(
+            params, selected_service
+        )
+        await dc_service_discovery.process_message(message=dc_service_discovery_req)
+        assert dc_service_discovery.next_state is expected_state
+        updated_ev_context = self.comm_session.evse_controller.ev_data_context
+        assert updated_ev_context == expected_ev_context
