@@ -3,7 +3,6 @@ This module contains the SECC's States used to process the EVCC's incoming
 V2GMessage objects of the ISO 15118-20 protocol, from SessionSetupReq to
 SessionStopReq.
 """
-import asyncio
 import logging
 import time
 from typing import List, Optional, Tuple, Type, Union
@@ -20,7 +19,6 @@ from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
     ControlMode,
-    CpState,
     EVSEProcessing,
     IsolationLevel,
     ISOV20PayloadTypes,

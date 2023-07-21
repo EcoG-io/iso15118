@@ -2,8 +2,11 @@ import time
 from typing import Union
 
 from iso15118.shared.messages.enums import AuthEnum, ControlMode, ServiceV20
-from iso15118.shared.messages.iso15118_20.ac import ACChargeParameterDiscoveryReqParams, \
-    BPTACChargeParameterDiscoveryReqParams, ACChargeParameterDiscoveryReq
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeParameterDiscoveryReq,
+    ACChargeParameterDiscoveryReqParams,
+    BPTACChargeParameterDiscoveryReqParams,
+)
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
     ChargeProgress,

@@ -6,8 +6,12 @@ from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.interface import AuthorizationResponse, EVDataContext
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.secc.failed_responses import init_failed_responses_iso_v20
-from iso15118.secc.states.iso15118_20_states import Authorization, ServiceDetail, \
-    ACChargeParameterDiscovery, ScheduleExchange
+from iso15118.secc.states.iso15118_20_states import (
+    ACChargeParameterDiscovery,
+    Authorization,
+    ScheduleExchange,
+    ServiceDetail,
+)
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
@@ -15,20 +19,26 @@ from iso15118.shared.messages.enums import (
     Protocol,
     ServiceV20,
 )
-from iso15118.shared.messages.iso15118_20.ac import \
-    BPTACChargeParameterDiscoveryReqParams, ACChargeParameterDiscoveryReqParams
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeParameterDiscoveryReqParams,
+    BPTACChargeParameterDiscoveryReqParams,
+)
 from iso15118.shared.messages.iso15118_20.common_messages import (
     MatchedService,
+    SelectedEnergyService,
     Service,
-    ServiceList, SelectedEnergyService,
+    ServiceList,
 )
-from iso15118.shared.messages.iso15118_20.common_types import ResponseCode, \
-    RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import (
+    RationalNumber,
+    ResponseCode,
+)
 from iso15118.shared.notifications import StopNotification
 from tests.dinspec.secc.test_dinspec_secc_states import MockWriter
 from tests.iso15118_20.secc.test_messages import (
+    get_ac_service_discovery_req,
     get_v2g_message_authorization_req,
-    get_v2g_message_service_detail_req, get_ac_service_discovery_req,
+    get_v2g_message_service_detail_req,
 )
 
 
@@ -39,7 +49,9 @@ class TestEvScenarios:
     def _comm_session(self):
         self.comm_session = Mock(spec=SECCCommunicationSession)
         self.comm_session.session_id = "F9F9EE8505F55838"
-        self.comm_session.selected_energy_mode = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
+        self.comm_session.selected_energy_mode = (
+            EnergyTransferModeEnum.AC_THREE_PHASE_CORE
+        )
         self.comm_session.selected_charging_type_is_ac = False
         self.comm_session.stop_reason = StopNotification(False, "pytest")
         self.comm_session.protocol = Protocol.ISO_15118_20_AC

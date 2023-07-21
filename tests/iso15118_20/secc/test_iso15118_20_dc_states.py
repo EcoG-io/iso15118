@@ -192,7 +192,7 @@ class TestEvScenarios:
                     ev_min_charge_current=10,
                     ev_max_voltage=1000,
                     ev_min_voltage=10,
-                    target_soc=80
+                    target_soc=80,
                 ),
             ),
             (
