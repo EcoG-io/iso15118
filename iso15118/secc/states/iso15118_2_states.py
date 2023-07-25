@@ -200,6 +200,9 @@ class SessionSetup(StateSECC):
         )
 
         self.comm_session.evcc_id = session_setup_req.evcc_id
+        self.comm_session.evse_controller.ev_data_context.evcc_id = (
+            session_setup_req.evcc_id
+        )
         self.comm_session.session_id = session_id
 
         self.create_next_message(
@@ -1299,12 +1302,20 @@ class ChargeParameterDiscovery(StateSECC):
             ev_energy_request = (
                 charge_params_req.dc_ev_charge_parameter.ev_energy_request
             )
+            ev_max_power = (
+                charge_params_req.dc_ev_charge_parameter.ev_maximum_power_limit
+            )
             ev_charge_params_limits = EVChargeParamsLimits(
                 ev_max_voltage=ev_max_voltage,
                 ev_max_current=ev_max_current,
+                ev_max_power=ev_max_power,
                 ev_energy_request=ev_energy_request,
             )
             departure_time = charge_params_req.dc_ev_charge_parameter.departure_time
+
+        self.comm_session.evse_controller.ev_charge_params_limits = (
+            ev_charge_params_limits
+        )
 
         if not departure_time:
             departure_time = 0
@@ -2334,6 +2345,23 @@ class CurrentDemand(StateSECC):
         self.comm_session.evse_controller.ev_data_context.soc = (
             current_demand_req.dc_ev_status.ev_ress_soc
         )
+
+        self.comm_session.evse_controller.ev_data_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
+            None
+            if current_demand_req.remaining_time_to_bulk_soc is None
+            else current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
+        )
+
+        self.comm_session.evse_controller.ev_data_context.remaining_time_to_full_soc_s = (  # noqa: E501
+            None
+            if current_demand_req.remaining_time_to_full_soc is None
+            else current_demand_req.remaining_time_to_full_soc.get_decimal_value()
+        )
+
+        self.comm_session.evse_controller.ev_charge_params_limits.ev_max_current = (
+            current_demand_req.ev_max_current_limit
+        )
+
         await self.comm_session.evse_controller.send_charging_command(
             current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
         )
@@ -2436,9 +2464,6 @@ class WeldingDetection(StateSECC):
             return
 
         welding_detection_res = WeldingDetectionRes(
-            # todo llr: java exi codec throws error with this message.
-            #  Exception Description: No conversion value provided for the value [OK]
-            #  in field [ns5:WeldingDetectionRes.ns5:ResponseCode/text()].
             response_code=ResponseCode.OK,
             dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
             evse_present_voltage=(

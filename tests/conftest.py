@@ -42,4 +42,5 @@ def comm_secc_session_mock():
     comm_session_mock.protocol = Protocol.UNKNOWN
     comm_session_mock.evse_id = "UK123E1234"
     comm_session_mock.ev_session_context = EVSessionContext15118()
+    comm_session_mock.selected_schedule = 1
     return comm_session_mock

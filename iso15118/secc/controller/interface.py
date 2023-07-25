@@ -14,6 +14,7 @@ from iso15118.shared.messages.datatypes import (
     PVEVEnergyRequest,
     PVEVMaxCurrent,
     PVEVMaxCurrentLimit,
+    PVEVMaxPowerLimit,
     PVEVMaxVoltage,
     PVEVMaxVoltageLimit,
     PVEVSEMaxCurrentLimit,
@@ -92,11 +93,14 @@ class AuthorizationResponse:
 
 @dataclass
 class EVDataContext:
-    dc_current: Optional[float] = None
-    dc_voltage: Optional[float] = None
+    dc_current_request: Optional[int] = None
+    dc_voltage_request: Optional[int] = None
     ac_current: Optional[dict] = None  # {"l1": 10, "l2": 10, "l3": 10}
     ac_voltage: Optional[dict] = None  # {"l1": 230, "l2": 230, "l3": 230}
     soc: Optional[int] = None  # 0-100
+    remaining_time_to_full_soc_s: Optional[int] = None
+    remaining_time_to_bulk_soc_s: Optional[int] = None
+    evcc_id: Optional[str] = None
 
     # from ISO 15118-20 AC
     departure_time: Optional[int] = None
@@ -146,6 +150,7 @@ class ServiceStatus(str, Enum):
 class EVChargeParamsLimits:
     ev_max_voltage: Optional[Union[PVEVMaxVoltageLimit, PVEVMaxVoltage]] = None
     ev_max_current: Optional[Union[PVEVMaxCurrentLimit, PVEVMaxCurrent]] = None
+    ev_max_power: Optional[PVEVMaxPowerLimit] = None
     e_amount: Optional[PVEAmount] = None
     ev_energy_request: Optional[PVEVEnergyRequest] = None
 
@@ -169,10 +174,12 @@ class EVSessionContext15118:
 class EVSEControllerInterface(ABC):
     def __init__(self):
         self.ev_data_context = EVDataContext()
+        self.ev_charge_params_limits = EVChargeParamsLimits()
         self._selected_protocol = Optional[Protocol]
 
     def reset_ev_data_context(self):
         self.ev_data_context = EVDataContext()
+        self.ev_charge_params_limits = EVChargeParamsLimits()
 
     def get_ev_data_context(self) -> EVDataContext:
         return self.ev_data_context
