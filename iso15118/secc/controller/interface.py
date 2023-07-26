@@ -58,9 +58,11 @@ from iso15118.shared.messages.iso15118_20.ac import (
     BPTACChargeParameterDiscoveryResParams,
     BPTDynamicACChargeLoopReqParams,
     BPTDynamicACChargeLoopResParams,
+    BPTScheduledACChargeLoopReqParams,
     BPTScheduledACChargeLoopResParams,
     DynamicACChargeLoopReqParams,
     DynamicACChargeLoopResParams,
+    ScheduledACChargeLoopReqParams,
     ScheduledACChargeLoopResParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
@@ -81,11 +83,13 @@ from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryResParams,
     BPTDynamicDCChargeLoopReqParams,
     BPTDynamicDCChargeLoopRes,
+    BPTScheduledDCChargeLoopReqParams,
     BPTScheduledDCChargeLoopResParams,
     DCChargeParameterDiscoveryReqParams,
     DCChargeParameterDiscoveryResParams,
     DynamicDCChargeLoopReqParams,
     DynamicDCChargeLoopRes,
+    ScheduledDCChargeLoopReqParams,
     ScheduledDCChargeLoopResParams,
 )
 from iso15118.shared.states import State
@@ -106,11 +110,11 @@ class EVDataContext:
     ac_current: Optional[dict] = None  # {"l1": 10, "l2": 10, "l3": 10}
     ac_voltage: Optional[dict] = None  # {"l1": 230, "l2": 230, "l3": 230}
     soc: Optional[int] = None  # 0-100
+    departure_time: Optional[int] = None
+
     remaining_time_to_full_soc_s: Optional[int] = None
     remaining_time_to_bulk_soc_s: Optional[int] = None
     evcc_id: Optional[str] = None
-
-    departure_time: Optional[int] = None
 
     # Common to both ISO15118-20 AC and DC
     ev_max_charge_power: float = 0.0
@@ -156,6 +160,15 @@ class EVDataContext:
     ev_max_v2x_energy_request: Optional[float] = None
     ev_min_v2x_energy_request: Optional[float] = None
 
+    # Seen in Scheduled DC CL
+    ev_target_current: Optional[float] = None
+    ev_target_voltage: Optional[float] = None
+    ev_max_charge_power: Optional[float] = None
+    ev_min_charge_power: Optional[float] = None
+    ev_max_charge_current: Optional[float] = None
+    ev_max_voltage: Optional[float] = None
+    ev_min_voltage: Optional[float] = None
+
     def update(
         self,
         ev_params: Union[
@@ -167,6 +180,10 @@ class EVDataContext:
             BPTDynamicACChargeLoopReqParams,
             DynamicDCChargeLoopReqParams,
             BPTDynamicDCChargeLoopReqParams,
+            ScheduledACChargeLoopReqParams,
+            BPTScheduledACChargeLoopReqParams,
+            ScheduledDCChargeLoopReqParams,
+            BPTScheduledDCChargeLoopReqParams,
         ],
     ):
         params = ev_params.dict()

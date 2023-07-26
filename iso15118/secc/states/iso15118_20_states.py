@@ -73,6 +73,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 from iso15118.shared.messages.iso15118_20.common_types import (
     EVSEStatus,
     MessageHeader,
+    MeterInfo,
     Processing,
     ResponseCode,
 )
@@ -1691,7 +1692,20 @@ class DCChargeLoop(StateSECC):
         dc_charge_loop_req: DCChargeLoopReq = msg  # noqa
         self.expecting_charge_loop_req = False
 
-        dc_charge_loop_res = await self.build_dc_charge_loop_res()
+        selected_energy_service = self.comm_session.selected_energy_service
+        control_mode = self.comm_session.control_mode
+
+        self.update_dc_charge_loop_params(
+            dc_charge_loop_req, selected_energy_service, control_mode
+        )
+        await self.comm_session.evse_controller.send_charging_power_limits(
+            self.comm_session.protocol,
+            control_mode,
+            selected_energy_service.service,
+        )
+        dc_charge_loop_res = await self.build_dc_charge_loop_res(
+            dc_charge_loop_req.meter_info_requested
+        )
         self.create_next_message(
             None,
             dc_charge_loop_res,
@@ -1700,7 +1714,39 @@ class DCChargeLoop(StateSECC):
             ISOV20PayloadTypes.DC_MAINSTREAM,
         )
 
-    async def build_dc_charge_loop_res(self) -> DCChargeLoopRes:
+    def update_dc_charge_loop_params(
+        self,
+        dc_charge_loop_req: DCChargeLoopReq,
+        selected_energy_service: SelectedEnergyService,
+        control_mode: ControlMode,
+    ) -> None:
+        if selected_energy_service.service == ServiceV20.DC:
+            if control_mode == ControlMode.SCHEDULED:
+                self.comm_session.evse_controller.ev_data_context.update(
+                    dc_charge_loop_req.scheduled_params
+                )
+            elif control_mode == ControlMode.DYNAMIC:
+                self.comm_session.evse_controller.ev_data_context.update(
+                    dc_charge_loop_req.dynamic_params
+                )
+        elif selected_energy_service.service == ServiceV20.DC_BPT:
+            if control_mode == ControlMode.SCHEDULED:
+                self.comm_session.evse_controller.ev_data_context.update(
+                    dc_charge_loop_req.bpt_scheduled_params
+                )
+            else:
+                self.comm_session.evse_controller.ev_data_context.update(
+                    dc_charge_loop_req.bpt_dynamic_params
+                )
+        else:
+            logger.error(
+                f"Energy service {selected_energy_service.service} not yet supported"
+            )
+            return
+
+    async def build_dc_charge_loop_res(
+        self, meter_info_requested: bool
+    ) -> DCChargeLoopRes:
         scheduled_params, dynamic_params = None, None
         bpt_scheduled_params, bpt_dynamic_params = None, None
         selected_energy_service = self.comm_session.selected_energy_service
@@ -1734,10 +1780,17 @@ class DCChargeLoop(StateSECC):
             EVSEStatus
         ] = await self.comm_session.evse_controller.get_evse_status()
 
+        meter_info = None
+        if meter_info_requested:
+            meter_info: Optional[
+                MeterInfo
+            ] = await self.comm_session.evse_controller.get_meter_info_v20()
+
         dc_charge_loop_res = DCChargeLoopRes(
             header=MessageHeader(
                 session_id=self.comm_session.session_id, timestamp=time.time()
             ),
+            meter_info=meter_info,
             evse_status=evse_status,
             response_code=response_code,
             evse_present_current=await self.comm_session.evse_controller.get_evse_present_current(  # noqa
