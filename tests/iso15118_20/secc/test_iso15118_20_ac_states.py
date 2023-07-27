@@ -25,7 +25,9 @@ from iso15118.shared.messages.enums import (
 )
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
+    ACChargeParameterDiscoveryResParams,
     BPTACChargeParameterDiscoveryReqParams,
+    BPTACChargeParameterDiscoveryResParams,
     BPTDynamicACChargeLoopReqParams,
     BPTScheduledACChargeLoopReqParams,
     DynamicACChargeLoopReqParams,
@@ -467,3 +469,137 @@ class TestEvScenarios:
         assert ac_charge_loop.next_state is expected_state
         updated_ev_context = self.comm_session.evse_controller.ev_data_context
         assert updated_ev_context == expected_ev_context
+
+    @pytest.mark.parametrize(
+        "req_params, expected_res_params, selected_service, expected_state, expected_evse_context",
+        [
+            (
+                ACChargeParameterDiscoveryReqParams(
+                    ev_max_charge_power=RationalNumber(exponent=0, value=30000),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l2=RationalNumber(exponent=0, value=30000),
+                    ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l3=RationalNumber(exponent=0, value=30000),
+                    ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+                ),
+                ACChargeParameterDiscoveryResParams(
+                    evse_max_charge_power=RationalNumber(exponent=0, value=30000),
+                    evse_min_charge_power=RationalNumber(exponent=-2, value=10000),
+                    evse_max_charge_power_l2=RationalNumber(exponent=0, value=30000),
+                    evse_min_charge_power_l2=RationalNumber(exponent=-2, value=10000),
+                    evse_max_charge_power_l3=RationalNumber(exponent=0, value=30000),
+                    evse_min_charge_power_l3=RationalNumber(exponent=-2, value=10000),
+                    evse_nominal_frequency=RationalNumber(exponent=-3, value=10000),
+                    evse_power_ramp_limit=RationalNumber(exponent=-3, value=10000),
+                    evse_present_active_power=RationalNumber(exponent=-2, value=10000),
+                    evse_present_active_power_l2=RationalNumber(
+                        exponent=-2, value=10000
+                    ),
+                    evse_present_active_power_l3=RationalNumber(
+                        exponent=-2, value=10000
+                    ),
+                ),
+                ServiceV20.AC,
+                ScheduleExchange,
+                EVSEDataContext(
+                    evse_max_charge_power=30000,
+                    evse_min_charge_power=100,
+                    evse_max_charge_power_l2=30000,
+                    evse_min_charge_power_l2=100,
+                    evse_max_charge_power_l3=30000,
+                    evse_min_charge_power_l3=100,
+                    evse_nominal_frequency=10,
+                    evse_power_ramp_limit=10,
+                    evse_present_active_power=100,
+                    evse_present_active_power_l2=100,
+                    evse_present_active_power_l3=100,
+                ),
+            ),
+            (
+                BPTACChargeParameterDiscoveryReqParams(
+                    ev_max_charge_power=RationalNumber(exponent=0, value=30000),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l2=RationalNumber(exponent=0, value=30000),
+                    ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l3=RationalNumber(exponent=0, value=30000),
+                    ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+                    ev_max_discharge_power=RationalNumber(exponent=0, value=30000),
+                    ev_min_discharge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_discharge_power_l2=RationalNumber(exponent=0, value=30000),
+                    ev_min_discharge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_max_discharge_power_l3=RationalNumber(exponent=0, value=30000),
+                    ev_min_discharge_power_l3=RationalNumber(exponent=0, value=100),
+                ),
+                BPTACChargeParameterDiscoveryResParams(
+                    evse_max_charge_power=RationalNumber(exponent=0, value=30000),
+                    evse_min_charge_power=RationalNumber(exponent=-2, value=10000),
+                    evse_max_charge_power_l2=RationalNumber(exponent=0, value=30000),
+                    evse_min_charge_power_l2=RationalNumber(exponent=-2, value=10000),
+                    evse_max_charge_power_l3=RationalNumber(exponent=0, value=30000),
+                    evse_min_charge_power_l3=RationalNumber(exponent=-2, value=10000),
+                    evse_nominal_frequency=RationalNumber(exponent=-3, value=10000),
+                    evse_power_ramp_limit=RationalNumber(exponent=-3, value=10000),
+                    evse_present_active_power=RationalNumber(exponent=-2, value=10000),
+                    evse_present_active_power_l2=RationalNumber(
+                        exponent=-2, value=10000
+                    ),
+                    evse_present_active_power_l3=RationalNumber(
+                        exponent=-2, value=10000
+                    ),
+                    evse_max_discharge_power=RationalNumber(exponent=0, value=30000),
+                    evse_min_discharge_power=RationalNumber(exponent=-2, value=10000),
+                    evse_max_discharge_power_l2=RationalNumber(exponent=0, value=30000),
+                    evse_min_discharge_power_l2=RationalNumber(
+                        exponent=-2, value=10000
+                    ),
+                    evse_max_discharge_power_l3=RationalNumber(exponent=0, value=30000),
+                    evse_min_discharge_power_l3=RationalNumber(
+                        exponent=-2, value=10000
+                    ),
+                ),
+                ServiceV20.AC_BPT,
+                ScheduleExchange,
+                EVSEDataContext(
+                    evse_max_charge_power=30000,
+                    evse_min_charge_power=100,
+                    evse_max_charge_power_l2=30000,
+                    evse_min_charge_power_l2=100,
+                    evse_max_charge_power_l3=30000,
+                    evse_min_charge_power_l3=100,
+                    evse_nominal_frequency=10,
+                    evse_power_ramp_limit=10,
+                    evse_present_active_power=100,
+                    evse_present_active_power_l2=100,
+                    evse_present_active_power_l3=100,
+                    evse_max_discharge_power=30000,
+                    evse_min_discharge_power=100,
+                    evse_max_discharge_power_l2=30000,
+                    evse_min_discharge_power_l2=100,
+                    evse_max_discharge_power_l3=30000,
+                    evse_min_discharge_power_l3=100,
+                ),
+            ),
+        ],
+    )
+    async def test_15118_20_ac_charge_param_discovery_res_evse_context_read(
+        self,
+        req_params,
+        expected_res_params,
+        selected_service,
+        expected_state,
+        expected_evse_context,
+    ):
+        self.comm_session.selected_energy_service = SelectedEnergyService(
+            service=selected_service, is_free=True, parameter_set=None
+        )
+        self.comm_session.evse_controller.evse_data_context = expected_evse_context
+        ac_service_discovery = ACChargeParameterDiscovery(self.comm_session)
+        ac_service_discovery_req = get_ac_service_discovery_req(
+            req_params, selected_service
+        )
+        await ac_service_discovery.process_message(message=ac_service_discovery_req)
+        assert ac_service_discovery.next_state is expected_state
+        if selected_service == ServiceV20.AC:
+            assert ac_service_discovery.message.ac_params == expected_res_params
+        elif selected_service == ServiceV20.AC_BPT:
+            assert ac_service_discovery.message.bpt_ac_params == expected_res_params

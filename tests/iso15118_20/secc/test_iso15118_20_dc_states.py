@@ -27,9 +27,11 @@ from iso15118.shared.messages.iso15118_20.common_messages import SelectedEnergyS
 from iso15118.shared.messages.iso15118_20.common_types import Processing, RationalNumber
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
+    BPTDCChargeParameterDiscoveryResParams,
     BPTDynamicDCChargeLoopReqParams,
     BPTScheduledDCChargeLoopReqParams,
     DCChargeParameterDiscoveryReqParams,
+    DCChargeParameterDiscoveryResParams,
     DynamicDCChargeLoopReqParams,
     ScheduledDCChargeLoopReqParams,
 )
@@ -429,3 +431,105 @@ class TestEvScenarios:
         assert dc_charge_loop.next_state is expected_state
         updated_ev_context = self.comm_session.evse_controller.ev_data_context
         assert updated_ev_context == expected_ev_context
+
+    @pytest.mark.parametrize(
+        "req_params, expected_res_params, selected_service, expected_state, expected_evse_context",
+        [
+            (
+                DCChargeParameterDiscoveryReqParams(
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_current=RationalNumber(exponent=0, value=300),
+                    ev_min_charge_current=RationalNumber(exponent=0, value=10),
+                    ev_max_voltage=RationalNumber(exponent=0, value=1000),
+                    ev_min_voltage=RationalNumber(exponent=0, value=10),
+                    target_soc=80,
+                ),
+                DCChargeParameterDiscoveryResParams(
+                    evse_max_charge_power=RationalNumber(exponent=0, value=30000),
+                    evse_min_charge_power=RationalNumber(exponent=-2, value=10000),
+                    evse_max_charge_current=RationalNumber(exponent=0, value=30000),
+                    evse_min_charge_current=RationalNumber(exponent=-2, value=10000),
+                    evse_max_voltage=RationalNumber(exponent=0, value=30000),
+                    evse_min_voltage=RationalNumber(exponent=-2, value=10000),
+                    evse_power_ramp_limit=RationalNumber(exponent=-2, value=10000),
+                ),
+                ServiceV20.DC,
+                ScheduleExchange,
+                EVSEDataContext(
+                    evse_max_charge_power=30000,
+                    evse_min_charge_power=100,
+                    evse_max_charge_current=30000,
+                    evse_min_charge_current=100,
+                    evse_max_voltage=30000,
+                    evse_min_voltage=100,
+                    evse_power_ramp_limit=100,
+                ),
+            ),
+            (
+                BPTDCChargeParameterDiscoveryReqParams(
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_current=RationalNumber(exponent=0, value=300),
+                    ev_min_charge_current=RationalNumber(exponent=0, value=10),
+                    ev_max_voltage=RationalNumber(exponent=0, value=1000),
+                    ev_min_voltage=RationalNumber(exponent=0, value=10),
+                    target_soc=80,
+                    ev_max_discharge_power=RationalNumber(exponent=0, value=11),
+                    ev_min_discharge_power=RationalNumber(exponent=3, value=1),
+                    ev_max_discharge_current=RationalNumber(exponent=0, value=11),
+                    ev_min_discharge_current=RationalNumber(exponent=0, value=10),
+                ),
+                BPTDCChargeParameterDiscoveryResParams(
+                    evse_max_charge_power=RationalNumber(exponent=0, value=30000),
+                    evse_min_charge_power=RationalNumber(exponent=-2, value=10000),
+                    evse_max_charge_current=RationalNumber(exponent=0, value=30000),
+                    evse_min_charge_current=RationalNumber(exponent=-2, value=10000),
+                    evse_max_voltage=RationalNumber(exponent=0, value=30000),
+                    evse_min_voltage=RationalNumber(exponent=-2, value=10000),
+                    evse_power_ramp_limit=RationalNumber(exponent=-2, value=10000),
+                    evse_max_discharge_power=RationalNumber(exponent=0, value=30000),
+                    evse_min_discharge_power=RationalNumber(exponent=-2, value=10000),
+                    evse_max_discharge_current=RationalNumber(exponent=0, value=30000),
+                    evse_min_discharge_current=RationalNumber(exponent=-2, value=10000),
+                ),
+                ServiceV20.DC_BPT,
+                ScheduleExchange,
+                EVSEDataContext(
+                    evse_max_charge_power=30000,
+                    evse_min_charge_power=100,
+                    evse_max_charge_current=30000,
+                    evse_min_charge_current=100,
+                    evse_max_voltage=30000,
+                    evse_min_voltage=100,
+                    evse_power_ramp_limit=100,
+                    evse_max_discharge_power=30000,
+                    evse_min_discharge_power=100,
+                    evse_max_discharge_current=30000,
+                    evse_min_discharge_current=100,
+                ),
+            ),
+        ],
+    )
+    async def test_15118_20_dc_charge_param_discovery_res_evse_context_read(
+        self,
+        req_params,
+        expected_res_params,
+        selected_service,
+        expected_state,
+        expected_evse_context,
+    ):
+        self.comm_session.selected_energy_service = SelectedEnergyService(
+            service=selected_service, is_free=True, parameter_set=None
+        )
+        self.comm_session.evse_controller.evse_data_context = expected_evse_context
+        dc_service_discovery = DCChargeParameterDiscovery(self.comm_session)
+        dc_service_discovery_req = get_dc_service_discovery_req(
+            req_params, selected_service
+        )
+        await dc_service_discovery.process_message(message=dc_service_discovery_req)
+        assert dc_service_discovery.next_state is expected_state
+        if selected_service == ServiceV20.DC:
+            assert dc_service_discovery.message.dc_params == expected_res_params
+        elif selected_service == ServiceV20.DC_BPT:
+            assert dc_service_discovery.message.bpt_dc_params == expected_res_params
