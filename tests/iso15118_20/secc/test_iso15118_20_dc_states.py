@@ -4,7 +4,8 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.interface import EVDataContext
+from iso15118.secc.controller.ev_data import EVDataContext
+from iso15118.secc.controller.evse_data import EVSEDataContext
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.secc.failed_responses import init_failed_responses_iso_v20
 from iso15118.secc.states.iso15118_20_states import (
@@ -59,6 +60,33 @@ class TestEvScenarios:
         self.comm_session.writer = MockWriter()
         self.comm_session.failed_responses_isov20 = init_failed_responses_iso_v20()
         self.comm_session.evse_controller = SimEVSEController()
+        self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
+
+    def get_evse_data(self) -> EVSEDataContext:
+        return EVSEDataContext(
+            evse_max_charge_power=3000,
+            evse_min_charge_power=3000,
+            evse_max_charge_current=3000,
+            evse_min_charge_current=3000,
+            evse_max_voltage=3000,
+            evse_min_voltage=3000,
+            evse_power_ramp_limit=10,
+            # EVSE -20 AC and DC BPT
+            evse_max_discharge_power=3000,
+            evse_min_discharge_power=3000,
+            evse_max_discharge_current=3000,
+            evse_min_discharge_current=3000,
+            # EVSE -20 AC
+            evse_max_charge_power_l2=3000,
+            evse_max_charge_power_l3=3000,
+            evse_min_charge_power_l2=3000,
+            evse_min_charge_power_l3=3000,
+            evse_nominal_frequency=3000,
+            max_power_asymmetry=3000,
+            evse_present_active_power=3000,
+            evse_present_active_power_l2=3000,
+            evse_present_active_power_l3=3000,
+        )
 
     @pytest.mark.parametrize(
         "service_type, dc_params, bpt_params",

@@ -12,7 +12,7 @@ element names by using the 'alias' attribute.
 """
 from abc import ABC
 from enum import Enum
-from typing import List
+from typing import List, Tuple, Optional
 
 from pydantic import Field, conbytes, conint, constr, validator
 
@@ -172,6 +172,126 @@ class RationalNumber(BaseModel):
 
     def get_decimal_value(self) -> float:
         return self.value * 10**self.exponent
+
+    @classmethod
+    def get_rational_repr(cls, float_value: Optional[float] = None):
+        if not float_value:
+            return None
+
+        exponent, value = cls._convert_to_exponent_number(float_value)
+        return RationalNumber(exponent=exponent, value=value)
+
+    @classmethod
+    def _convert_to_exponent_number(
+        cls,
+        float_value: float,
+        min_limit: float = INT_16_MIN,
+        max_limit: float = INT_16_MAX,
+    ) -> Tuple[int, int]:
+        """
+        Convert to exponent number, by finding the best fit exponent.
+
+        For example, max limit for PVEVSEMinCurrentLimit is 400
+        value = 0.0000234 => exponent = -3, return value = 0
+        value = 0.000234 => exponent = -3, return value = 0
+        value = 0.00234 => exponent = -3, return value = 2
+        value = 0.0234 => exponent = -3, return value = 23
+        value = 0.234 => exponent = -3, return value = 234
+        value = 2.34 => exponent = -2, return value = 234
+        value = 23.4 => exponent = -1, return value = 234
+        value = 234 => exponent = 0, return value = 234
+        value = 2340 => exponent = 1, return value = 234
+        value = 23400 => exponent = 2, return value = 234
+        value = 234000 => exponent = 3, return value = 234
+
+        value = 0.4 => exponent = -3, return value = 400
+        value = 0.356 => exponent = -3, return value = 356
+        value = 0.157 => exponent = -3, return value = 157
+        value = 0.00356 => exponent = -3, return value = 3
+        value = 0.634 => exponent = -2, return value = 63
+
+        Note:
+            In ISO 15118-2, the min limit is 0 and the max is
+            dependent on the field.
+            In ISO 15118-20, the limits are defined by the
+            RationalNumber type which are the limits of the
+            int16 range: [-32768, 32767].
+            Also, in ISO 15118-20, the exponent assumes the range
+            of [-128, 127], but currently that is not being
+            taken into consideration.
+        Args:
+            value (float): parameter value
+
+        Returns:
+           a tuple where the first item is the exponent and other is the
+           int value with the applied exponent
+        """
+        if float_value < 0 and min_limit == 0:
+            raise ValueError(
+                "The conversion of negative values "
+                "for a range with a min limit of 0, is invalid!"
+            )
+        # This is to ensure that we keep the value to be converted, within
+        # the range of the classes RationalNumber and PhysicalValue 'value' data type
+        # int16
+        min_limit = max(min_limit, INT_16_MIN)
+        # For example, the class PVEVSEMaxPowerLimit has a _max_limit = 200000,
+        # so, if the value to be converted is 200000, we cant represent it
+        # with exponent = 0; instead, we need to take into account
+        # the INT_16_MAX = 32768 and represent the value as
+        # value = 20000, exponent = 1
+        max_limit = min(max_limit, INT_16_MAX)
+
+        exponent = 0
+        limit = max_limit
+
+        if float_value < 0:
+            limit = abs(min_limit)
+
+        abs_value = abs(float_value)
+
+        if 0.1 < (abs_value / limit) <= 1 or abs_value == 0.0:
+            # If the first clause is validated, it means that the value
+            # and the max limit/range of the data type have the same
+            # magnitude/exponent and the value is lower than the limit.
+            # eg the value 234 and the limit 500
+            # have the same magnitude = 10**2
+            # 234/500 = 0.468, which means 234 <= 500. Thus, no optimization
+            # is needed, we can return the given value and exponent = 0
+            return exponent, int(float_value)
+
+        # From here on, we try to approximate as much as possible the
+        # value to the max limit, so that we can mitigate as much as
+        # possible the loss of representation of the number
+        if abs_value < limit:
+            while abs_value < limit and exponent > -3:
+                exponent -= 1
+                abs_value = abs_value * 10
+            if abs_value > limit:
+                # for example for a value of 2.34 and max limit = 400
+                # with exponent = -3 we would send an end value of 2340,
+                # which does not fit the limit, so we go back one exponent
+                # to be able to satisfy the type limitation:
+                # exponent = -2 and end value = 234
+                exponent += 1
+            elif int(abs_value) == 0:
+                # We enter into this arm if abs_value < limit and exponent >= -3
+                # This happens like in the case we have a max limit = 400
+                # and value = 0.4 * 10 ** -3. With an exponent of  -3, the
+                # end value is 0.4 which is sent as 0 when converted to int.
+                # So, we cant fit the number into the data type
+                exponent = 0
+        else:
+            while abs_value > limit and exponent < 3:
+                exponent += 1
+                abs_value = abs_value * 10**-1
+            if abs_value > limit:
+                # This happens like in the case we have a max limit = 400
+                # and value = 4000 * 10 ** 3. With an exponent of  3, the
+                # end value is 4000 which is still above the 400 limit.
+                # So, we cant fit the number into the data type
+                raise ValueError("Value cant be represented with an exponent of 3")
+        return exponent, int(float_value * 10**-exponent)
 
 
 class EVSENotification(str, Enum):

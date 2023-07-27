@@ -5,10 +5,8 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from iso15118.secc import Config
-from iso15118.secc.controller.interface import (
-    AuthorizationResponse,
-    EVSessionContext15118,
-)
+from iso15118.secc.controller.ev_data import EVSessionContext15118
+from iso15118.secc.controller.interface import AuthorizationResponse
 from iso15118.secc.states.iso15118_2_states import (
     Authorization,
     ChargeParameterDiscovery,

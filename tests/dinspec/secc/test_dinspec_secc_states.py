@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.interface import EVSessionContext15118
+from iso15118.secc.controller.ev_data import EVSessionContext15118
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.secc.states.din_spec_states import CurrentDemand, PowerDelivery
 from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol

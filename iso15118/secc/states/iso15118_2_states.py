@@ -10,10 +10,8 @@ import time
 from typing import List, Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.interface import (
-    EVChargeParamsLimits,
-    EVSessionContext15118,
-)
+from iso15118.secc.controller.ev_data import EVSessionContext15118
+from iso15118.secc.controller.interface import EVChargeParamsLimits
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
     CertAttributeError,
