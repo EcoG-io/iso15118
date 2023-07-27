@@ -5,23 +5,35 @@ import pytest
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.interface import AuthorizationResponse
 from iso15118.secc.controller.simulator import SimEVSEController
-from iso15118.secc.states.iso15118_20_states import Authorization, ServiceDetail
+from iso15118.secc.failed_responses import init_failed_responses_iso_v20
+from iso15118.secc.states.iso15118_20_states import (
+    ACChargeLoop,
+    Authorization,
+    PowerDelivery,
+    ServiceDetail,
+)
 from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
+    ControlMode,
+    CpState,
     EnergyTransferModeEnum,
     Protocol,
     ServiceV20,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
+    ChargeProgress,
     MatchedService,
+    SelectedEnergyService,
     Service,
     ServiceList,
 )
-from iso15118.shared.messages.iso15118_20.common_types import ResponseCode
+from iso15118.shared.messages.iso15118_20.common_types import Processing, ResponseCode
 from iso15118.shared.notifications import StopNotification
+from iso15118.shared.states import Terminate
 from tests.dinspec.secc.test_dinspec_secc_states import MockWriter
 from tests.iso15118_20.secc.test_messages import (
+    get_power_delivery_req,
     get_v2g_message_authorization_req,
     get_v2g_message_service_detail_req,
 )
@@ -34,11 +46,15 @@ class TestEvScenarios:
     def _comm_session(self):
         self.comm_session = Mock(spec=SECCCommunicationSession)
         self.comm_session.session_id = "F9F9EE8505F55838"
-        self.comm_session.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
+        self.comm_session.selected_energy_mode = (
+            EnergyTransferModeEnum.AC_THREE_PHASE_CORE
+        )
         self.comm_session.selected_charging_type_is_ac = False
         self.comm_session.stop_reason = StopNotification(False, "pytest")
         self.comm_session.protocol = Protocol.ISO_15118_20_AC
         self.comm_session.writer = MockWriter()
+        self.comm_session.failed_responses_isov20 = init_failed_responses_iso_v20()
+        self.comm_session.evse_controller = SimEVSEController()
 
     @pytest.mark.parametrize(
         "service_id_input, response_code",
@@ -121,3 +137,46 @@ class TestEvScenarios:
             message=get_v2g_message_authorization_req(auth_mode)
         )
         assert authorization.expecting_authorization_req is next_req_is_auth_req
+
+    @pytest.mark.parametrize(
+        "control_mode, next_state, selected_energy_service, cp_state",
+        [
+            (
+                ControlMode.DYNAMIC,
+                ACChargeLoop,
+                SelectedEnergyService(
+                    service=ServiceV20.AC, is_free=True, parameter_set=None
+                ),
+                CpState.D2,
+            ),
+            (
+                ControlMode.DYNAMIC,
+                ACChargeLoop,
+                SelectedEnergyService(
+                    service=ServiceV20.AC, is_free=True, parameter_set=None
+                ),
+                CpState.C2,
+            ),
+            (
+                ControlMode.DYNAMIC,
+                Terminate,
+                SelectedEnergyService(
+                    service=ServiceV20.AC, is_free=True, parameter_set=None
+                ),
+                CpState.B2,
+            ),
+        ],
+    )
+    async def test_power_delivery_state_check(
+        self, control_mode, next_state, selected_energy_service, cp_state
+    ):
+        self.comm_session.control_mode = control_mode
+        self.comm_session.selected_energy_service = selected_energy_service
+        power_delivery = PowerDelivery(self.comm_session)
+        self.comm_session.evse_controller.get_cp_state = AsyncMock(
+            return_value=cp_state
+        )
+        await power_delivery.process_message(
+            message=get_power_delivery_req(Processing.FINISHED, ChargeProgress.START)
+        )
+        assert power_delivery.next_state is next_state
