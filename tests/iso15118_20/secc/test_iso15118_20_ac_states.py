@@ -471,7 +471,7 @@ class TestEvScenarios:
         assert updated_ev_context == expected_ev_context
 
     @pytest.mark.parametrize(
-        "req_params, expected_res_params, selected_service, expected_state, expected_evse_context",
+        "req_params, expected_res_params, selected_service, expected_state, expected_evse_context",  # noqa
         [
             (
                 ACChargeParameterDiscoveryReqParams(
