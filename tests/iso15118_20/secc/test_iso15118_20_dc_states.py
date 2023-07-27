@@ -1,4 +1,3 @@
-from datetime import time
 from typing import Type
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -27,7 +26,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ChargeProgress,
     SelectedEnergyService,
 )
-from iso15118.shared.messages.iso15118_20.common_types import MessageHeader, Processing
+from iso15118.shared.messages.iso15118_20.common_types import Processing
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
 from tests.dinspec.secc.test_dinspec_secc_states import MockWriter
@@ -38,7 +37,6 @@ from tests.iso15118_20.secc.test_messages import (
     get_schedule_exchange_req_message,
     get_v2g_message_dc_charge_parameter_discovery_req,
 )
-from tests.tools import MOCK_SESSION_ID
 
 
 @patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b"01"))
