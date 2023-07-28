@@ -4,6 +4,10 @@ from typing import Optional
 
 @dataclass
 class EVSEDataContext:
+    departure_time: Optional[int] = None
+    min_soc: Optional[int] = None
+    target_soc: Optional[int] = None
+    ack_max_delay: Optional[int] = None
     # EVSE -20 DC
     evse_max_charge_power: Optional[float] = None  # Also in -20 AC
     evse_min_charge_power: Optional[float] = None  # Also in -20 AC
@@ -35,6 +39,14 @@ class EVSEDataContext:
     evse_max_discharge_power_l3: Optional[float] = None
     evse_min_discharge_power_l2: Optional[float] = None
     evse_min_discharge_power_l3: Optional[float] = None
+
+    # EVSE -20 AC CL
+    evse_target_active_power: Optional[float] = None
+    evse_target_active_power_l2: Optional[float] = None
+    evse_target_active_power_l3: Optional[float] = None
+    evse_target_reactive_power: Optional[float] = None
+    evse_target_reactive_power_l2: Optional[float] = None
+    evse_target_reactive_power_l3: Optional[float] = None
 
     def update(
         self,

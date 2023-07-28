@@ -40,6 +40,8 @@ def get_evse_context():
         evse_max_discharge_power_l3=3000,
         evse_min_discharge_power_l2=3000,
         evse_min_discharge_power_l3=3000,
+        # EVSE
+        evse_target_active_power=10,
     )
 
 

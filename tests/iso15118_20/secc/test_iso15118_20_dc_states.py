@@ -29,11 +29,15 @@ from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
     BPTDCChargeParameterDiscoveryResParams,
     BPTDynamicDCChargeLoopReqParams,
+    BPTDynamicDCChargeLoopRes,
     BPTScheduledDCChargeLoopReqParams,
+    BPTScheduledDCChargeLoopResParams,
     DCChargeParameterDiscoveryReqParams,
     DCChargeParameterDiscoveryResParams,
     DynamicDCChargeLoopReqParams,
+    DynamicDCChargeLoopRes,
     ScheduledDCChargeLoopReqParams,
+    ScheduledDCChargeLoopResParams,
 )
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
@@ -533,3 +537,216 @@ class TestEvScenarios:
             assert dc_service_discovery.message.dc_params == expected_res_params
         elif selected_service == ServiceV20.DC_BPT:
             assert dc_service_discovery.message.bpt_dc_params == expected_res_params
+
+    @pytest.mark.parametrize(
+        "ev_params,expected_evse_params,selected_service,control_mode,expected_state,evse_params,",  # noqa
+        [
+            (
+                ScheduledDCChargeLoopReqParams(
+                    ev_target_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_min_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_target_current=RationalNumber(exponent=2, value=300),
+                    ev_target_voltage=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_current=RationalNumber(exponent=2, value=300),
+                    ev_max_voltage=RationalNumber(exponent=2, value=300),
+                    ev_min_voltage=RationalNumber(exponent=2, value=300),
+                ),
+                ScheduledDCChargeLoopResParams(
+                    evse_maximum_charge_power=RationalNumber(exponent=-2, value=30000),
+                    evse_minimum_charge_power=RationalNumber(exponent=-2, value=30000),
+                    evse_maximum_charge_current=RationalNumber(
+                        exponent=-2, value=30000
+                    ),
+                    evse_maximum_voltage=RationalNumber(exponent=-2, value=30000),
+                ),
+                ServiceV20.DC,
+                ControlMode.SCHEDULED,
+                None,
+                EVSEDataContext(
+                    evse_max_charge_power=300,
+                    evse_min_charge_power=300,
+                    evse_max_charge_current=300,
+                    evse_max_voltage=300,
+                ),
+            ),
+            (
+                DynamicDCChargeLoopReqParams(
+                    departure_time=3600,
+                    ev_target_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_min_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_current=RationalNumber(exponent=2, value=300),
+                    ev_max_voltage=RationalNumber(exponent=2, value=300),
+                    ev_min_voltage=RationalNumber(exponent=2, value=300),
+                ),
+                DynamicDCChargeLoopRes(
+                    departure_time=3600,
+                    min_soc=30,
+                    target_soc=80,
+                    ack_max_delay=15,
+                    evse_maximum_charge_power=RationalNumber(exponent=0, value=30000),
+                    evse_minimum_charge_power=RationalNumber(exponent=0, value=30000),
+                    evse_maximum_charge_current=RationalNumber(exponent=0, value=30000),
+                    evse_maximum_voltage=RationalNumber(exponent=0, value=30000),
+                ),
+                ServiceV20.DC,
+                ControlMode.DYNAMIC,
+                None,
+                EVSEDataContext(
+                    departure_time=3600,
+                    min_soc=30,
+                    target_soc=80,
+                    ack_max_delay=15,
+                    evse_max_charge_power=30000,
+                    evse_min_charge_power=30000,
+                    evse_max_charge_current=30000,
+                    evse_max_voltage=30000,
+                ),
+            ),
+            (
+                BPTScheduledDCChargeLoopReqParams(
+                    ev_target_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_min_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_target_current=RationalNumber(exponent=2, value=300),
+                    ev_target_voltage=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_current=RationalNumber(exponent=2, value=300),
+                    ev_max_voltage=RationalNumber(exponent=2, value=300),
+                    ev_min_voltage=RationalNumber(exponent=2, value=300),
+                    ev_max_discharge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_discharge_power=RationalNumber(exponent=2, value=300),
+                    ev_max_discharge_current=RationalNumber(exponent=2, value=300),
+                ),
+                BPTScheduledDCChargeLoopResParams(
+                    evse_maximum_charge_power=RationalNumber(exponent=-2, value=30000),
+                    evse_minimum_charge_power=RationalNumber(exponent=-2, value=30000),
+                    evse_maximum_charge_current=RationalNumber(
+                        exponent=-2, value=30000
+                    ),
+                    evse_maximum_voltage=RationalNumber(exponent=-2, value=30000),
+                    evse_max_discharge_power=RationalNumber(exponent=-2, value=30000),
+                    evse_min_discharge_power=RationalNumber(exponent=-2, value=30000),
+                    evse_max_discharge_current=RationalNumber(exponent=-2, value=30000),
+                    evse_min_voltage=RationalNumber(exponent=-2, value=30000),
+                ),
+                ServiceV20.DC_BPT,
+                ControlMode.SCHEDULED,
+                None,
+                EVSEDataContext(
+                    evse_max_charge_power=300,
+                    evse_min_charge_power=300,
+                    evse_max_charge_current=300,
+                    evse_max_voltage=300,
+                    evse_max_discharge_power=300,
+                    evse_min_discharge_power=300,
+                    evse_max_discharge_current=300,
+                    evse_min_voltage=300,
+                ),
+            ),
+            (
+                BPTDynamicDCChargeLoopReqParams(
+                    departure_time=3600,
+                    ev_target_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_min_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_current=RationalNumber(exponent=2, value=300),
+                    ev_max_voltage=RationalNumber(exponent=2, value=300),
+                    ev_min_voltage=RationalNumber(exponent=2, value=300),
+                    ev_max_discharge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_discharge_power=RationalNumber(exponent=2, value=300),
+                    ev_max_discharge_current=RationalNumber(exponent=2, value=300),
+                    ev_max_v2x_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_min_v2x_energy_request=RationalNumber(exponent=2, value=300),
+                ),
+                BPTDynamicDCChargeLoopRes(
+                    departure_time=3600,
+                    min_soc=30,
+                    target_soc=80,
+                    ack_max_delay=15,
+                    evse_maximum_charge_power=RationalNumber(exponent=0, value=30000),
+                    evse_minimum_charge_power=RationalNumber(exponent=0, value=30000),
+                    evse_maximum_charge_current=RationalNumber(exponent=0, value=30000),
+                    evse_maximum_voltage=RationalNumber(exponent=0, value=30000),
+                    evse_max_discharge_power=RationalNumber(exponent=0, value=30000),
+                    evse_min_discharge_power=RationalNumber(exponent=0, value=30000),
+                    evse_max_discharge_current=RationalNumber(exponent=0, value=30000),
+                    evse_min_voltage=RationalNumber(exponent=0, value=30000),
+                ),
+                ServiceV20.DC_BPT,
+                ControlMode.DYNAMIC,
+                None,
+                EVSEDataContext(
+                    departure_time=3600,
+                    min_soc=30,
+                    target_soc=80,
+                    ack_max_delay=15,
+                    evse_max_charge_power=30000,
+                    evse_min_charge_power=30000,
+                    evse_max_charge_current=30000,
+                    evse_max_voltage=30000,
+                    evse_max_discharge_power=30000,
+                    evse_min_discharge_power=30000,
+                    evse_max_discharge_current=30000,
+                    evse_min_voltage=30000,
+                ),
+            ),
+        ],
+    )
+    async def test_15118_20_dc_charge_charge_loop_res_evse_context_read(
+        self,
+        ev_params,
+        expected_evse_params,
+        selected_service,
+        control_mode,
+        expected_state,
+        evse_params,
+    ):
+        self.comm_session.control_mode = control_mode
+        self.comm_session.selected_energy_service = SelectedEnergyService(
+            service=selected_service, is_free=True, parameter_set=None
+        )
+        self.comm_session.evse_controller.evse_data_context = evse_params
+        self.comm_session.evse_controller.send_charging_power_limits = AsyncMock(
+            return_value=None
+        )
+        dc_charge_loop = DCChargeLoop(self.comm_session)
+        dc_charge_loop_req = get_dc_charge_loop_req(
+            ev_params, selected_service, control_mode
+        )
+        await dc_charge_loop.process_message(message=dc_charge_loop_req)
+        assert dc_charge_loop.next_state is expected_state
+        if selected_service == ServiceV20.DC and control_mode == ControlMode.SCHEDULED:
+            assert (
+                dc_charge_loop.message.scheduled_dc_charge_loop_res
+                == expected_evse_params
+            )
+        elif (
+            selected_service == ServiceV20.DC_BPT
+            and control_mode == ControlMode.SCHEDULED
+        ):
+            assert (
+                dc_charge_loop.message.bpt_scheduled_dc_charge_loop_res
+                == expected_evse_params
+            )
+        if selected_service == ServiceV20.DC and control_mode == ControlMode.DYNAMIC:
+            assert (
+                dc_charge_loop.message.dynamic_dc_charge_loop_res
+                == expected_evse_params
+            )
+        elif (
+            selected_service == ServiceV20.DC_BPT
+            and control_mode == ControlMode.DYNAMIC
+        ):
+            assert (
+                dc_charge_loop.message.bpt_dynamic_dc_charge_loop_res
+                == expected_evse_params
+            )

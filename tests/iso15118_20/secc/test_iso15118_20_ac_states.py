@@ -29,9 +29,13 @@ from iso15118.shared.messages.iso15118_20.ac import (
     BPTACChargeParameterDiscoveryReqParams,
     BPTACChargeParameterDiscoveryResParams,
     BPTDynamicACChargeLoopReqParams,
+    BPTDynamicACChargeLoopResParams,
     BPTScheduledACChargeLoopReqParams,
+    BPTScheduledACChargeLoopResParams,
     DynamicACChargeLoopReqParams,
+    DynamicACChargeLoopResParams,
     ScheduledACChargeLoopReqParams,
+    ScheduledACChargeLoopResParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     MatchedService,
@@ -100,6 +104,7 @@ class TestEvScenarios:
             evse_max_discharge_power_l3=3000,
             evse_min_discharge_power_l2=3000,
             evse_min_discharge_power_l3=3000,
+            evse_target_active_power=10,
         )
 
     @pytest.mark.parametrize(
@@ -603,3 +608,270 @@ class TestEvScenarios:
             assert ac_service_discovery.message.ac_params == expected_res_params
         elif selected_service == ServiceV20.AC_BPT:
             assert ac_service_discovery.message.bpt_ac_params == expected_res_params
+
+    @pytest.mark.parametrize(
+        "ev_params, expected_evse_params, selected_service, control_mode, expected_state, evse_params",  # noqa
+        [
+            (
+                ScheduledACChargeLoopReqParams(
+                    ev_target_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_min_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l2=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+                    ev_present_active_power=RationalNumber(exponent=2, value=300),
+                    ev_present_active_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_present_active_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_present_reactive_power=RationalNumber(exponent=2, value=300),
+                    ev_present_reactive_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_present_reactive_power_l3=RationalNumber(exponent=2, value=300),
+                ),
+                ScheduledACChargeLoopResParams(
+                    evse_target_active_power=RationalNumber(exponent=0, value=30000),
+                    evse_target_active_power_l2=RationalNumber(exponent=0, value=30000),
+                    evse_target_active_power_l3=RationalNumber(exponent=0, value=30000),
+                    evse_target_reactive_power=RationalNumber(exponent=0, value=30000),
+                    evse_target_reactive_power_l2=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                    evse_target_reactive_power_l3=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                    evse_present_active_power=RationalNumber(exponent=0, value=30000),
+                    evse_present_active_power_l2=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                    evse_present_active_power_l3=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                ),
+                ServiceV20.AC,
+                ControlMode.SCHEDULED,
+                None,
+                EVSEDataContext(
+                    evse_target_active_power=30000,
+                    evse_target_active_power_l2=30000,
+                    evse_target_active_power_l3=30000,
+                    evse_target_reactive_power=30000,
+                    evse_target_reactive_power_l2=30000,
+                    evse_target_reactive_power_l3=30000,
+                    evse_present_active_power=30000,
+                    evse_present_active_power_l2=30000,
+                    evse_present_active_power_l3=30000,
+                ),
+            ),
+            (
+                DynamicACChargeLoopReqParams(
+                    departure_time=3600,
+                    ev_target_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_min_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l2=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+                    ev_present_active_power=RationalNumber(exponent=2, value=300),
+                    ev_present_active_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_present_active_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_present_reactive_power=RationalNumber(exponent=2, value=300),
+                    ev_present_reactive_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_present_reactive_power_l3=RationalNumber(exponent=2, value=300),
+                ),
+                DynamicACChargeLoopResParams(
+                    evse_target_active_power=RationalNumber(exponent=0, value=30000),
+                    evse_target_active_power_l2=RationalNumber(exponent=0, value=30000),
+                    evse_target_active_power_l3=RationalNumber(exponent=0, value=30000),
+                    evse_target_reactive_power=RationalNumber(exponent=0, value=30000),
+                    evse_target_reactive_power_l2=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                    evse_target_reactive_power_l3=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                    evse_present_active_power=RationalNumber(exponent=0, value=30000),
+                    evse_present_active_power_l2=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                    evse_present_active_power_l3=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                ),
+                ServiceV20.AC,
+                ControlMode.DYNAMIC,
+                None,
+                EVSEDataContext(
+                    evse_target_active_power=30000,
+                    evse_target_active_power_l2=30000,
+                    evse_target_active_power_l3=30000,
+                    evse_target_reactive_power=30000,
+                    evse_target_reactive_power_l2=30000,
+                    evse_target_reactive_power_l3=30000,
+                    evse_present_active_power=30000,
+                    evse_present_active_power_l2=30000,
+                    evse_present_active_power_l3=30000,
+                ),
+            ),
+            (
+                BPTScheduledACChargeLoopReqParams(
+                    ev_target_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_min_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_power_l2=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+                    ev_present_active_power=RationalNumber(exponent=2, value=300),
+                    ev_present_active_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_present_active_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_present_reactive_power=RationalNumber(exponent=2, value=300),
+                    ev_present_reactive_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_present_reactive_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_max_discharge_power=RationalNumber(exponent=2, value=300),
+                    ev_max_discharge_power_l2=RationalNumber(exponent=2, value=300),
+                    ev_max_discharge_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_min_discharge_power=RationalNumber(exponent=0, value=100),
+                    ev_min_discharge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_min_discharge_power_l3=RationalNumber(exponent=0, value=100),
+                ),
+                BPTScheduledACChargeLoopResParams(
+                    evse_target_active_power=RationalNumber(exponent=0, value=30000),
+                    evse_target_active_power_l2=RationalNumber(exponent=0, value=30000),
+                    evse_target_active_power_l3=RationalNumber(exponent=0, value=30000),
+                    evse_target_reactive_power=RationalNumber(exponent=0, value=30000),
+                    evse_target_reactive_power_l2=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                    evse_target_reactive_power_l3=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                    evse_present_active_power=RationalNumber(exponent=0, value=30000),
+                    evse_present_active_power_l2=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                    evse_present_active_power_l3=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                ),
+                ServiceV20.AC_BPT,
+                ControlMode.SCHEDULED,
+                None,
+                EVSEDataContext(
+                    evse_target_active_power=30000,
+                    evse_target_active_power_l2=30000,
+                    evse_target_active_power_l3=30000,
+                    evse_target_reactive_power=30000,
+                    evse_target_reactive_power_l2=30000,
+                    evse_target_reactive_power_l3=30000,
+                    evse_present_active_power=30000,
+                    evse_present_active_power_l2=30000,
+                    evse_present_active_power_l3=30000,
+                ),
+            ),
+            (
+                BPTDynamicACChargeLoopReqParams(
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_power_l2=RationalNumber(exponent=2, value=300),
+                    ev_max_charge_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+                    ev_present_active_power=RationalNumber(exponent=2, value=300),
+                    ev_present_active_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_present_active_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_present_reactive_power=RationalNumber(exponent=2, value=300),
+                    ev_present_reactive_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_present_reactive_power_l3=RationalNumber(exponent=2, value=300),
+                    departure_time=3600,
+                    ev_target_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_min_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_max_discharge_power=RationalNumber(exponent=2, value=300),
+                    ev_max_discharge_power_l2=RationalNumber(exponent=2, value=300),
+                    ev_max_discharge_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_min_discharge_power=RationalNumber(exponent=0, value=100),
+                    ev_min_discharge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_min_discharge_power_l3=RationalNumber(exponent=0, value=100),
+                    ev_max_v2x_energy_request=RationalNumber(exponent=2, value=300),
+                    ev_min_v2x_energy_request=RationalNumber(exponent=2, value=300),
+                ),
+                BPTDynamicACChargeLoopResParams(
+                    evse_target_active_power=RationalNumber(exponent=0, value=30000),
+                    evse_target_active_power_l2=RationalNumber(exponent=0, value=30000),
+                    evse_target_active_power_l3=RationalNumber(exponent=0, value=30000),
+                    evse_target_reactive_power=RationalNumber(exponent=0, value=30000),
+                    evse_target_reactive_power_l2=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                    evse_target_reactive_power_l3=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                    evse_present_active_power=RationalNumber(exponent=0, value=30000),
+                    evse_present_active_power_l2=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                    evse_present_active_power_l3=RationalNumber(
+                        exponent=0, value=30000
+                    ),
+                ),
+                ServiceV20.AC_BPT,
+                ControlMode.DYNAMIC,
+                None,
+                EVSEDataContext(
+                    evse_target_active_power=30000,
+                    evse_target_active_power_l2=30000,
+                    evse_target_active_power_l3=30000,
+                    evse_target_reactive_power=30000,
+                    evse_target_reactive_power_l2=30000,
+                    evse_target_reactive_power_l3=30000,
+                    evse_present_active_power=30000,
+                    evse_present_active_power_l2=30000,
+                    evse_present_active_power_l3=30000,
+                ),
+            ),
+        ],
+    )
+    async def test_15118_20_ac_charge_charge_loop_res_evse_context_read(
+        self,
+        ev_params,
+        expected_evse_params,
+        selected_service,
+        control_mode,
+        expected_state,
+        evse_params,
+    ):
+        self.comm_session.control_mode = control_mode
+        self.comm_session.selected_energy_service = SelectedEnergyService(
+            service=selected_service, is_free=True, parameter_set=None
+        )
+        self.comm_session.evse_controller.evse_data_context = evse_params
+        self.comm_session.evse_controller.send_charging_power_limits = AsyncMock(
+            return_value=None
+        )
+        ac_charge_loop = ACChargeLoop(self.comm_session)
+        ac_charge_loop_req = get_ac_charge_loop_req(
+            ev_params, selected_service, control_mode
+        )
+        await ac_charge_loop.process_message(message=ac_charge_loop_req)
+        assert ac_charge_loop.next_state is expected_state
+        if selected_service == ServiceV20.AC and control_mode == ControlMode.SCHEDULED:
+            assert ac_charge_loop.message.scheduled_params == expected_evse_params
+        elif (
+            selected_service == ServiceV20.AC_BPT
+            and control_mode == ControlMode.SCHEDULED
+        ):
+            assert ac_charge_loop.message.bpt_scheduled_params == expected_evse_params
+        if selected_service == ServiceV20.AC and control_mode == ControlMode.DYNAMIC:
+            assert ac_charge_loop.message.dynamic_params == expected_evse_params
+        elif (
+            selected_service == ServiceV20.AC_BPT
+            and control_mode == ControlMode.DYNAMIC
+        ):
+            assert ac_charge_loop.message.bpt_dynamic_params == expected_evse_params
