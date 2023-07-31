@@ -18,12 +18,17 @@ from iso15118.secc.states.iso15118_20_states import (
 )
 from iso15118.shared.messages.enums import (
     ControlMode,
+    CpState,
     EnergyTransferModeEnum,
     IsolationLevel,
     Protocol,
     ServiceV20,
 )
-from iso15118.shared.messages.iso15118_20.common_messages import SelectedEnergyService
+
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    ChargeProgress,
+    SelectedEnergyService,
+)
 from iso15118.shared.messages.iso15118_20.common_types import Processing, RationalNumber
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
@@ -39,6 +44,8 @@ from iso15118.shared.messages.iso15118_20.dc import (
     ScheduledDCChargeLoopReqParams,
     ScheduledDCChargeLoopResParams,
 )
+
+
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
 from tests.dinspec.secc.test_dinspec_secc_states import MockWriter
@@ -46,6 +53,7 @@ from tests.iso15118_20.secc.test_messages import (
     get_cable_check_req,
     get_dc_charge_loop_req,
     get_dc_service_discovery_req,
+    get_power_delivery_req,
     get_precharge_req,
     get_schedule_exchange_req_message,
     get_v2g_message_dc_charge_parameter_discovery_req,
@@ -750,3 +758,46 @@ class TestEvScenarios:
                 dc_charge_loop.message.bpt_dynamic_dc_charge_loop_res
                 == expected_evse_params
             )
+
+    @pytest.mark.parametrize(
+        "control_mode, next_state, selected_energy_service, cp_state",
+        [
+            (
+                ControlMode.DYNAMIC,
+                DCChargeLoop,
+                SelectedEnergyService(
+                    service=ServiceV20.DC, is_free=True, parameter_set=None
+                ),
+                CpState.D2,
+            ),
+            (
+                ControlMode.DYNAMIC,
+                DCChargeLoop,
+                SelectedEnergyService(
+                    service=ServiceV20.DC, is_free=True, parameter_set=None
+                ),
+                CpState.C2,
+            ),
+            (
+                ControlMode.DYNAMIC,
+                Terminate,
+                SelectedEnergyService(
+                    service=ServiceV20.DC, is_free=True, parameter_set=None
+                ),
+                CpState.B2,
+            ),
+        ],
+    )
+    async def test_power_delivery_state_check(
+        self, control_mode, next_state, selected_energy_service, cp_state
+    ):
+        self.comm_session.control_mode = control_mode
+        self.comm_session.selected_energy_service = selected_energy_service
+        power_delivery = PowerDelivery(self.comm_session)
+        self.comm_session.evse_controller.get_cp_state = AsyncMock(
+            return_value=cp_state
+        )
+        await power_delivery.process_message(
+            message=get_power_delivery_req(Processing.FINISHED, ChargeProgress.START)
+        )
+        assert power_delivery.next_state is next_state

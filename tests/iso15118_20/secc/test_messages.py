@@ -16,6 +16,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
     ChargeProgress,
     ContractCertificateChain,
+    DynamicEVPowerProfile,
     DynamicScheduleExchangeReqParams,
     EIMAuthReqParams,
     EVPowerProfile,
@@ -176,7 +177,7 @@ def get_power_delivery_req(processing: Processing, charge_progress: ChargeProgre
         ),
         ev_processing=processing,
         charge_progress=charge_progress,
-        scheduled_profile=EVPowerProfile(
+        ev_power_profile=EVPowerProfile(
             time_anchor=0,
             entry_list=EVPowerProfileEntryList(
                 entries=[
@@ -185,6 +186,7 @@ def get_power_delivery_req(processing: Processing, charge_progress: ChargeProgre
                     )
                 ]
             ),
+            dynamic_profile=DynamicEVPowerProfile(),
         ),
     )
 

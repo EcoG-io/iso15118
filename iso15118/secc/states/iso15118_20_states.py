@@ -3,6 +3,7 @@ This module contains the SECC's States used to process the EVCC's incoming
 V2GMessage objects of the ISO 15118-20 protocol, from SessionSetupReq to
 SessionStopReq.
 """
+import asyncio
 import logging
 import time
 from typing import List, Optional, Tuple, Type, Union
@@ -19,6 +20,7 @@ from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
     ControlMode,
+    CpState,
     EVSEProcessing,
     IsolationLevel,
     ISOV20PayloadTypes,
@@ -1063,8 +1065,14 @@ class PowerDelivery(StateSECC):
                 # [V2G20 - 847] The EVCC shall signal CP State C or D no later than 250
                 # ms after sending the first PowerDeliveryReq with ChargeProgress
                 # equals "Start" within V2G communication session.
-                # TODO: We may need to check the CP state is C or D before
-                #  closing the contactors.
+                if not await self.wait_for_state_c_or_d():
+                    self.stop_state_machine(
+                        "[V2G20-847]: State C/D not detected in PowerDelivery within"
+                        " the allotted 250 ms.",
+                        message,
+                        ResponseCode.FAILED,
+                    )
+                    return
 
                 if not await self.comm_session.evse_controller.is_contactor_closed():
                     self.stop_state_machine(
@@ -1111,6 +1119,35 @@ class PowerDelivery(StateSECC):
             Namespace.ISO_V20_COMMON_MSG,
             ISOV20PayloadTypes.MAINSTREAM,
         )
+
+    async def wait_for_state_c_or_d(self) -> bool:
+        # [V2G2 - 847] The EV shall signal CP State C or D no later than 250ms
+        # after sending the first PowerDeliveryReq with ChargeProgress equals
+        # "Start" within V2G Communication SessionPowerDeliveryReq.
+        STATE_C_TIMEOUT = 0.25
+
+        async def check_state():
+            while await self.comm_session.evse_controller.get_cp_state() not in [
+                CpState.C2,
+                CpState.D2,
+            ]:
+                await asyncio.sleep(0.05)
+            logger.debug(
+                f"State is " f"{await self.comm_session.evse_controller.get_cp_state()}"
+            )
+            return True
+
+        try:
+            return await asyncio.wait_for(
+                check_state(),
+                timeout=STATE_C_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            # try one more time to get the latest state
+            return await self.comm_session.evse_controller.get_cp_state() in [
+                CpState.C2,
+                CpState.D2,
+            ]
 
     def check_power_profile(self, power_profile: EVPowerProfile) -> ResponseCode:
         # TODO Check the power profile for any violation
