@@ -1485,7 +1485,7 @@ class DCPreCharge(StateEVCC):
 
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.DC_PRE_CHARGE_REQ)
-        self.pre_charge_finished_message_sent = False
+        self.pre_charge_finished_message_built_once = False
 
     async def process_message(
         self,
@@ -1508,7 +1508,7 @@ class DCPreCharge(StateEVCC):
             await self.comm_session.ev_controller.is_precharged(
                 precharge_res.evse_present_voltage
             )
-            and self.pre_charge_finished_message_sent
+            and self.pre_charge_finished_message_built_once
         ):
             next_state = PowerDelivery
             next_request = await self.build_power_delivery_req()
@@ -1522,7 +1522,7 @@ class DCPreCharge(StateEVCC):
             payload_type = ISOV20PayloadTypes.DC_MAINSTREAM
             timeout = Timeouts.DC_PRE_CHARGE_REQ
             namespace = Namespace.ISO_V20_DC
-            self.pre_charge_finished_message_sent = True
+            self.pre_charge_finished_message_built_once = True
 
         self.create_next_message(
             next_state,

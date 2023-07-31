@@ -559,6 +559,7 @@ class SimEVController(EVControllerInterface):
             logger.info("Precharge complete.")
             return True
         self.precharge_loop_cycles += 1
+        return False
 
     async def get_dc_ev_power_delivery_parameter_dinspec(
         self,
