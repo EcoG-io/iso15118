@@ -765,7 +765,7 @@ class SimEVSEController(EVSEControllerInterface):
             return BPTACChargeParameterDiscoveryResParams(
                 **(ac_charge_parameter_discovery_res_params.dict()),
                 evse_max_discharge_power=RationalNumber.get_rational_repr(
-                    self.evse_data_context.evse_max_discharge_power_l3
+                    self.evse_data_context.evse_max_discharge_power
                 ),
                 evse_max_discharge_power_l2=RationalNumber.get_rational_repr(
                     self.evse_data_context.evse_max_discharge_power_l2
@@ -1076,13 +1076,13 @@ class SimEVSEController(EVSEControllerInterface):
                         self.evse_data_context.evse_max_voltage
                     ),
                     evse_max_discharge_power=RationalNumber.get_rational_repr(
-                        self.evse_data_context.evse_max_charge_power
+                        self.evse_data_context.evse_max_discharge_power
                     ),
                     evse_min_discharge_power=RationalNumber.get_rational_repr(
                         self.evse_data_context.evse_min_discharge_power
                     ),
                     evse_max_discharge_current=RationalNumber.get_rational_repr(
-                        self.evse_data_context.evse_max_charge_current
+                        self.evse_data_context.evse_max_discharge_current
                     ),
                     evse_min_voltage=RationalNumber.get_rational_repr(
                         self.evse_data_context.evse_min_voltage

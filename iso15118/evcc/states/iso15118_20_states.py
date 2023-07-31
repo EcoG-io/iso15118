@@ -1579,12 +1579,7 @@ class DCPreCharge(StateEVCC):
 
     async def build_pre_charge_message(self):
         present_voltage = await self.comm_session.ev_controller.get_present_voltage()
-        is_precharged = await self.comm_session.ev_controller.is_precharged(
-            present_voltage
-        )
         processing = Processing.ONGOING
-        if is_precharged:
-            processing = Processing.FINISHED
         dc_pre_charge_req = DCPreChargeReq(
             header=MessageHeader(
                 session_id=self.comm_session.session_id,
