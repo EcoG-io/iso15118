@@ -117,7 +117,6 @@ class SimEVController(EVControllerInterface):
         self.charging_loop_cycles: int = 0
         self.precharge_loop_cycles: int = 0
         self._charging_is_completed = False
-        self.precharge_counter = -1
         self._soc = 10
         self.dc_ev_charge_params: DCEVChargeParams = DCEVChargeParams(
             dc_max_current_limit=PVEVMaxCurrentLimit(
@@ -552,11 +551,7 @@ class SimEVController(EVControllerInterface):
     async def is_precharged(
         self, present_voltage_evse: Union[PVEVSEPresentVoltage, RationalNumber]
     ) -> bool:
-        self.precharge_counter += 1
-        return (
-            present_voltage_evse.get_decimal_value()
-            == (await self.get_present_voltage()).get_decimal_value()
-        )
+        return True
 
     async def get_dc_ev_power_delivery_parameter_dinspec(
         self,
@@ -710,7 +705,7 @@ class SimEVController(EVControllerInterface):
 
     async def get_present_voltage(self) -> RationalNumber:
         """Overrides EVControllerInterface.get_present_voltage()."""
-        return RationalNumber(exponent=self.precharge_counter, value=23)
+        return RationalNumber(exponent=3, value=20)
 
     async def get_target_voltage(self) -> RationalNumber:
         """Overrides EVControllerInterface.get_target_voltage()."""
