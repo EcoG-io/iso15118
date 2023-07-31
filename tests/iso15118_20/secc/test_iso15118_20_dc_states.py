@@ -24,7 +24,6 @@ from iso15118.shared.messages.enums import (
     Protocol,
     ServiceV20,
 )
-
 from iso15118.shared.messages.iso15118_20.common_messages import (
     ChargeProgress,
     SelectedEnergyService,
@@ -44,8 +43,6 @@ from iso15118.shared.messages.iso15118_20.dc import (
     ScheduledDCChargeLoopReqParams,
     ScheduledDCChargeLoopResParams,
 )
-
-
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import State, Terminate
 from tests.dinspec.secc.test_dinspec_secc_states import MockWriter
@@ -565,9 +562,7 @@ class TestEvScenarios:
                 ScheduledDCChargeLoopResParams(
                     evse_maximum_charge_power=RationalNumber(exponent=-2, value=30000),
                     evse_minimum_charge_power=RationalNumber(exponent=-1, value=6000),
-                    evse_maximum_charge_current=RationalNumber(
-                        exponent=-1, value=7000
-                    ),
+                    evse_maximum_charge_current=RationalNumber(exponent=-1, value=7000),
                     evse_maximum_voltage=RationalNumber(exponent=-1, value=8000),
                 ),
                 ServiceV20.DC,
@@ -635,9 +630,7 @@ class TestEvScenarios:
                 BPTScheduledDCChargeLoopResParams(
                     evse_maximum_charge_power=RationalNumber(exponent=-2, value=30000),
                     evse_minimum_charge_power=RationalNumber(exponent=-1, value=4000),
-                    evse_maximum_charge_current=RationalNumber(
-                        exponent=-1, value=5000
-                    ),
+                    evse_maximum_charge_current=RationalNumber(exponent=-1, value=5000),
                     evse_maximum_voltage=RationalNumber(exponent=-1, value=6000),
                     evse_max_discharge_power=RationalNumber(exponent=-1, value=7000),
                     evse_min_discharge_power=RationalNumber(exponent=-1, value=8000),

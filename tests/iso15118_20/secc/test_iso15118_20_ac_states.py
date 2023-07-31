@@ -12,8 +12,8 @@ from iso15118.secc.states.iso15118_20_states import (
     ACChargeLoop,
     ACChargeParameterDiscovery,
     Authorization,
-    ScheduleExchange,
     PowerDelivery,
+    ScheduleExchange,
     ServiceDetail,
 )
 from iso15118.shared.messages.enums import (
@@ -881,7 +881,7 @@ class TestEvScenarios:
             and control_mode == ControlMode.DYNAMIC
         ):
             assert ac_charge_loop.message.bpt_dynamic_params == expected_evse_params
-            
+
     @pytest.mark.parametrize(
         "control_mode, next_state, selected_energy_service, cp_state",
         [
@@ -924,4 +924,3 @@ class TestEvScenarios:
             message=get_power_delivery_req(Processing.FINISHED, ChargeProgress.START)
         )
         assert power_delivery.next_state is next_state
-
