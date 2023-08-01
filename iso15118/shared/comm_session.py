@@ -468,7 +468,7 @@ class V2GCommunicationSession(SessionStateMachine):
                     )
                     return
             except (asyncio.TimeoutError, ConnectionResetError) as exc:
-                if type(exc) == asyncio.TimeoutError:
+                if type(exc) is asyncio.TimeoutError:
                     if self.last_message_sent:
                         error_msg = (
                             f"{exc.__class__.__name__} occurred. Waited "
