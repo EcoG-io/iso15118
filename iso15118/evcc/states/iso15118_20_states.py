@@ -1705,6 +1705,7 @@ class DCWeldingDetection(StateEVCC):
 
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.DC_WELDING_DETECTION_REQ)
+        self.welding_detection_complete = False
 
     async def process_message(
         self,
@@ -1728,7 +1729,7 @@ class DCWeldingDetection(StateEVCC):
         elif self.comm_session.ongoing_timer == -1:
             self.comm_session.ongoing_timer = time.time()
 
-        if await self.comm_session.ev_controller.welding_detection_has_finished():
+        if self.welding_detection_complete:
             session_stop_req = SessionStopReq(
                 header=MessageHeader(
                     session_id=self.comm_session.session_id,
@@ -1742,12 +1743,16 @@ class DCWeldingDetection(StateEVCC):
             namespace = Namespace.ISO_V20_COMMON_MSG
             next_payload_type = ISOV20PayloadTypes.MAINSTREAM
         else:
+            processing = Processing.ONGOING
+            if await self.comm_session.ev_controller.welding_detection_has_finished():
+                processing = Processing.FINISHED
+                self.welding_detection_complete = True
             next_request: Any = DCWeldingDetectionReq(
                 header=MessageHeader(
                     session_id=self.comm_session.session_id,
                     timestamp=time.time(),
                 ),
-                ev_processing=Processing.FINISHED,
+                ev_processing=processing,
             )
             next_state = None
             next_timeout = Timeouts.DC_WELDING_DETECTION_REQ
