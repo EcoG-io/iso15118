@@ -551,7 +551,15 @@ class SimEVController(EVControllerInterface):
     async def is_precharged(
         self, present_voltage_evse: Union[PVEVSEPresentVoltage, RationalNumber]
     ) -> bool:
-        return True
+        if (
+            self.precharge_loop_cycles == 5
+            or present_voltage_evse.get_decimal_value()
+            == (await self.get_present_voltage()).get_decimal_value()
+        ):
+            logger.info("Precharge complete.")
+            return True
+        self.precharge_loop_cycles += 1
+        return False
 
     async def get_dc_ev_power_delivery_parameter_dinspec(
         self,

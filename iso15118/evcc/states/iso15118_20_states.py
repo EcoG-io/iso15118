@@ -63,6 +63,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     EVSENotification,
     MessageHeader,
     Processing,
+    RationalNumber,
     RootCertificateIDList,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -1463,12 +1464,7 @@ class DCCableCheck(StateEVCC):
 
     async def build_pre_charge_message(self):
         present_voltage = await self.comm_session.ev_controller.get_present_voltage()
-        is_precharged = await self.comm_session.ev_controller.is_precharged(
-            present_voltage
-        )
         processing = Processing.ONGOING
-        if is_precharged:
-            processing = Processing.FINISHED
         dc_pre_charge_req = DCPreChargeReq(
             header=MessageHeader(
                 session_id=self.comm_session.session_id,
@@ -1489,6 +1485,7 @@ class DCPreCharge(StateEVCC):
 
     def __init__(self, comm_session: EVCCCommunicationSession):
         super().__init__(comm_session, Timeouts.DC_PRE_CHARGE_REQ)
+        self.pre_charge_finished_message_built_once = False
 
     async def process_message(
         self,
@@ -1507,8 +1504,11 @@ class DCPreCharge(StateEVCC):
 
         precharge_res: DCPreChargeRes = msg
         next_state = None
-        if await self.comm_session.ev_controller.is_precharged(
-            precharge_res.evse_present_voltage
+        if (
+            await self.comm_session.ev_controller.is_precharged(
+                precharge_res.evse_present_voltage
+            )
+            and self.pre_charge_finished_message_built_once
         ):
             next_state = PowerDelivery
             next_request = await self.build_power_delivery_req()
@@ -1516,10 +1516,13 @@ class DCPreCharge(StateEVCC):
             namespace = Namespace.ISO_V20_COMMON_MSG
             timeout = Timeouts.POWER_DELIVERY_REQ
         else:
-            next_request = await self.build_pre_charge_message()
+            next_request = await self.build_pre_charge_message(
+                precharge_res.evse_present_voltage
+            )
             payload_type = ISOV20PayloadTypes.DC_MAINSTREAM
             timeout = Timeouts.DC_PRE_CHARGE_REQ
             namespace = Namespace.ISO_V20_DC
+            self.pre_charge_finished_message_built_once = True
 
         self.create_next_message(
             next_state,
@@ -1577,10 +1580,10 @@ class DCPreCharge(StateEVCC):
         )
         return power_delivery_req
 
-    async def build_pre_charge_message(self):
+    async def build_pre_charge_message(self, evse_voltage: RationalNumber):
         present_voltage = await self.comm_session.ev_controller.get_present_voltage()
         is_precharged = await self.comm_session.ev_controller.is_precharged(
-            present_voltage
+            evse_voltage
         )
         processing = Processing.ONGOING
         if is_precharged:
