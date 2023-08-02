@@ -638,7 +638,9 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     async def send_charging_command(
-        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
+        self,
+        voltage: Union[PVEVTargetVoltage, RationalNumber],
+        current: [PVEVTargetCurrent, RationalNumber],
     ):
         """
         This method is called in the state CurrentDemand. The values target current

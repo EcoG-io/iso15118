@@ -944,7 +944,9 @@ class SimEVSEController(EVSEControllerInterface):
         pass
 
     async def send_charging_command(
-        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
+        self,
+        voltage: Union[PVEVTargetVoltage, RationalNumber],
+        current: [PVEVTargetCurrent, RationalNumber],
     ):
         pass
 
