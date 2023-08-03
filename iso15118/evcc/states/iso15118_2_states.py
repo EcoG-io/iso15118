@@ -29,6 +29,7 @@ from iso15118.shared.messages.datatypes import (
     EVSENotification,
     SelectedService,
     SelectedServiceList,
+    PVEVTargetCurrent,
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
@@ -38,6 +39,7 @@ from iso15118.shared.messages.enums import (
     IsolationLevel,
     Namespace,
     Protocol,
+    UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_2.body import (
     AuthorizationReq,
@@ -1308,7 +1310,7 @@ class CableCheck(StateEVCC):
         pre_charge_req = PreChargeReq(
             dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_voltage=charge_params.dc_target_voltage,
-            ev_target_current=0,
+            ev_target_current=PVEVTargetCurrent(Value=0, Multiplier=0, unit=UnitSymbol.AMPERE),
         )
         return pre_charge_req
 
@@ -1385,7 +1387,7 @@ class PreCharge(StateEVCC):
         pre_charge_req = PreChargeReq(
             dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_voltage=charge_params.dc_target_voltage,
-            ev_target_current=0,
+            ev_target_current=PVEVTargetCurrent(Value=0, Multiplier=0, unit=UnitSymbol.AMPERE),
         )
         return pre_charge_req
 
