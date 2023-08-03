@@ -1023,6 +1023,9 @@ class PaymentDetails(StateSECC):
             elif isinstance(exc, CertExpiredError):
                 response_code = ResponseCode.FAILED_CERTIFICATE_EXPIRED
                 reason = f"CertExpiredError for {exc.subject}"
+            elif isinstance(exc, CertNotYetValidError):
+                response_code = ResponseCode.FAILED_CERTIFICATE_EXPIRED
+                reason = f"[V2G2-824] (Certificate not yet valid.) CertExpiredError for {exc.subject}"  # noqa
             elif isinstance(exc, CertRevokedError):
                 response_code = ResponseCode.FAILED_CERTIFICATE_REVOKED
                 reason = f"CertRevokedError for {exc.subject}"
