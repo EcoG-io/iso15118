@@ -105,7 +105,7 @@ from iso15118.shared.security import (
     to_ec_pub_key,
     verify_signature,
 )
-from iso15118.shared.states import Terminate
+from iso15118.shared.states import Pause, Terminate
 
 from iso15118.shared.settings import get_PKI_PATH
 
@@ -240,25 +240,25 @@ class ServiceDiscovery(StateEVCC):
         communication session and reuse for resumed session, otherwise request
         from EV controller.
         """
-        if evcc_settings.RESUME_REQUESTED_ENERGY_MODE:
+        if evcc_settings.ev_session_context.requested_energy_mode:
             logger.debug(
                 "Reusing energy transfer mode "
-                f"{evcc_settings.RESUME_REQUESTED_ENERGY_MODE} "
+                f"{evcc_settings.ev_session_context.requested_energy_mode} "
                 "from previously paused session"
             )
             self.comm_session.selected_energy_mode = (
-                evcc_settings.RESUME_REQUESTED_ENERGY_MODE
+                evcc_settings.ev_session_context.requested_energy_mode
             )
-            evcc_settings.RESUME_REQUESTED_ENERGY_MODE = None
+            evcc_settings.ev_session_context.requested_energy_mode = None
         else:
             self.comm_session.selected_energy_mode = (
                 await self.comm_session.ev_controller.get_energy_transfer_mode(
                     Protocol.ISO_15118_2
                 )
             )
-            self.comm_session.selected_charging_type_is_ac = (
-                self.comm_session.selected_energy_mode.value.startswith("AC")
-            )
+        self.comm_session.selected_charging_type_is_ac = (
+            self.comm_session.selected_energy_mode.value.startswith("AC")
+        )
 
     def select_auth_mode(self, auth_option_list: List[AuthEnum]):
         """
@@ -266,16 +266,16 @@ class ServiceDiscovery(StateEVCC):
         saved from a previously paused communication session and reuse for
         resumed session, otherwise request from EV controller.
         """
-        if evcc_settings.RESUME_SELECTED_AUTH_OPTION:
+        if evcc_settings.ev_session_context.selected_auth_option:
             logger.debug(
                 "Reusing authorization option "
-                f"{evcc_settings.RESUME_SELECTED_AUTH_OPTION} "
+                f"{evcc_settings.ev_session_context.selected_auth_option} "
                 "from previously paused session"
             )
             self.comm_session.selected_auth_option = (
-                evcc_settings.RESUME_SELECTED_AUTH_OPTION
+                evcc_settings.ev_session_context.selected_auth_option
             )
-            evcc_settings.RESUME_SELECTED_AUTH_OPTION = None
+            evcc_settings.ev_session_context.selected_auth_option = None
         else:
             # Choose Plug & Charge (pnc) or External Identification Means (eim)
             # as the selected authorization option. The car manufacturer might
@@ -1099,7 +1099,10 @@ class SessionStop(StateEVCC):
             self.comm_session.writer.get_extra_info("peername"),
         )
 
-        self.next_state = Terminate
+        if self.comm_session.charging_session_stop_v2 == ChargingSession.PAUSE:
+            self.next_state = Pause
+        elif self.comm_session.charging_session_stop_v2 == ChargingSession.TERMINATE:
+            self.next_state = Terminate
 
         return
 
@@ -1197,8 +1200,11 @@ class ChargingStatus(StateEVCC):
             logger.debug(f"ChargeProgress is set to {ChargeProgress.RENEGOTIATE}")
         elif ac_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
             EVEREST_CTX.publish('AC_StopFromCharger', None)
-            await self.stop_charging()
-
+            self.comm_session.charging_session_stop_v2 = ChargingSession.TERMINATE
+            await self.stop_pause_charging()
+        elif await self.comm_session.ev_controller.pause():
+            self.comm_session.charging_session_stop_v2 = ChargingSession.PAUSE
+            await self.stop_pause_charging()
         elif await self.comm_session.ev_controller.continue_charging():
             self.create_next_message(
                 ChargingStatus,
@@ -1207,9 +1213,10 @@ class ChargingStatus(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
         else:
-            await self.stop_charging()
+            self.comm_session.charging_session_stop_v2 = ChargingSession.TERMINATE
+            await self.stop_pause_charging()
 
-    async def stop_charging(self):
+    async def stop_pause_charging(self):
         power_delivery_req = PowerDeliveryReq(
             charge_progress=ChargeProgress.STOP,
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
@@ -1220,7 +1227,6 @@ class ChargingStatus(StateEVCC):
             Timeouts.POWER_DELIVERY_REQ,
             Namespace.ISO_V2_MSG_DEF,
         )
-        self.comm_session.charging_session_stop_v2 = ChargingSession.TERMINATE
         # TODO Implement also a mechanism for pausing
         logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
 
@@ -1412,8 +1418,12 @@ class CurrentDemand(StateEVCC):
         dc_evse_status: DCEVSEStatus = current_demand_res.dc_evse_status
 
         if dc_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
-            await self.stop_charging()
-
+            EVEREST_CTX.publish('AC_StopFromCharger', None)
+            self.comm_session.charging_session_stop_v2 = ChargingSession.TERMINATE
+            await self.stop_pause_charging()
+        elif await self.comm_session.ev_controller.pause():
+            self.comm_session.charging_session_stop_v2 = ChargingSession.PAUSE
+            await self.stop_pause_charging()
         elif await self.comm_session.ev_controller.continue_charging():
             current_demand_req = await self.build_current_demand_data()
 
@@ -1424,7 +1434,8 @@ class CurrentDemand(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
         else:
-            await self.stop_charging()
+            self.comm_session.charging_session_stop_v2 = ChargingSession.TERMINATE
+            await self.stop_pause_charging()
 
     async def build_current_demand_data(self) -> CurrentDemandReq:
         ev_controller = self.comm_session.ev_controller
@@ -1446,7 +1457,7 @@ class CurrentDemand(StateEVCC):
         )
         return current_demand_req
 
-    async def stop_charging(self):
+    async def stop_pause_charging(self):
         ev_controller = self.comm_session.ev_controller
         power_delivery_req = PowerDeliveryReq(
             charge_progress=ChargeProgress.STOP,
@@ -1462,7 +1473,6 @@ class CurrentDemand(StateEVCC):
             Timeouts.POWER_DELIVERY_REQ,
             Namespace.ISO_V2_MSG_DEF,
         )
-        self.comm_session.charging_session_stop_v2 = ChargingSession.TERMINATE
         logger.debug(f"ChargeProgress is set to {ChargeProgress.STOP}")
 
 

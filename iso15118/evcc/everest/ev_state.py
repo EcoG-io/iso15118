@@ -15,6 +15,7 @@ class EVState:
     PaymentOption: str = ''
     EnergyTransferMode: str = ''
     StopCharging = False
+    Pause = False
 
     # DC
     dc_max_current_limit: float = DEFAULT_DC_MAX_CURRENT_LIMIT_A
@@ -26,3 +27,4 @@ class EVState:
 
     def reset(self):
         self.StopCharging = False
+        self.Pause = False

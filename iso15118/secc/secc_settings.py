@@ -6,6 +6,7 @@ from typing import List, Optional, Type
 import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
+from iso15118.secc.controller.interface import EVSessionContext
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.settings import shared_settings
 from iso15118.shared.utils import load_requested_auth_modes, load_requested_protocols
@@ -121,3 +122,5 @@ class Config:
             logger.info(f"{key:30}: {value}")
         for key, value in self.secc_env.items():
             logger.info(f"{key:30}: {value}")
+
+save_ev_session_context: EVSessionContext = EVSessionContext()

@@ -28,6 +28,7 @@ from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.enums import (
+    AuthEnum,
     AuthorizationStatus,
     AuthorizationTokenType,
     ControlMode,
@@ -41,6 +42,7 @@ from iso15118.shared.messages.enums import (
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
     ACEVSEStatus,
+    ChargeService,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTuple
@@ -131,6 +133,20 @@ class EVChargeParamsLimits:
     e_amount: Optional[PVEAmount] = None
     ev_energy_request: Optional[PVEVEnergyRequest] = None
 
+@dataclass
+class EVSessionContext:
+    # EVSessionContext15118 holds information required to resume a paused session.
+    # [V2G2-741] - In a resumed session, the following are reused:
+    # 1. SessionID (SessionSetup)
+    # 2. PaymentOption that was previously selected (ServiceDiscoveryRes)
+    # 3. ChargeService (ServiceDiscoveryRes)
+    # 4. SAScheduleTuple (ChargeParameterDiscoveryRes) -
+    # Previously selected id must remain the same.
+    # However, the entries could reflect the elapsed time
+    session_id: Optional[str] = None
+    auth_options: Optional[List[AuthEnum]] = None
+    charge_service: Optional[ChargeService] = None
+    sa_schedule_tuple_id: Optional[int] = None
 
 class EVSEControllerInterface(ABC):
     def __init__(self):

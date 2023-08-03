@@ -1,6 +1,8 @@
 from asyncio.streams import StreamReader, StreamWriter
 from typing import Tuple
 
+from iso15118.shared.messages.enums import SessionStopAction
+
 
 class Notification:
     """
@@ -60,7 +62,14 @@ class StopNotification(Notification):
                          server is serving.
     """
 
-    def __init__(self, successful: bool, reason: str, peer_ip_address: str = None):
+    def __init__(
+            self,
+            successful: bool,
+            reason: str,
+            peer_ip_address: str = None,
+            stop_action: SessionStopAction = SessionStopAction.TERMINATE,
+    ):
         self.successful = successful
         self.reason = reason
         self.peer_ip_address = peer_ip_address
+        self.stop_action = stop_action

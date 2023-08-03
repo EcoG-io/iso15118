@@ -175,10 +175,9 @@ class SupportedAppProtocol(StateEVCC):
         If there's no stored session ID, we'll set the session ID equal to zero.
         The session ID is also stored as a comm session variable.
         """
-        # TODO: get the session id from Redis
-        if evcc_settings.RESUME_SESSION_ID:
-            self.comm_session.session_id = evcc_settings.RESUME_SESSION_ID
-            evcc_settings.RESUME_SESSION_ID = None
+        if evcc_settings.ev_session_context.session_id:
+            self.comm_session.session_id = evcc_settings.ev_session_context.session_id
+            evcc_settings.ev_session_context.session_id = None
         else:
             self.comm_session.session_id = bytes(1).hex().upper()
 

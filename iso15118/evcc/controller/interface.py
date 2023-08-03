@@ -19,7 +19,12 @@ from iso15118.shared.messages.din_spec.datatypes import DCEVStatus as DCEVStatus
 from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
-from iso15118.shared.messages.enums import ControlMode, Protocol, ServiceV20
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    ControlMode,
+    Protocol,
+    ServiceV20,
+)
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVChargeParameter,
     ChargeProgress,
@@ -70,6 +75,11 @@ class ChargeParamsV2:
     ac_parameters: Optional[ACEVChargeParameter]
     dc_parameters: Optional[DCEVChargeParameter]
 
+@dataclass
+class EVSessionContext:
+    session_id: Optional[str] = None
+    selected_auth_option: Optional[AuthEnum] = None
+    requested_energy_mode: Optional[EnergyTransferModeEnum] = None
 
 class EVControllerInterface(ABC):
 

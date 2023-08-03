@@ -272,7 +272,7 @@ class SimEVController(EVControllerInterface):
                 ev_maximum_voltage_limit=self.dc_ev_charge_params.dc_max_voltage_limit,
                 ev_energy_capacity=self.dc_ev_charge_params.dc_energy_capacity,
                 ev_energy_request=ev_energy_request,
-                full_soc=90,
+                full_soc=100,
                 bulk_soc=80,
             )
         return ChargeParamsV2(
@@ -565,6 +565,9 @@ class SimEVController(EVControllerInterface):
     async def continue_charging(self) -> bool:
         """Overrides EVControllerInterface.continue_charging()."""
         return not EVEREST_EV_STATE.StopCharging
+
+    async def pause(self) -> bool:
+        return EVEREST_EV_STATE.Pause
     
     async def reset_ev_values(self):
         EVEREST_EV_STATE.reset()

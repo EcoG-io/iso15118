@@ -15,6 +15,7 @@ from typing import List, Optional, Tuple, Union
 
 from pydantic.error_wrappers import ValidationError
 
+from iso15118.evcc import evcc_settings
 from iso15118.evcc.controller.interface import EVControllerInterface
 from iso15118.evcc.evcc_config import EVCCConfig
 from iso15118.evcc.transport.tcp_client import TCPClient
@@ -252,7 +253,10 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         # RESUME_SESSION_ID = self.session_id
         # RESUME_SELECTED_AUTH_OPTION = self.selected_auth_option
         # RESUME_REQUESTED_ENERGY_MODE = self.selected_energy_mode
-
+        
+        evcc_settings.ev_session_context.session_id = self.session_id
+        evcc_settings.ev_session_context.selected_auth_option = self.selected_auth_option
+        evcc_settings.ev_session_context.requested_energy_mode = self.selected_energy_mode
 
 class CommunicationSessionHandler:
     """

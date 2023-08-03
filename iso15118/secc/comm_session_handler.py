@@ -16,12 +16,17 @@ import socket
 from asyncio.streams import StreamReader, StreamWriter
 from typing import Dict, List, Optional, Tuple, Union
 
-from iso15118.secc.controller.interface import EVSEControllerInterface, ServiceStatus
+from iso15118.secc.controller.interface import (
+    EVSEControllerInterface,
+    EVSessionContext,
+    ServiceStatus,
+)
 from iso15118.secc.failed_responses import (
     init_failed_responses_din_spec_70121,
     init_failed_responses_iso_v2,
     init_failed_responses_iso_v20,
 )
+from iso15118.secc import secc_settings
 from iso15118.secc.secc_settings import Config
 from iso15118.secc.transport.tcp_server import TCPServer
 from iso15118.secc.transport.udp_server import UDPServer
@@ -34,6 +39,7 @@ from iso15118.shared.messages.enums import (
     ISOV2PayloadTypes,
     ISOV20PayloadTypes,
     Protocol,
+    SessionStopAction,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     CertificateChain as CertificateChainV2,
@@ -125,11 +131,13 @@ class SECCCommunicationSession(V2GCommunicationSession):
         # CurrentDemandRes. The SECC must send a copy in the MeteringReceiptReq
         # TODO Add support for ISO 15118-20 MeterInfo
         self.sent_meter_info: Optional[MeterInfoV2] = None
+        self.ev_session_context: EVSessionContext = EVSessionContext()
+        if secc_settings.save_ev_session_context.session_id is not None:
+            self.ev_session_context = secc_settings.save_ev_session_context
         self.is_tls = self._is_tls(transport)
 
     def save_session_info(self):
-        # TODO make sure to not delete the comm session object
-        pass
+        secc_settings.save_ev_session_context = self.ev_session_context
 
     def _is_tls(self, transport: Tuple[StreamReader, StreamWriter]) -> bool:
         """
@@ -266,7 +274,10 @@ class CommunicationSessionHandler:
                     except (KeyError, ConnectionResetError) as e:
                         if isinstance(e, ConnectionResetError):
                             logger.info("Can't resume session. End and start new one.")
-                            await self.end_current_session(notification.ip_address)
+                            await self.end_current_session(
+                                notification.ip_address,
+                                SessionStopAction.TERMINATE,
+                            )
                         comm_session = SECCCommunicationSession(
                             notification.transport,
                             self._rcv_queue,
@@ -283,7 +294,10 @@ class CommunicationSessionHandler:
                     self.comm_sessions[notification.ip_address] = (comm_session, task)
                 elif isinstance(notification, StopNotification):
                     try:
-                        await self.end_current_session(notification.peer_ip_address)
+                        await self.end_current_session(
+                            notification.peer_ip_address,
+                            notification.stop_action,
+                        )
                     except KeyError:
                         pass
                 else:
@@ -296,13 +310,21 @@ class CommunicationSessionHandler:
             finally:
                 queue.task_done()
 
-    async def end_current_session(self, peer_ip_address: str):
+    async def end_current_session(
+            self, peer_ip_address: str, session_stop_action: SessionStopAction
+    ):
         try:
             await cancel_task(self.comm_sessions[peer_ip_address][1])
-            del self.comm_sessions[peer_ip_address]
             await cancel_task(self.tcp_server_handler)
         except Exception as e:
             logger.warning(f"Unexpected error ending current session: {e}")
+        finally:
+            if session_stop_action == SessionStopAction.TERMINATE:
+                del self.comm_sessions[peer_ip_address]
+            else:
+                logger.debug(
+                    f"Preserved session state: {self.comm_sessions[peer_ip_address][0].ev_session_context}"  # noqa
+                )
 
         self.tcp_server_handler = None
         self.udp_server.resume_udp_server()

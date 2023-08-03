@@ -7,6 +7,7 @@ import environs
 
 from iso15118.shared.network import validate_nic
 from iso15118.shared.settings import shared_settings
+from iso15118.evcc.controller.interface import EVSessionContext
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,4 @@ class Config:
             logger.info(f"{key:30}: {value}")
 
 
-RESUME_SELECTED_AUTH_OPTION = None
-RESUME_SESSION_ID = None
-RESUME_REQUESTED_ENERGY_MODE = None
+ev_session_context: EVSessionContext = EVSessionContext()

@@ -23,6 +23,7 @@ class ChargerState:
     powermeter: dict = field(default_factory=dict)
     certificate_service_supported = False
     existream_status: dict = field(default_factory=dict)
+    dlink_ready = False
 
     # AC
     EVSENominalVoltage = 0

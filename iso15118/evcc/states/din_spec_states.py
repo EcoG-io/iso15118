@@ -724,6 +724,7 @@ class CurrentDemand(StateEVCC):
         # - by EV itself where it sets ready_to_charge to False.
         if dc_evse_status.evse_notification == EVSENotification.STOP_CHARGING:
             logger.debug("EVSE Notification received requesting to stop charging.")
+            EVEREST_CTX.publish('AC_StopFromCharger', None)
             await self.stop_charging()
         elif await self.comm_session.ev_controller.continue_charging():
             self.create_next_message(

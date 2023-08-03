@@ -253,7 +253,7 @@ class SessionStateMachine(ABC):
 
         if (
             self.current_state.next_v2gtp_msg is None
-            and self.current_state.next_state is not Terminate
+            and not self.current_state.next_state in [Terminate, Pause]
         ):
             raise FaultyStateImplementationError(
                 "Field 'next_v2gtp_msg' is "

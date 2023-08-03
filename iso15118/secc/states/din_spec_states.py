@@ -882,7 +882,7 @@ class PowerDelivery(StateSECC):
 
             # EVerest code start #
             EVEREST_CTX.publish('currentDemand_Finished', None)
-            EVEREST_CTX.publish('DC_Open_Contactor', True)
+            EVEREST_CTX.publish('DC_Open_Contactor', None)
             # EVerest code end #
 
             # 2nd once the energy transfer is properly interrupted,
@@ -1175,6 +1175,10 @@ class SessionStop(StateSECC):
         msg = self.check_msg_dinspec(message, [SessionStopReq])
         if not msg:
             return
+
+        # EVerest code start #
+        EVEREST_CTX.publish('dlink_terminate', None)
+        # EVerest code end #
 
         self.comm_session.stop_reason = StopNotification(
             True,
