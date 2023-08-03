@@ -947,9 +947,9 @@ class SimEVSEController(EVSEControllerInterface):
         self,
         voltage: Union[PVEVTargetVoltage, RationalNumber],
         charge_current: Union[PVEVTargetCurrent, RationalNumber],
-        charge_power: Optional[RationalNumber],
-        discharge_current: Optional[RationalNumber],
-        discharge_power: Optional[RationalNumber],
+        charge_power: Optional[RationalNumber] = None,
+        discharge_current: Optional[RationalNumber] = None,
+        discharge_power: Optional[RationalNumber] = None,
     ):
         pass
 
