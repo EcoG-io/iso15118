@@ -646,13 +646,16 @@ class EVSEControllerInterface(ABC):
         discharge_power: Optional[RationalNumber],
     ):
         """
-        This method is called in the state CurrentDemand. The values target current
-        and target voltage from the EV are passed.
-        These information must be provided for the charger's power electronics.
+        This method is called in the state CurrentDemand/DCChargeLoop.
+        The values target current and target voltage from the EV are passed.
+        The fields discharge_current and discharge_power are relevant during discharge
+        in 15118-20. This information must be provided to the charger's
+         power electronics.
 
         Relevant for:
         - DIN SPEC 70121
         - ISO 15118-2
+        - ISO 15118-20
         """
         raise NotImplementedError
 
