@@ -44,8 +44,8 @@ class EVDataContext:
     evcc_id: Optional[str] = None
 
     # Common to both ISO15118-20 AC and DC
-    ev_max_charge_power: float = 0.0
-    ev_min_charge_power: float = 0.0
+    ev_max_charge_power: Optional[float] = 0.0
+    ev_min_charge_power: Optional[float] = 0.0
 
     # Common to both ISO15118-20 AC-BPT and DC-BPT
     ev_max_discharge_power: Optional[float] = None
@@ -90,11 +90,6 @@ class EVDataContext:
     # Seen in Scheduled DC CL
     ev_target_current: Optional[float] = None
     ev_target_voltage: Optional[float] = None
-    ev_max_charge_power: Optional[float] = None
-    ev_min_charge_power: Optional[float] = None
-    ev_max_charge_current: Optional[float] = None
-    ev_max_voltage: Optional[float] = None
-    ev_min_voltage: Optional[float] = None
 
     def update(
         self,
