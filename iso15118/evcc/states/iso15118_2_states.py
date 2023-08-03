@@ -1308,7 +1308,7 @@ class CableCheck(StateEVCC):
         pre_charge_req = PreChargeReq(
             dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_voltage=charge_params.dc_target_voltage,
-            ev_target_current=charge_params.dc_target_current,
+            ev_target_current=0,
         )
         return pre_charge_req
 
@@ -1385,7 +1385,7 @@ class PreCharge(StateEVCC):
         pre_charge_req = PreChargeReq(
             dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_voltage=charge_params.dc_target_voltage,
-            ev_target_current=charge_params.dc_target_current,
+            ev_target_current=0,
         )
         return pre_charge_req
 
