@@ -5,6 +5,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.1] - 2023-08-02
+* Updated readme. Removed dc underdevelopment comment by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/272
+* chore(deps-dev): bump black from 23.3.0 to 23.7.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/275
+* Make running of udp server optional by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/274
+* Feature/test data and fixes by @martinbachmanndesignwerk in https://github.com/SwitchEV/iso15118/pull/276
+* JTT-52: Stop charging if state C not detected in PowerDelivery state. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/282
+* chore(deps-dev): bump flake8 from 6.0.0 to 6.1.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/283
+* Simulate precharge ongoing before finished by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/284
+* Simulate welding detection ongoing before finished by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/285
+* Return FAILED_CertificateExpired is certificate is not yet valid by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/286
+
 ## [0.23.0] - 2023-06-30
 * chore(deps-dev): bump mypy from 1.2.0 to 1.3.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/250
 * chore(deps): bump cryptography from 40.0.1 to 41.0.1 by @dependabot in https://github.com/SwitchEV/iso15118/pull/251
