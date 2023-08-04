@@ -77,6 +77,8 @@ class EVDataContext:
     ev_target_energy_request: Optional[float] = None
     ev_max_energy_request: Optional[float] = None
     ev_min_energy_request: Optional[float] = None
+
+    # Specific to ISO 151180-20 Dynamic AC CL
     ev_present_active_power: Optional[float] = None
     ev_present_active_power_l2: Optional[float] = None
     ev_present_active_power_l3: Optional[float] = None
