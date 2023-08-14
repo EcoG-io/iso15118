@@ -970,7 +970,7 @@ class PaymentDetails(StateSECC):
             )
 
             response_code = ResponseCode.OK
-            if current_authorization_status.certificate_response_status:
+            if resp_status := current_authorization_status.certificate_response_status:
                 # according to table 112 of ISO 15118-2, the Response code
                 # for this message can only be one of the following:
                 # OK, FAILED,
@@ -978,16 +978,21 @@ class PaymentDetails(StateSECC):
                 # FAILED_UNKNOWN_SESSION, FAILED_CHALLENGE_INVALID
                 # FAILED_CERTIFICATE_EXPIRED, FAILED_CERTIFICATE_REVOKED,
                 # FAILED_NO_CERTIFICATE_AVAILABLE
-                response_code = current_authorization_status.certificate_response_status if current_authorization_status.certificate_response_status in [
-                    ResponseCode.OK,
-                    ResponseCode.FAILED,
-                    ResponseCode.FAILED_SEQUENCE_ERROR,
-                    ResponseCode.FAILED_SIGNATURE_ERROR,
-                    ResponseCode.FAILED_UNKNOWN_SESSION,
-                    ResponseCode.FAILED_CERTIFICATE_EXPIRED,
-                    ResponseCode.FAILED_CERTIFICATE_REVOKED,
-                    ResponseCode.FAILED_NO_CERTIFICATE_AVAILABLE,
-                ] else ResponseCode.FAILED
+                response_code = (
+                    resp_status
+                    if resp_status
+                    in [
+                        ResponseCode.OK,
+                        ResponseCode.FAILED,
+                        ResponseCode.FAILED_SEQUENCE_ERROR,
+                        ResponseCode.FAILED_SIGNATURE_ERROR,
+                        ResponseCode.FAILED_UNKNOWN_SESSION,
+                        ResponseCode.FAILED_CERTIFICATE_EXPIRED,
+                        ResponseCode.FAILED_CERTIFICATE_REVOKED,
+                        ResponseCode.FAILED_NO_CERTIFICATE_AVAILABLE,
+                    ]
+                    else ResponseCode.FAILED
+                )
 
             if current_authorization_status.authorization_status in [
                 AuthorizationStatus.ACCEPTED,
@@ -1163,21 +1168,26 @@ class Authorization(StateSECC):
         )
 
         response_code = ResponseCode.OK
-        if current_authorization_status.certificate_response_status:
+        if resp_status := current_authorization_status.certificate_response_status:
             # according to table 112 of ISO 15118-2, the Response code
             # for this message can only be one of the following:
             # OK, FAILED,
             # FAILED_SEQUENCE_ERROR, FAILED_SIGNATURE_ERROR,
             # FAILED_UNKNOWN_SESSION or FAILED_CHALLENGE_INVALID
 
-            response_code = current_authorization_status.certificate_response_status if current_authorization_status.certificate_response_status in [
-                ResponseCode.OK,
-                ResponseCode.FAILED,
-                ResponseCode.FAILED_SEQUENCE_ERROR,
-                ResponseCode.FAILED_SIGNATURE_ERROR,
-                ResponseCode.FAILED_UNKNOWN_SESSION,
-                ResponseCode.FAILED_CHALLENGE_INVALID,
-            ]else ResponseCode.FAILED
+            response_code = (
+                resp_status
+                if resp_status
+                in [
+                    ResponseCode.OK,
+                    ResponseCode.FAILED,
+                    ResponseCode.FAILED_SEQUENCE_ERROR,
+                    ResponseCode.FAILED_SIGNATURE_ERROR,
+                    ResponseCode.FAILED_UNKNOWN_SESSION,
+                    ResponseCode.FAILED_CHALLENGE_INVALID,
+                ]
+                else ResponseCode.FAILED
+            )
 
         if (
             current_authorization_status.authorization_status
@@ -1191,7 +1201,6 @@ class Authorization(StateSECC):
             current_authorization_status.authorization_status
             == AuthorizationStatus.REJECTED
         ):
-
             self.stop_state_machine(
                 "Authorization was rejected",
                 message,
