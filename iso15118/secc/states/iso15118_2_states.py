@@ -975,7 +975,9 @@ class PaymentDetails(StateSECC):
                 # for this message can only be one of the following:
                 # OK, FAILED,
                 # FAILED_SEQUENCE_ERROR, FAILED_SIGNATURE_ERROR,
-                # FAILED_UNKNOWN_SESSION or FAILED_CHALLENGE_INVALID
+                # FAILED_UNKNOWN_SESSION, FAILED_CHALLENGE_INVALID
+                # FAILED_CERTIFICATE_EXPIRED, FAILED_CERTIFICATE_REVOKED,
+                # FAILED_NO_CERTIFICATE_AVAILABLE
                 response_code = current_authorization_status.certificate_response_status if current_authorization_status.certificate_response_status in [
                     ResponseCode.OK,
                     ResponseCode.FAILED,
