@@ -411,8 +411,39 @@ class Authorization(StateSECC):
         )
         evse_processing = Processing.ONGOING
         response_code = ResponseCode.OK
-        if current_authorization_status.certificate_response_status:
-            response_code = current_authorization_status.certificate_response_status
+        if resp_status := current_authorization_status.certificate_response_status:
+            # Based on table 224 in ISO 15118-20 the response code should be
+            # one of the following:
+            # OK, OK_CERT_EXPIRES_SOON,
+            # WARN_CERT_EXPIRED, WARN_CERT_NOT_YET_VALID,
+            # WARN_CERT_REVOKED, WARN_CERT_VALIDATION_ERROR,
+            # WARN_EMSP_UNKNOWN, WARN_GENERAL_PNC_AUTH_ERROR,
+            # WARN_CHALLENGE_INVALID, WARN_AUTH_SELECTION_INVALID,
+            # WARN_EIM_AUTH_FAILED, FAILED,
+            # FAILED_SEQUENCE_ERROR or FAILED_UNKNOWN_SESSION
+
+            response_code = (
+                resp_status
+                if resp_status
+                in [
+                    ResponseCode.OK,
+                    ResponseCode.OK_CERT_EXPIRES_SOON,
+                    ResponseCode.WARN_CERT_EXPIRED,
+                    ResponseCode.WARN_CERT_NOT_YET_VALID,
+                    ResponseCode.WARN_CERT_REVOKED,
+                    ResponseCode.WARN_CERT_VALIDATION_ERROR,
+                    ResponseCode.WARN_EMSP_UNKNOWN,
+                    ResponseCode.WARN_GENERAL_PNC_AUTH_ERROR,
+                    ResponseCode.WARN_CHALLENGE_INVALID,
+                    ResponseCode.WARN_AUTH_SELECTION_INVALID,
+                    ResponseCode.WARN_EIM_AUTH_FAILED,
+                    ResponseCode.FAILED,
+                    ResponseCode.FAILED_SEQUENCE_ERROR,
+                    ResponseCode.FAILED_UNKNOWN_SESSION,
+                ]
+                else ResponseCode.FAILED
+            )
+
         if (
             current_authorization_status.authorization_status
             == AuthorizationStatus.ACCEPTED
