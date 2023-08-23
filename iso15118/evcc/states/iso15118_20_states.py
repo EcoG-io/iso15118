@@ -841,7 +841,7 @@ class ScheduleExchange(StateEVCC):
 
             # Information from EV to show if charging or discharging is planned
             bpt_channel_selection = None
-            if self.comm_session.selected_energy_service in (
+            if self.comm_session.selected_energy_service.service in (
                 ServiceV20.AC_BPT,
                 ServiceV20.DC_BPT,
             ):
