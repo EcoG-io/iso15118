@@ -308,6 +308,23 @@ class CommunicationSessionHandler:
 
         await wait_for_tasks(self.list_of_tasks)
 
+    async def start_tcp_session_handler(
+        self, host: IPv6Address, port: int, is_tls: bool
+    ):
+        """
+        This method is necessary, because python does not allow
+        async def __init__. Therefore, we need to create a separate async
+        method to be our constructor.
+        """
+        self.list_of_tasks = [
+            self.get_from_rcv_queue(self._rcv_queue),
+            self.start_comm_session(host, port, is_tls),
+        ]
+
+        logger.info("Communication session handler started")
+
+        await wait_for_tasks(self.list_of_tasks)
+
     async def send_sdp(self):
         """
         Sends an SECC Discovery Protocol Request (SDP Request) via UDP to

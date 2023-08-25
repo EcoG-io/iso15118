@@ -82,8 +82,10 @@ poetry-shell:
 	poetry shell
 
 # Run evcc with python
+# host, port, tls params to be specified if running from supportedAppProtocol onwards.
+# Example: make run-evcc config=<path_to_evcc_config> host=fe80::c16:7554:fa58:1f0 port=61383 tls=no_tls
 run-evcc:
-	$(shell which python) iso15118/evcc/main.py $(config)
+	$(shell which python) iso15118/evcc/main.py $(config) $(host) $(port) $(tls)
 
 # Run secc with python
 run-secc:

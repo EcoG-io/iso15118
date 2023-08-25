@@ -1,4 +1,5 @@
 import logging
+from ipaddress import IPv6Address
 from typing import Optional
 
 from iso15118 import __version__
@@ -25,10 +26,18 @@ class EVCCHandler(CommunicationSessionHandler):
             self, evcc_config, iface, exi_codec, ev_controller
         )
 
-    async def start(self):
+    async def start(
+        self,
+        host: Optional[IPv6Address] = None,
+        port: Optional[int] = None,
+        is_tls: Optional[bool] = False,
+    ):
         try:
             logger.info(f"Starting 15118 version: {__version__}")
-            await self.start_session_handler()
+            if host and port:
+                await self.start_tcp_session_handler(host, port, is_tls)
+            else:
+                await self.start_session_handler()
         except Exception as exc:
             logger.error(f"EVCC terminated: {exc}")
             # Re-raise so the process ends with a non-zero exit code and the
