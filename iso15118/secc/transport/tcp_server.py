@@ -99,8 +99,8 @@ class TCPServer(asyncio.Protocol):
             # Allows address to be reused
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             logger.info("KARATAS ")
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
+            sock.setsockopt(socket.SOL_SOCKET, socket.TCP_NODELAY, 1)
+            sock.setsockopt(socket.SOL_SOCKET, socket.TCP_QUICKACK, 1)
             self.full_ipv6_address = await get_link_local_full_addr(
                 self.port, self.iface
             )
