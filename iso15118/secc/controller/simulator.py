@@ -19,6 +19,10 @@ from iso15118.secc.controller.interface import (
 )
 from iso15118.shared.exceptions import EncryptionError, PrivateKeyReadError
 from iso15118.shared.exi_codec import EXI
+from iso15118.shared.messages.app_protocol import (
+    SupportedAppProtocolReq,
+    SupportedAppProtocolRes,
+)
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
@@ -193,6 +197,8 @@ class SimEVSEController(EVSEControllerInterface):
     """
     A simulated version of an EVSE controller
     """
+
+    v20_service_id_parameter_mapping: Optional[Dict[int, ServiceParameterList]] = None
 
     @classmethod
     async def create(cls):
@@ -371,6 +377,8 @@ class SimEVSEController(EVSEControllerInterface):
         self, service_id: int
     ) -> Optional[ServiceParameterList]:
         """Overrides EVSEControllerInterface.get_service_parameter_list()."""
+        if self.v20_service_id_parameter_mapping is None:
+            return None
         if service_id in self.v20_service_id_parameter_mapping.keys():
             service_parameter_list = self.v20_service_id_parameter_mapping[service_id]
         else:
@@ -445,11 +453,15 @@ class SimEVSEController(EVSEControllerInterface):
     ) -> AuthorizationResponse:
         """Overrides EVSEControllerInterface.is_authorized()."""
         protocol = self.get_selected_protocol()
-        response_code = ResponseCodeV2.OK
+        response_code: Optional[
+            Union[ResponseCodeDINSPEC, ResponseCodeV2, ResponseCodeV20]
+        ] = None
         if protocol == Protocol.DIN_SPEC_70121:
             response_code = ResponseCodeDINSPEC.OK
         elif protocol == Protocol.ISO_15118_20_COMMON_MESSAGES:
             response_code = ResponseCodeV20.OK
+        else:
+            response_code = ResponseCodeV2.OK
 
         return AuthorizationResponse(
             authorization_status=AuthorizationStatus.ACCEPTED,
@@ -651,6 +663,13 @@ class SimEVSEController(EVSEControllerInterface):
 
         """
         if protocol == Protocol.ISO_15118_20_AC:
+            charge_parameters: Optional[
+                Union[
+                    ACChargeParameterDiscoveryResParams,
+                    BPTACChargeParameterDiscoveryResParams,
+                    DCChargeParameterDiscoveryResParams,
+                ]
+            ]
             if selected_energy_service in [ServiceV20.AC, ServiceV20.AC_BPT]:
                 charge_parameters = await self.get_ac_charge_params_v20(
                     selected_energy_service
@@ -662,22 +681,30 @@ class SimEVSEController(EVSEControllerInterface):
             ev_data_context = self.get_ev_data_context()
             logger.info(f"EV data context: {ev_data_context}")
 
+            if isinstance(
+                charge_parameters, ACChargeParameterDiscoveryResParams
+            ) or isinstance(charge_parameters, DCChargeParameterDiscoveryResParams):
+                max_discharge_power = ev_data_context.ev_max_discharge_power
+                min_discharge_power = ev_data_context.ev_min_discharge_power
+            else:
+                max_discharge_power = min(
+                    ev_data_context.ev_max_discharge_power,
+                    charge_parameters.evse_max_discharge_power.get_decimal_value(),
+                )
+                min_discharge_power = max(
+                    ev_data_context.ev_min_discharge_power,
+                    charge_parameters.evse_min_discharge_power.get_decimal_value(),
+                )
             max_charge_power = min(
                 ev_data_context.ev_max_charge_power,
                 charge_parameters.evse_max_charge_power.get_decimal_value(),
             )
-            max_discharge_power = min(
-                ev_data_context.ev_max_discharge_power,
-                charge_parameters.evse_max_discharge_power.get_decimal_value(),
-            )
+
             min_charge_power = max(
                 ev_data_context.ev_min_charge_power,
                 charge_parameters.evse_min_charge_power.get_decimal_value(),
             )
-            min_discharge_power = max(
-                ev_data_context.ev_min_discharge_power,
-                charge_parameters.evse_min_discharge_power.get_decimal_value(),
-            )
+
             logger.debug(
                 f"\n\r --- EV-EVSE System Power Limits ---  \n"
                 f"max_charge_power [W]: {max_charge_power}\n"
@@ -717,8 +744,10 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def get_ac_charge_params_v20(
         self, selected_service: ServiceV20
-    ) -> Union[
-        ACChargeParameterDiscoveryResParams, BPTACChargeParameterDiscoveryResParams
+    ) -> Optional[
+        Union[
+            ACChargeParameterDiscoveryResParams, BPTACChargeParameterDiscoveryResParams
+        ]
     ]:
         """Overrides EVSEControllerInterface.get_ac_charge_params_v20()."""
         ac_charge_parameter_discovery_res_params = ACChargeParameterDiscoveryResParams(
@@ -747,6 +776,7 @@ class SimEVSEController(EVSEControllerInterface):
                 evse_min_discharge_power_l2=RationalNumber(exponent=0, value=300),
                 evse_min_discharge_power_l3=RationalNumber(exponent=0, value=300),
             )
+        return None
 
     async def get_ac_charge_loop_params_v20(
         self, control_mode: ControlMode, selected_service: ServiceV20
@@ -856,7 +886,9 @@ class SimEVSEController(EVSEControllerInterface):
         return IsolationLevel.VALID
 
     async def set_precharge(
-        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
+        self,
+        voltage: Union[PVEVTargetVoltage, RationalNumber],
+        current: Union[PVEVTargetCurrent, RationalNumber],
     ):
         pass
 
@@ -885,8 +917,10 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def get_dc_charge_params_v20(
         self, selected_service: ServiceV20
-    ) -> Union[
-        DCChargeParameterDiscoveryResParams, BPTDCChargeParameterDiscoveryResParams
+    ) -> Optional[
+        Union[
+            DCChargeParameterDiscoveryResParams, BPTDCChargeParameterDiscoveryResParams
+        ]
     ]:
         """Override EVSEControllerInterface.get_dc_charge_params_v20()."""
         dc_charge_parameter_discovery_res = DCChargeParameterDiscoveryResParams(
@@ -908,14 +942,17 @@ class SimEVSEController(EVSEControllerInterface):
                 evse_max_discharge_current=RationalNumber(exponent=0, value=11),
                 evse_min_discharge_current=RationalNumber(exponent=0, value=0),
             )
+        return None
 
     async def get_dc_charge_loop_params_v20(
         self, control_mode: ControlMode, selected_service: ServiceV20
-    ) -> Union[
-        ScheduledDCChargeLoopResParams,
-        BPTScheduledDCChargeLoopResParams,
-        DynamicDCChargeLoopRes,
-        BPTDynamicDCChargeLoopRes,
+    ) -> Optional[
+        Union[
+            ScheduledDCChargeLoopResParams,
+            BPTScheduledDCChargeLoopResParams,
+            DynamicDCChargeLoopRes,
+            BPTDynamicDCChargeLoopRes,
+        ]
     ]:
         """Overrides EVSEControllerInterface.get_dc_charge_loop_params()."""
         if selected_service == ServiceV20.DC:
@@ -932,6 +969,7 @@ class SimEVSEController(EVSEControllerInterface):
                     evse_maximum_voltage=RationalNumber(exponent=1, value=600),
                 )
                 return dynamic_params
+            return None
         elif selected_service == ServiceV20.DC_BPT:
             if control_mode == ControlMode.SCHEDULED:
                 bpt_scheduled_params = BPTScheduledDCChargeLoopResParams(
@@ -951,8 +989,8 @@ class SimEVSEController(EVSEControllerInterface):
                 )
                 return bpt_dynamic_params
         else:
-            logger.error(f"Energy service {selected_service.service} not yet supported")
-            return
+            logger.error(f"Energy service {selected_service.name} not yet supported")
+            return None
 
     async def get_15118_ev_certificate(
         self, base64_encoded_cert_installation_req: str, namespace: str
@@ -1069,24 +1107,33 @@ class SimEVSEController(EVSEControllerInterface):
         except Exception as exc:
             raise Exception(f"Error creating signature {exc}")
 
-        header = MessageHeaderV2(
-            session_id=cert_install_req.header.session_id,
-            signature=signature,
-        )
-        body = Body.parse_obj({"CertificateInstallationRes": cert_install_res.dict()})
-        to_be_exi_encoded = V2GMessageV2(header=header, body=body)
-        exi_encoded_cert_installation_res = EXI().to_exi(
-            to_be_exi_encoded, Namespace.ISO_V2_MSG_DEF
-        )
+        if isinstance(cert_install_req, SupportedAppProtocolReq) or isinstance(
+            cert_install_req, SupportedAppProtocolRes
+        ):
+            logger.info(f"Ignoring EXI decoding of a {type(cert_install_req)} message.")
+            return ""
+        else:
+            header = MessageHeaderV2(
+                session_id=cert_install_req.header.session_id,
+                signature=signature,
+            )
+            body = Body.parse_obj(
+                {"CertificateInstallationRes": cert_install_res.dict()}
+            )
+            to_be_exi_encoded = V2GMessageV2(header=header, body=body)
+            exi_encoded_cert_installation_res = EXI().to_exi(
+                to_be_exi_encoded, Namespace.ISO_V2_MSG_DEF
+            )
 
-        # base64.b64encode in Python is a binary transform so the return value is byte[]
-        # But the CPO expects exi_encoded_cert_installation_res as a string, hence the
-        # added .decode("utf-8")
-        base64_encode_cert_install_res = base64.b64encode(
-            exi_encoded_cert_installation_res
-        ).decode("utf-8")
+            # base64.b64encode in Python is a binary transform
+            # so the return value is byte[]
+            # But the CPO expects exi_encoded_cert_installation_res
+            # as a string, hence the added .decode("utf-8")
+            base64_encode_cert_install_res = base64.b64encode(
+                exi_encoded_cert_installation_res
+            ).decode("utf-8")
 
-        return base64_encode_cert_install_res
+            return base64_encode_cert_install_res
 
     async def update_data_link(self, action: SessionStopAction) -> None:
         """

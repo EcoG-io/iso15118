@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import socket
-from typing import Tuple
+from typing import Optional, Tuple
 
 from iso15118.shared.network import get_link_local_full_addr, get_tcp_port
 from iso15118.shared.notifications import TCPClientNotification
@@ -22,12 +22,12 @@ class TCPServer(asyncio.Protocol):
     ipv6_address_host: str
 
     def __init__(self, session_handler_queue: asyncio.Queue, iface: str) -> None:
-        self._session_handler_queue = session_handler_queue
+        self._session_handler_queue: asyncio.Queue = session_handler_queue
         # The dynamic TCP port number in the range of (49152-65535)
-        self.port = get_tcp_port()
-        self.iface = iface
-        self.server = None
-        self.is_tls_enabled = False
+        self.port: int = get_tcp_port()
+        self.iface: str = iface
+        self.server: Optional[asyncio.Server] = None
+        self.is_tls_enabled: bool = False
 
     async def start_tls(self, ready_event: asyncio.Event):
         """

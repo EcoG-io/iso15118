@@ -194,13 +194,13 @@ class SimEVController(EVControllerInterface):
         matched_vas_services = [
             service for service in services if not service.is_energy_service
         ]
-        selected_vas_services: List[MatchedService] = []
+        selected_vas_services: List[SelectedVAS] = []
         for vas_service in matched_vas_services:
             selected_vas_services.append(
                 SelectedVAS(
-                    service=vas_service,
+                    service=vas_service.service,
                     is_free=vas_service.is_free,
-                    parameter_set=selected_vas_services.parameter_sets[0],
+                    parameter_set=vas_service.parameter_sets[0],
                 )
             )
         return selected_vas_services
