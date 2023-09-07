@@ -6,7 +6,7 @@ from base64 import urlsafe_b64encode
 from datetime import datetime
 from enum import Enum, auto
 from ssl import DER_cert_to_PEM_cert, SSLContext, SSLError, VerifyMode
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.backends.openssl.backend import Backend
@@ -35,6 +35,7 @@ from cryptography.x509 import (
     ExtensionNotFound,
     ExtensionOID,
     NameOID,
+    extensions,
     load_der_x509_certificate,
 )
 from cryptography.x509.ocsp import OCSPRequestBuilder
@@ -477,8 +478,8 @@ def log_certs_details(certs: List[bytes]):
 
 def verify_certs(
     leaf_cert_bytes: bytes,
-    sub_ca_certs: List[bytes],
-    root_ca_cert: bytes,
+    sub_ca_certs_bytes: List[bytes],
+    root_ca_cert_bytes: bytes,
     private_environment: bool = False,
 ):
     """
@@ -515,10 +516,10 @@ def verify_certs(
     leaf_cert = load_der_x509_certificate(leaf_cert_bytes)
     sub_ca2_cert = None
     sub_ca1_cert = None
-    root_ca_cert = load_der_x509_certificate(root_ca_cert)
+    root_ca_cert = load_der_x509_certificate(root_ca_cert_bytes)
 
     sub_ca_der_certs: List[Certificate] = [
-        load_der_x509_certificate(cert) for cert in sub_ca_certs
+        load_der_x509_certificate(cert) for cert in sub_ca_certs_bytes
     ]
 
     # Step 1.a: Categorize the sub-CA certificates into sub-CA 1 and sub-CA 2.
@@ -532,9 +533,15 @@ def verify_certs(
     # TODO We also need to check each certificate's attributes for
     #      compliance with the corresponding certificate profile
     for cert in sub_ca_der_certs:
-        path_len = cert.extensions.get_extension_for_oid(
-            ExtensionOID.BASIC_CONSTRAINTS
-        ).value.path_length
+        try:
+            basic_contrains = cert.extensions.get_extension_for_oid(
+                ExtensionOID.BASIC_CONSTRAINTS
+            ).value
+            path_len = 0
+            if isinstance(basic_contrains, extensions.BasicConstraints):
+                path_len = basic_contrains.path_length
+        except ExtensionNotFound:
+            path_len = None
         if path_len == 0:
             if sub_ca2_cert:
                 logger.error(
@@ -731,7 +738,9 @@ def get_cert_cn(der_cert: bytes) -> str:
     """
     cert = load_der_x509_certificate(der_cert)
     cn = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME).pop()
-    return cn.value
+    if isinstance(cn.value, str):
+        return cn.value
+    return cn.value.decode("utf-8")
 
 
 def get_cert_issuer_serial(cert_path: str) -> Tuple[str, int]:
@@ -1219,26 +1228,26 @@ def derive_certificate_hash_data(
             Only SHA256, SHA384, and SHA512 are allowed.
             (3.42 HashAlgorithmEnumType, p. 403, OCPP 2.0.1 Part 2)
     """
-    certificate: Certificate = load_der_x509_certificate(certificate)
-    issuer_certificate = load_der_x509_certificate(issuer_certificate)
+    cert: Certificate = load_der_x509_certificate(certificate)
+    issuer_cert = load_der_x509_certificate(issuer_certificate)
     builder = OCSPRequestBuilder().add_certificate(
-        certificate, issuer_certificate, certificate.signature_hash_algorithm
+        cert, issuer_cert, cert.signature_hash_algorithm
     )
 
     ocsp_request = builder.build()
 
     # For the hash algorithm, convert to the naming used in OCPP.
     # Only SHA256, SHA384, and SHA512 are allowed in OCPP 2.0.1.
-    hash_algorithm_for_ocpp = certificate.signature_hash_algorithm.name.upper()
+    hash_algorithm_for_ocpp = cert.signature_hash_algorithm.name.upper()
     if hash_algorithm_for_ocpp not in {"SHA256", "SHA384", "SHA512"}:
         raise CertAttributeError(
-            subject=certificate.subject.__str__(),
+            subject=cert.subject.__str__(),
             attr="HashAlgorithm",
             invalid_value=hash_algorithm_for_ocpp,
         )
 
     try:
-        responder_url = get_ocsp_url_for_certificate(certificate)
+        responder_url = get_ocsp_url_for_certificate(cert)
     except (ExtensionNotFound, OCSPServerNotFoundError) as e:
         raise e
 
@@ -1302,9 +1311,12 @@ def get_ocsp_url_for_certificate(certificate: Certificate) -> str:
         OCSPServerNotFoundError: if OCSP server entry is not found
     """
     try:
-        auth_inf_access = certificate.extensions.get_extension_for_oid(
-            ExtensionOID.AUTHORITY_INFORMATION_ACCESS
-        ).value
+        auth_inf_access = cast(
+            extensions.AuthorityInformationAccess,
+            certificate.extensions.get_extension_for_oid(
+                ExtensionOID.AUTHORITY_INFORMATION_ACCESS
+            ).value,
+        )
     except ExtensionNotFound:
         logger.debug(
             f"Authority Information Access extension not "
