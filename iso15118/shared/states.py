@@ -262,7 +262,7 @@ class State(ABC):
             V2GMessageDINSPEC,
         ] = None
         if isinstance(next_msg, BodyBaseDINSPEC):
-            note: Union[NotificationDINSPEC, None] = None
+            note_dinspec: Union[NotificationDINSPEC, None] = None
             if (
                 self.comm_session.stop_reason
                 and not self.comm_session.stop_reason.successful
@@ -273,17 +273,21 @@ class State(ABC):
                     fault_msg = self.comm_session.stop_reason.reason[:62] + ".."
                 else:
                     fault_msg = self.comm_session.stop_reason.reason
-                note = NotificationDINSPEC(
+                note_dinspec = NotificationDINSPEC(
                     fault_code=FaultCodeDINSPEC.PARSING_ERROR, fault_msg=fault_msg
                 )
-            header = MessageHeaderDINSPEC(
+            header_dinspec: MessageHeaderDINSPEC = MessageHeaderDINSPEC(
                 session_id=self.comm_session.session_id,
                 signature=signature,
-                notification=note,
+                notification=note_dinspec,
             )
-            body = BodyDINSPEC.parse_obj({str(next_msg): next_msg.dict()})
+            body_dinspec: BodyDINSPEC = BodyDINSPEC.parse_obj(
+                {str(next_msg): next_msg.dict()}
+            )
             try:
-                to_be_exi_encoded = V2GMessageDINSPEC(header=header, body=body)
+                to_be_exi_encoded = V2GMessageDINSPEC(
+                    header=header_dinspec, body=body_dinspec
+                )
             except ValidationError as exc:
                 logger.exception(exc)
                 raise exc
@@ -303,12 +307,12 @@ class State(ABC):
                 note = Notification(
                     fault_code=FaultCode.PARSING_ERROR, fault_msg=fault_msg
                 )
-            header = MessageHeaderV2(
+            header: MessageHeaderV2 = MessageHeaderV2(
                 session_id=self.comm_session.session_id,
                 signature=signature,
                 notification=note,
             )
-            body = Body.parse_obj({str(next_msg): next_msg.dict()})
+            body: Body = Body.parse_obj({str(next_msg): next_msg.dict()})
             try:
                 to_be_exi_encoded = V2GMessageV2(header=header, body=body)
             except ValidationError as exc:
@@ -338,7 +342,7 @@ class State(ABC):
                 exi_payload = EXI().to_exi(to_be_exi_encoded, namespace)
 
                 if hasattr(self.comm_session, "evse_id"):
-                    logger.trace(
+                    logger.debug(
                         f"{self.comm_session.evse_id}:::"
                         f"{exi_payload.hex()}:::"
                         f"{namespace.value}"

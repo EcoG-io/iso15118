@@ -34,8 +34,9 @@ def load_requested_protocols(read_protocols: Optional[List[str]]) -> List[Protoc
             f"No supported protocols configured. Supported protocols are "
             f"{supported_protocols} and could be configured in evcc_config.json"
         )
-    supported_protocols = [Protocol[x] for x in valid_protocols]
-    return supported_protocols
+    return [
+        Protocol[name] for name in supported_protocols if name in Protocol.__members__
+    ]
 
 
 def load_requested_energy_services(
@@ -60,8 +61,9 @@ def load_requested_energy_services(
             f"No supported energy services configured. Supported energy services are "
             f"{supported_services} and could be configured in evcc_config.json"
         )
-    supported_services = [ServiceV20[x] for x in valid_services]
-    return supported_services
+    return [
+        ServiceV20[name] for name in valid_services if name in ServiceV20.__members__
+    ]
 
 
 def load_requested_auth_modes(read_auth_modes: Optional[List[str]]) -> List[AuthEnum]:
@@ -111,16 +113,18 @@ async def wait_for_tasks(
 
     for task in await_tasks:
         if not isinstance(task, asyncio.Task):
-            task = asyncio.create_task(task)
-        tasks.append(task)
+            new_task = asyncio.create_task(task)
+            tasks.append(new_task)
+        else:
+            tasks.append(task)
 
     done, pending = await asyncio.wait(tasks, return_when=return_when)
 
-    for task in pending:
-        await cancel_task(task)
+    for pending_task in pending:
+        await cancel_task(pending_task)
 
-    for task in done:
+    for done_task in done:
         try:
-            task.result()
+            done_task.result()
         except Exception as e:
             logger.exception(e)
