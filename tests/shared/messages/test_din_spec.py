@@ -251,5 +251,5 @@ class TestDinSpec_MessageCreation:
     ):
         decoded_dict = json.loads(message.json_str, cls=CustomJSONDecoder)
 
-        message = V2GMessageDINSPEC.parse_obj(decoded_dict["V2G_Message"])
-        assert isinstance(message, V2GMessageDINSPEC)
+        dinspec_message = V2GMessageDINSPEC.parse_obj(decoded_dict["V2G_Message"])
+        assert isinstance(dinspec_message, V2GMessageDINSPEC)
