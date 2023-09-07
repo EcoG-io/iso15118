@@ -12,7 +12,7 @@ element names by using the 'alias' attribute.
 """
 from dataclasses import dataclass
 from enum import Enum
-from typing import List
+from typing import List, Tuple
 
 from pydantic import Field, root_validator, validator
 
@@ -1295,8 +1295,8 @@ class MatchedService:
     is_free: bool
     parameter_sets: List[ParameterSet]
 
-    def service_parameter_set_ids(self) -> [(int, int)]:
-        service_param_set_ids: List[(int, int)] = []
+    def service_parameter_set_ids(self) -> List[Tuple[int, int]]:
+        service_param_set_ids: List[Tuple[int, int]] = []
         for parameter_set in self.parameter_sets:
             service_param_set_ids.append((self.service.id, parameter_set.id))
         return service_param_set_ids
