@@ -836,23 +836,23 @@ class ScheduleExchange(StateEVCC):
                 )
 
             ev_processing = Processing.FINISHED
+            bpt_channel_selection = None
             self.comm_session.schedule_exchange_res = schedule_exchange_res
 
             if not ev_power_profile:
                 ev_processing = Processing.ONGOING
                 self.comm_session.ev_processing = Processing.ONGOING
-
-            # Information from EV to show if charging or discharging is planned
-            bpt_channel_selection = None
-            if self.comm_session.selected_energy_service.service in (
-                ServiceV20.AC_BPT,
-                ServiceV20.DC_BPT,
-            ):
-                power_value = ev_power_profile.entry_list.entries[-1].power.value
-                if power_value < 0:
-                    bpt_channel_selection = ChannelSelection.DISCHARGE
-                else:
-                    bpt_channel_selection = ChannelSelection.CHARGE
+            else:
+                # Information from EV to show if charging or discharging is planned
+                if self.comm_session.selected_energy_service.service in (
+                    ServiceV20.AC_BPT,
+                    ServiceV20.DC_BPT,
+                ):
+                    power_value = ev_power_profile.entry_list.entries[-1].power.value
+                    if power_value < 0:
+                        bpt_channel_selection = ChannelSelection.DISCHARGE
+                    else:
+                        bpt_channel_selection = ChannelSelection.CHARGE
 
             if self.comm_session.selected_charging_type_is_ac:
                 power_delivery_req = PowerDeliveryReq(
