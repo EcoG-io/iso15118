@@ -111,14 +111,14 @@ class EVDataContext:
         ],
     ):
         params = ev_params.dict()
-        ev_params = {}
+        ev_params_dict: dict[str, Union[int, float]] = {}
         for k, v in params.items():
             if type(v) is dict:
-                ev_params.update({k: v["value"] * 10 ** v["exponent"]})
+                ev_params_dict.update({k: v["value"] * 10 ** v["exponent"]})
             elif type(v) is int:
-                ev_params.update({k: v})
+                ev_params_dict.update({k: v})
 
-        self.__dict__.update(ev_params)
+        self.__dict__.update(ev_params_dict)
 
     def as_dict(self):
         return self.__dict__

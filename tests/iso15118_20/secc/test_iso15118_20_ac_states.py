@@ -26,7 +26,9 @@ from iso15118.shared.messages.enums import (
     ServiceV20,
 )
 from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeLoopRes,
     ACChargeParameterDiscoveryReqParams,
+    ACChargeParameterDiscoveryRes,
     ACChargeParameterDiscoveryResParams,
     BPTACChargeParameterDiscoveryReqParams,
     BPTACChargeParameterDiscoveryResParams,
@@ -612,6 +614,7 @@ class TestEvScenarios:
         )
         await ac_service_discovery.process_message(message=ac_service_discovery_req)
         assert ac_service_discovery.next_state is expected_state
+        assert isinstance(ac_service_discovery.message, ACChargeParameterDiscoveryRes)
         if selected_service == ServiceV20.AC:
             assert ac_service_discovery.message.ac_params == expected_res_params
         elif selected_service == ServiceV20.AC_BPT:
@@ -869,6 +872,7 @@ class TestEvScenarios:
         )
         await ac_charge_loop.process_message(message=ac_charge_loop_req)
         assert ac_charge_loop.next_state is expected_state
+        assert isinstance(ac_charge_loop.message, ACChargeLoopRes)
         if selected_service == ServiceV20.AC and control_mode == ControlMode.SCHEDULED:
             assert ac_charge_loop.message.scheduled_params == expected_evse_params
         elif (

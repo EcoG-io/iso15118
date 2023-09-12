@@ -108,9 +108,7 @@ class EVSEControllerInterface(ABC):
     def get_ev_data_context(self) -> EVDataContext:
         return self.ev_data_context
 
-    def set_evse_data_context(
-        self, evse_data_context: EVSEDataContext
-    ) -> EVSEDataContext:
+    def set_evse_data_context(self, evse_data_context: EVSEDataContext) -> None:
         self.evse_data_context = evse_data_context
 
     def get_evse_data_context(self) -> EVSEDataContext:

@@ -1861,11 +1861,9 @@ class DCChargeLoop(StateSECC):
             EVSEStatus
         ] = await self.comm_session.evse_controller.get_evse_status()
 
-        meter_info = None
+        meter_info: Optional[MeterInfo] = None
         if meter_info_requested:
-            meter_info: Optional[
-                MeterInfo
-            ] = await self.comm_session.evse_controller.get_meter_info_v20()
+            meter_info = await self.comm_session.evse_controller.get_meter_info_v20()
 
         dc_charge_loop_res = DCChargeLoopRes(
             header=MessageHeader(

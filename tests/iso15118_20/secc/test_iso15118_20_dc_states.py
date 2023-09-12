@@ -36,6 +36,8 @@ from iso15118.shared.messages.iso15118_20.dc import (
     BPTDynamicDCChargeLoopRes,
     BPTScheduledDCChargeLoopReqParams,
     BPTScheduledDCChargeLoopResParams,
+    DCChargeLoopRes,
+    DCChargeParameterDiscoveryReq,
     DCChargeParameterDiscoveryReqParams,
     DCChargeParameterDiscoveryResParams,
     DynamicDCChargeLoopReqParams,
@@ -538,6 +540,7 @@ class TestEvScenarios:
         )
         await dc_service_discovery.process_message(message=dc_service_discovery_req)
         assert dc_service_discovery.next_state is expected_state
+        assert isinstance(dc_service_discovery.message, DCChargeParameterDiscoveryReq)
         if selected_service == ServiceV20.DC:
             assert dc_service_discovery.message.dc_params == expected_res_params
         elif selected_service == ServiceV20.DC_BPT:
@@ -725,6 +728,7 @@ class TestEvScenarios:
         )
         await dc_charge_loop.process_message(message=dc_charge_loop_req)
         assert dc_charge_loop.next_state is expected_state
+        assert isinstance(dc_charge_loop.message, DCChargeLoopRes)
         if selected_service == ServiceV20.DC and control_mode == ControlMode.SCHEDULED:
             assert (
                 dc_charge_loop.message.scheduled_dc_charge_loop_res
