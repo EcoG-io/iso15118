@@ -19,10 +19,6 @@ from iso15118.secc.controller.interface import (
 )
 from iso15118.shared.exceptions import EncryptionError, PrivateKeyReadError
 from iso15118.shared.exi_codec import EXI
-from iso15118.shared.messages.app_protocol import (
-    SupportedAppProtocolReq,
-    SupportedAppProtocolRes,
-)
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
@@ -70,7 +66,11 @@ from iso15118.shared.messages.enums import (
     SessionStopAction,
     UnitSymbol,
 )
-from iso15118.shared.messages.iso15118_2.body import Body, CertificateInstallationRes
+from iso15118.shared.messages.iso15118_2.body import (
+    Body,
+    CertificateInstallationReq,
+    CertificateInstallationRes,
+)
 from iso15118.shared.messages.iso15118_2.datatypes import (
     EMAID,
     ACEVSEChargeParameter,
@@ -1107,12 +1107,7 @@ class SimEVSEController(EVSEControllerInterface):
         except Exception as exc:
             raise Exception(f"Error creating signature {exc}")
 
-        if isinstance(cert_install_req, SupportedAppProtocolReq) or isinstance(
-            cert_install_req, SupportedAppProtocolRes
-        ):
-            logger.info(f"Ignoring EXI decoding of a {type(cert_install_req)} message.")
-            return ""
-        else:
+        if isinstance(cert_install_req, CertificateInstallationReq):
             header = MessageHeaderV2(
                 session_id=cert_install_req.header.session_id,
                 signature=signature,
@@ -1134,6 +1129,9 @@ class SimEVSEController(EVSEControllerInterface):
             ).decode("utf-8")
 
             return base64_encode_cert_install_res
+        else:
+            logger.info(f"Ignoring EXI decoding of a {type(cert_install_req)} message.")
+            return ""
 
     async def update_data_link(self, action: SessionStopAction) -> None:
         """
