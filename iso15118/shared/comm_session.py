@@ -203,7 +203,7 @@ class SessionStateMachine(ABC):
             )
 
             if hasattr(self.comm_session, "evse_id"):
-                logger.debug(
+                logger.trace(  # type: ignore[attr-defined]
                     f"{self.comm_session.evse_id}:::"
                     f"{v2gtp_msg.payload.hex()}:::"
                     f"{self.get_exi_ns(v2gtp_msg.payload_type)}"

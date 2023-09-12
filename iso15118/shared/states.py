@@ -342,7 +342,7 @@ class State(ABC):
                 exi_payload = EXI().to_exi(to_be_exi_encoded, namespace)
 
                 if hasattr(self.comm_session, "evse_id"):
-                    logger.debug(
+                    logger.trace(  # type: ignore[attr-defined]
                         f"{self.comm_session.evse_id}:::"
                         f"{exi_payload.hex()}:::"
                         f"{namespace.value}"
