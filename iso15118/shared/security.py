@@ -541,7 +541,9 @@ def verify_certs(
             if isinstance(basic_contrains, extensions.BasicConstraints):
                 path_len = basic_contrains.path_length
         except ExtensionNotFound:
-            path_len = None
+            raise CertAttributeError(
+                subject=cert.subject.__str__(), attr="PathLength", invalid_value="None"
+            )
         if path_len == 0:
             if sub_ca2_cert:
                 logger.error(
