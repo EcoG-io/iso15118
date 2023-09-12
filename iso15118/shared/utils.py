@@ -34,9 +34,7 @@ def load_requested_protocols(read_protocols: Optional[List[str]]) -> List[Protoc
             f"No supported protocols configured. Supported protocols are "
             f"{supported_protocols} and could be configured in evcc_config.json"
         )
-    return [
-        Protocol[name] for name in valid_protocols if name in Protocol.__members__
-    ]
+    return [Protocol[name] for name in valid_protocols if name in Protocol.__members__]
 
 
 def load_requested_energy_services(
