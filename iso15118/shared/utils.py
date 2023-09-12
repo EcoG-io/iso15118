@@ -35,7 +35,7 @@ def load_requested_protocols(read_protocols: Optional[List[str]]) -> List[Protoc
             f"{supported_protocols} and could be configured in evcc_config.json"
         )
     return [
-        Protocol[name] for name in supported_protocols if name in Protocol.__members__
+        Protocol[name] for name in valid_protocols if name in Protocol.__members__
     ]
 
 
