@@ -61,7 +61,9 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ServiceList,
     ServiceParameterList,
 )
-from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus, RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
+from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
+from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
 from iso15118.shared.messages.iso15118_20.common_types import (
     ResponseCode as ResponseCodeV20,
 )
@@ -97,7 +99,7 @@ class EVSEControllerInterface(ABC):
         self.ev_data_context = EVDataContext()
         self.evse_data_context = EVSEDataContext()
         self.ev_charge_params_limits = EVChargeParamsLimits()
-        self._selected_protocol = Optional[Protocol]
+        self._selected_protocol: Optional[Protocol] = None
 
     def reset_ev_data_context(self):
         self.ev_data_context = EVDataContext()
@@ -324,7 +326,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_meter_info_v20(self) -> MeterInfoV2:
+    async def get_meter_info_v20(self) -> MeterInfoV20:
         """
         Provides the MeterInfo from the EVSE's smart meter
 
@@ -453,7 +455,7 @@ class EVSEControllerInterface(ABC):
         """
         self._selected_protocol = protocol
 
-    def get_selected_protocol(self) -> Protocol:
+    def get_selected_protocol(self) -> Optional[Protocol]:
         """Get the selected Protocol."""
         return self._selected_protocol
 
@@ -599,7 +601,9 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     async def set_precharge(
-        self, voltage: PVEVTargetVoltage, current: PVEVTargetCurrent
+        self,
+        voltage: Union[PVEVTargetVoltage, RationalNumber],
+        current: Union[PVEVTargetCurrent, RationalNumber],
     ):
         """
         Sets the precharge information coming from the EV.

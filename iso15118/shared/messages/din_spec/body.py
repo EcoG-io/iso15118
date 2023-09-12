@@ -561,7 +561,7 @@ def get_msg_type(msg_name: str) -> Optional[Type[BodyBase]]:
 
     Returns: The message type corresponding to the given message name
     """
-    msg_dict = {
+    msg_dict: dict[str, Type[BodyBase]] = {
         "SessionSetupReq": SessionSetupReq,
         "SessionSetupRes": SessionSetupRes,
         "ServiceDiscoveryReq": ServiceDiscoveryReq,

@@ -15,6 +15,7 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
+from iso15118.shared.messages.datatypes import PVEVSEPresentCurrent
 from iso15118.shared.messages.din_spec.body import (
     CableCheckReq,
     CableCheckRes,
@@ -597,9 +598,16 @@ class PreCharge(StateSECC):
                 Protocol.DIN_SPEC_70121
             )
         )
-        present_current_in_a = present_current.value * 10**present_current.multiplier
-        target_current = precharge_req.ev_target_current
-        target_current_in_a = target_current.value * 10**target_current.multiplier
+        if isinstance(present_current, PVEVSEPresentCurrent):
+            present_current_in_a = (
+                present_current.value * 10**present_current.multiplier
+            )
+            target_current = precharge_req.ev_target_current
+            target_current_in_a = target_current.value * 10**target_current.multiplier
+        else:
+            present_current_in_a = present_current.value
+            target_current = precharge_req.ev_target_current
+            target_current_in_a = precharge_req.ev_target_current.value
 
         if present_current_in_a > 2 or target_current_in_a > 2:
             self.stop_state_machine(

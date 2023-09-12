@@ -7,7 +7,7 @@ import asyncio
 import base64
 import logging
 import time
-from typing import List, Optional, Type, Union
+from typing import List, Optional, Tuple, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.ev_data import EVSessionContext15118
@@ -28,7 +28,18 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.datatypes import DCEVSEChargeParameter, DCEVSEStatus
+from iso15118.shared.messages.datatypes import (
+    DCEVSEChargeParameter,
+    DCEVSEStatus,
+    PVEVMaxCurrent,
+    PVEVMaxCurrentLimit,
+    PVEVMaxVoltage,
+    PVEVMaxVoltageLimit,
+    PVEVSEPresentCurrent,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    ResponseCode as ResponseCodeDINSPEC,
+)
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
@@ -92,6 +103,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     EnergyTransferModeList,
     Parameter,
     ParameterSet,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode as ResponseCodeV2
+from iso15118.shared.messages.iso15118_2.datatypes import (
     SAScheduleList,
     SAScheduleTuple,
     ServiceCategory,
@@ -103,6 +117,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     SubCertificates,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
+from iso15118.shared.messages.iso15118_20.common_types import (
+    ResponseCode as ResponseCodeV20,
+)
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
@@ -615,7 +632,7 @@ class PaymentServiceSelection(StateSECC):
         self.comm_session.selected_auth_option = AuthEnum(
             service_selection_req.selected_auth_option.value
         )
-        self.comm_session.ev_session_context.auth_options: List[AuthEnum] = [
+        self.comm_session.ev_session_context.auth_options = [
             self.comm_session.selected_auth_option
         ]
 
@@ -697,7 +714,9 @@ class CertificateInstallation(StateSECC):
                         base64_certificate_install_req, Namespace.ISO_V2_MSG_DEF
                     )
                 )
-                certificate_installation_res: Base64 = Base64(
+                certificate_installation_res: Union[
+                    CertificateInstallationRes, Base64
+                ] = Base64(
                     message=base64_certificate_installation_res,
                     message_name=CertificateInstallationRes.__name__,
                     namespace=Namespace.ISO_V2_MSG_DEF,
@@ -707,6 +726,7 @@ class CertificateInstallation(StateSECC):
                     certificate_installation_res,
                     signature,
                 ) = self.generate_certificate_installation_res()
+
         except Exception as e:
             error = f"Error building CertificateInstallationRes: {e}"
             logger.error(error)
@@ -765,7 +785,7 @@ class CertificateInstallation(StateSECC):
 
     def generate_certificate_installation_res(
         self,
-    ) -> (CertificateInstallationRes, Signature):
+    ) -> Tuple[CertificateInstallationRes, Signature]:
         # Here we create the CertificateInstallationRes message ourselves as we
         # have access to all certificates and private keys needed.
         # This is however not the real production case.
@@ -962,12 +982,13 @@ class PaymentDetails(StateSECC):
                 await self.comm_session.evse_controller.is_authorized(
                     id_token=payment_details_req.emaid,
                     id_token_type=AuthorizationTokenType.EMAID,
-                    certificate_chain=pem_certificate_chain,
+                    certificate_chain=bytes(pem_certificate_chain, "utf-8"),
                     hash_data=hash_data,
                 )
             )
-
-            response_code = ResponseCode.OK
+            response_code: Optional[
+                Union[ResponseCodeV2, ResponseCodeV20, ResponseCodeDINSPEC]
+            ] = ResponseCode.OK
             if resp_status := current_authorization_status.certificate_response_status:
                 # according to table 112 of ISO 15118-2, the Response code
                 # for this message can only be one of the following:
@@ -1165,7 +1186,9 @@ class Authorization(StateSECC):
             )
         )
 
-        response_code = ResponseCode.OK
+        response_code: Optional[
+            Union[ResponseCodeV2, ResponseCodeV20, ResponseCodeDINSPEC]
+        ] = ResponseCode.OK
         if resp_status := current_authorization_status.certificate_response_status:
             # according to table 112 of ISO 15118-2, the Response code
             # for this message can only be one of the following:
@@ -1315,8 +1338,12 @@ class ChargeParameterDiscovery(StateSECC):
             ac_evse_charge_params = (
                 await self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
-            ev_max_voltage = charge_params_req.ac_ev_charge_parameter.ev_max_voltage
-            ev_max_current = charge_params_req.ac_ev_charge_parameter.ev_max_current
+            ev_max_voltage: Union[
+                PVEVMaxVoltageLimit, PVEVMaxVoltage
+            ] = charge_params_req.ac_ev_charge_parameter.ev_max_voltage
+            ev_max_current: Union[
+                PVEVMaxCurrentLimit, PVEVMaxCurrent
+            ] = charge_params_req.ac_ev_charge_parameter.ev_max_current
             e_amount = charge_params_req.ac_ev_charge_parameter.e_amount
             ev_charge_params_limits = EVChargeParamsLimits(
                 ev_max_voltage=ev_max_voltage,
@@ -1399,7 +1426,7 @@ class ChargeParameterDiscovery(StateSECC):
             )
 
         signature = None
-        next_state = None
+        next_state: Type[State] = None
         if sa_schedule_list:
             self.comm_session.offered_schedules = sa_schedule_list
             if charge_params_req.ac_ev_charge_parameter:
@@ -1636,7 +1663,7 @@ class PowerDelivery(StateSECC):
 
         logger.debug(f"ChargeProgress set to {power_delivery_req.charge_progress}")
 
-        next_state: Type[State]
+        next_state: Type[State] = None
         if power_delivery_req.charge_progress == ChargeProgress.START:
             # According to section 8.7.4 in ISO 15118-2, the EV enters into HLC-C
             # (High Level Controlled Charging) once PowerDeliveryRes(ResponseCode=OK)
@@ -2006,7 +2033,7 @@ class SessionStop(StateSECC):
         msg = self.check_msg_v2(message, [SessionStopReq])
         if not msg:
             return
-
+        next_state: Type[State] = None
         if msg.body.session_stop_req.charging_session == ChargingSession.PAUSE:
             next_state = Pause
             session_stop_state = SessionStopAction.PAUSE
@@ -2299,9 +2326,16 @@ class PreCharge(StateSECC):
                 Protocol.ISO_15118_2
             )
         )
-        present_current_in_a = present_current.value * 10**present_current.multiplier
-        target_current = precharge_req.ev_target_current
-        target_current_in_a = target_current.value * 10**target_current.multiplier
+        if isinstance(present_current, PVEVSEPresentCurrent):
+            present_current_in_a = (
+                present_current.value * 10**present_current.multiplier
+            )
+            target_current = precharge_req.ev_target_current
+            target_current_in_a = target_current.value * 10**target_current.multiplier
+        else:
+            present_current_in_a = present_current.value
+            target_current = precharge_req.ev_target_current
+            target_current_in_a = target_current.value
 
         if present_current_in_a > 2 or target_current_in_a > 2:
             self.stop_state_machine(

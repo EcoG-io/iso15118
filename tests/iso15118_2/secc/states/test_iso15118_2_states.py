@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, cast
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -43,6 +43,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ServiceID,
     ServiceName,
 )
+from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.security import get_random_bytes
 from iso15118.shared.states import Pause
 from tests.iso15118_2.secc.states.test_messages import (
@@ -304,6 +305,8 @@ class TestV2GSessionScenarios:
             message=get_dummy_v2g_message_authorization_req()
         )
         assert authorization.next_state == expected_next_state
+        authorization.message = cast(V2GMessageV2, authorization.message)
+
         assert (
             authorization.message.body.authorization_res.response_code
             == expected_response_code
@@ -325,6 +328,7 @@ class TestV2GSessionScenarios:
             message=get_dummy_v2g_message_authorization_req(id, gen_challenge)
         )
         assert authorization.next_state == Terminate
+        assert isinstance(authorization.message, V2GMessageV2)
         assert (
             authorization.message.body.authorization_res.response_code
             == ResponseCode.FAILED_CHALLENGE_INVALID
@@ -359,6 +363,7 @@ class TestV2GSessionScenarios:
         charging_duration = (
             charge_parameter_discovery_req_departure_time_set.body.charge_parameter_discovery_req.ac_ev_charge_parameter.departure_time  # noqa
         )
+        assert isinstance(charge_parameter_discovery.message, V2GMessageV2)
 
         assert (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res
@@ -402,6 +407,8 @@ class TestV2GSessionScenarios:
         await charge_parameter_discovery.process_message(
             message=get_charge_parameter_discovery_req_message_no_departure_time()
         )
+        assert isinstance(charge_parameter_discovery.message, V2GMessageV2)
+
         assert (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res
             is not None
@@ -442,10 +449,12 @@ class TestV2GSessionScenarios:
         await charge_parameter_discovery.process_message(
             message=get_charge_parameter_discovery_req_message_no_departure_time()
         )
+        assert isinstance(charge_parameter_discovery.message, V2GMessageV2)
         assert (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res
             is not None
         )
+
         charge_parameter_discovery_res = (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res
         )
@@ -512,6 +521,8 @@ class TestV2GSessionScenarios:
 
         await power_delivery.process_message(message=power_delivery_message)
         assert power_delivery.next_state is expected_state
+        assert isinstance(power_delivery.message, V2GMessageV2)
+
         assert (
             power_delivery.message.body.power_delivery_res.response_code
             is expected_response_code
@@ -548,6 +559,7 @@ class TestV2GSessionScenarios:
             message=get_dummy_v2g_message_service_discovery_req()
         )
         assert service_discovery.next_state is Terminate
+        assert isinstance(service_discovery.message, V2GMessageV2)
         assert (
             service_discovery.message.body.service_discovery_res.response_code
             is ResponseCode.FAILED_SEQUENCE_ERROR
@@ -557,6 +569,7 @@ class TestV2GSessionScenarios:
         charging_status = ChargingStatus(self.comm_session)
         self.comm_session.selected_schedule = 1
         await charging_status.process_message(message=get_dummy_charging_status_req())
+        assert isinstance(charging_status.message, V2GMessageV2)
 
         charging_status_res = charging_status.message.body.charging_status_res
         assert charging_status_res.ac_evse_status == ACEVSEStatus(
@@ -578,6 +591,7 @@ class TestV2GSessionScenarios:
 
         self.comm_session.evse_controller.get_ac_evse_status = get_ac_evse_status_patch
         await charging_status.process_message(message=get_dummy_charging_status_req())
+        assert isinstance(charging_status.message, V2GMessageV2)
         charging_status_res = charging_status.message.body.charging_status_res
         assert charging_status_res.ac_evse_status == await get_ac_evse_status_patch()
 
@@ -610,6 +624,7 @@ class TestV2GSessionScenarios:
             message=get_v2g_message_service_detail_req(service_id=service_id)
         )
         assert isinstance(self.comm_session.current_state, ServiceDetail)
+        assert isinstance(service_details.message, V2GMessageV2)
         assert (
             service_details.message.body.service_detail_res.response_code
             is response_code
@@ -703,6 +718,8 @@ class TestV2GSessionScenarios:
         await service_discovery.process_message(
             message=get_v2g_message_service_discovery_req()
         )
+        service_discovery.message = cast(V2GMessageV2, service_discovery.message)
+
         assert (
             service_discovery.message.body.service_discovery_res.charge_service
             == charge_service
@@ -750,6 +767,10 @@ class TestV2GSessionScenarios:
                 energy_transfer_modes[0]
             )
         )
+
+        charge_parameter_discovery.message = cast(
+            V2GMessageV2, charge_parameter_discovery.message
+        )
         sa_schedule_list = (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res.sa_schedule_list.schedule_tuples  # noqa
         )
@@ -787,6 +808,7 @@ class TestV2GSessionScenarios:
                 energy_transfer_modes[0]
             )
         )
+        assert isinstance(charge_parameter_discovery.message, V2GMessageV2)
         for (
             schedule_tuple
         ) in (

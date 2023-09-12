@@ -14,7 +14,7 @@ import asyncio
 import logging
 import socket
 from asyncio.streams import StreamReader, StreamWriter
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Coroutine, Dict, List, Optional, Tuple, Union
 
 from iso15118.secc.controller.ev_data import EVSessionContext15118
 from iso15118.secc.controller.interface import EVSEControllerInterface, ServiceStatus
@@ -173,13 +173,13 @@ class CommunicationSessionHandler:
     def __init__(
         self, config: Config, codec: IEXICodec, evse_controller: EVSEControllerInterface
     ):
-        self.list_of_tasks = []
-        self.udp_server = None
-        self.tcp_server = None
-        self.tcp_server_handler = None
-        self.config = config
-        self.evse_controller = evse_controller
-        self.udp_processor_lock = asyncio.Lock()
+        self.list_of_tasks: List[Coroutine] = []
+        self.udp_server: Optional[UDPServer] = None
+        self.tcp_server: Optional[TCPServer] = None
+        self.tcp_server_handler: Optional[asyncio.Task[Any]] = None
+        self.config: Config = config
+        self.evse_controller: EVSEControllerInterface = evse_controller
+        self.udp_processor_lock: asyncio.Lock = asyncio.Lock()
 
         # List of server status events
         self.status_event_list: List[asyncio.Event] = []
@@ -189,12 +189,14 @@ class CommunicationSessionHandler:
 
         # Receiving queue for UDP or TCP packets and session
         # triggers (e.g. pause/terminate)
-        self._rcv_queue = asyncio.Queue()
+        self._rcv_queue: asyncio.Queue = asyncio.Queue()
 
         # The comm_sessions dict keys are of type str (the IPv6 address), the
         # values are a tuple containing the SECCCommunicationSession and the
         # associated ayncio.Task object (so we can cancel the task when needed)
-        self.comm_sessions: Dict[str, (SECCCommunicationSession, asyncio.Task)] = {}
+        self.comm_sessions: Dict[
+            str, Tuple[SECCCommunicationSession, asyncio.Task]
+        ] = {}
 
     async def start_session_handler(
         self, iface: str, start_udp_server: Optional[bool] = True
@@ -283,7 +285,9 @@ class CommunicationSessionHandler:
                     except (KeyError, ConnectionResetError) as e:
                         if isinstance(e, ConnectionResetError):
                             logger.info("Can't resume session. End and start new one.")
-                            await self.end_current_session(notification.ip_address)
+                            await self.end_current_session(
+                                notification.ip_address, SessionStopAction.TERMINATE
+                            )
                         comm_session = SECCCommunicationSession(
                             notification.transport,
                             self._rcv_queue,

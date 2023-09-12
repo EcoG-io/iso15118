@@ -28,9 +28,8 @@ jobs:
     - name: Install dependencies
       run: make install-local
 
-# TODO: Fix MyPy issues https://github.com/SwitchEV/iso15118/issues/93
-#    - name: Mypy
-#      run: make mypy
+    - name: Mypy
+      run: make mypy
 
     - name: Black
       run: make black

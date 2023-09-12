@@ -41,7 +41,7 @@ class UDPClient(DatagramProtocol):
         self.iface = iface
 
     @staticmethod
-    def _create_socket(iface: str) -> "socket":
+    def _create_socket(iface: str) -> socket.socket:
         """
         This method creates an IPv6 socket configured to send multicast datagrams
         """
