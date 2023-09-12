@@ -1774,6 +1774,8 @@ class DCChargeLoop(StateSECC):
         selected_energy_service = self.comm_session.selected_energy_service
         control_mode = self.comm_session.control_mode
 
+        dc_charge_loop_req: DCChargeLoopReq = cast(DCChargeLoopReq, msg)
+
         self.update_dc_charge_loop_params(
             dc_charge_loop_req, selected_energy_service, control_mode
         )
