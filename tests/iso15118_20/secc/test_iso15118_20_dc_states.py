@@ -37,8 +37,8 @@ from iso15118.shared.messages.iso15118_20.dc import (
     BPTScheduledDCChargeLoopReqParams,
     BPTScheduledDCChargeLoopResParams,
     DCChargeLoopRes,
-    DCChargeParameterDiscoveryReq,
     DCChargeParameterDiscoveryReqParams,
+    DCChargeParameterDiscoveryRes,
     DCChargeParameterDiscoveryResParams,
     DynamicDCChargeLoopReqParams,
     DynamicDCChargeLoopRes,
@@ -540,7 +540,7 @@ class TestEvScenarios:
         )
         await dc_service_discovery.process_message(message=dc_service_discovery_req)
         assert dc_service_discovery.next_state is expected_state
-        assert isinstance(dc_service_discovery.message, DCChargeParameterDiscoveryReq)
+        assert isinstance(dc_service_discovery.message, DCChargeParameterDiscoveryRes)
         if selected_service == ServiceV20.DC:
             assert dc_service_discovery.message.dc_params == expected_res_params
         elif selected_service == ServiceV20.DC_BPT:

@@ -10,8 +10,8 @@ from iso15118.shared.messages.datatypes import (
     PVEVMaxVoltage,
     PVEVMaxVoltageLimit,
 )
-from iso15118.shared.messages.din_spec.datatypes import ChargeService
 from iso15118.shared.messages.enums import AuthEnum
+from iso15118.shared.messages.iso15118_2.datatypes import ChargeService
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryReqParams,
     BPTACChargeParameterDiscoveryReqParams,
@@ -39,8 +39,8 @@ class EVDataContext:
     soc: Optional[int] = None  # 0-100
     departure_time: Optional[int] = None
 
-    remaining_time_to_full_soc_s: Optional[int] = None
-    remaining_time_to_bulk_soc_s: Optional[int] = None
+    remaining_time_to_full_soc_s: Optional[float] = None
+    remaining_time_to_bulk_soc_s: Optional[float] = None
     evcc_id: Optional[str] = None
 
     # Common to both ISO15118-20 AC and DC
