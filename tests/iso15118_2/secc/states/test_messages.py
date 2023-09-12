@@ -524,7 +524,7 @@ def get_v2g_message_service_detail_req(service_id) -> V2GMessage:
 
 
 def get_v2g_message_session_stop_with_pause() -> V2GMessage:
-    session_stop_pause_req = SessionStopReq(ChargingSession=ChargingSession.PAUSE)
+    session_stop_pause_req = SessionStopReq(charging_session=ChargingSession.PAUSE)
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),
         body=Body(session_stop_req=session_stop_pause_req),

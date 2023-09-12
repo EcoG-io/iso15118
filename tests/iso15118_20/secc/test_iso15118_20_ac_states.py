@@ -26,6 +26,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     MatchedService,
     SelectedEnergyService,
     Service,
+    ServiceDetailRes,
     ServiceList,
 )
 from iso15118.shared.messages.iso15118_20.common_types import Processing, ResponseCode
@@ -96,6 +97,7 @@ class TestEvScenarios:
         await service_details.process_message(
             message=get_v2g_message_service_detail_req(service_id_input)
         )
+        assert isinstance(service_details.message, ServiceDetailRes)
         assert service_details.message.response_code is response_code
         assert isinstance(self.comm_session.current_state, ServiceDetail)
 

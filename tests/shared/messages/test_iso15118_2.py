@@ -204,5 +204,5 @@ class TestIso15118_V2_MessageCreation:
     ):
         decoded_dict = json.loads(message.json_str, cls=CustomJSONDecoder)
 
-        message = V2GMessage.parse_obj(decoded_dict["V2G_Message"])
-        assert isinstance(message, V2GMessage)
+        v2g_message = V2GMessage.parse_obj(decoded_dict["V2G_Message"])
+        assert isinstance(v2g_message, V2GMessage)
