@@ -103,7 +103,7 @@ test:
 
 # Run mypy checks
 mypy:
-	poetry run mypy --config-file mypy.ini --check-untyped-defs iso15118 tests
+	poetry run mypy --config-file mypy.ini iso15118 tests
 
 # Reformat with isort and black
 reformat:

@@ -112,7 +112,7 @@ class UDPServer(asyncio.DatagramProtocol):
         # (see loop.create_datagram_endpoint())
         loop = asyncio.get_running_loop()
         # One protocol instance will be created to serve all client requests
-        self._transport, _ = await loop.create_datagram_endpoint(  # type: ignore
+        self._transport, _ = await loop.create_datagram_endpoint(
             # DatagramTransport is a subclass of BaseTransport,
             # which is not recognized by mypy
             lambda: self,
