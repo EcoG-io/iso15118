@@ -956,7 +956,7 @@ class SimEVSEController(EVSEControllerInterface):
                     multiplier=exponent, value=value, unit="V"
                 )
                 return pv_evse_present_voltage
-            except ValueError as e:
+            except ValueError:
                 return None
         else:
             return RationalNumber.get_rational_repr(
