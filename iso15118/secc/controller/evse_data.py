@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 
 @dataclass
@@ -8,6 +8,8 @@ class EVSEDataContext:
     min_soc: Optional[int] = None
     target_soc: Optional[int] = None
     ack_max_delay: Optional[int] = None
+    evse_present_voltage: Union[float, int] = 0
+    evse_present_current: Union[float, int] = 0
     # EVSE -20 DC
     evse_max_charge_power: Optional[float] = None  # Also in -20 AC
     evse_min_charge_power: Optional[float] = None  # Also in -20 AC
@@ -56,7 +58,7 @@ class EVSEDataContext:
         for k, v in params.items():
             if type(v) is dict:
                 evse_params.update({k: v["value"] * 10 ** v["exponent"]})
-            elif type(v) is int:
+            elif type(v) in [int, float]:
                 evse_params.update({k: v})
 
         self.__dict__.update(evse_params)

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Literal
+from typing import List, Literal, Tuple, cast
 
 from pydantic import Field, root_validator
 
@@ -56,6 +56,21 @@ class PhysicalValue(BaseModel):
 
     def get_decimal_value(self) -> float:
         return self.value * 10**self.multiplier
+
+    @classmethod
+    def get_exponent_value_repr(cls, value: int) -> Tuple[int, int]:
+        exponent = 0
+        calculated_value = cast(float, value)
+        if value == 0:
+            return 0, 0
+        while abs(calculated_value) >= 10:
+            calculated_value /= 10
+            exponent += 1
+        while abs(calculated_value) < 1:
+            calculated_value *= 10
+            exponent -= 1
+
+        return cast(int, calculated_value), exponent
 
 
 class PVChargingProfileEntryMaxPower(PhysicalValue):

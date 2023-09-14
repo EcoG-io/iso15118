@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 def get_evse_context():
     return EVSEDataContext(
+        evse_present_voltage=0,
+        evse_present_current=1,
         evse_max_charge_power=3000,
         evse_min_charge_power=3000,
         evse_max_charge_current=3000,

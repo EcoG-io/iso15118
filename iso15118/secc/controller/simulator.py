@@ -5,7 +5,7 @@ This module contains the code to retrieve (hardware-related) data from the EVSE
 import base64
 import logging
 import time
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, cast
 
 from aiofile import async_open
 from pydantic import BaseModel, Field
@@ -26,6 +26,7 @@ from iso15118.shared.messages.datatypes import (
 )
 from iso15118.shared.messages.datatypes import EVSENotification as EVSENotificationV2
 from iso15118.shared.messages.datatypes import (
+    PhysicalValue,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
     PVEVSEMaxVoltageLimit,
@@ -947,18 +948,40 @@ class SimEVSEController(EVSEControllerInterface):
     ) -> Union[PVEVSEPresentVoltage, RationalNumber]:
         """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
         if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
-            return PVEVSEPresentVoltage(multiplier=0, value=230, unit="V")
+            value, exponent = PhysicalValue.get_exponent_value_repr(
+                cast(int, self.evse_data_context.evse_present_voltage)
+            )
+            try:
+                pv_evse_present_voltage = PVEVSEPresentVoltage(
+                    multiplier=exponent, value=value, unit="V"
+                )
+                return pv_evse_present_voltage
+            except ValueError as e:
+                return None
         else:
-            return RationalNumber(exponent=0, value=230)
+            return RationalNumber.get_rational_repr(
+                self.evse_data_context.evse_present_voltage
+            )
 
     async def get_evse_present_current(
         self, protocol: Protocol
     ) -> Union[PVEVSEPresentCurrent, RationalNumber]:
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
         if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
-            return PVEVSEPresentCurrent(multiplier=0, value=1, unit="A")
+            value, exponent = PhysicalValue.get_exponent_value_repr(
+                cast(int, self.evse_data_context.evse_present_current)
+            )
+            try:
+                pv_evse_present_current = PVEVSEPresentCurrent(
+                    multiplier=exponent, value=value, unit="A"
+                )
+                return pv_evse_present_current
+            except ValueError:
+                return None
         else:
-            return RationalNumber(exponent=0, value=1)
+            return RationalNumber.get_rational_repr(
+                self.evse_data_context.evse_present_current
+            )
 
     async def start_cable_check(self):
         """Overrides EVSEControllerInterface.start_cable_check()."""
@@ -1005,10 +1028,8 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def get_dc_charge_params_v20(
         self, selected_service: ServiceV20
-    ) -> Optional[
-        Union[
-            DCChargeParameterDiscoveryResParams, BPTDCChargeParameterDiscoveryResParams
-        ]
+    ) -> Union[
+        DCChargeParameterDiscoveryResParams, BPTDCChargeParameterDiscoveryResParams
     ]:
         """Override EVSEControllerInterface.get_dc_charge_params_v20()."""
         dc_charge_parameter_discovery_res = DCChargeParameterDiscoveryResParams(
