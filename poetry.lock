@@ -781,6 +781,17 @@ files = [
 ]
 
 [[package]]
+name = "types-psutil"
+version = "5.9.5.16"
+description = "Typing stubs for psutil"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-psutil-5.9.5.16.tar.gz", hash = "sha256:4e9b219efb625d3d04f6bf106934f87cab49aa41a94b0a3b3089403f47a79228"},
+    {file = "types_psutil-5.9.5.16-py3-none-any.whl", hash = "sha256:fec713104d5d143afea7b976cfa691ca1840f5d19e8714a5d02a96ebd061363e"},
+]
+
+[[package]]
 name = "types-toml"
 version = "0.10.8.7"
 description = "Typing stubs for toml"
@@ -805,4 +816,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "d54ccf62c594aebd7e827dbeb6bfbc4b7ea6872aeae42ab91fdc5d1d1744e99e"
+content-hash = "599006ae47aa1a7fb5dbdf0148e6f10813e38d9eec91b4b150ee3ccf733807f5"

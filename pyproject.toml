@@ -20,6 +20,7 @@ psutil = "^5.9.0"
 py4j = "^0.10.9"
 types-toml = "^0.10.8.7"
 mypy-extensions = "^1.0.0"
+types-psutil = "^5.9.5.16"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.1.1"

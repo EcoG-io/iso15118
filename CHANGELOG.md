@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.2] - 2023-09-13
+* chore(deps-dev): bump mypy from 1.4.0 to 1.5.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/288
+* JTT-81 Feat: Check response code by @santiagosalamandri in https://github.com/SwitchEV/iso15118/pull/289
+* ScheduleExchange(StateEVCC_bug) by @GUANMINLIAO in https://github.com/SwitchEV/iso15118/pull/292
+* JTT-112 Feat: Enable mypy support by @santiagosalamandri in https://github.com/SwitchEV/iso15118/pull/294
+* Add bpt channel info only if evpowerprofile is available by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/297
+
 ## [0.23.1] - 2023-08-02
 * Updated readme. Removed dc underdevelopment comment by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/272
 * chore(deps-dev): bump black from 23.3.0 to 23.7.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/275
