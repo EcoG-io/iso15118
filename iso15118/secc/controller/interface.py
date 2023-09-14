@@ -576,8 +576,10 @@ class EVSEControllerInterface(ABC):
     @abstractmethod
     async def get_ac_charge_params_v20(
         self, selected_service: ServiceV20
-    ) -> Union[
-        ACChargeParameterDiscoveryResParams, BPTACChargeParameterDiscoveryResParams
+    ) -> Optional[
+        Union[
+            ACChargeParameterDiscoveryResParams, BPTACChargeParameterDiscoveryResParams
+        ]
     ]:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
@@ -778,8 +780,10 @@ class EVSEControllerInterface(ABC):
     @abstractmethod
     async def get_dc_charge_params_v20(
         self, selected_service: ServiceV20
-    ) -> Union[
-        DCChargeParameterDiscoveryResParams, BPTDCChargeParameterDiscoveryResParams
+    ) -> Optional[
+        Union[
+            DCChargeParameterDiscoveryResParams, BPTDCChargeParameterDiscoveryResParams
+        ]
     ]:
         """
         Gets the charge parameters needed for a ChargeParameterDiscoveryRes for
@@ -800,11 +804,13 @@ class EVSEControllerInterface(ABC):
     @abstractmethod
     async def get_dc_charge_loop_params_v20(
         self, control_mode: ControlMode, selected_service: ServiceV20
-    ) -> Union[
-        ScheduledDCChargeLoopResParams,
-        BPTScheduledDCChargeLoopResParams,
-        DynamicDCChargeLoopRes,
-        BPTDynamicDCChargeLoopRes,
+    ) -> Optional[
+        Union[
+            ScheduledDCChargeLoopResParams,
+            BPTScheduledDCChargeLoopResParams,
+            DynamicDCChargeLoopRes,
+            BPTDynamicDCChargeLoopRes,
+        ]
     ]:
         """
         Gets the parameters for the DCChargeLoopRes for the currently set control mode
