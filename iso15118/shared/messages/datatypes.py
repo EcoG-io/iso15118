@@ -47,7 +47,8 @@ class PhysicalValue(BaseModel):
         calculated_value = value * 10**multiplier
         if calculated_value > cls._max_limit or calculated_value < cls._min_limit:
             raise ValueError(
-                f"{cls.__name__[2:]} value limit exceeded: {calculated_value} \n"
+                f"{cls.__name__[2:] }"  # type: ignore[attr-defined]
+                f"value limit exceeded: {calculated_value} \n"
                 f"Max: {cls._max_limit} \n"
                 f"Min: 0"
             )

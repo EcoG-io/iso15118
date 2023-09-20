@@ -1016,7 +1016,7 @@ class MeteringReceipt(StateEVCC):
             else:
                 self.create_next_message(
                     CurrentDemand,
-                    self.build_current_demand_req(),
+                    await self.build_current_demand_req(),
                     Timeouts.CHARGING_STATUS_REQ,
                     Namespace.ISO_V2_MSG_DEF,
                 )

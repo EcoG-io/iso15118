@@ -1,6 +1,10 @@
-from typing import Any
+from typing import Any, Union
 
+from iso15118.shared.messages.din_spec.datatypes import ResponseCode as ResponseCodeDIN
 from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode
+from iso15118.shared.messages.iso15118_20.common_types import (
+    ResponseCode as ResponseCodeV20,
+)
 
 
 class InvalidInterfaceError(Exception):
@@ -246,7 +250,12 @@ class OCSPServerNotFoundError(Exception):
 class V2GMessageValidationError(Exception):
     """Is thrown if message validation is failed"""
 
-    def __init__(self, reason: str, response_code: ResponseCode, message: Any):
+    def __init__(
+        self,
+        reason: str,
+        response_code: Union[ResponseCode, ResponseCodeV20, ResponseCodeDIN],
+        message: Any,
+    ):
         Exception.__init__(self)
         self.reason = reason
         self.response_code = response_code

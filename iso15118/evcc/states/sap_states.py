@@ -76,7 +76,9 @@ class SupportedAppProtocol(StateEVCC):
         ],
         message_exi: bytes = None,
     ):
-        msg = self.check_msg(message, SupportedAppProtocolRes, SupportedAppProtocolRes)
+        msg: SupportedAppProtocolRes = self.check_msg(
+            message, SupportedAppProtocolRes, SupportedAppProtocolRes
+        )
         if not msg:
             return
 
@@ -100,7 +102,7 @@ class SupportedAppProtocol(StateEVCC):
         ] = ISOV2PayloadTypes.EXI_ENCODED
         match = False
 
-        for protocol in self.comm_session.supported_protocols:
+        for protocol in self.comm_session.supported_app_protocols:
             if protocol.schema_id == sap_res.schema_id:
                 match = True
                 if protocol.protocol_ns == Protocol.ISO_15118_2.ns.value:

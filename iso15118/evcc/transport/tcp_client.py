@@ -18,7 +18,7 @@ class TCPClient(asyncio.Protocol):
         self.writer = None
         self.port = port
         self._session_handler_queue = session_handler_queue
-        self._rcv_queue = asyncio.Queue()
+        self._rcv_queue: asyncio.Queue = asyncio.Queue()
         self._last_message_sent = None
         self.ssl_context = None
         if is_tls:
