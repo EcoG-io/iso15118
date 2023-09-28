@@ -112,3 +112,9 @@ class Config:
             logger.info(f"{key:30}: {value}")
         for key, value in self.secc_env.items():
             logger.info(f"{key:30}: {value}")
+
+    def update(self, new: dict):
+        self.as_dict().update(new)
+
+    def as_dict(self):
+        return self.__dict__
