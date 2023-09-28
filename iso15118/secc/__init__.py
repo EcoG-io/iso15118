@@ -19,15 +19,12 @@ class SECCHandler(CommunicationSessionHandler):
         evse_controller: EVSEControllerInterface,
         config: Config,
     ):
-        self.communication_handler = CommunicationSessionHandler.__init__(
+        CommunicationSessionHandler.__init__(
             self,
             config,
             exi_codec,
             evse_controller,
         )
-
-    def update_config(self, new_config:Config):
-        self.communication_handler.update_config(new_config)
 
     async def start(self, iface: str, start_udp_server: Optional[bool] = True):
         try:
