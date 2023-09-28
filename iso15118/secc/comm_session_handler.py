@@ -229,6 +229,10 @@ class CommunicationSessionHandler:
 
         await wait_for_tasks(self.list_of_tasks)
 
+    def update_config(self, new_config:Config):
+        self.config = new_config
+
+
     def check_events(self) -> bool:
         result: bool = True
         for event in self.status_event_list:
