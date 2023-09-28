@@ -42,3 +42,16 @@ add_custom_target(iso15118_requirements_pip_install_dist
     COMMENT
         "Installing iso15118 requirements from distribution"
 )
+
+if (ISO15118_2_GENERATE_AND_INSTALL_CERTIFICATES)
+    message(STATUS "Generating ISO15118 certificates for ${PROJECT_SOURCE_DIR}")
+    set(CREATE_CERTS_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/iso15118/shared/pki")
+    set(CREATE_CERTS_SCRIPT "${CREATE_CERTS_WORKING_DIRECTORY}/create_certs.sh")
+
+    execute_process(
+        COMMAND
+            ${CREATE_CERTS_SCRIPT} -v iso-2 -i ${PROJECT_SOURCE_DIR}
+        WORKING_DIRECTORY
+            ${CREATE_CERTS_WORKING_DIRECTORY}
+    )
+endif()
