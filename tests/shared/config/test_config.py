@@ -9,7 +9,7 @@ from iso15118.shared.messages.enums import AuthEnum, Protocol
 
 class TestSECCConfig:
     @pytest.fixture(autouse=True)
-    def config(self):
+    def setup_config(self):
         self.config = Config(
             iface="eth0",
             log_level=logging.DEBUG,
