@@ -1314,7 +1314,7 @@ class ACChargeParameterDiscovery(StateSECC):
         if energy_service == ServiceV20.AC and self.charge_parameter_valid(
             ac_cpd_req.ac_params
         ):
-            self.comm_session.evse_controller.ev_data_context.update(
+            self.comm_session.evse_controller.ev_data_context.ev_rated_limits.update(
                 ac_cpd_req.ac_params
             )
             ac_params = (
@@ -1325,7 +1325,7 @@ class ACChargeParameterDiscovery(StateSECC):
         elif energy_service == ServiceV20.AC_BPT and self.charge_parameter_valid(
             ac_cpd_req.bpt_ac_params
         ):
-            self.comm_session.evse_controller.ev_data_context.update(
+            self.comm_session.evse_controller.ev_data_context.ev_rated_limits.update(
                 ac_cpd_req.bpt_ac_params
             )
             bpt_ac_params = (
@@ -1415,14 +1415,14 @@ class ACChargeLoop(StateSECC):
 
         if selected_energy_service.service == ServiceV20.AC:
             if control_mode == ControlMode.SCHEDULED:
-                self.comm_session.evse_controller.ev_data_context.update(
+                self.comm_session.evse_controller.ev_data_context.ev_session_context.update(
                     ac_charge_loop_req.scheduled_params
                 )
                 scheduled_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
                     ControlMode.SCHEDULED, ServiceV20.AC
                 )
             elif control_mode == ControlMode.DYNAMIC:
-                self.comm_session.evse_controller.ev_data_context.update(
+                self.comm_session.evse_controller.ev_data_context.ev_session_context.update(
                     ac_charge_loop_req.dynamic_params
                 )
                 dynamic_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
@@ -1430,14 +1430,14 @@ class ACChargeLoop(StateSECC):
                 )  # noqa
         elif selected_energy_service.service == ServiceV20.AC_BPT:
             if control_mode == ControlMode.SCHEDULED:
-                self.comm_session.evse_controller.ev_data_context.update(
+                self.comm_session.evse_controller.ev_data_context.ev_session_context.update(
                     ac_charge_loop_req.bpt_scheduled_params
                 )
                 bpt_scheduled_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
                     ControlMode.SCHEDULED, ServiceV20.AC_BPT
                 )  # noqa
             else:
-                self.comm_session.evse_controller.ev_data_context.update(
+                self.comm_session.evse_controller.ev_data_context.ev_session_context.update(
                     ac_charge_loop_req.bpt_dynamic_params
                 )
                 bpt_dynamic_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
@@ -1536,7 +1536,7 @@ class DCChargeParameterDiscovery(StateSECC):
         if energy_service == ServiceV20.DC and self.charge_parameter_valid(
             dc_cpd_req.dc_params
         ):
-            self.comm_session.evse_controller.ev_data_context.update(
+            self.comm_session.evse_controller.ev_data_context.ev_rated_limits.update(
                 dc_cpd_req.dc_params
             )
             dc_params = (
@@ -1547,7 +1547,7 @@ class DCChargeParameterDiscovery(StateSECC):
         elif energy_service == ServiceV20.DC_BPT and self.charge_parameter_valid(
             dc_cpd_req.bpt_dc_params
         ):
-            self.comm_session.evse_controller.ev_data_context.update(
+            self.comm_session.evse_controller.ev_data_context.ev_rated_limits.update(
                 dc_cpd_req.bpt_dc_params
             )
             bpt_dc_params = (
@@ -1803,20 +1803,20 @@ class DCChargeLoop(StateSECC):
     ) -> None:
         if selected_energy_service.service == ServiceV20.DC:
             if control_mode == ControlMode.SCHEDULED:
-                self.comm_session.evse_controller.ev_data_context.update(
+                self.comm_session.evse_controller.ev_data_context.ev_session_context.update(
                     dc_charge_loop_req.scheduled_params
                 )
             elif control_mode == ControlMode.DYNAMIC:
-                self.comm_session.evse_controller.ev_data_context.update(
+                self.comm_session.evse_controller.ev_data_context.ev_session_context.update(
                     dc_charge_loop_req.dynamic_params
                 )
         elif selected_energy_service.service == ServiceV20.DC_BPT:
             if control_mode == ControlMode.SCHEDULED:
-                self.comm_session.evse_controller.ev_data_context.update(
+                self.comm_session.evse_controller.ev_data_context.ev_session_context.update(
                     dc_charge_loop_req.bpt_scheduled_params
                 )
             else:
-                self.comm_session.evse_controller.ev_data_context.update(
+                self.comm_session.evse_controller.ev_data_context.ev_session_context.update(
                     dc_charge_loop_req.bpt_dynamic_params
                 )
         else:

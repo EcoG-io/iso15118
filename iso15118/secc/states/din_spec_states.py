@@ -498,7 +498,7 @@ class CableCheck(StateSECC):
                 return
 
             self.cable_check_req_was_received = True
-        self.comm_session.evse_controller.ev_data_context.soc = (
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
             cable_check_req.dc_ev_status.ev_ress_soc
         )
 
@@ -587,7 +587,7 @@ class PreCharge(StateSECC):
             )
             return
 
-        self.comm_session.evse_controller.ev_data_context.soc = (
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
             precharge_req.dc_ev_status.ev_ress_soc
         )
 
@@ -794,17 +794,17 @@ class CurrentDemand(StateSECC):
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
 
-        self.comm_session.evse_controller.ev_data_context.soc = (
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
             current_demand_req.dc_ev_status.ev_ress_soc
         )
 
-        self.comm_session.evse_controller.ev_data_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
             None
             if current_demand_req.remaining_time_to_bulk_soc is None
             else current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
         )
 
-        self.comm_session.evse_controller.ev_data_context.remaining_time_to_full_soc_s = (  # noqa: E501
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.remaining_time_to_full_soc_s = (  # noqa: E501
             None
             if current_demand_req.remaining_time_to_full_soc is None
             else current_demand_req.remaining_time_to_full_soc.get_decimal_value()

@@ -4,8 +4,18 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.ev_data import EVDataContext
-from iso15118.secc.controller.evse_data import EVSEDataContext
+from iso15118.secc.controller.ev_data import (
+    EVDataContext,
+    EVRatedLimits,
+    EVSessionContext,
+)
+from iso15118.secc.controller.evse_data import (
+    DCCLLimits,
+    DCLimits,
+    EVSEDataContext,
+    EVSERatedLimits,
+    EVSESessionContext,
+)
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.secc.failed_responses import init_failed_responses_iso_v20
 from iso15118.secc.states.iso15118_20_states import (
@@ -74,31 +84,54 @@ class TestEvScenarios:
         self.comm_session.failed_responses_isov20 = init_failed_responses_iso_v20()
         self.comm_session.evse_controller = SimEVSEController()
         self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
+        self.comm_session.evse_controller.ev_data_context = EVDataContext()
 
     def get_evse_data(self) -> EVSEDataContext:
-        return EVSEDataContext(
-            evse_max_charge_power=3000,
-            evse_min_charge_power=3000,
-            evse_max_charge_current=3000,
-            evse_min_charge_current=3000,
-            evse_max_voltage=3000,
-            evse_min_voltage=3000,
+        dc_limits = DCLimits(
+            evse_max_charge_power=10,
+            evse_min_charge_power=10,
+            evse_max_charge_current=10,
+            evse_min_charge_current=10,
+            evse_max_voltage=10,
+            evse_min_voltage=10,
             evse_power_ramp_limit=10,
-            # EVSE -20 AC and DC BPT
-            evse_max_discharge_power=3000,
-            evse_min_discharge_power=3000,
-            evse_max_discharge_current=3000,
-            evse_min_discharge_current=3000,
-            # EVSE -20 AC
-            evse_max_charge_power_l2=3000,
-            evse_max_charge_power_l3=3000,
-            evse_min_charge_power_l2=3000,
-            evse_min_charge_power_l3=3000,
-            evse_nominal_frequency=3000,
-            max_power_asymmetry=3000,
-            evse_present_active_power=3000,
-            evse_present_active_power_l2=3000,
-            evse_present_active_power_l3=3000,
+            # 15118-20 DC BPT
+            evse_max_discharge_power=10,
+            evse_min_discharge_power=10,
+            evse_max_discharge_current=10,
+            evse_min_discharge_current=10,
+            # 15118-2 DC, DINSPEC
+            evse_maximum_current_limit=10,
+            evse_maximum_power_limit=10,
+            evse_maximum_voltage_limit=10,
+            evse_minimum_current_limit=10,
+            evse_minimum_voltage_limit=10,
+            evse_current_regulation_tolerance=10,
+            evse_peak_current_ripple=10,
+            evse_energy_to_be_delivered=10,
+        )
+        dc_cl_limits = DCCLLimits(
+            # Optional in 15118-20 DC CL (Scheduled)
+            evse_max_charge_power=10,
+            evse_min_charge_power=10,
+            evse_max_charge_current=10,
+            evse_max_voltage=10,
+
+            # Optional and present in 15118-20 DC BPT CL (Scheduled)
+            evse_max_discharge_power=10,
+            evse_min_discharge_power=10,
+            evse_max_discharge_current=10,
+            evse_min_voltage=10,
+        )
+        rated_limits: EVSERatedLimits = EVSERatedLimits(
+            ac_limits=None, dc_limits=dc_limits
+        )
+        session_context: EVSESessionContext = EVSESessionContext(
+            ac_limits=None, dc_limits=dc_cl_limits
+        )
+
+        return EVSEDataContext(
+            rated_limits=rated_limits, session_context=session_context
         )
 
     @pytest.mark.parametrize(
@@ -233,13 +266,15 @@ class TestEvScenarios:
                 ServiceV20.DC,
                 ScheduleExchange,
                 EVDataContext(
-                    ev_max_charge_power=30000,
-                    ev_min_charge_power=100,
-                    ev_max_charge_current=300,
-                    ev_min_charge_current=10,
-                    ev_max_voltage=1000,
-                    ev_min_voltage=10,
-                    target_soc=80,
+                    ev_rated_limits=EVRatedLimits(
+                        ev_max_charge_power=30000,
+                        ev_min_charge_power=100,
+                        ev_max_charge_current=300,
+                        ev_min_charge_current=10,
+                        ev_max_voltage=1000,
+                        ev_min_voltage=10,
+                        target_soc=80,
+                    ),
                 ),
             ),
             (
@@ -259,17 +294,19 @@ class TestEvScenarios:
                 ServiceV20.DC_BPT,
                 ScheduleExchange,
                 EVDataContext(
-                    ev_max_charge_power=30000,
-                    ev_min_charge_power=100,
-                    ev_max_charge_current=300,
-                    ev_min_charge_current=10,
-                    ev_max_voltage=1000,
-                    ev_min_voltage=10,
-                    target_soc=80,
-                    ev_max_discharge_power=11,
-                    ev_min_discharge_power=1000,
-                    ev_max_discharge_current=11,
-                    ev_min_discharge_current=10,
+                    ev_rated_limits=EVRatedLimits(
+                        ev_max_charge_power=30000,
+                        ev_min_charge_power=100,
+                        ev_max_charge_current=300,
+                        ev_min_charge_current=10,
+                        ev_max_voltage=1000,
+                        ev_min_voltage=10,
+                        target_soc=80,
+                        ev_max_discharge_power=11,
+                        ev_min_discharge_power=1000,
+                        ev_max_discharge_current=11,
+                        ev_min_discharge_current=10,
+                    ),
                 ),
             ),
         ],
@@ -309,16 +346,18 @@ class TestEvScenarios:
                 ControlMode.SCHEDULED,
                 None,
                 EVDataContext(
-                    ev_target_energy_request=30000,
-                    ev_max_energy_request=30000,
-                    ev_min_energy_request=30000,
-                    ev_target_current=30000,
-                    ev_target_voltage=30000,
-                    ev_max_charge_power=30000,
-                    ev_min_charge_power=30000,
-                    ev_max_charge_current=30000,
-                    ev_max_voltage=30000,
-                    ev_min_voltage=30000,
+                    ev_session_context=EVSessionContext(
+                        ev_target_energy_request=30000,
+                        ev_max_energy_request=30000,
+                        ev_min_energy_request=30000,
+                        ev_target_current=30000,
+                        ev_target_voltage=30000,
+                        ev_max_charge_power=30000,
+                        ev_min_charge_power=30000,
+                        ev_max_charge_current=30000,
+                        ev_max_voltage=30000,
+                        ev_min_voltage=30000,
+                    ),
                 ),
             ),
             (
@@ -337,15 +376,17 @@ class TestEvScenarios:
                 ControlMode.DYNAMIC,
                 None,
                 EVDataContext(
-                    departure_time=3600,
-                    ev_target_energy_request=30000,
-                    ev_max_energy_request=30000,
-                    ev_min_energy_request=30000,
-                    ev_max_charge_power=30000,
-                    ev_min_charge_power=30000,
-                    ev_max_charge_current=30000,
-                    ev_max_voltage=30000,
-                    ev_min_voltage=30000,
+                    ev_session_context=EVSessionContext(
+                        departure_time=3600,
+                        ev_target_energy_request=30000,
+                        ev_max_energy_request=30000,
+                        ev_min_energy_request=30000,
+                        ev_max_charge_power=30000,
+                        ev_min_charge_power=30000,
+                        ev_max_charge_current=30000,
+                        ev_max_voltage=30000,
+                        ev_min_voltage=30000,
+                    ),
                 ),
             ),
             (
@@ -368,19 +409,21 @@ class TestEvScenarios:
                 ControlMode.SCHEDULED,
                 None,
                 EVDataContext(
-                    ev_target_energy_request=30000,
-                    ev_max_energy_request=30000,
-                    ev_min_energy_request=30000,
-                    ev_target_current=30000,
-                    ev_target_voltage=30000,
-                    ev_max_charge_power=30000,
-                    ev_min_charge_power=30000,
-                    ev_max_charge_current=30000,
-                    ev_max_voltage=30000,
-                    ev_min_voltage=30000,
-                    ev_max_discharge_power=30000,
-                    ev_min_discharge_power=30000,
-                    ev_max_discharge_current=30000,
+                    ev_session_context=EVSessionContext(
+                        ev_target_energy_request=30000,
+                        ev_max_energy_request=30000,
+                        ev_min_energy_request=30000,
+                        ev_target_current=30000,
+                        ev_target_voltage=30000,
+                        ev_max_charge_power=30000,
+                        ev_min_charge_power=30000,
+                        ev_max_charge_current=30000,
+                        ev_max_voltage=30000,
+                        ev_min_voltage=30000,
+                        ev_max_discharge_power=30000,
+                        ev_min_discharge_power=30000,
+                        ev_max_discharge_current=30000,
+                    ),
                 ),
             ),
             (
@@ -404,20 +447,22 @@ class TestEvScenarios:
                 ControlMode.DYNAMIC,
                 None,
                 EVDataContext(
-                    departure_time=3600,
-                    ev_target_energy_request=30000,
-                    ev_max_energy_request=30000,
-                    ev_min_energy_request=30000,
-                    ev_max_charge_power=30000,
-                    ev_min_charge_power=30000,
-                    ev_max_charge_current=30000,
-                    ev_max_voltage=30000,
-                    ev_min_voltage=30000,
-                    ev_max_discharge_power=30000,
-                    ev_min_discharge_power=30000,
-                    ev_max_discharge_current=30000,
-                    ev_max_v2x_energy_request=30000,
-                    ev_min_v2x_energy_request=30000,
+                    ev_session_context=EVSessionContext(
+                        departure_time=3600,
+                        ev_target_energy_request=30000,
+                        ev_max_energy_request=30000,
+                        ev_min_energy_request=30000,
+                        ev_max_charge_power=30000,
+                        ev_min_charge_power=30000,
+                        ev_max_charge_current=30000,
+                        ev_max_voltage=30000,
+                        ev_min_voltage=30000,
+                        ev_max_discharge_power=30000,
+                        ev_min_discharge_power=30000,
+                        ev_max_discharge_current=30000,
+                        ev_max_v2x_energy_request=30000,
+                        ev_min_v2x_energy_request=30000,
+                    ),
                 ),
             ),
         ],
@@ -438,10 +483,14 @@ class TestEvScenarios:
         dc_charge_loop_req = get_dc_charge_loop_req(
             params, selected_service, control_mode
         )
+
         await dc_charge_loop.process_message(message=dc_charge_loop_req)
         assert dc_charge_loop.next_state is expected_state
         updated_ev_context = self.comm_session.evse_controller.ev_data_context
-        assert updated_ev_context == expected_ev_context
+        assert (
+            updated_ev_context.ev_session_context
+            == expected_ev_context.ev_session_context
+        )
 
     @pytest.mark.parametrize(
         "req_params, expected_res_params, selected_service, expected_state, expected_evse_context",  # noqa
@@ -468,13 +517,18 @@ class TestEvScenarios:
                 ServiceV20.DC,
                 ScheduleExchange,
                 EVSEDataContext(
-                    evse_max_charge_power=30000,
-                    evse_min_charge_power=100,
-                    evse_max_charge_current=30000,
-                    evse_min_charge_current=100,
-                    evse_max_voltage=30000,
-                    evse_min_voltage=100,
-                    evse_power_ramp_limit=100,
+                    rated_limits=EVSERatedLimits(
+                        dc_limits=DCLimits(
+                            evse_max_charge_power=30000,
+                            evse_min_charge_power=100,
+                            evse_max_charge_current=30000,
+                            evse_min_charge_current=100,
+                            evse_max_voltage=30000,
+                            evse_min_voltage=100,
+                            evse_power_ramp_limit=100,
+                        )
+                    ),
+                    session_context=None,
                 ),
             ),
             (
@@ -507,17 +561,21 @@ class TestEvScenarios:
                 ServiceV20.DC_BPT,
                 ScheduleExchange,
                 EVSEDataContext(
-                    evse_max_charge_power=30000,
-                    evse_min_charge_power=100,
-                    evse_max_charge_current=30000,
-                    evse_min_charge_current=100,
-                    evse_max_voltage=30000,
-                    evse_min_voltage=100,
-                    evse_power_ramp_limit=100,
-                    evse_max_discharge_power=30000,
-                    evse_min_discharge_power=100,
-                    evse_max_discharge_current=30000,
-                    evse_min_discharge_current=100,
+                    rated_limits=EVSERatedLimits(
+                        dc_limits=DCLimits(
+                            evse_max_charge_power=30000,
+                            evse_min_charge_power=100,
+                            evse_max_charge_current=30000,
+                            evse_min_charge_current=100,
+                            evse_max_voltage=30000,
+                            evse_min_voltage=100,
+                            evse_power_ramp_limit=100,
+                            evse_max_discharge_power=30000,
+                            evse_min_discharge_power=100,
+                            evse_max_discharge_current=30000,
+                            evse_min_discharge_current=100,
+                        )
+                    ),
                 ),
             ),
         ],
@@ -572,10 +630,22 @@ class TestEvScenarios:
                 ControlMode.SCHEDULED,
                 None,
                 EVSEDataContext(
-                    evse_max_charge_power=300,
-                    evse_min_charge_power=600,
-                    evse_max_charge_current=700,
-                    evse_max_voltage=800,
+                    rated_limits=EVSERatedLimits(
+                        dc_limits=DCLimits(
+                            evse_max_charge_power=300,
+                            evse_min_charge_power=600,
+                            evse_max_charge_current=700,
+                            evse_max_voltage=800,
+                        )
+                    ),
+                    session_context=EVSESessionContext(
+                        dc_limits=DCCLLimits(
+                            evse_max_charge_power=300,
+                            evse_min_charge_power=600,
+                            evse_max_charge_current=700,
+                            evse_max_voltage=800,
+                        )
+                    ),
                 ),
             ),
             (
@@ -604,14 +674,26 @@ class TestEvScenarios:
                 ControlMode.DYNAMIC,
                 None,
                 EVSEDataContext(
-                    departure_time=3600,
-                    min_soc=30,
-                    target_soc=80,
-                    ack_max_delay=15,
-                    evse_max_charge_power=30000,
-                    evse_min_charge_power=400,
-                    evse_max_charge_current=500,
-                    evse_max_voltage=600,
+                    rated_limits=EVSERatedLimits(
+                        dc_limits=DCLimits(
+                            evse_max_charge_power=30000,
+                            evse_min_charge_power=400,
+                            evse_max_charge_current=500,
+                            evse_max_voltage=600,
+                        )
+                    ),
+                    session_context=EVSESessionContext(
+                        departure_time=3600,
+                        min_soc=30,
+                        target_soc=80,
+                        ack_max_delay=15,
+                        dc_limits=DCCLLimits(
+                            evse_max_charge_power=30000,
+                            evse_min_charge_power=400,
+                            evse_max_charge_current=500,
+                            evse_max_voltage=600,
+                        ),
+                    ),
                 ),
             ),
             (
@@ -644,14 +726,30 @@ class TestEvScenarios:
                 ControlMode.SCHEDULED,
                 None,
                 EVSEDataContext(
-                    evse_max_charge_power=300,
-                    evse_min_charge_power=400,
-                    evse_max_charge_current=500,
-                    evse_max_voltage=600,
-                    evse_max_discharge_power=700,
-                    evse_min_discharge_power=800,
-                    evse_max_discharge_current=900,
-                    evse_min_voltage=100,
+                    rated_limits=EVSERatedLimits(
+                        dc_limits=DCLimits(
+                            evse_max_charge_power=300,
+                            evse_min_charge_power=400,
+                            evse_max_charge_current=500,
+                            evse_max_voltage=600,
+                            evse_max_discharge_power=700,
+                            evse_min_discharge_power=800,
+                            evse_max_discharge_current=900,
+                            evse_min_voltage=100,
+                        )
+                    ),
+                    session_context=EVSESessionContext(
+                        dc_limits=DCCLLimits(
+                            evse_max_charge_power=300,
+                            evse_min_charge_power=400,
+                            evse_max_charge_current=500,
+                            evse_max_voltage=600,
+                            evse_max_discharge_power=700,
+                            evse_min_discharge_power=800,
+                            evse_max_discharge_current=900,
+                            evse_min_voltage=100,
+                        )
+                    ),
                 ),
             ),
             (
@@ -689,18 +787,34 @@ class TestEvScenarios:
                 ControlMode.DYNAMIC,
                 None,
                 EVSEDataContext(
-                    departure_time=3600,
-                    min_soc=30,
-                    target_soc=80,
-                    ack_max_delay=15,
-                    evse_max_charge_power=10000,
-                    evse_min_charge_power=20000,
-                    evse_max_charge_current=30000,
-                    evse_max_voltage=4000,
-                    evse_max_discharge_power=5000,
-                    evse_min_discharge_power=6000,
-                    evse_max_discharge_current=7000,
-                    evse_min_voltage=8000,
+                    rated_limits=EVSERatedLimits(
+                        dc_limits=DCLimits(
+                            evse_max_charge_power=10000,
+                            evse_min_charge_power=20000,
+                            evse_max_charge_current=30000,
+                            evse_max_voltage=4000,
+                            evse_max_discharge_power=5000,
+                            evse_min_discharge_power=6000,
+                            evse_max_discharge_current=7000,
+                            evse_min_voltage=8000,
+                        )
+                    ),
+                    session_context=EVSESessionContext(
+                        departure_time=3600,
+                        min_soc=30,
+                        target_soc=80,
+                        ack_max_delay=15,
+                        dc_limits=DCCLLimits(
+                            evse_max_charge_power=10000,
+                            evse_min_charge_power=20000,
+                            evse_max_charge_current=30000,
+                            evse_max_voltage=4000,
+                            evse_max_discharge_power=5000,
+                            evse_min_discharge_power=6000,
+                            evse_max_discharge_current=7000,
+                            evse_min_voltage=8000,
+                        ),
+                    ),
                 ),
             ),
         ],

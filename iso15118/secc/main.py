@@ -2,7 +2,13 @@ import asyncio
 import logging
 
 from iso15118.secc import SECCHandler
-from iso15118.secc.controller.evse_data import EVSEDataContext
+from iso15118.secc.controller.evse_data import (
+    ACLimits,
+    DCLimits,
+    EVSEDataContext,
+    EVSERatedLimits,
+    EVSESessionContext, ACCLLimits, DCCLLimits,
+)
 from iso15118.secc.controller.interface import ServiceStatus
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.secc.secc_settings import Config
@@ -12,39 +18,95 @@ logger = logging.getLogger(__name__)
 
 
 def get_evse_context():
-    return EVSEDataContext(
-        evse_present_voltage=0,
-        evse_present_current=1,
-        evse_max_charge_power=3000,
-        evse_min_charge_power=3000,
-        evse_max_charge_current=3000,
-        evse_min_charge_current=3000,
-        evse_max_voltage=3000,
-        evse_min_voltage=3000,
+    ac_limits = ACLimits(
+        # 15118-2 AC CPD
+        evse_nominal_voltage=10,
+        evse_max_current=10,
+
+        evse_max_charge_power=10,
+        evse_min_charge_power=10,
+
+        evse_max_charge_power_l2=10,
+        evse_max_charge_power_l3=10,
+        evse_min_charge_power_l2=10,
+        evse_min_charge_power_l3=10,
+        evse_nominal_frequency=10,
+        max_power_asymmetry=10,
         evse_power_ramp_limit=10,
-        # EVSE -20 AC and DC BPT
-        evse_max_discharge_power=3000,
-        evse_min_discharge_power=3000,
-        evse_max_discharge_current=3000,
-        evse_min_discharge_current=3000,
-        # EVSE -20 AC
-        evse_max_charge_power_l2=3000,
-        evse_max_charge_power_l3=3000,
-        evse_min_charge_power_l2=3000,
-        evse_min_charge_power_l3=3000,
-        evse_nominal_frequency=3000,
-        max_power_asymmetry=3000,
-        evse_present_active_power=3000,
-        evse_present_active_power_l2=3000,
-        evse_present_active_power_l3=3000,
-        # EVSE
-        evse_max_discharge_power_l2=3000,
-        evse_max_discharge_power_l3=3000,
-        evse_min_discharge_power_l2=3000,
-        evse_min_discharge_power_l3=3000,
-        # EVSE
-        evse_target_active_power=10,
+
+        evse_present_active_power=10,
+        evse_present_active_power_l2=10,
+        evse_present_active_power_l3=10,
+
+        evse_max_discharge_power=10,
+        evse_min_discharge_power=10,
+
+        evse_max_discharge_power_l2=10,
+        evse_max_discharge_power_l3=10,
+        evse_min_discharge_power_l2=10,
+        evse_min_discharge_power_l3=10,
     )
+    dc_limits = DCLimits(
+        evse_max_charge_power=10,
+        evse_min_charge_power=10,
+        evse_max_charge_current=10,
+        evse_min_charge_current=10,
+        evse_max_voltage=10,
+        evse_min_voltage=10,
+        evse_power_ramp_limit=10,
+        # 15118-20 DC BPT
+        evse_max_discharge_power=10,
+        evse_min_discharge_power=10,
+        evse_max_discharge_current=10,
+        evse_min_discharge_current=10,
+        # 15118-2 DC, DINSPEC
+        evse_current_regulation_tolerance=10,
+        evse_peak_current_ripple=10,
+        evse_energy_to_be_delivered=10,
+
+        evse_maximum_current_limit=10,
+        evse_maximum_power_limit=10,
+        evse_maximum_voltage_limit=10,
+        evse_minimum_current_limit=10,
+        evse_minimum_voltage_limit=10,
+
+    )
+    ac_cl_limits = ACCLLimits(
+        evse_target_active_power=10,
+        evse_target_active_power_l2=10,
+        evse_target_active_power_l3=10,
+        evse_target_reactive_power=10,
+        evse_target_reactive_power_l2=10,
+        evse_target_reactive_power_l3=10,
+        evse_present_active_power=10,
+        evse_present_active_power_l2=10,
+        evse_present_active_power_l3=10,
+    )
+    dc_cl_limits = DCCLLimits(
+        # Optional in 15118-20 DC CL (Scheduled)
+        evse_max_charge_power=10,
+        evse_min_charge_power=10,
+        evse_max_charge_current=10,
+        evse_max_voltage=10,
+
+        # Optional and present in 15118-20 DC BPT CL (Scheduled)
+        evse_max_discharge_power=10,
+        evse_min_discharge_power=10,
+        evse_max_discharge_current=10,
+        evse_min_voltage=10,
+    )
+    rated_limits: EVSERatedLimits = EVSERatedLimits(
+        ac_limits=ac_limits, dc_limits=dc_limits
+    )
+
+    session_context: EVSESessionContext = EVSESessionContext(
+        evse_present_voltage=1,
+        evse_present_current=1,
+        ac_limits=ac_cl_limits,
+        dc_limits=dc_cl_limits,
+    )
+
+    return EVSEDataContext(rated_limits=rated_limits, session_context=session_context)
 
 
 async def main():
