@@ -116,7 +116,6 @@ class TestEvScenarios:
             evse_min_charge_power=10,
             evse_max_charge_current=10,
             evse_max_voltage=10,
-
             # Optional and present in 15118-20 DC BPT CL (Scheduled)
             evse_max_discharge_power=10,
             evse_min_discharge_power=10,

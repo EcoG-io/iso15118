@@ -5,10 +5,11 @@ import pytest
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.ev_data import EVSessionContext15118
 from iso15118.secc.controller.evse_data import (
+    DCCLLimits,
     DCLimits,
     EVSEDataContext,
     EVSERatedLimits,
-    EVSESessionContext, DCCLLimits,
+    EVSESessionContext,
 )
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.secc.states.din_spec_states import CurrentDemand, PowerDelivery
@@ -69,7 +70,6 @@ class TestEvseScenarios:
             evse_min_charge_power=10,
             evse_max_charge_current=10,
             evse_max_voltage=10,
-
             # Optional and present in 15118-20 DC BPT CL (Scheduled)
             evse_max_discharge_power=10,
             evse_min_discharge_power=10,
