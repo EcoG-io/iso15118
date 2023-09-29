@@ -12,7 +12,7 @@ class TestSECCConfig:
     def config(self):
         self.config = Config(
             iface="eth0",
-            log_level= logging.DEBUG,
+            log_level=logging.DEBUG,
             enforce_tls=False,
             free_charging_service=False,
             free_cert_install_service=True,
@@ -23,16 +23,23 @@ class TestSECCConfig:
             standby_allowed=False,
         )
 
-    @pytest.mark.parametrize("config_name, new_value", [("iface", "en0"),
-                             ("log_level", logging.INFO),
-                             ("enforce_tls", True),
-                             ("free_charging_service", True),
-                             ("free_cert_install_service", False),
-                             ("use_cpo_backend", True),
-                             ("supported_protocols", [Protocol.ISO_15118_20_AC, Protocol.ISO_15118_20_WPT]),
-                             ("supported_auth_options", [AuthEnum.PNC]),
-                             ("standby_allowed", True)]
-                             )
+    @pytest.mark.parametrize(
+        "config_name, new_value",
+        [
+            ("iface", "en0"),
+            ("log_level", logging.INFO),
+            ("enforce_tls", True),
+            ("free_charging_service", True),
+            ("free_cert_install_service", False),
+            ("use_cpo_backend", True),
+            (
+                "supported_protocols",
+                [Protocol.ISO_15118_20_AC, Protocol.ISO_15118_20_WPT],
+            ),
+            ("supported_auth_options", [AuthEnum.PNC]),
+            ("standby_allowed", True),
+        ],
+    )
     def test_update(self, config_name, new_value):
         value = self.config.as_dict()[config_name]
         self.config.update({config_name: new_value})
