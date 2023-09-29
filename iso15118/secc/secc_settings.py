@@ -110,7 +110,7 @@ class Config:
         logger.info("SECC settings:")
         for key, value in shared_settings.items():
             logger.info(f"{key:30}: {value}")
-        for key, value in self.secc_env.items():
+        for key, value in self.as_dict():
             logger.info(f"{key:30}: {value}")
 
     def update(self, new: dict):
