@@ -230,7 +230,7 @@ class CommunicationSessionHandler:
         await wait_for_tasks(self.list_of_tasks)
 
     def update_config(self, new_config: dict):
-        for key, value in new_config:
+        for key, value in new_config.items():
             logger.info(
                 f"SECC Config is updated {key}: old value= "
                 f"{self.config.as_dict()[key]} - new value= {value}"
