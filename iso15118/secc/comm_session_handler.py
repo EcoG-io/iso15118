@@ -229,7 +229,7 @@ class CommunicationSessionHandler:
 
         await wait_for_tasks(self.list_of_tasks)
 
-    def update_config(self, new_config:Config):
+    def update_config(self, new_config: Config):
         logger.info("SECC Config is updated")
         self.config = new_config
 

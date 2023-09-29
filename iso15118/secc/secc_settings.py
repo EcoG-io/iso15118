@@ -4,8 +4,9 @@ import os
 import pprint
 from dataclasses import dataclass
 from typing import List, Optional, Type
-import marshmallow as ma
+
 import environs
+import marshmallow as ma
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.enums import AuthEnum, Protocol
@@ -111,7 +112,6 @@ class Config:
             logger.info(f"{key:30}: {value}")
         for key, value in env.dump().items():
             logger.info(f"{key:30}: {value}")
-
 
     def update(self, new: dict):
         self.as_dict().update(new)
