@@ -3,7 +3,6 @@ import logging
 import os
 import pprint
 from dataclasses import dataclass
-from enum import Enum
 from typing import List, Optional, Type
 import marshmallow as ma
 import environs
@@ -11,8 +10,7 @@ import environs
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.settings import shared_settings
-from iso15118.shared.utils import load_requested_auth_modes, load_requested_protocols, \
-    print_data
+from iso15118.shared.utils import load_requested_auth_modes, load_requested_protocols
 
 logger = logging.getLogger(__name__)
 
@@ -108,12 +106,14 @@ class Config:
         self.standby_allowed = env.bool("STANDBY_ALLOWED", default=False)
 
         env.seal()  # raise all errors at once, if any
-
+        self.secc_env = env.dump()
 
     def log_settings(self):
         logger.info("SECC settings:")
-        print_data(shared_settings)
-        print_data(self)
+        for key, value in shared_settings.items():
+            logger.info(f"{key:30}: {value}")
+        for key, value in self.secc_env.items():
+              logger.info(f"{key:30}: {value}")
 
     def update(self, new: dict):
         self.as_dict().update(new)
