@@ -232,8 +232,8 @@ class CommunicationSessionHandler:
     def update_config(self, new_config: dict):
         for key, value in new_config.items():
             logger.info(
-                f"SECC Config is updated {key}: old value= "
-                f"{self.config.as_dict()[key]} - new value= {value}"
+                f"SECC Config is updated key = {key}: old value = "
+                f"{self.config.as_dict()[key]} - new value = {value}"
             )
         self.config.update(new_config)
 
