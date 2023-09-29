@@ -106,14 +106,12 @@ class Config:
         self.standby_allowed = env.bool("STANDBY_ALLOWED", default=False)
 
         env.seal()  # raise all errors at once, if any
-        self.secc_env = env.dump()
-
-    def log_settings(self):
         logger.info("SECC settings:")
         for key, value in shared_settings.items():
             logger.info(f"{key:30}: {value}")
-        for key, value in self.secc_env.items():
-              logger.info(f"{key:30}: {value}")
+        for key, value in env.dump().items():
+            logger.info(f"{key:30}: {value}")
+
 
     def update(self, new: dict):
         self.as_dict().update(new)
