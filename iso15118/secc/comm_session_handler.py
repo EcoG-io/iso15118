@@ -233,6 +233,8 @@ class CommunicationSessionHandler:
         logger.info("SECC Config is updated")
         self.config = new_config
 
+    def get_config(self) -> Config:
+        return self.config
 
     def check_events(self) -> bool:
         result: bool = True

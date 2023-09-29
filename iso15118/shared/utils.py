@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from typing import Coroutine, List, Optional
+from enum import Enum
+from typing import Coroutine, List, Optional, Any
 
 from iso15118.shared.exceptions import (
     NoSupportedAuthenticationModes,
@@ -126,3 +127,18 @@ async def wait_for_tasks(
             done_task.result()
         except Exception as e:
             logger.exception(e)
+
+def enum_to_str(value):
+    if isinstance(value, Enum):
+        return value.name
+    return str(value)
+def print_data(data:Any) -> None:
+    if isinstance(data, dict):
+        data_dict = data
+    else:
+        data_dict = data.__dict__
+    for key, value in data_dict.items():
+        if isinstance(value, list):
+            logger.info(f"{key.upper():30}: {', '.join(map(enum_to_str, value))}")
+        else:
+            logger.info(f"{key.upper():30}: {value}")
