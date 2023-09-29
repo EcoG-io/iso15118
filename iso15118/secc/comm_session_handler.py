@@ -233,7 +233,6 @@ class CommunicationSessionHandler:
         self.config.update(new_config)
         logger.info("SECC Config is updated")
 
-
     def get_config(self) -> Config:
         return self.config
 
