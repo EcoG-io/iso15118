@@ -1,12 +1,9 @@
-import json
 import logging
 import os
-import pprint
 from dataclasses import dataclass
 from typing import List, Optional, Type
 
 import environs
-import marshmallow as ma
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.enums import AuthEnum, Protocol
