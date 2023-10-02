@@ -2,7 +2,6 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
-from iso15118.shared.network import validate_nic
 from iso15118.shared.settings import SharedSettings
 
 logger = logging.getLogger(__name__)
