@@ -3,7 +3,7 @@ import logging
 from builtins import Exception
 
 from iso15118.shared.iexi_codec import IEXICodec
-from iso15118.shared.settings import JAR_FILE_PATH
+from iso15118.shared.settings import JAR_FILE_PATH, SharedSettings
 
 logger = logging.getLogger(__name__)
 
