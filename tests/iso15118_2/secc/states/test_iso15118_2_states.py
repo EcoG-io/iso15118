@@ -132,7 +132,7 @@ class TestV2GSessionScenarios:
             evse_min_voltage=10,
         )
         rated_limits: EVSERatedLimits = EVSERatedLimits(
-            ac_limits=None, dc_limits=dc_limits
+            ac_limits=None, dc_limits=dc_limits, dc_bpt_limits=dc_bpt_limits
         )
         session_context: EVSESessionContext = EVSESessionContext(
             ac_limits=None, dc_limits=dc_cl_limits

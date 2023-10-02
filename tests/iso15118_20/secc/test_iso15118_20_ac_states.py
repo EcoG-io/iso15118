@@ -12,7 +12,6 @@ from iso15118.secc.controller.evse_data import (
     ACBPTLimits,
     ACCLLimits,
     ACLimits,
-    DCLimits,
     EVSEDataContext,
     EVSERatedLimits,
     EVSESessionContext,
