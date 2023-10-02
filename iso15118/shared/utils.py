@@ -82,25 +82,6 @@ def load_requested_auth_modes(read_auth_modes: Optional[List[str]]) -> List[Auth
     return [AuthEnum[x] for x in valid_auth_options]
 
 
-def enum_to_str(value):
-    if isinstance(value, Enum):
-        return value.name
-    return str(value)
-
-
-def print_data(data: Any) -> None:
-    data_dict = data.__dict__
-    for key, value in data_dict.items():
-        if value is None:
-            continue
-        if is_dataclass(type(value)):
-            print_data(value)
-        elif isinstance(value, list):
-            logger.info(f"{key.upper():30}: {', '.join(map(enum_to_str, value))}")
-        else:
-            logger.info(f"{key.upper():30}: {value}")
-
-
 async def cancel_task(task):
     """Cancel the task safely"""
     task.cancel()

@@ -20,6 +20,8 @@ class TestSECCConfig:
             supported_protocols=[Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121],
             supported_auth_options=[AuthEnum.EIM],
             standby_allowed=False,
+            pki_path="pki_path",
+            message_log_json=False,
         )
 
     @pytest.mark.parametrize(
@@ -37,6 +39,8 @@ class TestSECCConfig:
             ),
             ("supported_auth_options", [AuthEnum.PNC]),
             ("standby_allowed", True),
+            ("pki_path", "/other_path"),
+            ("message_log_json", True),
         ],
     )
     def test_update(self, config_name, new_value):

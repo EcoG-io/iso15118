@@ -8,11 +8,7 @@ import environs
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.settings import SharedSettings
-from iso15118.shared.utils import (
-    load_requested_auth_modes,
-    load_requested_protocols,
-    print_data,
-)
+from iso15118.shared.utils import load_requested_auth_modes, load_requested_protocols
 
 logger = logging.getLogger(__name__)
 
