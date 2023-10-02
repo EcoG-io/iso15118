@@ -3,8 +3,10 @@ import logging
 
 from iso15118.secc import SECCHandler
 from iso15118.secc.controller.evse_data import (
+    ACBPTLimits,
     ACCLLimits,
     ACLimits,
+    DCBPTLimits,
     DCCLLimits,
     DCLimits,
     EVSEDataContext,
@@ -36,6 +38,8 @@ def get_evse_context():
         evse_present_active_power=10,
         evse_present_active_power_l2=10,
         evse_present_active_power_l3=10,
+    )
+    ac_bpt_limits = ACBPTLimits(
         evse_max_discharge_power=10,
         evse_min_discharge_power=10,
         evse_max_discharge_power_l2=10,
@@ -51,11 +55,6 @@ def get_evse_context():
         evse_max_voltage=10,
         evse_min_voltage=10,
         evse_power_ramp_limit=10,
-        # 15118-20 DC BPT
-        evse_max_discharge_power=10,
-        evse_min_discharge_power=10,
-        evse_max_discharge_current=10,
-        evse_min_discharge_current=10,
         # 15118-2 DC, DINSPEC
         evse_current_regulation_tolerance=10,
         evse_peak_current_ripple=10,
@@ -65,6 +64,13 @@ def get_evse_context():
         evse_maximum_voltage_limit=10,
         evse_minimum_current_limit=10,
         evse_minimum_voltage_limit=10,
+    )
+    dc_bpt_limits = DCBPTLimits(
+        # 15118-20 DC BPT
+        evse_max_discharge_power=10,
+        evse_min_discharge_power=10,
+        evse_max_discharge_current=10,
+        evse_min_discharge_current=10,
     )
     ac_cl_limits = ACCLLimits(
         evse_target_active_power=10,
@@ -90,7 +96,10 @@ def get_evse_context():
         evse_min_voltage=10,
     )
     rated_limits: EVSERatedLimits = EVSERatedLimits(
-        ac_limits=ac_limits, dc_limits=dc_limits
+        ac_limits=ac_limits,
+        ac_bpt_limits=ac_bpt_limits,
+        dc_limits=dc_limits,
+        dc_bpt_limits=dc_bpt_limits,
     )
 
     session_context: EVSESessionContext = EVSESessionContext(

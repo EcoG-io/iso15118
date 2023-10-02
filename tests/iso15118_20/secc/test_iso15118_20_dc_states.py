@@ -10,6 +10,7 @@ from iso15118.secc.controller.ev_data import (
     EVSessionContext,
 )
 from iso15118.secc.controller.evse_data import (
+    DCBPTLimits,
     DCCLLimits,
     DCLimits,
     EVSEDataContext,
@@ -95,11 +96,6 @@ class TestEvScenarios:
             evse_max_voltage=10,
             evse_min_voltage=10,
             evse_power_ramp_limit=10,
-            # 15118-20 DC BPT
-            evse_max_discharge_power=10,
-            evse_min_discharge_power=10,
-            evse_max_discharge_current=10,
-            evse_min_discharge_current=10,
             # 15118-2 DC, DINSPEC
             evse_maximum_current_limit=10,
             evse_maximum_power_limit=10,
@@ -109,6 +105,13 @@ class TestEvScenarios:
             evse_current_regulation_tolerance=10,
             evse_peak_current_ripple=10,
             evse_energy_to_be_delivered=10,
+        )
+        dc_bpt_limits = DCBPTLimits(
+            # 15118-20 DC BPT
+            evse_max_discharge_power=10,
+            evse_min_discharge_power=10,
+            evse_max_discharge_current=10,
+            evse_min_discharge_current=10,
         )
         dc_cl_limits = DCCLLimits(
             # Optional in 15118-20 DC CL (Scheduled)
@@ -123,7 +126,7 @@ class TestEvScenarios:
             evse_min_voltage=10,
         )
         rated_limits: EVSERatedLimits = EVSERatedLimits(
-            ac_limits=None, dc_limits=dc_limits
+            ac_limits=None, dc_limits=dc_limits, dc_bpt_limits=dc_bpt_limits
         )
         session_context: EVSESessionContext = EVSESessionContext(
             ac_limits=None, dc_limits=dc_cl_limits
@@ -569,11 +572,13 @@ class TestEvScenarios:
                             evse_max_voltage=30000,
                             evse_min_voltage=100,
                             evse_power_ramp_limit=100,
+                        ),
+                        dc_bpt_limits=DCBPTLimits(
                             evse_max_discharge_power=30000,
                             evse_min_discharge_power=100,
                             evse_max_discharge_current=30000,
                             evse_min_discharge_current=100,
-                        )
+                        ),
                     ),
                 ),
             ),
@@ -731,11 +736,13 @@ class TestEvScenarios:
                             evse_min_charge_power=400,
                             evse_max_charge_current=500,
                             evse_max_voltage=600,
+                            evse_min_voltage=100,
+                        ),
+                        dc_bpt_limits=DCBPTLimits(
                             evse_max_discharge_power=700,
                             evse_min_discharge_power=800,
                             evse_max_discharge_current=900,
-                            evse_min_voltage=100,
-                        )
+                        ),
                     ),
                     session_context=EVSESessionContext(
                         dc_limits=DCCLLimits(
@@ -792,11 +799,13 @@ class TestEvScenarios:
                             evse_min_charge_power=20000,
                             evse_max_charge_current=30000,
                             evse_max_voltage=4000,
+                            evse_min_voltage=8000,
+                        ),
+                        dc_bpt_limits=DCBPTLimits(
                             evse_max_discharge_power=5000,
                             evse_min_discharge_power=6000,
                             evse_max_discharge_current=7000,
-                            evse_min_voltage=8000,
-                        )
+                        ),
                     ),
                     session_context=EVSESessionContext(
                         departure_time=3600,

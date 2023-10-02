@@ -799,22 +799,22 @@ class SimEVSEController(EVSEControllerInterface):
             return BPTACChargeParameterDiscoveryResParams(
                 **(ac_charge_parameter_discovery_res_params.dict()),
                 evse_max_discharge_power=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.ac_limits.evse_max_discharge_power  # noqa
+                    self.evse_data_context.rated_limits.ac_bpt_limits.evse_max_discharge_power  # noqa
                 ),
                 evse_max_discharge_power_l2=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.ac_limits.evse_max_discharge_power_l2  # noqa
+                    self.evse_data_context.rated_limits.ac_bpt_limits.evse_max_discharge_power_l2  # noqa
                 ),
                 evse_max_discharge_power_l3=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.ac_limits.evse_max_discharge_power_l3  # noqa
+                    self.evse_data_context.rated_limits.ac_bpt_limits.evse_max_discharge_power_l3  # noqa
                 ),
                 evse_min_discharge_power=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.ac_limits.evse_min_discharge_power  # noqa
+                    self.evse_data_context.rated_limits.ac_bpt_limits.evse_min_discharge_power  # noqa
                 ),
                 evse_min_discharge_power_l2=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.ac_limits.evse_min_discharge_power_l2  # noqa
+                    self.evse_data_context.rated_limits.ac_bpt_limits.evse_min_discharge_power_l2  # noqa
                 ),
                 evse_min_discharge_power_l3=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.ac_limits.evse_min_discharge_power_l3  # noqa
+                    self.evse_data_context.rated_limits.ac_bpt_limits.evse_min_discharge_power_l3  # noqa
                 ),
             )
         return None
@@ -1065,16 +1065,16 @@ class SimEVSEController(EVSEControllerInterface):
             return BPTDCChargeParameterDiscoveryResParams(
                 **(dc_charge_parameter_discovery_res.dict()),
                 evse_max_discharge_power=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.dc_limits.evse_max_discharge_power  # noqa
+                    self.evse_data_context.rated_limits.dc_bpt_limits.evse_max_discharge_power  # noqa
                 ),
                 evse_min_discharge_power=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.dc_limits.evse_min_discharge_power  # noqa
+                    self.evse_data_context.rated_limits.dc_bpt_limits.evse_min_discharge_power  # noqa
                 ),
                 evse_max_discharge_current=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.dc_limits.evse_max_discharge_current  # noqa
+                    self.evse_data_context.rated_limits.dc_bpt_limits.evse_max_discharge_current  # noqa
                 ),
                 evse_min_discharge_current=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.dc_limits.evse_min_discharge_current  # noqa
+                    self.evse_data_context.rated_limits.dc_bpt_limits.evse_min_discharge_current  # noqa
                 ),
             )
         return None

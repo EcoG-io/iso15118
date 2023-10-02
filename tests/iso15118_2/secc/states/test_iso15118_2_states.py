@@ -7,6 +7,7 @@ import pytest
 from iso15118.secc import Config
 from iso15118.secc.controller.ev_data import EVSessionContext15118
 from iso15118.secc.controller.evse_data import (
+    DCBPTLimits,
     DCCLLimits,
     DCLimits,
     EVSEDataContext,
@@ -101,11 +102,6 @@ class TestV2GSessionScenarios:
             evse_max_voltage=10,
             evse_min_voltage=10,
             evse_power_ramp_limit=10,
-            # 15118-20 DC BPT
-            evse_max_discharge_power=10,
-            evse_min_discharge_power=10,
-            evse_max_discharge_current=10,
-            evse_min_discharge_current=10,
             # 15118-2 DC, DINSPEC
             evse_maximum_current_limit=10,
             evse_maximum_power_limit=10,
@@ -115,6 +111,13 @@ class TestV2GSessionScenarios:
             evse_current_regulation_tolerance=10,
             evse_peak_current_ripple=10,
             evse_energy_to_be_delivered=10,
+        )
+        dc_bpt_limits = DCBPTLimits(
+            # 15118-20 DC BPT
+            evse_max_discharge_power=10,
+            evse_min_discharge_power=10,
+            evse_max_discharge_current=10,
+            evse_min_discharge_current=10,
         )
         dc_cl_limits = DCCLLimits(
             # Optional in 15118-20 DC CL (Scheduled)

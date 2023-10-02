@@ -49,11 +49,6 @@ class TestEvseScenarios:
             evse_max_voltage=10,
             evse_min_voltage=10,
             evse_power_ramp_limit=10,
-            # 15118-20 DC BPT
-            evse_max_discharge_power=10,
-            evse_min_discharge_power=10,
-            evse_max_discharge_current=10,
-            evse_min_discharge_current=10,
             # 15118-2 DC, DINSPEC
             evse_maximum_current_limit=10,
             evse_maximum_power_limit=10,
@@ -76,12 +71,8 @@ class TestEvseScenarios:
             evse_max_discharge_current=10,
             evse_min_voltage=10,
         )
-        rated_limits: EVSERatedLimits = EVSERatedLimits(
-            ac_limits=None, dc_limits=dc_limits
-        )
-        session_context: EVSESessionContext = EVSESessionContext(
-            ac_limits=None, dc_limits=dc_cl_limits
-        )
+        rated_limits: EVSERatedLimits = EVSERatedLimits(dc_limits=dc_limits)
+        session_context: EVSESessionContext = EVSESessionContext(dc_limits=dc_cl_limits)
 
         return EVSEDataContext(
             rated_limits=rated_limits, session_context=session_context
