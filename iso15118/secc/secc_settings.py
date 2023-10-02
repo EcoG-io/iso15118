@@ -1,9 +1,6 @@
 import logging
-import os
 from dataclasses import dataclass
 from typing import List, Optional, Type
-
-import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.enums import AuthEnum, Protocol
@@ -47,10 +44,6 @@ class Config(SharedSettings):
             env_path (str): Absolute path to the location of the .env file
         """
         super().load_env(env_path)
-
-        self.iface = self.env.str("NETWORK_INTERFACE", default="eth0")
-
-        self.log_level = self.env.str("LOG_LEVEL", default="INFO")
 
         # Indicates whether or not the SECC should always enforce a TLS-secured
         # communication session. If True, the SECC will only fire up a TCP server

@@ -1,8 +1,6 @@
 import asyncio
 import logging
-from dataclasses import is_dataclass
-from enum import Enum
-from typing import Any, Coroutine, List, Optional
+from typing import Coroutine, List, Optional
 
 from iso15118.shared.exceptions import (
     NoSupportedAuthenticationModes,

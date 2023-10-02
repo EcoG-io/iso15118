@@ -1,9 +1,6 @@
 import logging
-import os
 from dataclasses import dataclass
-from typing import Optional, Type
-
-import environs
+from typing import Optional
 
 from iso15118.shared.network import validate_nic
 from iso15118.shared.settings import SharedSettings
@@ -25,9 +22,6 @@ class Config(SharedSettings):
             env_path (str): Absolute path to the location of the .env file
         """
         super().load_env(env_path)
-
-        # validate the NIC selected
-        validate_nic(self.iface)
 
         self.ev_config_file_path = self.env.path(
             "EVCC_CONFIG_PATH",

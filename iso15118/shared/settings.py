@@ -6,6 +6,8 @@ from typing import Optional
 
 import environs
 
+from iso15118.shared.network import validate_nic
+
 SHARED_CWD = os.path.dirname(os.path.abspath(__file__))
 
 logger = logging.getLogger(__name__)
@@ -34,6 +36,10 @@ class SharedSettings(ABC):
             env_path = work_dir + "/.env"
         self.env.read_env(path=env_path)  # read .env file, if it exists
         self.log_level = self.env.str("LOG_LEVEL", default="INFO")
+        self.iface = self.env.str("NETWORK_INTERFACE", default="eth0")
+        # validate the NIC selected
+        validate_nic(self.iface)
+
         self.pki_path = self.env.path("PKI_PATH", default=DEFAULT_PKI_PATH)
 
         self.message_log_json = self.env.bool("MESSAGE_LOG_JSON", default=True)
