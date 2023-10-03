@@ -58,15 +58,6 @@ class ACLimits(Limits):
     evse_present_active_power_l2: Optional[float] = None  # Optional in AC Scheduled CL
     evse_present_active_power_l3: Optional[float] = None  # Optional in AC Scheduled CL
 
-    # TODO REMOVE - CL PARAMS HAVE BEEN MOVED TO A DIFFERENT STRUCT.
-    # EVSE -20 AC CL (Optional)
-    evse_target_active_power: Optional[float] = None
-    evse_target_active_power_l2: Optional[float] = None
-    evse_target_active_power_l3: Optional[float] = None
-    evse_target_reactive_power: Optional[float] = None
-    evse_target_reactive_power_l2: Optional[float] = None
-    evse_target_reactive_power_l3: Optional[float] = None
-
 
 @dataclass
 class ACBPTLimits(Limits):
@@ -120,15 +111,6 @@ class DCLimits(Limits):
     evse_current_regulation_tolerance: Optional[float] = None
     evse_peak_current_ripple: Optional[float] = None
     evse_energy_to_be_delivered: Optional[float] = None
-
-    # TODO REQUIRED FOR -2, DIN. Required params present in DCCLLimits.
-    #  To be tested and removed.
-    # 15118-2 DC, DINSPEC
-    evse_maximum_current_limit: Optional[float] = None
-    evse_maximum_power_limit: Optional[float] = None
-    evse_maximum_voltage_limit: Optional[float] = None
-    evse_minimum_current_limit: Optional[float] = None
-    evse_minimum_voltage_limit: Optional[float] = None
 
 
 @dataclass

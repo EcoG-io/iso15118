@@ -50,11 +50,6 @@ class TestEvseScenarios:
             evse_min_voltage=10,
             evse_power_ramp_limit=10,
             # 15118-2 DC, DINSPEC
-            evse_maximum_current_limit=10,
-            evse_maximum_power_limit=10,
-            evse_maximum_voltage_limit=10,
-            evse_minimum_current_limit=10,
-            evse_minimum_voltage_limit=10,
             evse_current_regulation_tolerance=10,
             evse_peak_current_ripple=10,
             evse_energy_to_be_delivered=10,

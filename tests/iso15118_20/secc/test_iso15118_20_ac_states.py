@@ -112,7 +112,6 @@ class TestEvScenarios:
             # 15118-2 AC CPD
             evse_nominal_voltage=10,
             evse_max_current=10,
-            evse_target_active_power=10,
         )
         ac_bpt_limits = ACBPTLimits(
             evse_max_discharge_power=10,
@@ -743,12 +742,6 @@ class TestEvScenarios:
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
                         ac_limits=ACLimits(
-                            evse_target_active_power=30000,
-                            evse_target_active_power_l2=30000,
-                            evse_target_active_power_l3=30000,
-                            evse_target_reactive_power=30000,
-                            evse_target_reactive_power_l2=30000,
-                            evse_target_reactive_power_l3=30000,
                             evse_present_active_power=30000,
                             evse_present_active_power_l2=30000,
                             evse_present_active_power_l3=30000,
@@ -817,12 +810,6 @@ class TestEvScenarios:
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
                         ac_limits=ACLimits(
-                            evse_target_active_power=30000,
-                            evse_target_active_power_l2=30000,
-                            evse_target_active_power_l3=30000,
-                            evse_target_reactive_power=30000,
-                            evse_target_reactive_power_l2=30000,
-                            evse_target_reactive_power_l3=30000,
                             evse_present_active_power=30000,
                             evse_present_active_power_l2=30000,
                             evse_present_active_power_l3=30000,
@@ -896,12 +883,6 @@ class TestEvScenarios:
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
                         ac_limits=ACLimits(
-                            evse_target_active_power=30000,
-                            evse_target_active_power_l2=30000,
-                            evse_target_active_power_l3=30000,
-                            evse_target_reactive_power=30000,
-                            evse_target_reactive_power_l2=30000,
-                            evse_target_reactive_power_l3=30000,
                             evse_present_active_power=30000,
                             evse_present_active_power_l2=30000,
                             evse_present_active_power_l3=30000,
@@ -978,12 +959,6 @@ class TestEvScenarios:
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
                         ac_limits=ACLimits(
-                            evse_target_active_power=30000,
-                            evse_target_active_power_l2=30000,
-                            evse_target_active_power_l3=30000,
-                            evse_target_reactive_power=30000,
-                            evse_target_reactive_power_l2=30000,
-                            evse_target_reactive_power_l3=30000,
                             evse_present_active_power=30000,
                             evse_present_active_power_l2=30000,
                             evse_present_active_power_l3=30000,
