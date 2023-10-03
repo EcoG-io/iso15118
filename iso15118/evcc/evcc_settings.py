@@ -1,14 +1,20 @@
 import logging
+import os
 from dataclasses import dataclass
 from typing import Optional
 
-from iso15118.shared.settings import SharedSettings
+import environs
+
+from iso15118.shared.network import validate_nic
+from iso15118.shared.settings import shared_settings
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class Config(SharedSettings):
+class Config:
+    iface: Optional[str] = None
+    log_level: Optional[int] = None
     ev_config_file_path: str = None
 
     def load_envs(self, env_path: Optional[str] = None) -> None:
@@ -20,15 +26,27 @@ class Config(SharedSettings):
         Args:
             env_path (str): Absolute path to the location of the .env file
         """
-        super().load_env(env_path)
+        env = environs.Env(eager=False)
+        if not env_path:
+            env_path = os.getcwd() + "/.env"
+        env.read_env(path=env_path)  # read .env file, if it exists
 
-        self.ev_config_file_path = self.env.path(
+        self.iface = env.str("NETWORK_INTERFACE", default="eth0")
+        # validate the NIC selected
+        validate_nic(self.iface)
+
+        self.log_level = env.str("LOG_LEVEL", default="INFO")
+
+        self.ev_config_file_path = env.path(
             "EVCC_CONFIG_PATH",
             default="iso15118/shared/examples/evcc/iso15118_2/evcc_config_eim_ac.json",
         )
-        self.env.seal()  # raise all errors at once, if any
+        env.seal()  # raise all errors at once, if any
         logger.info("EVCC environment settings:")
-        self.print_settings()
+        for key, value in shared_settings.items():
+            logger.info(f"{key:30}: {value}")
+        for key, value in env.dump().items():
+            logger.info(f"{key:30}: {value}")
 
 
 RESUME_SELECTED_AUTH_OPTION = None

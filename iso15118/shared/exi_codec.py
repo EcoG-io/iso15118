@@ -71,7 +71,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DCWeldingDetectionReq,
     DCWeldingDetectionRes,
 )
-from iso15118.shared.settings import SharedSettings
+from iso15118.shared.settings import shared_settings
 
 logger = logging.getLogger(__name__)
 
@@ -244,7 +244,7 @@ class EXI:
                                    {exc}"
             ) from exc
 
-        if SharedSettings.message_log_json:
+        if shared_settings["message_log_json"]:
             logger.info(f"Message to encode (ns={protocol_ns}): {msg_content}")
 
         try:
@@ -257,7 +257,7 @@ class EXI:
                 f"EXIEncodingError for {str(msg_element)}: " f"{exc}"
             ) from exc
 
-        if SharedSettings.message_log_exi:
+        if shared_settings["message_log_exi"]:
             logger.debug(f"EXI-encoded message: {exi_stream.hex()}")
 
         return exi_stream
@@ -283,7 +283,7 @@ class EXI:
         Raises:
             EXIDecodingError
         """
-        if SharedSettings.message_log_exi:
+        if shared_settings["message_log_exi"]:
             logger.debug(f"EXI-encoded message (ns={namespace}): {exi_message.hex()}")
 
         try:
@@ -300,7 +300,7 @@ class EXI:
                 f"processing decoded EXI: {exc}"
             ) from exc
 
-        if SharedSettings.message_log_json:
+        if shared_settings["message_log_json"]:
             logger.info(f"Decoded message (ns={namespace}): {exi_decoded}")
 
         try:

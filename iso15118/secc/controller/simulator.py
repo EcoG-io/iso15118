@@ -170,7 +170,7 @@ from iso15118.shared.security import (
     load_cert,
     load_priv_key,
 )
-from iso15118.shared.settings import SharedSettings
+from iso15118.shared.settings import shared_settings
 from iso15118.shared.states import State
 
 logger = logging.getLogger(__name__)
@@ -274,7 +274,7 @@ def get_evse_context():
 async def read_service_id_parameter_mappings():
     try:
         async with async_open(
-            SharedSettings.v20_evse_service_config, "r"
+            shared_settings["v20_evse_services_config"], "r"
         ) as v20_service_config:
             try:
                 json_mapping = await v20_service_config.read()
@@ -285,11 +285,11 @@ async def read_service_id_parameter_mappings():
             except ValueError as exc:
                 raise ValueError(
                     f"Error reading 15118-20 service parameters settings file"
-                    f" at {SharedSettings.v20_evse_service_config}"
+                    f" at {shared_settings['v20_evse_services_config']}"
                 ) from exc
     except (FileNotFoundError, IOError) as exc:
         raise FileNotFoundError(
-            f"V20 config not found at {SharedSettings.v20_evse_service_config}"
+            f"V20 config not found at {shared_settings['v20_evse_services_config']}"
         ) from exc
 
 

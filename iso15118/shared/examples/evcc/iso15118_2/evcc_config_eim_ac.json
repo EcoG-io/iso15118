@@ -5,6 +5,6 @@
 	"supportedEnergyServices": [
 		"AC"
 	],
-	"isCertInstallNeeded": false,
-	"useTls": false
+	"isCertInstallNeeded": true,
+	"useTls": true
 }
