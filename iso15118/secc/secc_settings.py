@@ -130,9 +130,7 @@ class Config:
                     )
                 tmp_dict_config[key] = value
             else:
-                raise ValueError(
-                    f"{key} is not in config"
-                )
+                raise ValueError(f"{key} is not in config")
         if tmp_dict_shared:
             shared_settings.update(tmp_dict_shared)
         if tmp_dict_config:
