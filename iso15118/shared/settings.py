@@ -4,11 +4,11 @@ import environs
 
 
 class SettingKey:
-    PKI_PATH = "PKI_PATH"
-    MESSAGE_LOG_JSON = "MESSAGE_LOG_JSON"
-    MESSAGE_LOG_EXI = "MESSAGE_LOG_EXI"
-    V20_SERVICE_CONFIG = "V20_SERVICE_CONFIG"
-    ENABLE_TLS_1_3 = "ENABLE_TLS_1_3"
+    PKI_PATH = "pki_path"
+    MESSAGE_LOG_JSON = "message_log_json"
+    MESSAGE_LOG_EXI = "message_log_exi"
+    V20_SERVICE_CONFIG = "v20_service_config"
+    ENABLE_TLS_1_3 = "enable_tls_1_3"
 
 
 SHARED_CWD = os.path.dirname(os.path.abspath(__file__))

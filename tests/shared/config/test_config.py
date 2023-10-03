@@ -14,6 +14,7 @@ class TestSECCConfig:
     def setup_config(self):
         shared_settings[SettingKey.PKI_PATH] = "/pki_path"
         shared_settings[SettingKey.MESSAGE_LOG_EXI] = True
+        shared_settings[SettingKey.MESSAGE_LOG_JSON] = True
         self.config = Config(
             iface="eth0",
             log_level=logging.DEBUG,
