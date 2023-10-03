@@ -155,7 +155,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             return None
         except FileNotFoundError:
             logger.exception(
-                f"Can't find certfile or keyfile for SSL context {KeyPath.SECC_LEAF_PEM} - {CertPath.CPO_CERT_CHAIN_PEM} - {KeyPasswordPath.SECC_LEAF_KEY_PASSWORD}"
+                f"Can't find certfile or keyfile for SSL context"
             )
             return None
         except Exception as exc:
@@ -474,8 +474,7 @@ def log_certs_details(certs: List[bytes]):
             f"Validity: {der_cert.not_valid_before} - {der_cert.not_valid_after}"
         )
         logger.debug(
-            f"Fingerprint: {der_cert.fingerprint(der_cert.signature_hash_algorithm).hex(':')}"
-            # noqa
+            f"Fingerprint: {der_cert.fingerprint(der_cert.signature_hash_algorithm).hex(':')}" # noqa
         )
         logger.debug("===")
 

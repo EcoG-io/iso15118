@@ -6,7 +6,6 @@ from typing import List, Optional, Type
 import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
-from iso15118.shared import settings
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.settings import shared_settings
 from iso15118.shared.utils import load_requested_auth_modes, load_requested_protocols
@@ -116,14 +115,14 @@ class Config:
         tmp_dict_config: dict = {}
         for key, value in new.items():
             if key in shared_settings:
-                if type(value) != type(shared_settings[key]):
+                if type(value) is not type(shared_settings[key]):
                     raise TypeError(
                         f"{key} type is invalid. Expected type "
                         f"{type(shared_settings[key])}"
                     )
                 tmp_dict_shared[key] = value
             elif key in self.as_dict():
-                if type(value) != type(self.as_dict()[key]):
+                if type(value) is not type(self.as_dict()[key]):
                     raise TypeError(
                         f"{key} type is invalid.Expected type"
                         f" {type(self.as_dict()[key])}"
