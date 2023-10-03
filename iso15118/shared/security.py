@@ -154,7 +154,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             )
             return None
         except FileNotFoundError:
-            logger.exception(f"Can't find certfile or keyfile for SSL context")
+            logger.exception("Can't find certfile or keyfile for SSL context")
             return None
         except Exception as exc:
             logger.exception(exc)
