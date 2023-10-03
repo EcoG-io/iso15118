@@ -10,6 +10,17 @@ from typing import Dict, List, Optional, Union, cast
 from aiofile import async_open
 from pydantic import BaseModel, Field
 
+from iso15118.secc.controller.evse_data import (
+    ACBPTLimits,
+    ACCLLimits,
+    ACLimits,
+    DCBPTLimits,
+    DCCLLimits,
+    DCLimits,
+    EVSEDataContext,
+    EVSERatedLimits,
+    EVSESessionContext,
+)
 from iso15118.secc.controller.interface import (
     AuthorizationResponse,
     EVChargeParamsLimits,
@@ -171,6 +182,97 @@ class V20ServiceParamMapping(BaseModel):
     )
 
 
+def get_evse_context():
+    ac_limits = ACLimits(
+        # 15118-2 AC CPD
+        evse_nominal_voltage=10,
+        evse_max_current=10,
+        evse_max_charge_power=10,
+        evse_min_charge_power=10,
+        evse_max_charge_power_l2=10,
+        evse_max_charge_power_l3=10,
+        evse_min_charge_power_l2=10,
+        evse_min_charge_power_l3=10,
+        evse_nominal_frequency=10,
+        max_power_asymmetry=10,
+        evse_power_ramp_limit=10,
+        evse_present_active_power=10,
+        evse_present_active_power_l2=10,
+        evse_present_active_power_l3=10,
+    )
+    ac_bpt_limits = ACBPTLimits(
+        evse_max_discharge_power=10,
+        evse_min_discharge_power=10,
+        evse_max_discharge_power_l2=10,
+        evse_max_discharge_power_l3=10,
+        evse_min_discharge_power_l2=10,
+        evse_min_discharge_power_l3=10,
+    )
+    dc_limits = DCLimits(
+        evse_max_charge_power=10,
+        evse_min_charge_power=10,
+        evse_max_charge_current=10,
+        evse_min_charge_current=10,
+        evse_max_voltage=10,
+        evse_min_voltage=10,
+        evse_power_ramp_limit=10,
+        # 15118-2 DC, DINSPEC
+        evse_current_regulation_tolerance=10,
+        evse_peak_current_ripple=10,
+        evse_energy_to_be_delivered=10,
+        evse_maximum_current_limit=10,
+        evse_maximum_power_limit=10,
+        evse_maximum_voltage_limit=10,
+        evse_minimum_current_limit=10,
+        evse_minimum_voltage_limit=10,
+    )
+    dc_bpt_limits = DCBPTLimits(
+        # 15118-20 DC BPT
+        evse_max_discharge_power=10,
+        evse_min_discharge_power=10,
+        evse_max_discharge_current=10,
+        evse_min_discharge_current=10,
+    )
+    ac_cl_limits = ACCLLimits(
+        evse_target_active_power=10,
+        evse_target_active_power_l2=10,
+        evse_target_active_power_l3=10,
+        evse_target_reactive_power=10,
+        evse_target_reactive_power_l2=10,
+        evse_target_reactive_power_l3=10,
+        evse_present_active_power=10,
+        evse_present_active_power_l2=10,
+        evse_present_active_power_l3=10,
+    )
+    dc_cl_limits = DCCLLimits(
+        # Optional in 15118-20 DC CL (Scheduled)
+        evse_max_charge_power=10,
+        evse_min_charge_power=10,
+        evse_max_charge_current=10,
+        evse_max_voltage=10,
+        # Optional and present in 15118-20 DC BPT CL (Scheduled)
+        evse_max_discharge_power=10,
+        evse_min_discharge_power=10,
+        evse_max_discharge_current=10,
+        evse_min_voltage=10,
+    )
+    rated_limits: EVSERatedLimits = EVSERatedLimits(
+        ac_limits=ac_limits,
+        ac_bpt_limits=ac_bpt_limits,
+        dc_limits=dc_limits,
+        dc_bpt_limits=dc_bpt_limits,
+    )
+
+    session_context: EVSESessionContext = EVSESessionContext(
+        evse_present_voltage=1,
+        evse_present_current=1,
+        ac_limits=ac_cl_limits,
+        dc_limits=dc_cl_limits,
+    )
+
+    return EVSEDataContext(rated_limits=rated_limits, session_context=session_context)
+
+
 # This method is added to help read the service to parameter
 # mapping (json format) from file. The key is in the dictionary is
 # enum value of the energy transfer mode and value is the service parameter
@@ -205,6 +307,7 @@ class SimEVSEController(EVSEControllerInterface):
     async def create(cls):
         self = SimEVSEController()
         self.ev_data_context = EVDataContext()
+        self.evse_data_context = get_evse_context()
         self.v20_service_id_parameter_mapping = (
             await read_service_id_parameter_mappings()
         )
