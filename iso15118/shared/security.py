@@ -80,7 +80,7 @@ from iso15118.shared.messages.xmldsig import (
     Transform,
     Transforms,
 )
-from iso15118.shared.settings import shared_settings
+from iso15118.shared.settings import SettingKey, shared_settings
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
          as well as read the password.
     """
 
-    if shared_settings["ENABLE_TLS_1_3"]:
+    if shared_settings[SettingKey.ENABLE_TLS_1_3]:
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
     else:
         # Specifying protocol as `PROTOCOL_TLS` does best effort.
@@ -162,7 +162,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             logger.exception(exc)
             return None
 
-        if shared_settings["ENABLE_TLS_1_3"]:
+        if shared_settings[SettingKey.ENABLE_TLS_1_3]:
             # In 15118-20 we should also verify EVCC's certificate chain.
             # The spec however says TLS 1.3 should also support 15118-2
             # (Table 5 in V2G20 specification)
@@ -203,7 +203,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             "ECDHE-ECDSA-AES128-SHA256"
         )
 
-        if shared_settings["enable_tls_1_3"]:
+        if shared_settings[SettingKey.ENABLE_TLS_1_3]:
             try:
                 ssl_context.load_cert_chain(
                     certfile=CertPath.OEM_CERT_CHAIN_PEM,
@@ -1484,7 +1484,7 @@ class CertPath(str, Enum):
 
     def __get__(self, instance, owner):
         return os.path.join(
-            shared_settings["pki_path"], "iso15118_2/certs/", super().value
+            shared_settings[SettingKey.PKI_PATH], "iso15118_2/certs/", super().value
         )
 
 
@@ -1523,7 +1523,9 @@ class KeyPath(str, Enum):
 
     def __get__(self, instance, owner):
         return os.path.join(
-            shared_settings["pki_path"], "iso15118_2/private_keys/", super().value
+            shared_settings[SettingKey.PKI_PATH],
+            "iso15118_2/private_keys/",
+            super().value,
         )
 
 
@@ -1544,5 +1546,7 @@ class KeyPasswordPath(str, Enum):
 
     def __get__(self, instance, owner):
         return os.path.join(
-            shared_settings["pki_path"], "iso15118_2/private_keys/", super().value
+            shared_settings[SettingKey.PKI_PATH],
+            "iso15118_2/private_keys/",
+            super().value,
         )

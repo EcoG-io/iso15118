@@ -107,7 +107,7 @@ class Config:
         env.seal()  # raise all errors at once, if any
         logger.info("SECC settings:")
         for key, value in shared_settings.items():
-            logger.info(f"{key.upper():30}: {value}")
+            logger.info(f"{key:30}: {value}")
         for key, value in env.dump().items():
             logger.info(f"{key:30}: {value}")
 

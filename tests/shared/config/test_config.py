@@ -6,14 +6,14 @@ import pytest
 from iso15118.secc import Config
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.security import CertPath
-from iso15118.shared.settings import shared_settings
+from iso15118.shared.settings import SettingKey, shared_settings
 
 
 class TestSECCConfig:
     @pytest.fixture(autouse=True)
     def setup_config(self):
-        shared_settings["pki_path"] = "/pki_path"
-        shared_settings["message_log_json"] = True
+        shared_settings[SettingKey.PKI_PATH] = "/pki_path"
+        shared_settings[SettingKey.MESSAGE_LOG_EXI] = True
         self.config = Config(
             iface="eth0",
             log_level=logging.DEBUG,
