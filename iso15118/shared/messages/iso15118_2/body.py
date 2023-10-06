@@ -101,7 +101,7 @@ class AuthorizationReq(BodyBase):
         None, min_length=16, max_length=16, alias="GenChallenge"
     )
 
-    @root_validator
+    @root_validator(pre=True)
     def both_fields_set_or_unset(cls, values):
         """
         If the AuthorizationReq is digitally signed, then both the
@@ -220,7 +220,7 @@ class ChargeParameterDiscoveryReq(BodyBase):
         None, alias="DC_EVChargeParameter"
     )
 
-    @root_validator
+    @root_validator(pre=True)
     def either_ac_or_dc_charge_params(cls, values):
         """
         Either ac_ev_charge_parameter or dc_ev_charge_parameter must be set,
@@ -243,7 +243,7 @@ class ChargeParameterDiscoveryReq(BodyBase):
         ):
             return values
 
-    @root_validator
+    @root_validator()
     def requested_energy_mode_must_match_charge_parameter(cls, values):
         """
         Check that the requested_energy_mode matches the charge parameter. If
@@ -287,7 +287,7 @@ class ChargeParameterDiscoveryRes(Response):
 
     # TODO Reactivate the validator once you figured out how to deal with the
     #       failed_responses dict
-    # @model_validator(mode="before")
+    # @root_validator(pre=True)
     # def either_ac_or_dc_charge_params(cls, values):
     #     """
     #     Either ac_charge_parameter or dc_charge_parameter must be set,
@@ -308,7 +308,7 @@ class ChargeParameterDiscoveryRes(Response):
 
     # TODO Reactivate the validator once you figured out how to deal with the
     #       failed_responses dict
-    # @model_validator(mode="after")
+    # @root_validator()
     # def schedule_must_be_set_if_processing_finished(cls, values):
     #     """
     #     Once the field evse_processing is set to EVSEProcessing.FINISHED, the
@@ -435,7 +435,7 @@ class MeteringReceiptRes(Response):
 
     # TODO Reactivate the validator once you figured out how to deal with the
     #       failed_responses dict
-    # @model_validator(mode="before")
+    # @root_validator(pre=True)
     # def either_ac_or_dc_status(cls, values):
     #     """
     #     Either ac_evse_status or ac_evse_status must be set,
@@ -508,7 +508,7 @@ class PowerDeliveryRes(Response):
 
     # TODO Reactivate the validator once you figured out how to deal with the
     #       failed_responses dict
-    # @model_validator(mode="before")
+    # @root_validator(pre=True)
     # def either_ac_or_dc_status(cls, values):
     #     """
     #     Either ac_evse_status or dc_evse_status must be set,
