@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from typing import Optional, Tuple, Type
 
-from pydantic import Field, validator, model_validator
+from pydantic import Field, root_validator, validator
 
 from iso15118.shared.exceptions import V2GMessageValidationError
 from iso15118.shared.messages import BaseModel
@@ -213,7 +213,7 @@ class ChargeParameterDiscoveryReq(BodyBase):
         None, alias="DC_EVChargeParameter"
     )
 
-    @model_validator(mode="before")
+    @root_validator
     def only_dc_charge_params(cls, values):
         """
         Only dc_ev_charge_parameter must be set,
@@ -233,7 +233,7 @@ class ChargeParameterDiscoveryReq(BodyBase):
         ):
             return values
 
-    @model_validator(mode="after")
+    @root_validator
     def validate_requested_energy_mode(cls, values):
         """
         requested_energy_mode must be either DC_extended or DC_core

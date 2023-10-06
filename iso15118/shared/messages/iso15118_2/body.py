@@ -13,7 +13,7 @@ import logging
 from abc import ABC
 from typing import Optional, Tuple, Type
 
-from pydantic import Field, validator, model_validator
+from pydantic import Field, root_validator, validator
 
 from iso15118.shared.exceptions import V2GMessageValidationError
 from iso15118.shared.messages import BaseModel
@@ -101,7 +101,7 @@ class AuthorizationReq(BodyBase):
         None, min_length=16, max_length=16, alias="GenChallenge"
     )
 
-    @model_validator(mode="before")
+    @root_validator
     def both_fields_set_or_unset(cls, values):
         """
         If the AuthorizationReq is digitally signed, then both the
@@ -220,7 +220,7 @@ class ChargeParameterDiscoveryReq(BodyBase):
         None, alias="DC_EVChargeParameter"
     )
 
-    @model_validator(mode="before")
+    @root_validator
     def either_ac_or_dc_charge_params(cls, values):
         """
         Either ac_ev_charge_parameter or dc_ev_charge_parameter must be set,
@@ -243,7 +243,7 @@ class ChargeParameterDiscoveryReq(BodyBase):
         ):
             return values
 
-    @model_validator(mode="after")
+    @root_validator
     def requested_energy_mode_must_match_charge_parameter(cls, values):
         """
         Check that the requested_energy_mode matches the charge parameter. If
