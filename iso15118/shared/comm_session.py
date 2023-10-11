@@ -412,7 +412,7 @@ class V2GCommunicationSession(SessionStateMachine):
         try:
             self.writer.close()
             await self.writer.wait_closed()
-        except ConnectionResetError as exc:
+        except (asyncio.TimeoutError, ConnectionResetError) as exc:
             logger.info(str(exc))
         logger.info("TCP connection closed to peer with address " f"{self.peer_name}")
 
