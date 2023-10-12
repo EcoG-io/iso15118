@@ -2130,6 +2130,7 @@ class ChargingStatus(StateSECC):
             evse_id=await evse_controller.get_evse_id(Protocol.ISO_15118_2),
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             ac_evse_status=await evse_controller.get_ac_evse_status(),
+            evse_max_current=await evse_controller.get_evse_max_current_limit(),
             # TODO Could maybe request an OCPP setting that determines
             #      whether or not a receipt is required and when
             #      (probably only makes sense at the beginning and end of
