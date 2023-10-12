@@ -98,7 +98,7 @@ class DCBPTLimits(Limits):
 class DCLimits(Limits):
     # Required in 15118-20 DC CPD
     evse_max_charge_power: Optional[float] = None  # Required for -2 DC, DIN CPD
-    evse_min_charge_power: Optional[float] = None  # Required for -2 DC, DIN CPD
+    evse_min_charge_power: Optional[float] = None  # Not Required for -2 DC, DIN CPD
     evse_max_charge_current: Optional[float] = None  # Required for -2 DC, DIN CPD
     evse_min_charge_current: Optional[float] = None  # Required for -2 DC, DIN CPD
     evse_max_voltage: Optional[float] = None  # Required for -2 DC, DIN CPD
