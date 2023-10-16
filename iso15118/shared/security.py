@@ -1481,7 +1481,7 @@ class CertPath(str, Enum):
 
     def __get__(self, instance, owner):
         return os.path.join(
-            shared_settings[SettingKey.PKI_PATH], "iso15118_2/certs/", super().value
+            shared_settings[SettingKey.PKI_PATH], "iso15118_2/certs/", self.value
         )
 
 
@@ -1522,7 +1522,7 @@ class KeyPath(str, Enum):
         return os.path.join(
             shared_settings[SettingKey.PKI_PATH],
             "iso15118_2/private_keys/",
-            super().value,
+            self.value,
         )
 
 
@@ -1545,5 +1545,5 @@ class KeyPasswordPath(str, Enum):
         return os.path.join(
             shared_settings[SettingKey.PKI_PATH],
             "iso15118_2/private_keys/",
-            super().value,
+            self.value,
         )
