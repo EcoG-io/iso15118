@@ -2,23 +2,7 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Optional, Union
 
-
-class Limits(ABC):
-    def update(
-        self,
-        params: dict,
-    ):
-        evse_params = {}
-        for k, v in params.items():
-            if type(v) is dict:
-                evse_params.update({k: v["value"] * 10 ** v["exponent"]})
-            elif type(v) in [int, float]:
-                evse_params.update({k: v})
-
-        self.__dict__.update(evse_params)
-
-    def as_dict(self):
-        return self.__dict__
+from iso15118.secc.controller.common import Limits
 
 
 @dataclass

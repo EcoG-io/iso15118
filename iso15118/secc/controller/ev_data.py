@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
+from iso15118.secc.controller.common import Limits
 from iso15118.shared.messages.datatypes import (
     PVEAmount,
     PVEVEnergyRequest,
@@ -12,26 +13,10 @@ from iso15118.shared.messages.datatypes import (
 )
 from iso15118.shared.messages.enums import AuthEnum
 from iso15118.shared.messages.iso15118_2.datatypes import ChargeService
-from iso15118.shared.messages.iso15118_20.ac import (
-    ACChargeParameterDiscoveryReqParams,
-    BPTACChargeParameterDiscoveryReqParams,
-    BPTDynamicACChargeLoopReqParams,
-    BPTScheduledACChargeLoopReqParams,
-    DynamicACChargeLoopReqParams,
-    ScheduledACChargeLoopReqParams,
-)
-from iso15118.shared.messages.iso15118_20.dc import (
-    BPTDCChargeParameterDiscoveryReqParams,
-    BPTDynamicDCChargeLoopReqParams,
-    BPTScheduledDCChargeLoopReqParams,
-    DCChargeParameterDiscoveryReqParams,
-    DynamicDCChargeLoopReqParams,
-    ScheduledDCChargeLoopReqParams,
-)
 
 
 @dataclass
-class EVRatedLimits:
+class EVRatedLimits(Limits):
     # Common to both ISO15118-20 AC and DC
     ev_max_charge_power: Optional[float] = 0.0
     ev_min_charge_power: Optional[float] = 0.0
@@ -63,31 +48,9 @@ class EVRatedLimits:
     ev_max_discharge_current: Optional[float] = None
     ev_min_discharge_current: Optional[float] = None
 
-    def update(
-        self,
-        ev_params: Union[
-            DCChargeParameterDiscoveryReqParams,
-            BPTDCChargeParameterDiscoveryReqParams,
-            ACChargeParameterDiscoveryReqParams,
-            BPTACChargeParameterDiscoveryReqParams,
-        ],
-    ):
-        params = ev_params.dict()
-        ev_params_dict: dict[str, Union[int, float]] = {}
-        for k, v in params.items():
-            if type(v) is dict:
-                ev_params_dict.update({k: v["value"] * 10 ** v["exponent"]})
-            elif type(v) in [int, float]:
-                ev_params_dict.update({k: v})
-
-        self.__dict__.update(ev_params_dict)
-
-    def as_dict(self):
-        return self.__dict__
-
 
 @dataclass
-class EVSessionContext:
+class EVSessionContext(Limits):
     dc_current_request: Optional[int] = None
     dc_voltage_request: Optional[int] = None
     ac_current: Optional[dict] = None  # {"l1": 10, "l2": 10, "l3": 10}
@@ -144,32 +107,6 @@ class EVSessionContext:
 
     # Specific to BPTScheduledDCChargeLoopReq
     ev_max_discharge_current: Optional[float] = None
-
-    def update(
-        self,
-        ev_params: Union[
-            DynamicACChargeLoopReqParams,
-            BPTDynamicACChargeLoopReqParams,
-            DynamicDCChargeLoopReqParams,
-            BPTDynamicDCChargeLoopReqParams,
-            ScheduledACChargeLoopReqParams,
-            BPTScheduledACChargeLoopReqParams,
-            ScheduledDCChargeLoopReqParams,
-            BPTScheduledDCChargeLoopReqParams,
-        ],
-    ):
-        params = ev_params.dict()
-        ev_params_dict: dict[str, Union[int, float]] = {}
-        for k, v in params.items():
-            if type(v) is dict:
-                ev_params_dict.update({k: v["value"] * 10 ** v["exponent"]})
-            elif type(v) in [int, float]:
-                ev_params_dict.update({k: v})
-
-        self.__dict__.update(ev_params_dict)
-
-    def as_dict(self):
-        return self.__dict__
 
 
 @dataclass
