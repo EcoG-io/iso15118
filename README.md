@@ -129,7 +129,6 @@ For convenience, the Makefile, present in the project, helps you to start up the
 
 ```bash
 $ make install-local
-$ make poetry-shell
 $ make run-secc
 ```
 
@@ -141,8 +140,7 @@ The above commands will do the following:
 
 ```bash
 $ poetry install
-$ poetry shell
-$ python iso15118/secc/start_secc.py
+$ poetry run python iso15118/secc/start_secc.py
 ```
 
 If you wish to run the EVCC instead, use `make run-evcc`. Since the project includes
@@ -151,7 +149,6 @@ Similar to the SECC, we can start the EVCC side as follows:
 
 ```bash
 $ make install-local
-$ make poetry-shell
 $ make run-evcc
 ```
 It is possible to run up EVCC in different configurations. An example setting configuration
