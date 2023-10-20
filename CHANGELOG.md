@@ -4,6 +4,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.23.4] - 2023-10-20
+* chore(deps-dev): bump black from 23.7.0 to 23.9.1 by @dependabot in https://github.com/SwitchEV/iso15118/pull/296
+* Simplify instructions to run locally by @OrangeTux in https://github.com/SwitchEV/iso15118/pull/302
+* chore(deps): bump pydantic from 1.10.5 to 2.0.2 by @dependabot in https://github.com/SwitchEV/iso15118/pull/273
+* Catch uncaught timeout exception while trying to close writer. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/308
+* JTT-193: Add evse_max_current to ChargingStatusRes in 15118-2 by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/305
+
 ## [0.23.3] - 2023-09-14
 * JTT-138 Feat: update iso15118 interfaces by @santiagosalamandri in https://github.com/SwitchEV/iso15118/pull/298
 ## [0.23.2] - 2023-09-13
