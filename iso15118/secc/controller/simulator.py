@@ -1207,9 +1207,9 @@ class SimEVSEController(EVSEControllerInterface):
                 return scheduled_params
             elif control_mode == ControlMode.DYNAMIC:
                 dynamic_params = DynamicDCChargeLoopRes(
-                    departure_time=self.evse_data_context.session_context.departure_time,  # noqa
-                    min_soc=self.evse_data_context.session_context.min_soc,
-                    target_soc=self.evse_data_context.session_context.target_soc,
+                    departure_time=self.evse_data_context.session_context.ev_departure_time,  # noqa
+                    min_soc=self.evse_data_context.session_context.ev_min_soc,
+                    target_soc=self.evse_data_context.session_context.ev_target_soc,
                     ack_max_delay=self.evse_data_context.session_context.ack_max_delay,
                     evse_maximum_charge_power=RationalNumber.get_rational_repr(
                         self.evse_data_context.session_context.dc_limits.evse_max_charge_power  # noqa
@@ -1257,9 +1257,9 @@ class SimEVSEController(EVSEControllerInterface):
                 return bpt_scheduled_params
             else:
                 bpt_dynamic_params = BPTDynamicDCChargeLoopRes(
-                    departure_time=self.evse_data_context.session_context.departure_time,  # noqa
-                    min_soc=self.evse_data_context.session_context.min_soc,
-                    target_soc=self.evse_data_context.session_context.target_soc,
+                    departure_time=self.evse_data_context.session_context.ev_departure_time,  # noqa
+                    min_soc=self.evse_data_context.session_context.ev_min_soc,
+                    target_soc=self.evse_data_context.session_context.ev_target_soc,
                     ack_max_delay=self.evse_data_context.session_context.ack_max_delay,
                     evse_maximum_charge_power=RationalNumber.get_rational_repr(
                         self.evse_data_context.session_context.dc_limits.evse_max_charge_power  # noqa

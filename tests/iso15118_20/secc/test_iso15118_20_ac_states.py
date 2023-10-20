@@ -577,9 +577,9 @@ class TestEvScenarios:
                         )
                     ),
                     session_context=EVSESessionContext(
-                        departure_time=3600,
-                        min_soc=30,
-                        target_soc=80,
+                        ev_departure_time=3600,
+                        ev_min_soc=30,
+                        ev_target_soc=80,
                         ack_max_delay=15,
                         ac_limits=ACCLLimits(
                             evse_present_active_power=100,
@@ -658,9 +658,9 @@ class TestEvScenarios:
                         ),
                     ),
                     session_context=EVSESessionContext(
-                        departure_time=3600,
-                        min_soc=30,
-                        target_soc=80,
+                        ev_departure_time=3600,
+                        ev_min_soc=30,
+                        ev_target_soc=80,
                         ack_max_delay=15,
                         ac_limits=ACCLLimits(
                             evse_present_active_power=100,
@@ -748,9 +748,9 @@ class TestEvScenarios:
                         )
                     ),
                     session_context=EVSESessionContext(
-                        departure_time=3600,
-                        min_soc=30,
-                        target_soc=80,
+                        ev_departure_time=3600,
+                        ev_min_soc=30,
+                        ev_target_soc=80,
                         ack_max_delay=15,
                         ac_limits=ACCLLimits(
                             evse_target_active_power=30000,
@@ -816,9 +816,9 @@ class TestEvScenarios:
                         )
                     ),
                     session_context=EVSESessionContext(
-                        departure_time=3600,
-                        min_soc=30,
-                        target_soc=80,
+                        ev_departure_time=3600,
+                        ev_min_soc=30,
+                        ev_target_soc=80,
                         ack_max_delay=15,
                         ac_limits=ACCLLimits(
                             evse_target_active_power=30000,
@@ -889,9 +889,9 @@ class TestEvScenarios:
                         )
                     ),
                     session_context=EVSESessionContext(
-                        departure_time=3600,
-                        min_soc=30,
-                        target_soc=80,
+                        ev_departure_time=3600,
+                        ev_min_soc=30,
+                        ev_target_soc=80,
                         ack_max_delay=15,
                         ac_limits=ACCLLimits(
                             evse_target_active_power=30000,
@@ -965,9 +965,9 @@ class TestEvScenarios:
                         )
                     ),
                     session_context=EVSESessionContext(
-                        departure_time=3600,
-                        min_soc=30,
-                        target_soc=80,
+                        ev_departure_time=3600,
+                        ev_min_soc=30,
+                        ev_target_soc=80,
                         ack_max_delay=15,
                         ac_limits=ACCLLimits(
                             evse_target_active_power=30000,

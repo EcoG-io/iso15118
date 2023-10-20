@@ -107,9 +107,9 @@ class EVSERatedLimits:
 @dataclass
 class EVSESessionContext:
     # Optional in -20 Dynamic CL Res
-    departure_time: Optional[int] = None
-    min_soc: Optional[int] = None
-    target_soc: Optional[int] = None
+    ev_departure_time: Optional[int] = None
+    ev_min_soc: Optional[int] = None
+    ev_target_soc: Optional[int] = None
     ack_max_delay: Optional[int] = None
 
     # Required for -2 DC CurrentDemand, -20 DC CL

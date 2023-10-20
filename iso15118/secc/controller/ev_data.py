@@ -69,7 +69,7 @@ class EVSessionContext(Limits):
     ev_max_charge_power: Optional[float] = None
     ev_min_charge_power: Optional[float] = None
 
-    # Specific to ISO 15118-20 AC
+    # Specific to ISO 15118-20 AC CPD and CL (Schedule and Dynamic)
     ev_max_charge_power_l2: Optional[float] = None
     ev_max_charge_power_l3: Optional[float] = None
     ev_min_charge_power_l2: Optional[float] = None
