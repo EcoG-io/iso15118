@@ -16,7 +16,7 @@ def compare_messages(json_to_encode, decoded_json):
 
 class ExificientEXICodec(IEXICodec):
     def __init__(self):
-        from py4j.java_gateway import JavaGateway  # type: ignore[import]
+        from py4j.java_gateway import JavaGateway
 
         logging.getLogger("py4j").setLevel(logging.CRITICAL)
         self.gateway = JavaGateway.launch_gateway(
