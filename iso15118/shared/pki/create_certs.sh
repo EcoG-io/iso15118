@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # ===============================================================================================================
 # This shell script can be used to create all necessary certificates needed to
@@ -122,7 +122,7 @@ done
 # Set the cryptographic parameters, depending on whether to create certificates and key
 # material for ISO 15118-2 or ISO 15118-20
 
-if [ $version == $ISO_2 ];
+if [ $version = $ISO_2 ];
 then
     ISO_FOLDER=iso15118_2
     SYMMETRIC_CIPHER=-aes-128-cbc
@@ -406,7 +406,7 @@ cat $CA_OEM_PATH/OEM_SUB_CA2.pem $CA_OEM_PATH/OEM_SUB_CA1.pem > $CA_OEM_PATH/INT
 openssl pkcs12 -export -inkey $CLIENT_OEM_PATH/OEM_LEAF.key -in $CLIENT_OEM_PATH/OEM_LEAF.pem -name oem_prov_cert -certfile $CA_OEM_PATH/INTERMEDIATE_OEM_CA.pem -caname oem_subca_2 -caname oem_subca_1 -passin pass:$password -passout pass:$password -out $CLIENT_OEM_PATH/OEM_CERT_CHAIN.p12
 keytool -importkeystore -srckeystore $CLIENT_OEM_PATH/OEM_CERT_CHAIN.p12 -srcstoretype pkcs12 -srcstorepass:file $CLIENT_OEM_PATH/OEM_LEAF_PASSWORD.txt -srcalias oem_prov_cert -destalias oem_prov_cert -destkeystore $CLIENT_OEM_PATH/EVCC_KEYSTORE.jks -storepass:file $CLIENT_OEM_PATH/OEM_LEAF_PASSWORD.txt -noprompt
 
-if [ "$keysight_certs" == "1" ];
+if [ "$keysight_certs" = "1" ];
 then
   # The following portion of the script is to help convert the generated certificates work with Keysight test system.
   # The certificates could be used to replace the PKI-Ext folder under "generated-pki" folder
@@ -502,7 +502,7 @@ then
   echo "Certificates for Keysight tests are generated under $PKI_EXT"
 fi
 
-if [ "$install_everest_core" == "1" ];
+if [ "$install_everest_core" = "1" ];
 then
     mkdir -p $everest_core_path/config/certs/ca/csms/ && cp $CA_CSMS_PATH/* $everest_core_path/config/certs/ca/csms/
     mkdir -p $everest_core_path/config/certs/ca/cso/ && cp $CA_CSO_PATH/* $everest_core_path/config/certs/ca/cso/
