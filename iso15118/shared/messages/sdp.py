@@ -166,11 +166,10 @@ class SDPResponse:
             return
 
         if port < MIN_TCP_PORT or port > MAX_TCP_PORT:
-            logger.error(
+            logger.warning(
                 f"The port {port} does not match the mandatory "
                 f"UDP server port 15118."
             )
-            return
 
         if security not in Security.options():
             logger.error(

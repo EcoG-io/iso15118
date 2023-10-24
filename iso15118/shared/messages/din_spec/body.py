@@ -119,7 +119,7 @@ class SessionSetupRes(Response):
      as “0x49 0xA8 0x9A 0x63 0x60”.
     """
 
-    evse_id: str = Field(..., min_length=7, max_length=32, alias="EVSEID")
+    evse_id: str = Field(..., max_length=32, alias="EVSEID")
     datetime_now: int = Field(None, alias="DateTimeNow")
 
 

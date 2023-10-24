@@ -196,14 +196,14 @@ class PVEVSEMaxCurrent(PhysicalValue):
     """See sections 8.5.2.7 in ISO 15118-2"""
 
     """See section 9.5.2.4 in DIN SPEC 70121"""
-    _max_limit: int = 400
+    _max_limit: int = 800
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 
 class PVEVSEMaxCurrentLimit(PhysicalValue):
     """See Table 68 in section 8.5.2.7 in ISO 15118-2"""
 
-    _max_limit: int = 400
+    _max_limit: int = 800
     unit: Literal[UnitSymbol.AMPERE] = Field(..., alias="Unit")
 
 

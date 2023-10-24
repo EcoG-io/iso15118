@@ -16,7 +16,7 @@ class Timeouts(float, Enum):
 
     # Non message specific timings
     V2G_EVCC_CABLE_CHECK_TIMEOUT = 40
-    V2G_EVCC_PRE_CHARGE_TIMEOUT = 7
+    V2G_EVCC_PRE_CHARGE_TIMEOUT = 50
 
     # Message specific timings
     SESSION_SETUP_REQ = 2
@@ -33,6 +33,6 @@ class Timeouts(float, Enum):
     POWER_DELIVERY_REQ = 5
     CABLE_CHECK_REQ = 2
     PRE_CHARGE_REQ = 2
-    CURRENT_DEMAND_REQ = 0.25
+    CURRENT_DEMAND_REQ = 0.5
     WELDING_DETECTION_REQ = 2
     SESSION_STOP_REQ = 2

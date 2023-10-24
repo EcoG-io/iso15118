@@ -14,10 +14,10 @@ class Timeouts(float, Enum):
 
     # Non message specific timings
     # Refer Section 9.6.5.5 (Table 77)
-    V2G_EVCC_READYTOCHARGE_TIMEOUT = 150
+    V2G_EVCC_READYTOCHARGE_TIMEOUT = 250
     V2G_EVCC_COMMUNICATIONSETUP_TIMEOUT = 20
     V2G_EVCC_CABLE_CHECK_TIMEOUT = 40
-    V2G_EVCC_PRE_CHARGE_TIMEOUT = 7
+    V2G_EVCC_PRE_CHARGE_TIMEOUT = 50
     V2G_SECC_CPState_Detection_Timeout = 1.5
     V2G_SECC_CPOscillator_Retain_time = 1.5
 
@@ -32,7 +32,7 @@ class Timeouts(float, Enum):
     POWER_DELIVERY_REQ = 2
     CABLE_CHECK_REQ = 2
     PRE_CHARGE_REQ = 2
-    CURRENT_DEMAND_REQ = 0.25
+    CURRENT_DEMAND_REQ = 0.5
     WELDING_DETECTION_REQ = 2
     SESSION_STOP_REQ = 2
 

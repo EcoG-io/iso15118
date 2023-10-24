@@ -63,6 +63,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     EVSENotification,
     MessageHeader,
     Processing,
+    RationalNumber,
     RootCertificateIDList,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
@@ -98,6 +99,7 @@ from iso15118.shared.settings import get_PKI_PATH
 
 logger = logging.getLogger(__name__)
 
+from iso15118.evcc.everest import context as EVEREST_CTX
 
 # ============================================================================
 # |    COMMON EVCC STATES (FOR ALL ENERGY TRANSFER MODES) - ISO 15118-20     |
@@ -871,6 +873,9 @@ class ScheduleExchange(StateEVCC):
                     ISOV20PayloadTypes.MAINSTREAM,
                 )
             else:
+                
+                EVEREST_CTX.publish('AC_EVPowerReady', True)
+                
                 cable_check_req = DCCableCheckReq(
                     header=MessageHeader(
                         session_id=self.comm_session.session_id,
@@ -1458,8 +1463,8 @@ class DCCableCheck(StateEVCC):
 
     async def build_pre_charge_message(self):
         present_voltage = await self.comm_session.ev_controller.get_present_voltage()
-        is_precharged = await self.comm_session.ev_controller.is_precharged(
-            present_voltage
+        is_precharged =await self.comm_session.ev_controller.is_precharged(
+            RationalNumber(exponent=0, value=0)
         )
         processing = Processing.ONGOING
         if is_precharged:
@@ -1510,6 +1515,9 @@ class DCPreCharge(StateEVCC):
             payload_type = ISOV20PayloadTypes.MAINSTREAM
             namespace = Namespace.ISO_V20_COMMON_MSG
             timeout = Timeouts.POWER_DELIVERY_REQ
+
+            EVEREST_CTX.publish('DC_PowerOn', None)
+
         else:
             next_request = await self.build_pre_charge_message()
             payload_type = ISOV20PayloadTypes.DC_MAINSTREAM
@@ -1574,12 +1582,7 @@ class DCPreCharge(StateEVCC):
 
     async def build_pre_charge_message(self):
         present_voltage = await self.comm_session.ev_controller.get_present_voltage()
-        is_precharged = await self.comm_session.ev_controller.is_precharged(
-            present_voltage
-        )
         processing = Processing.ONGOING
-        if is_precharged:
-            processing = Processing.FINISHED
         dc_pre_charge_req = DCPreChargeReq(
             header=MessageHeader(
                 session_id=self.comm_session.session_id,
@@ -1635,6 +1638,9 @@ class DCChargeLoop(StateEVCC):
                 )
             if evse_notification == EVSENotification.SERVICE_RENEGOTIATION:
                 renegotiation = True
+
+            EVEREST_CTX.publish('AC_StopFromCharger', None)
+            
             self.stop_v20_charging(
                 next_state=PowerDelivery, renegotiate_requested=renegotiation
             )

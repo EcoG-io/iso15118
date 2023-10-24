@@ -240,7 +240,7 @@ class RelativeTimeInterval(BaseModel):
 class PMaxScheduleEntryDetails(BaseModel):
     """See section 9.5.2.10 in DIN SPEC 70121"""
 
-    p_max: int = Field(..., ge=0, le=32767, alias="PMax")
+    p_max: int = Field(..., ge=-32768, le=32767, alias="PMax")
     time_interval: RelativeTimeInterval = Field(..., alias="RelativeTimeInterval")
 
 
