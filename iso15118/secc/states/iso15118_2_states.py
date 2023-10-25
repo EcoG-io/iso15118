@@ -10,8 +10,7 @@ import time
 from typing import List, Optional, Tuple, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.ev_data import EVSessionContext15118
-from iso15118.secc.controller.interface import EVChargeParamsLimits
+from iso15118.secc.controller.ev_data import EVSessionContext15118, EVChargeParamsLimits
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
     CertAttributeError,
@@ -1102,6 +1101,7 @@ class Authorization(StateSECC):
         # then the upcoming requests won't contain the signature. Thus, we
         # only do the signature validation once
         self.signature_verified_once = False
+        self.authorization_complete = False
 
     async def process_message(
         self,
@@ -1175,44 +1175,53 @@ class Authorization(StateSECC):
         # note that the certificate_chain and hashed_data are empty here
         # as they were already send previously in the PaymentDetails state
 
-        current_authorization_status = (
-            await self.comm_session.evse_controller.is_authorized(
-                id_token=id_token,
-                id_token_type=(
-                    AuthorizationTokenType.EMAID
-                    if self.comm_session.selected_auth_option == AuthEnum.PNC_V2
-                    else AuthorizationTokenType.EXTERNAL
-                ),
-            )
-        )
-
         response_code: Optional[
             Union[ResponseCodeV2, ResponseCodeV20, ResponseCodeDINSPEC]
         ] = ResponseCode.OK
-        if resp_status := current_authorization_status.certificate_response_status:
-            # according to table 112 of ISO 15118-2, the Response code
-            # for this message can only be one of the following:
-            # OK, FAILED,
-            # FAILED_SEQUENCE_ERROR, FAILED_SIGNATURE_ERROR,
-            # FAILED_UNKNOWN_SESSION or FAILED_CHALLENGE_INVALID
-
-            response_code = (
-                resp_status
-                if resp_status
-                in [
-                    ResponseCode.OK,
-                    ResponseCode.FAILED,
-                    ResponseCode.FAILED_SEQUENCE_ERROR,
-                    ResponseCode.FAILED_SIGNATURE_ERROR,
-                    ResponseCode.FAILED_UNKNOWN_SESSION,
-                    ResponseCode.FAILED_CHALLENGE_INVALID,
-                ]
-                else ResponseCode.FAILED
+        current_authorization_status = AuthorizationResponse(
+            authorization_status=AuthorizationStatus.ONGOING
+        )
+        if not self.authorization_complete:
+            current_authorization_status = (
+                await self.comm_session.evse_controller.is_authorized(
+                    id_token=id_token,
+                    id_token_type=(
+                        AuthorizationTokenType.EMAID
+                        if self.comm_session.selected_auth_option == AuthEnum.PNC_V2
+                        else AuthorizationTokenType.EXTERNAL
+                    ),
+                )
             )
 
+            if resp_status := current_authorization_status.certificate_response_status:
+                # according to table 112 of ISO 15118-2, the Response code
+                # for this message can only be one of the following:
+                # OK, FAILED,
+                # FAILED_SEQUENCE_ERROR, FAILED_SIGNATURE_ERROR,
+                # FAILED_UNKNOWN_SESSION or FAILED_CHALLENGE_INVALID
+
+                response_code = (
+                    resp_status
+                    if resp_status
+                    in [
+                        ResponseCode.OK,
+                        ResponseCode.FAILED,
+                        ResponseCode.FAILED_SEQUENCE_ERROR,
+                        ResponseCode.FAILED_SIGNATURE_ERROR,
+                        ResponseCode.FAILED_UNKNOWN_SESSION,
+                        ResponseCode.FAILED_CHALLENGE_INVALID,
+                    ]
+                    else ResponseCode.FAILED
+                )
+
+            if (
+                current_authorization_status.authorization_status
+                == AuthorizationStatus.ACCEPTED
+            ):
+                self.authorization_complete = True
+
         if (
-            current_authorization_status.authorization_status
-            == AuthorizationStatus.ACCEPTED
+            self.authorization_complete
             and self.comm_session.evse_controller.ready_to_charge()
         ):
             auth_status = EVSEProcessing.FINISHED

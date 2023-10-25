@@ -369,6 +369,78 @@ class TestV2GSessionScenarios:
             == expected_evse_processing
         )
 
+    @pytest.mark.parametrize(
+        "auth_type, is_authorized_return_value, expected_next_state,"
+        "expected_response_code, expected_evse_processing, is_ready_to_charge",
+        [
+            (
+                AuthEnum.EIM,
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
+                None,
+                ResponseCode.OK,
+                EVSEProcessing.ONGOING,
+                False,
+            ),
+            (
+                AuthEnum.PNC_V2,
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
+                None,
+                ResponseCode.OK,
+                EVSEProcessing.ONGOING,
+                False,
+            ),
+        ],
+    )
+    async def test_repeat_authorization_req_on_accepted(
+        self,
+        auth_type: AuthEnum,
+        is_authorized_return_value: AuthorizationStatus,
+        expected_next_state: StateSECC,
+        expected_response_code: ResponseCode,
+        expected_evse_processing: EVSEProcessing,
+        is_ready_to_charge: bool,
+    ):
+        mock_is_ready_to_charge = Mock(return_value=is_ready_to_charge)
+        self.comm_session.evse_controller.ready_to_charge = mock_is_ready_to_charge
+        self.comm_session.selected_auth_option = auth_type
+        mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
+        self.comm_session.evse_controller.is_authorized = mock_is_authorized
+        # TODO: Include a real CertificateChain object and a message header
+        #       with a signature that must be return by
+        #      `get_dummy_v2g_message_authorization_req`
+        self.comm_session.contract_cert_chain = Mock()
+        self.comm_session.emaid = "dummy"
+        self.comm_session.gen_challenge = None
+        authorization = Authorization(self.comm_session)
+        authorization.signature_verified_once = True
+        await authorization.process_message(
+            message=get_dummy_v2g_message_authorization_req()
+        )
+        assert authorization.next_state == expected_next_state
+        authorization.message = cast(V2GMessageV2, authorization.message)
+
+        assert (
+            authorization.message.body.authorization_res.response_code
+            == expected_response_code
+        )
+        assert (
+            authorization.message.body.authorization_res.evse_processing
+            == expected_evse_processing
+        )
+        await authorization.process_message(
+            message=get_dummy_v2g_message_authorization_req()
+        )
+        await authorization.process_message(
+            message=get_dummy_v2g_message_authorization_req()
+        )
+        assert self.comm_session.evse_controller.is_authorized.call_count == 1
+
+        self.comm_session.evse_controller.ready_to_charge = Mock(return_value=True)
+        await authorization.process_message(
+            message=get_dummy_v2g_message_authorization_req()
+        )
+        assert authorization.next_state == ChargeParameterDiscovery
+
     async def test_authorization_req_gen_challenge_invalid(self):
         self.comm_session.selected_auth_option = AuthEnum.PNC_V2
         self.comm_session.contract_cert_chain = Mock()
