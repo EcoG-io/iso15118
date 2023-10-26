@@ -4,6 +4,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.23.5] - 2023-10-26
+* JTT-206 Skip requesting authorization status once response is received by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/310
+
 ## [0.23.4] - 2023-10-20
 * chore(deps-dev): bump black from 23.7.0 to 23.9.1 by @dependabot in https://github.com/SwitchEV/iso15118/pull/296
 * Simplify instructions to run locally by @OrangeTux in https://github.com/SwitchEV/iso15118/pull/302
