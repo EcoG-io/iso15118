@@ -11,13 +11,13 @@ from aiofile import async_open
 from pydantic import BaseModel, Field
 
 from iso15118.secc.controller.evse_data import (
-    ACBPTLimits,
-    ACCLLimits,
-    ACLimits,
-    DCBPTLimits,
-    DCCLLimits,
-    DCLimits,
+    EVSEACBPTLimits,
+    EVSEACCLLimits,
+    EVSEACLimits,
     EVSEDataContext,
+    EVSEDCBPTLimits,
+    EVSEDCCLLimits,
+    EVSEDCLimits,
     EVSERatedLimits,
     EVSESessionContext,
 )
@@ -183,7 +183,7 @@ class V20ServiceParamMapping(BaseModel):
 
 
 def get_evse_context():
-    ac_limits = ACLimits(
+    ac_limits = EVSEACLimits(
         # 15118-2 AC CPD
         evse_nominal_voltage=10,
         evse_max_current=10,
@@ -200,7 +200,7 @@ def get_evse_context():
         evse_present_active_power_l2=10,
         evse_present_active_power_l3=10,
     )
-    ac_bpt_limits = ACBPTLimits(
+    ac_bpt_limits = EVSEACBPTLimits(
         evse_max_discharge_power=10,
         evse_min_discharge_power=10,
         evse_max_discharge_power_l2=10,
@@ -208,7 +208,7 @@ def get_evse_context():
         evse_min_discharge_power_l2=10,
         evse_min_discharge_power_l3=10,
     )
-    dc_limits = DCLimits(
+    dc_limits = EVSEDCLimits(
         evse_max_charge_power=10,
         evse_min_charge_power=10,
         evse_max_charge_current=10,
@@ -221,14 +221,14 @@ def get_evse_context():
         evse_peak_current_ripple=10,
         evse_energy_to_be_delivered=10,
     )
-    dc_bpt_limits = DCBPTLimits(
+    dc_bpt_limits = EVSEDCBPTLimits(
         # 15118-20 DC BPT
         evse_max_discharge_power=10,
         evse_min_discharge_power=10,
         evse_max_discharge_current=10,
         evse_min_discharge_current=10,
     )
-    ac_cl_limits = ACCLLimits(
+    ac_cl_limits = EVSEACCLLimits(
         evse_target_active_power=10,
         evse_target_active_power_l2=10,
         evse_target_active_power_l3=10,
@@ -239,7 +239,7 @@ def get_evse_context():
         evse_present_active_power_l2=10,
         evse_present_active_power_l3=10,
     )
-    dc_cl_limits = DCCLLimits(
+    dc_cl_limits = EVSEDCCLLimits(
         # Optional in 15118-20 DC CL (Scheduled)
         evse_max_charge_power=10,
         evse_min_charge_power=10,
@@ -766,45 +766,31 @@ class SimEVSEController(EVSEControllerInterface):
                 Union[
                     ACChargeParameterDiscoveryResParams,
                     BPTACChargeParameterDiscoveryResParams,
-                    DCChargeParameterDiscoveryResParams,
                 ]
             ]
-            if selected_energy_service in [ServiceV20.AC, ServiceV20.AC_BPT]:
-                charge_parameters = await self.get_ac_charge_params_v20(
-                    selected_energy_service
-                )
-            else:
-                charge_parameters = await self.get_dc_charge_params_v20(
-                    selected_energy_service
-                )
+
+            charge_parameters = await self.get_ac_charge_params_v20(
+                selected_energy_service
+            )
+
             ev_data_context = self.get_ev_data_context()
             logger.info(f"EV data context: {ev_data_context}")
 
-            if isinstance(
-                charge_parameters, ACChargeParameterDiscoveryResParams
-            ) or isinstance(charge_parameters, DCChargeParameterDiscoveryResParams):
+            if isinstance(charge_parameters, BPTACChargeParameterDiscoveryResParams):
                 max_discharge_power = (
-                    ev_data_context.ev_session_context.ev_max_discharge_power
+                    ev_data_context.ev_session_context.dc_limits.ev_max_discharge_power
                 )
                 min_discharge_power = (
-                    ev_data_context.ev_session_context.ev_min_discharge_power
+                    ev_data_context.ev_session_context.dc_limits.ev_min_discharge_power
                 )
-            else:
-                max_discharge_power = min(
-                    ev_data_context.ev_session_context.ev_max_discharge_power,
-                    charge_parameters.evse_max_discharge_power.get_decimal_value(),
-                )
-                min_discharge_power = max(
-                    ev_data_context.ev_session_context.ev_min_discharge_power,
-                    charge_parameters.evse_min_discharge_power.get_decimal_value(),
-                )
+
             max_charge_power = min(
-                ev_data_context.ev_session_context.ev_max_charge_power,
+                ev_data_context.ev_session_context.ac_limits.ev_max_charge_power,
                 charge_parameters.evse_max_charge_power.get_decimal_value(),
             )
 
             min_charge_power = max(
-                ev_data_context.ev_session_context.ev_min_charge_power,
+                ev_data_context.ev_session_context.ac_limits.ev_min_charge_power,
                 charge_parameters.evse_min_charge_power.get_decimal_value(),
             )
 

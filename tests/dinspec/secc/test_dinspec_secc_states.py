@@ -5,9 +5,9 @@ import pytest
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.ev_data import EVSessionContext15118
 from iso15118.secc.controller.evse_data import (
-    DCCLLimits,
-    DCLimits,
     EVSEDataContext,
+    EVSEDCCLLimits,
+    EVSEDCLimits,
     EVSERatedLimits,
     EVSESessionContext,
 )
@@ -41,7 +41,7 @@ class TestEvseScenarios:
         self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
 
     def get_evse_data(self) -> EVSEDataContext:
-        dc_limits = DCLimits(
+        dc_limits = EVSEDCLimits(
             evse_max_charge_power=10,
             evse_min_charge_power=10,
             evse_max_charge_current=10,
@@ -54,7 +54,7 @@ class TestEvseScenarios:
             evse_peak_current_ripple=10,
             evse_energy_to_be_delivered=10,
         )
-        dc_cl_limits = DCCLLimits(
+        dc_cl_limits = EVSEDCCLLimits(
             # Optional in 15118-20 DC CL (Scheduled)
             evse_max_charge_power=10,
             evse_min_charge_power=10,

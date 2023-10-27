@@ -5,7 +5,7 @@ from iso15118.secc.controller.common import Limits
 
 
 @dataclass
-class ACCLLimits(Limits):
+class EVSEACCLLimits(Limits):
     # Optional in both Scheduled and Dynamic CL (both AC CL and BPT AC CL)
     evse_target_active_power: Optional[float] = None  # Required in Dynamic AC CL
     evse_target_active_power_l2: Optional[float] = None
@@ -19,7 +19,7 @@ class ACCLLimits(Limits):
 
 
 @dataclass
-class ACLimits(Limits):
+class EVSEACLimits(Limits):
     # 15118-2 AC CPD
     evse_nominal_voltage: Optional[float] = None  # Also required for 15118-20 CPD
     evse_max_current: Optional[float] = None  # Required
@@ -43,7 +43,7 @@ class ACLimits(Limits):
 
 
 @dataclass
-class ACBPTLimits(Limits):
+class EVSEACBPTLimits(Limits):
     evse_max_discharge_power: Optional[float] = None  # Required
     evse_max_discharge_power_l2: Optional[float] = None  # Optional
     evse_max_discharge_power_l3: Optional[float] = None  # Optional
@@ -54,7 +54,7 @@ class ACBPTLimits(Limits):
 
 
 @dataclass
-class DCCLLimits(Limits):
+class EVSEDCCLLimits(Limits):
     # Optional in 15118-20 DC Scheduled CL
     evse_max_charge_power: Optional[float] = None  # Required in 15118-20 Dynamic CL
     evse_min_charge_power: Optional[float] = None  # Required in 15118-20 Dynamic CL
@@ -69,7 +69,7 @@ class DCCLLimits(Limits):
 
 
 @dataclass
-class DCBPTLimits(Limits):
+class EVSEDCBPTLimits(Limits):
     # Required in 15118-20 DC BPT CPD
     evse_max_discharge_power: Optional[float] = None
     evse_min_discharge_power: Optional[float] = None
@@ -78,7 +78,7 @@ class DCBPTLimits(Limits):
 
 
 @dataclass
-class DCLimits(Limits):
+class EVSEDCLimits(Limits):
     # Required in 15118-20 DC CPD
     evse_max_charge_power: Optional[float] = None  # Required for -2 DC, DIN CPD
     evse_min_charge_power: Optional[float] = None  # Not Required for -2 DC, DIN CPD
@@ -98,10 +98,10 @@ class DCLimits(Limits):
 
 @dataclass
 class EVSERatedLimits:
-    ac_limits: Optional[ACLimits] = None
-    ac_bpt_limits: Optional[ACBPTLimits] = None
-    dc_limits: Optional[DCLimits] = None
-    dc_bpt_limits: Optional[DCBPTLimits] = None
+    ac_limits: Optional[EVSEACLimits] = None
+    ac_bpt_limits: Optional[EVSEACBPTLimits] = None
+    dc_limits: Optional[EVSEDCLimits] = None
+    dc_bpt_limits: Optional[EVSEDCBPTLimits] = None
 
 
 @dataclass
@@ -116,8 +116,8 @@ class EVSESessionContext:
     evse_present_current: Union[float, int] = 0
     evse_present_voltage: Union[float, int] = 0
 
-    ac_limits: Optional[ACCLLimits] = None
-    dc_limits: Optional[DCCLLimits] = None
+    ac_limits: Optional[EVSEACCLLimits] = None
+    dc_limits: Optional[EVSEDCCLLimits] = None
 
 
 @dataclass
