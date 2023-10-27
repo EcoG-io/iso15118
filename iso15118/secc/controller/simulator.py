@@ -1429,3 +1429,13 @@ class SimEVSEController(EVSEControllerInterface):
         Overrides EVSEControllerInterface.ready_to_charge().
         """
         return True
+
+    async def session_ended(self, current_state: str, reason: str):
+        """
+        Reports the state and reason where the session ended.
+
+        @param current_state: The current SDP/SAP/DIN/ISO15118-2/ISO15118-20 state.
+        @param reason: Reason for ending the session.
+        @param last_message: The last message that was either sent/received.
+        """
+        logger.info(f"Session ended in {current_state} ({reason}).")

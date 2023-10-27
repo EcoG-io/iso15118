@@ -807,3 +807,10 @@ class EVSEControllerInterface(ABC):
         ready to start charging.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    async def session_ended(self, current_state: str, reason: str):
+        """
+        Indicate the reason for stopping charging.
+        """
+        raise NotImplementedError
