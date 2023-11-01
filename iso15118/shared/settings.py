@@ -24,13 +24,5 @@ V20_EVSE_SERVICES_CONFIG = env.str(
 
 ENABLE_TLS_1_3 = env.bool("ENABLE_TLS_1_3", default=False)
 
-# This setting when enabled ignores all fields physical
-# limitations like Max Current limit or Max power.
-# This is needed as ISO 15118-2 is no longer aligned
-# with the EVs todays capabilities, thus we need
-# to relax the pydantic validation
-IGNORE_PHYSICAL_VALUE_LIMITS = env.bool("IGNORE_PHYSICAL_VALUE_LIMITS",
-                                        default=True)
-
 env.seal()  # raise all errors at once, if any
 shared_settings = env.dump()

@@ -1,7 +1,5 @@
 import json
 
-from unittest.mock import patch
-from pydantic.error_wrappers import ValidationError
 import pytest
 
 from iso15118.shared.exi_codec import CustomJSONDecoder
@@ -189,42 +187,6 @@ ISO_TEST_MESSAGES = [
 ]
 
 
-ISO_TEST_MESSAGES_INVALID_LIMITS = [
-    # EVMaximumCurrentLimit is 500 > 400
-    # EVEnergyRequest 1600000 > 200000
-    # EVEnergyCapacity 2000000 > 200000
-    ExiMessageContainer(
-        message_name="ChargeParameterDiscoveryReq",
-        json_str='{"V2G_Message":{"Header":{"SessionID":"82DBA3A44ED6E5B9"},"Body":'
-                 '{"ChargeParameterDiscoveryReq":{"MaxEntriesSAScheduleTuple":16,'
-                 '"RequestedEnergyTransferMode":"DC_extended","DC_EVChargeParameter":'
-                 '{"DepartureTime":0,"DC_EVStatus":{"EVReady":false,"EVErrorCode":'
-                 '"NO_ERROR","EVRESSSOC":20},"EVMaximumCurrentLimit":{"Multiplier":'
-                 '1,"Unit":"A","Value":50},"EVMaximumPowerLimit":{"Multiplier":3,'
-                 '"Unit":"W","Value":29},"EVMaximumVoltageLimit":{"Multiplier":2,'
-                 '"Unit":"V","Value":5},"EVEnergyCapacity":{"Multiplier":3,"Unit":'
-                 '"Wh","Value":2000},"EVEnergyRequest":{"Multiplier":3,"Unit":"Wh",'
-                 '"Value":1600},"FullSOC":99,"BulkSOC":80}}}}}',
-    ),
-    # EVMaximumVoltageLimit 5000 > 1000
-    # EVMaximumCurrentLimit 800 > 400
-    ExiMessageContainer(
-        message_name="CurrentDemandReq",
-        json_str='{"V2G_Message":{"Header":{"SessionID":"82DBA3A44ED6E5B9"},"Body":'
-        '{"CurrentDemandReq":{"DC_EVStatus":{"EVReady":true,"EVErrorCode":'
-        '"NO_ERROR","EVRESSSOC":20},"EVTargetCurrent":{"Multiplier":0,"Unit":'
-        '"A","Value":0},"EVMaximumVoltageLimit":{"Multiplier":2,"Unit":"V",'
-        '"Value":50},"EVMaximumCurrentLimit":{"Multiplier":1,"Unit":"A",'
-        '"Value":80},"EVMaximumPowerLimit":{"Multiplier":3,"Unit":"W","Value":'
-        '29},"BulkChargingComplete":false,"ChargingComplete":false,'
-        '"RemainingTimeToFullSoC":{"Multiplier":3,"Unit":"s","Value":'
-        '32767},"RemainingTimeToBulkSoC":{"Multiplier":3,"Unit":"s",'
-        '"Value":32767},"EVTargetVoltage":{"Multiplier":1,"Unit":"V",'
-        '"Value":45}}}}}',
-    ),
-]
-
-
 class TestIso15118_V2_MessageCreation:
     # Test data recorded 28.7.2022 with Comemso Multi Mobile DC Protocol Tester
     # are showing exactly how CCS Protocol is implemented in real world.
@@ -244,15 +206,3 @@ class TestIso15118_V2_MessageCreation:
 
         v2g_message = V2GMessage.parse_obj(decoded_dict["V2G_Message"])
         assert isinstance(v2g_message, V2GMessage)
-
-    @patch("iso15118.shared.messages.datatypes.IGNORE_PHYSICAL_VALUE_LIMITS", False)
-    @pytest.mark.parametrize(
-        "message",
-        ISO_TEST_MESSAGES_INVALID_LIMITS,
-        ids=[f"parse_and_create_{msg.message_name}" for msg in ISO_TEST_MESSAGES_INVALID_LIMITS],
-    )
-    def test_failed_ev_limit_validation(self, message: ExiMessageContainer):
-        with pytest.raises(ValidationError):
-            decoded_dict = json.loads(message.json_str, cls=CustomJSONDecoder)
-            v2g_message = V2GMessage.parse_obj(decoded_dict["V2G_Message"])
-            assert isinstance(v2g_message, V2GMessage)
