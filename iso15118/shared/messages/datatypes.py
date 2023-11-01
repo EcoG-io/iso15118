@@ -11,6 +11,8 @@ from iso15118.shared.messages.enums import (
     UnitSymbol,
 )
 
+from iso15118.shared.settings import IGNORE_PHYSICAL_VALUE_LIMITS
+
 
 class PhysicalValue(BaseModel):
     """
@@ -45,6 +47,8 @@ class PhysicalValue(BaseModel):
         value = values.get("value")
         multiplier = values.get("multiplier")
         calculated_value = value * 10**multiplier
+        if IGNORE_PHYSICAL_VALUE_LIMITS:
+            return values
         if calculated_value > cls._max_limit or calculated_value < cls._min_limit:
             raise ValueError(
                 f"{cls.__name__[2:] }"  # type: ignore[attr-defined]
