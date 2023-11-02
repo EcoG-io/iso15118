@@ -7,15 +7,15 @@ from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.ev_data import (
     EVDataContext,
     EVDCCLLimits,
-    EVDCLimits,
+    EVDCCPDLimits,
     EVRatedLimits,
     EVSessionContext,
 )
 from iso15118.secc.controller.evse_data import (
     EVSEDataContext,
-    EVSEDCBPTLimits,
+    EVSEDCBPTCPDLimits,
     EVSEDCCLLimits,
-    EVSEDCLimits,
+    EVSEDCCPDLimits,
     EVSERatedLimits,
     EVSESessionContext,
 )
@@ -88,11 +88,11 @@ class TestEvScenarios:
         self.comm_session.evse_controller = SimEVSEController()
         self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
         self.comm_session.evse_controller.ev_data_context = EVDataContext(
-            ev_rated_limits=EVRatedLimits(dc_limits=EVDCLimits())
+            ev_rated_limits=EVRatedLimits(dc_limits=EVDCCPDLimits())
         )
 
     def get_evse_data(self) -> EVSEDataContext:
-        dc_limits = EVSEDCLimits(
+        dc_limits = EVSEDCCPDLimits(
             evse_max_charge_power=10,
             evse_min_charge_power=10,
             evse_max_charge_current=10,
@@ -105,7 +105,7 @@ class TestEvScenarios:
             evse_peak_current_ripple=10,
             evse_energy_to_be_delivered=10,
         )
-        dc_bpt_limits = EVSEDCBPTLimits(
+        dc_bpt_limits = EVSEDCBPTCPDLimits(
             # 15118-20 DC BPT
             evse_max_discharge_power=10,
             evse_min_discharge_power=10,
@@ -268,7 +268,7 @@ class TestEvScenarios:
                 ScheduleExchange,
                 EVDataContext(
                     ev_rated_limits=EVRatedLimits(
-                        dc_limits=EVDCLimits(
+                        dc_limits=EVDCCPDLimits(
                             ev_max_charge_power=30000,
                             ev_min_charge_power=100,
                             ev_max_charge_current=300,
@@ -298,7 +298,7 @@ class TestEvScenarios:
                 ScheduleExchange,
                 EVDataContext(
                     ev_rated_limits=EVRatedLimits(
-                        dc_limits=EVDCLimits(
+                        dc_limits=EVDCCPDLimits(
                             ev_max_charge_power=30000,
                             ev_min_charge_power=100,
                             ev_max_charge_current=300,
@@ -531,7 +531,7 @@ class TestEvScenarios:
                 ScheduleExchange,
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
-                        dc_limits=EVSEDCLimits(
+                        dc_limits=EVSEDCCPDLimits(
                             evse_max_charge_power=30000,
                             evse_min_charge_power=100,
                             evse_max_charge_current=30000,
@@ -575,7 +575,7 @@ class TestEvScenarios:
                 ScheduleExchange,
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
-                        dc_limits=EVSEDCLimits(
+                        dc_limits=EVSEDCCPDLimits(
                             evse_max_charge_power=30000,
                             evse_min_charge_power=100,
                             evse_max_charge_current=30000,
@@ -584,7 +584,7 @@ class TestEvScenarios:
                             evse_min_voltage=100,
                             evse_power_ramp_limit=100,
                         ),
-                        dc_bpt_limits=EVSEDCBPTLimits(
+                        dc_bpt_limits=EVSEDCBPTCPDLimits(
                             evse_max_discharge_power=30000,
                             evse_min_discharge_power=100,
                             evse_max_discharge_current=30000,
@@ -646,7 +646,7 @@ class TestEvScenarios:
                 None,
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
-                        dc_limits=EVSEDCLimits(
+                        dc_limits=EVSEDCCPDLimits(
                             evse_max_charge_power=300,
                             evse_min_charge_power=600,
                             evse_max_charge_current=700,
@@ -690,7 +690,7 @@ class TestEvScenarios:
                 None,
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
-                        dc_limits=EVSEDCLimits(
+                        dc_limits=EVSEDCCPDLimits(
                             evse_max_charge_power=30000,
                             evse_min_charge_power=400,
                             evse_max_charge_current=500,
@@ -742,14 +742,14 @@ class TestEvScenarios:
                 None,
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
-                        dc_limits=EVSEDCLimits(
+                        dc_limits=EVSEDCCPDLimits(
                             evse_max_charge_power=300,
                             evse_min_charge_power=400,
                             evse_max_charge_current=500,
                             evse_max_voltage=600,
                             evse_min_voltage=100,
                         ),
-                        dc_bpt_limits=EVSEDCBPTLimits(
+                        dc_bpt_limits=EVSEDCBPTCPDLimits(
                             evse_max_discharge_power=700,
                             evse_min_discharge_power=800,
                             evse_max_discharge_current=900,
@@ -805,14 +805,14 @@ class TestEvScenarios:
                 None,
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
-                        dc_limits=EVSEDCLimits(
+                        dc_limits=EVSEDCCPDLimits(
                             evse_max_charge_power=10000,
                             evse_min_charge_power=20000,
                             evse_max_charge_current=30000,
                             evse_max_voltage=4000,
                             evse_min_voltage=8000,
                         ),
-                        dc_bpt_limits=EVSEDCBPTLimits(
+                        dc_bpt_limits=EVSEDCBPTCPDLimits(
                             evse_max_discharge_power=5000,
                             evse_min_discharge_power=6000,
                             evse_max_discharge_current=7000,

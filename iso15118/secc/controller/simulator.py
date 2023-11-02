@@ -11,13 +11,13 @@ from aiofile import async_open
 from pydantic import BaseModel, Field
 
 from iso15118.secc.controller.evse_data import (
-    EVSEACBPTLimits,
+    EVSEACBPTCPDLimits,
     EVSEACCLLimits,
-    EVSEACLimits,
+    EVSEACCPDLimits,
     EVSEDataContext,
-    EVSEDCBPTLimits,
+    EVSEDCBPTCPDLimits,
     EVSEDCCLLimits,
-    EVSEDCLimits,
+    EVSEDCCPDLimits,
     EVSERatedLimits,
     EVSESessionContext,
 )
@@ -183,7 +183,7 @@ class V20ServiceParamMapping(BaseModel):
 
 
 def get_evse_context():
-    ac_limits = EVSEACLimits(
+    ac_limits = EVSEACCPDLimits(
         # 15118-2 AC CPD
         evse_nominal_voltage=10,
         evse_max_current=10,
@@ -200,7 +200,7 @@ def get_evse_context():
         evse_present_active_power_l2=10,
         evse_present_active_power_l3=10,
     )
-    ac_bpt_limits = EVSEACBPTLimits(
+    ac_bpt_limits = EVSEACBPTCPDLimits(
         evse_max_discharge_power=10,
         evse_min_discharge_power=10,
         evse_max_discharge_power_l2=10,
@@ -208,7 +208,7 @@ def get_evse_context():
         evse_min_discharge_power_l2=10,
         evse_min_discharge_power_l3=10,
     )
-    dc_limits = EVSEDCLimits(
+    dc_limits = EVSEDCCPDLimits(
         evse_max_charge_power=10,
         evse_min_charge_power=10,
         evse_max_charge_current=10,
@@ -221,7 +221,7 @@ def get_evse_context():
         evse_peak_current_ripple=10,
         evse_energy_to_be_delivered=10,
     )
-    dc_bpt_limits = EVSEDCBPTLimits(
+    dc_bpt_limits = EVSEDCBPTCPDLimits(
         # 15118-20 DC BPT
         evse_max_discharge_power=10,
         evse_min_discharge_power=10,

@@ -5,21 +5,10 @@ from iso15118.secc.controller.common import Limits
 
 
 @dataclass
-class EVSEACCLLimits(Limits):
-    # Optional in both Scheduled and Dynamic CL (both AC CL and BPT AC CL)
-    evse_target_active_power: Optional[float] = None  # Required in Dynamic AC CL
-    evse_target_active_power_l2: Optional[float] = None
-    evse_target_active_power_l3: Optional[float] = None
-    evse_target_reactive_power: Optional[float] = None
-    evse_target_reactive_power_l2: Optional[float] = None
-    evse_target_reactive_power_l3: Optional[float] = None
-    evse_present_active_power: Optional[float] = None  # Optional in AC CPD
-    evse_present_active_power_l2: Optional[float] = None  # Optional in AC CPD
-    evse_present_active_power_l3: Optional[float] = None  # Optional in AC CPD
+class EVSEACCPDLimits(Limits):
+    """Holds the EVSE's rated AC limits to be returned during
+    Charge Parameter Discovery state."""
 
-
-@dataclass
-class EVSEACLimits(Limits):
     # 15118-2 AC CPD
     evse_nominal_voltage: Optional[float] = None  # Also required for 15118-20 CPD
     evse_max_current: Optional[float] = None  # Required
@@ -43,7 +32,10 @@ class EVSEACLimits(Limits):
 
 
 @dataclass
-class EVSEACBPTLimits(Limits):
+class EVSEACBPTCPDLimits(EVSEACCPDLimits):
+    """Holds the EVSE's rated AC BPT limits to be returned during
+    Charge Parameter Discovery state."""
+
     evse_max_discharge_power: Optional[float] = None  # Required
     evse_max_discharge_power_l2: Optional[float] = None  # Optional
     evse_max_discharge_power_l3: Optional[float] = None  # Optional
@@ -54,22 +46,10 @@ class EVSEACBPTLimits(Limits):
 
 
 @dataclass
-class EVSEDCCLLimits(Limits):
-    # Optional in 15118-20 DC Scheduled CL
-    evse_max_charge_power: Optional[float] = None  # Required in 15118-20 Dynamic CL
-    evse_min_charge_power: Optional[float] = None  # Required in 15118-20 Dynamic CL
-    evse_max_charge_current: Optional[float] = None  # Required in 15118-20 Dynamic CL
-    evse_max_voltage: Optional[float] = None  # Required in 15118-20 Dynamic CL
+class EVSEDCBPTCPDLimits(Limits):
+    """Holds the EVSE's rated DC BPT limits to be returned during
+    Charge Parameter Discovery state."""
 
-    # Optional and present in 15118-20 DC BPT CL (Scheduled)
-    evse_max_discharge_power: Optional[float] = None  # Req in 15118-20 Dynamic BPT CL
-    evse_min_discharge_power: Optional[float] = None  # Req in 15118-20 Dynamic BPT CL
-    evse_max_discharge_current: Optional[float] = None  # Req in 15118-20 Dynamic BPT CL
-    evse_min_voltage: Optional[float] = None  # Required in 15118-20 Dynamic BPT CL
-
-
-@dataclass
-class EVSEDCBPTLimits(Limits):
     # Required in 15118-20 DC BPT CPD
     evse_max_discharge_power: Optional[float] = None
     evse_min_discharge_power: Optional[float] = None
@@ -78,7 +58,10 @@ class EVSEDCBPTLimits(Limits):
 
 
 @dataclass
-class EVSEDCLimits(Limits):
+class EVSEDCCPDLimits(EVSEDCBPTCPDLimits):
+    """Holds the EVSE's rated DC limits to be returned during
+    Charge Parameter Discovery state."""
+
     # Required in 15118-20 DC CPD
     evse_max_charge_power: Optional[float] = None  # Required for -2 DC, DIN CPD
     evse_min_charge_power: Optional[float] = None  # Not Required for -2 DC, DIN CPD
@@ -98,10 +81,39 @@ class EVSEDCLimits(Limits):
 
 @dataclass
 class EVSERatedLimits:
-    ac_limits: Optional[EVSEACLimits] = None
-    ac_bpt_limits: Optional[EVSEACBPTLimits] = None
-    dc_limits: Optional[EVSEDCLimits] = None
-    dc_bpt_limits: Optional[EVSEDCBPTLimits] = None
+    ac_limits: Optional[EVSEACCPDLimits] = None
+    ac_bpt_limits: Optional[EVSEACBPTCPDLimits] = None
+    dc_limits: Optional[EVSEDCCPDLimits] = None
+    dc_bpt_limits: Optional[EVSEDCBPTCPDLimits] = None
+
+
+@dataclass
+class EVSEACCLLimits(Limits):
+    # Optional in both Scheduled and Dynamic CL (both AC CL and BPT AC CL)
+    evse_target_active_power: Optional[float] = None  # Required in Dynamic AC CL
+    evse_target_active_power_l2: Optional[float] = None
+    evse_target_active_power_l3: Optional[float] = None
+    evse_target_reactive_power: Optional[float] = None
+    evse_target_reactive_power_l2: Optional[float] = None
+    evse_target_reactive_power_l3: Optional[float] = None
+    evse_present_active_power: Optional[float] = None  # Optional in AC CPD
+    evse_present_active_power_l2: Optional[float] = None  # Optional in AC CPD
+    evse_present_active_power_l3: Optional[float] = None  # Optional in AC CPD
+
+
+@dataclass
+class EVSEDCCLLimits(Limits):
+    # Optional in 15118-20 DC Scheduled CL
+    evse_max_charge_power: Optional[float] = None  # Required in 15118-20 Dynamic CL
+    evse_min_charge_power: Optional[float] = None  # Required in 15118-20 Dynamic CL
+    evse_max_charge_current: Optional[float] = None  # Required in 15118-20 Dynamic CL
+    evse_max_voltage: Optional[float] = None  # Required in 15118-20 Dynamic CL
+
+    # Optional and present in 15118-20 DC BPT CL (Scheduled)
+    evse_max_discharge_power: Optional[float] = None  # Req in 15118-20 Dynamic BPT CL
+    evse_min_discharge_power: Optional[float] = None  # Req in 15118-20 Dynamic BPT CL
+    evse_max_discharge_current: Optional[float] = None  # Req in 15118-20 Dynamic BPT CL
+    evse_min_voltage: Optional[float] = None  # Required in 15118-20 Dynamic BPT CL
 
 
 @dataclass

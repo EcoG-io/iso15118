@@ -5,15 +5,15 @@ import pytest
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.ev_data import (
     EVACCLLimits,
-    EVACLimits,
+    EVACCPDLimits,
     EVDataContext,
     EVRatedLimits,
     EVSessionContext,
 )
 from iso15118.secc.controller.evse_data import (
-    EVSEACBPTLimits,
+    EVSEACBPTCPDLimits,
     EVSEACCLLimits,
-    EVSEACLimits,
+    EVSEACCPDLimits,
     EVSEDataContext,
     EVSERatedLimits,
     EVSESessionContext,
@@ -97,11 +97,11 @@ class TestEvScenarios:
         self.comm_session.evse_controller = SimEVSEController()
         self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
         self.comm_session.evse_controller.ev_data_context = EVDataContext(
-            ev_rated_limits=EVRatedLimits(ac_limits=EVACLimits())
+            ev_rated_limits=EVRatedLimits(ac_limits=EVACCPDLimits())
         )
 
     def get_evse_data(self) -> EVSEDataContext:
-        ac_limits = EVSEACLimits(
+        ac_limits = EVSEACCPDLimits(
             evse_max_charge_power=10,
             evse_max_charge_power_l2=10,
             evse_max_charge_power_l3=10,
@@ -118,7 +118,7 @@ class TestEvScenarios:
             evse_nominal_voltage=10,
             evse_max_current=10,
         )
-        ac_bpt_limits = EVSEACBPTLimits(
+        ac_bpt_limits = EVSEACBPTCPDLimits(
             evse_max_discharge_power=10,
             evse_max_discharge_power_l2=10,
             evse_max_discharge_power_l3=10,
@@ -248,7 +248,7 @@ class TestEvScenarios:
                 EVDataContext(
                     evcc_id=None,
                     ev_rated_limits=EVRatedLimits(
-                        ac_limits=EVACLimits(
+                        ac_limits=EVACCPDLimits(
                             ev_max_charge_power=30000,
                             ev_min_charge_power=100,
                             ev_max_charge_power_l2=30000,
@@ -279,7 +279,7 @@ class TestEvScenarios:
                 EVDataContext(
                     evcc_id=None,
                     ev_rated_limits=EVRatedLimits(
-                        ac_limits=EVACLimits(
+                        ac_limits=EVACCPDLimits(
                             ev_max_charge_power=30000,
                             ev_min_charge_power=100,
                             ev_max_charge_power_l2=30000,
@@ -579,7 +579,7 @@ class TestEvScenarios:
                 ScheduleExchange,
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
-                        ac_limits=EVSEACLimits(
+                        ac_limits=EVSEACCPDLimits(
                             evse_max_charge_power=30000,
                             evse_min_charge_power=100,
                             evse_max_charge_power_l2=30000,
@@ -652,7 +652,7 @@ class TestEvScenarios:
                 ScheduleExchange,
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
-                        ac_limits=EVSEACLimits(
+                        ac_limits=EVSEACCPDLimits(
                             evse_max_charge_power=30000,
                             evse_min_charge_power=100,
                             evse_max_charge_power_l2=30000,
@@ -665,7 +665,7 @@ class TestEvScenarios:
                             evse_present_active_power_l2=100,
                             evse_present_active_power_l3=100,
                         ),
-                        ac_bpt_limits=EVSEACBPTLimits(
+                        ac_bpt_limits=EVSEACBPTCPDLimits(
                             evse_max_discharge_power=30000,
                             evse_min_discharge_power=100,
                             evse_max_discharge_power_l2=30000,
@@ -758,7 +758,7 @@ class TestEvScenarios:
                 None,
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
-                        ac_limits=EVSEACLimits(
+                        ac_limits=EVSEACCPDLimits(
                             evse_present_active_power=30000,
                             evse_present_active_power_l2=30000,
                             evse_present_active_power_l3=30000,
@@ -826,7 +826,7 @@ class TestEvScenarios:
                 None,
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
-                        ac_limits=EVSEACLimits(
+                        ac_limits=EVSEACCPDLimits(
                             evse_present_active_power=30000,
                             evse_present_active_power_l2=30000,
                             evse_present_active_power_l3=30000,
@@ -899,7 +899,7 @@ class TestEvScenarios:
                 None,
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
-                        ac_limits=EVSEACLimits(
+                        ac_limits=EVSEACCPDLimits(
                             evse_present_active_power=30000,
                             evse_present_active_power_l2=30000,
                             evse_present_active_power_l3=30000,
@@ -975,7 +975,7 @@ class TestEvScenarios:
                 None,
                 EVSEDataContext(
                     rated_limits=EVSERatedLimits(
-                        ac_limits=EVSEACLimits(
+                        ac_limits=EVSEACCPDLimits(
                             evse_present_active_power=30000,
                             evse_present_active_power_l2=30000,
                             evse_present_active_power_l3=30000,

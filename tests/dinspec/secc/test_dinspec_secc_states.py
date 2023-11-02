@@ -7,7 +7,7 @@ from iso15118.secc.controller.ev_data import EVSessionContext15118
 from iso15118.secc.controller.evse_data import (
     EVSEDataContext,
     EVSEDCCLLimits,
-    EVSEDCLimits,
+    EVSEDCCPDLimits,
     EVSERatedLimits,
     EVSESessionContext,
 )
@@ -41,7 +41,7 @@ class TestEvseScenarios:
         self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
 
     def get_evse_data(self) -> EVSEDataContext:
-        dc_limits = EVSEDCLimits(
+        dc_limits = EVSEDCCPDLimits(
             evse_max_charge_power=10,
             evse_min_charge_power=10,
             evse_max_charge_current=10,

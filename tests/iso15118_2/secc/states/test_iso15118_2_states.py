@@ -8,9 +8,9 @@ from iso15118.secc import Config
 from iso15118.secc.controller.ev_data import EVSessionContext15118
 from iso15118.secc.controller.evse_data import (
     EVSEDataContext,
-    EVSEDCBPTLimits,
+    EVSEDCBPTCPDLimits,
     EVSEDCCLLimits,
-    EVSEDCLimits,
+    EVSEDCCPDLimits,
     EVSERatedLimits,
     EVSESessionContext,
 )
@@ -94,7 +94,7 @@ class TestV2GSessionScenarios:
         self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
 
     def get_evse_data(self) -> EVSEDataContext:
-        dc_limits = EVSEDCLimits(
+        dc_limits = EVSEDCCPDLimits(
             evse_max_charge_power=10,
             evse_min_charge_power=10,
             evse_max_charge_current=10,
@@ -107,7 +107,7 @@ class TestV2GSessionScenarios:
             evse_peak_current_ripple=10,
             evse_energy_to_be_delivered=10,
         )
-        dc_bpt_limits = EVSEDCBPTLimits(
+        dc_bpt_limits = EVSEDCBPTCPDLimits(
             # 15118-20 DC BPT
             evse_max_discharge_power=10,
             evse_min_discharge_power=10,

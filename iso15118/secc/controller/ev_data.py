@@ -16,7 +16,62 @@ from iso15118.shared.messages.iso15118_2.datatypes import ChargeService
 
 
 @dataclass
+class EVACCPDLimits(Limits):
+    """Holds the AC limits shared by the EV during ChargeParameterDiscovery"""
+
+    ev_max_charge_power: Optional[float] = 0.0
+    ev_max_charge_power_l2: Optional[float] = None
+    ev_max_charge_power_l3: Optional[float] = None
+
+    ev_min_charge_power: Optional[float] = 0.0
+    ev_min_charge_power_l2: Optional[float] = None
+    ev_min_charge_power_l3: Optional[float] = None
+
+    ev_max_discharge_power: Optional[float] = None
+    ev_max_discharge_power_l2: Optional[float] = None
+    ev_max_discharge_power_l3: Optional[float] = None
+    ev_min_discharge_power: Optional[float] = None
+    ev_min_discharge_power_l2: Optional[float] = None
+    ev_min_discharge_power_l3: Optional[float] = None
+
+
+@dataclass
+class EVDCCPDLimits(Limits):
+    """Holds the DC limits shared by the EV during ChargeParameterDiscovery"""
+
+    ev_max_charge_power: Optional[float] = 0.0
+    ev_min_charge_power: Optional[float] = 0.0
+    ev_max_charge_current: Optional[float] = None
+    ev_min_charge_current: Optional[float] = None
+    ev_max_voltage: Optional[float] = None
+    ev_min_voltage: Optional[float] = None
+    target_soc: Optional[int] = None
+
+    ev_max_discharge_power: Optional[float] = None
+    ev_min_discharge_power: Optional[float] = None
+    ev_max_discharge_current: Optional[float] = None
+    ev_min_discharge_current: Optional[float] = None
+
+
+@dataclass
+class EVRatedLimits(Limits):
+    def __init__(
+        self,
+        ac_limits: Optional[EVACCPDLimits] = None,
+        dc_limits: Optional[EVDCCPDLimits] = None,
+    ):
+        self.ac_limits = ac_limits or EVACCPDLimits()
+        self.dc_limits = dc_limits or EVDCCPDLimits()
+
+    ac_limits: Optional[EVACCPDLimits] = None
+    dc_limits: Optional[EVDCCPDLimits] = None
+
+
+@dataclass
 class EVACCLLimits(Limits):
+    """Holds the AC limits shared by the EV during ChargingLoop.
+    Unlike the CPD values, these could potentially change during charing loop"""
+
     departure_time: Optional[int] = None
     ev_target_energy_request: Optional[float] = None
     ev_max_energy_request: Optional[float] = None
@@ -52,6 +107,9 @@ class EVACCLLimits(Limits):
 
 @dataclass
 class EVDCCLLimits(Limits):
+    """Holds the DC limits shared by the EV during ChargingLoop.
+    Unlike the CPD values, these could potentially change during charging loop"""
+
     departure_time: Optional[int] = None
     ev_target_energy_request: Optional[float] = None
 
@@ -72,54 +130,6 @@ class EVDCCLLimits(Limits):
 
     ev_max_v2x_energy_request: Optional[float] = None
     ev_min_v2x_energy_request: Optional[float] = None
-
-
-@dataclass
-class EVACLimits(Limits):
-    ev_max_charge_power: Optional[float] = 0.0
-    ev_max_charge_power_l2: Optional[float] = None
-    ev_max_charge_power_l3: Optional[float] = None
-
-    ev_min_charge_power: Optional[float] = 0.0
-    ev_min_charge_power_l2: Optional[float] = None
-    ev_min_charge_power_l3: Optional[float] = None
-
-    ev_max_discharge_power: Optional[float] = None
-    ev_max_discharge_power_l2: Optional[float] = None
-    ev_max_discharge_power_l3: Optional[float] = None
-    ev_min_discharge_power: Optional[float] = None
-    ev_min_discharge_power_l2: Optional[float] = None
-    ev_min_discharge_power_l3: Optional[float] = None
-
-
-@dataclass
-class EVDCLimits(Limits):
-    ev_max_charge_power: Optional[float] = 0.0
-    ev_min_charge_power: Optional[float] = 0.0
-    ev_max_charge_current: Optional[float] = None
-    ev_min_charge_current: Optional[float] = None
-    ev_max_voltage: Optional[float] = None
-    ev_min_voltage: Optional[float] = None
-    target_soc: Optional[int] = None
-
-    ev_max_discharge_power: Optional[float] = None
-    ev_min_discharge_power: Optional[float] = None
-    ev_max_discharge_current: Optional[float] = None
-    ev_min_discharge_current: Optional[float] = None
-
-
-@dataclass
-class EVRatedLimits(Limits):
-    def __init__(
-        self,
-        ac_limits: Optional[EVACLimits] = None,
-        dc_limits: Optional[EVDCLimits] = None,
-    ):
-        self.ac_limits = ac_limits or EVACLimits()
-        self.dc_limits = dc_limits or EVDCLimits()
-
-    ac_limits: Optional[EVACLimits] = None
-    dc_limits: Optional[EVDCLimits] = None
 
 
 @dataclass
