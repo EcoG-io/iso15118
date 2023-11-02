@@ -91,6 +91,8 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
+    BPTDynamicDCChargeLoopReqParams,
+    BPTScheduledDCChargeLoopReqParams,
     DCCableCheckReq,
     DCCableCheckRes,
     DCChargeLoopReq,
@@ -102,6 +104,8 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DCPreChargeRes,
     DCWeldingDetectionReq,
     DCWeldingDetectionRes,
+    DynamicDCChargeLoopReqParams,
+    ScheduledDCChargeLoopReqParams,
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.notifications import StopNotification
@@ -1801,29 +1805,30 @@ class DCChargeLoop(StateSECC):
         selected_energy_service: SelectedEnergyService,
         control_mode: ControlMode,
     ) -> None:
+        params: Union[
+            ScheduledDCChargeLoopReqParams,
+            DynamicDCChargeLoopReqParams,
+            BPTScheduledDCChargeLoopReqParams,
+            BPTDynamicDCChargeLoopReqParams,
+        ] = None
         if selected_energy_service.service == ServiceV20.DC:
             if control_mode == ControlMode.SCHEDULED:
-                self.comm_session.evse_controller.ev_data_context.ev_session_context.dc_limits.update(  # noqa
-                    dc_charge_loop_req.scheduled_params.dict()
-                )
+                params = dc_charge_loop_req.scheduled_params
             elif control_mode == ControlMode.DYNAMIC:
-                self.comm_session.evse_controller.ev_data_context.ev_session_context.dc_limits.update(  # noqa
-                    dc_charge_loop_req.dynamic_params.dict()
-                )
+                params = dc_charge_loop_req.dynamic_params
         elif selected_energy_service.service == ServiceV20.DC_BPT:
             if control_mode == ControlMode.SCHEDULED:
-                self.comm_session.evse_controller.ev_data_context.ev_session_context.dc_limits.update(  # noqa
-                    dc_charge_loop_req.bpt_scheduled_params.dict()
-                )
+                params = dc_charge_loop_req.bpt_scheduled_params
             else:
-                self.comm_session.evse_controller.ev_data_context.ev_session_context.dc_limits.update(  # noqa
-                    dc_charge_loop_req.bpt_dynamic_params.dict()
-                )
+                params = dc_charge_loop_req.bpt_dynamic_params
         else:
             logger.error(
                 f"Energy service {selected_energy_service.service} not yet supported"
             )
             return
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.dc_limits.update(  # noqa
+            params.dict()
+        )
 
     async def build_dc_charge_loop_res(
         self, meter_info_requested: bool

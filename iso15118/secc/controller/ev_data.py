@@ -63,9 +63,6 @@ class EVRatedLimits(Limits):
         self.ac_limits = ac_limits or EVACCPDLimits()
         self.dc_limits = dc_limits or EVDCCPDLimits()
 
-    ac_limits: Optional[EVACCPDLimits] = None
-    dc_limits: Optional[EVDCCPDLimits] = None
-
 
 @dataclass
 class EVACCLLimits(Limits):
@@ -151,9 +148,6 @@ class EVSessionContext(Limits):
     remaining_time_to_full_soc_s: Optional[float] = None
     remaining_time_to_bulk_soc_s: Optional[float] = None
 
-    ac_limits: Optional[EVACCLLimits] = None
-    dc_limits: Optional[EVDCCLLimits] = None
-
 
 @dataclass
 class EVDataContext:
@@ -166,10 +160,6 @@ class EVDataContext:
         self.evcc_id = evcc_id or None
         self.ev_rated_limits = ev_rated_limits or EVRatedLimits()
         self.ev_session_context = ev_session_context or EVSessionContext()
-
-    evcc_id: Optional[str] = None
-    ev_rated_limits: Optional[EVRatedLimits] = None
-    ev_session_context: Optional[EVSessionContext] = None
 
 
 @dataclass

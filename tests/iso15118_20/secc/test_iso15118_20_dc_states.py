@@ -931,3 +931,52 @@ class TestEvScenarios:
             message=get_power_delivery_req(Processing.FINISHED, ChargeProgress.START)
         )
         assert power_delivery.next_state is next_state
+
+    @pytest.mark.parametrize(
+        "float_value, expected_exponent, expected_value",
+        [
+            (-6340, 0, -6340),
+            (-634, -1, -6340),
+            (-234, -2, -23400),
+            (-0.634, -3, -634),
+            (-0.634, -3, -634),
+            (-0.0634, -3, -63),
+            (-0.00634, -3, -6),
+            (-0.000634, -3, 0),
+            (-0.0000634, -3, 0),
+            (0.0, 0, 0),
+            (0.0000234, -3, 0),
+            (0.000234, -3, 0),
+            (0.00234, -3, 2),
+            (0.0234, -3, 23),
+            (0.234, -3, 234),
+            (2.34, -3, 2340),
+            (23.4, -3, 23400),
+            (234, -2, 23400),
+            (2340, -1, 23400),
+            (23400, 0, 23400),
+            (234000, 1, 23400),
+            (0.4, -3, 400),
+            (400, -1, 4000),
+            (32767, 0, 32767),
+            (32768, 1, 3276),
+        ],
+    )
+    async def test_exponent_conversion_for_rational_number_type(
+        self,
+        float_value: float,
+        expected_exponent: int,
+        expected_value: int,
+    ):  # noqa: ANN201
+        """Test conversion of a value into its exponent form.
+
+        This test particularly tests the conversion suitable for
+        the Rational Number type of ISO 15118-20, considering
+        its value range [-32768, 32767].
+        The byte range still considers the one from ISO 15118-2:
+        [-3, 3]
+        """
+        exponent, value = RationalNumber._convert_to_exponent_number(float_value)
+
+        assert exponent == expected_exponent
+        assert value == expected_value
