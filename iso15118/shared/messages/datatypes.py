@@ -37,28 +37,28 @@ class PhysicalValue(BaseModel):
     # XSD type byte with value range [-3..3]
     multiplier: int = Field(..., ge=-3, le=3, alias="Multiplier")
 
-    @root_validator
-    def validate_value_range(cls, values):
-        """
-        Validator for the range of the PhysicalValue type
+    # @root_validator
+    # def validate_value_range(cls, values):
+    #     """
+    #     Validator for the range of the PhysicalValue type
 
-        Raises:
-            ValueError, if the calculated value exceeds the limits set
-        """
-        value = values.get("value")
-        multiplier = values.get("multiplier")
-        calculated_value = value * 10**multiplier
-        if calculated_value > cls._max_limit or calculated_value < 0:
-            message: str = (
-                f"{cls.__name__[2:]} value limit exceeded: {calculated_value} \n"
-                f"Max: {cls._max_limit} \n"
-                f"Min: 0"
-            )
-            if get_ignoring_value_range():
-                logger.warning(message)
-            else:
-                raise ValueError(message)
-        return values
+    #     Raises:
+    #         ValueError, if the calculated value exceeds the limits set
+    #     """
+    #     value = values.get("value")
+    #     multiplier = values.get("multiplier")
+    #     calculated_value = value * 10**multiplier
+    #     if calculated_value > cls._max_limit or calculated_value < 0:
+    #         message: str = (
+    #             f"{cls.__name__[2:]} value limit exceeded: {calculated_value} \n"
+    #             f"Max: {cls._max_limit} \n"
+    #             f"Min: 0"
+    #         )
+    #         if get_ignoring_value_range():
+    #             logger.warning(message)
+    #         else:
+    #             raise ValueError(message)
+    #     return values
 
     def get_decimal_value(self) -> float:
         return self.value * 10**self.multiplier

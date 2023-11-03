@@ -172,6 +172,31 @@ class SimEVController(EVControllerInterface):
             ),
         )
 
+        max_discharge_current_limit_value, max_discharge_current_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_discharge_max_current_limit)
+        max_discharge_power_limit_value, max_discharge_power_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_discharge_max_power_limit)
+        discharge_target_current_value, discharge_target_current_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_discharge_target_current)
+
+        self.dc_ev_discharge_params: DCEVChargeParams = DCEVChargeParams(
+            dc_max_current_limit = PVEVMaxCurrentLimit(
+                multiplier=max_discharge_current_limit_multiplier, value=-max_discharge_current_limit_value, unit=UnitSymbol.AMPERE
+            ),
+            dc_max_power_limit = PVEVMaxPowerLimit(
+                multiplier=max_discharge_power_limit_multiplier, value=-max_discharge_power_limit_value, unit=UnitSymbol.WATT
+            ),
+            dc_max_voltage_limit = PVEVMaxVoltageLimit(
+                multiplier=max_voltage_limit_multiplier, value=max_voltage_limit_value, unit=UnitSymbol.VOLTAGE
+            ),
+            dc_energy_capacity = PVEVEnergyCapacity(
+                multiplier=energy_capacity_multiplier, value=energy_capacity_value, unit=UnitSymbol.WATT_HOURS
+            ),
+            dc_target_current = PVEVTargetCurrent(
+                multiplier=discharge_target_current_multiplier, value=-discharge_target_current_value, unit=UnitSymbol.AMPERE
+            ),
+            dc_target_voltage = PVEVTargetVoltage(
+                multiplier=target_voltage_multiplier, value=target_voltage_value, unit=UnitSymbol.VOLTAGE
+            ),
+        )
+
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
@@ -792,3 +817,38 @@ class SimEVController(EVControllerInterface):
         """Overrides EVControllerInterface.get_target_voltage()."""
         value, exponent = float2Value_Multiplier(EVEREST_EV_STATE.dc_target_voltage)
         return RationalNumber(exponent=exponent, value=value)
+
+    # ============================================================================
+    # |                          SAE J2847/2 FUNCTIONS                           |
+    # ============================================================================
+
+    async def is_sae_j2847_v2g_active(self) -> bool:
+        return EVEREST_EV_STATE.SAEJ2847_V2H_V2G_Active
+
+    async def get_dc_discharge_params(self) -> DCEVChargeParams:
+        """Applies to both DIN SPEC and 15118-2"""
+        return self.dc_ev_discharge_params
+    
+    async def get_charge_params_v2h(self, protocol: Protocol) -> ChargeParamsV2:
+        """Overrides EVControllerInterface.get_charge_params_v2()."""
+        ac_charge_params = None
+
+        ev_energy_request = PVEVEnergyRequest(
+            multiplier=1, value=6000, unit=UnitSymbol.WATT_HOURS
+        )
+        dc_charge_params = DCEVChargeParameter(
+            departure_time=0,
+            dc_ev_status=await self.get_dc_ev_status(),
+            ev_maximum_current_limit=self.dc_ev_discharge_params.dc_max_current_limit,
+            ev_maximum_power_limit=self.dc_ev_discharge_params.dc_max_power_limit,
+            ev_maximum_voltage_limit=self.dc_ev_discharge_params.dc_max_voltage_limit,
+            ev_energy_capacity=self.dc_ev_discharge_params.dc_energy_capacity,
+            ev_energy_request=ev_energy_request,
+            full_soc=100,
+            bulk_soc=EVEREST_EV_STATE.minimal_soc,
+        )
+        return ChargeParamsV2(
+            await self.get_energy_transfer_mode(protocol),
+            ac_charge_params,
+            dc_charge_params,
+        )

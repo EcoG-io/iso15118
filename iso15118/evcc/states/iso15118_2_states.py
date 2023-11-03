@@ -303,7 +303,7 @@ class ServiceDiscovery(StateEVCC):
             SelectedService(service_id=service_discovery_res.charge_service.service_id)
         )
 
-        if not self.comm_session.is_tls or service_discovery_res.service_list is None:
+        if service_discovery_res.service_list is None:
             return
 
         offered_services: str = ""
@@ -321,6 +321,8 @@ class ServiceDiscovery(StateEVCC):
                 and self.comm_session.selected_auth_option == AuthEnum.PNC_V2
                 and await self.comm_session.ev_controller.is_cert_install_needed()
             ):
+                if not self.comm_session.is_tls:
+                    return
                 # Make sure to send a ServiceDetailReq for the
                 # Certificate service
                 self.comm_session.service_details_to_request.append(service.service_id)
@@ -332,6 +334,15 @@ class ServiceDiscovery(StateEVCC):
                 self.comm_session.selected_services.append(
                     SelectedService(service_id=ServiceID.CERTIFICATE)
                 )
+            if (
+                service.service_category == ServiceCategory.CUSTOM
+                and await self.comm_session.ev_controller.is_sae_j2847_v2g_active() == True
+                and (service.service_id == ServiceID.V2H or service.service_id == ServiceID.V2G)
+            ):
+                self.comm_session.selected_services.append(
+                    SelectedService(service_id = service.service_id)
+                )
+                self.comm_session.sae_j2847_active = service.service_id
 
             # Request more service details if you're interested in e.g.
             # an Internet service or a use case-specific service
@@ -839,9 +850,16 @@ class ChargeParameterDiscovery(StateEVCC):
             else:
                 self.comm_session.ongoing_timer = time()
 
-            charge_params = await ev_controller.get_charge_params_v2(
+            if (await ev_controller.is_sae_j2847_v2g_active() == True
+                and self.comm_session.sae_j2847_active == ServiceID.V2H
+            ):
+              charge_params = await ev_controller.get_charge_params_v2h(
                 Protocol.ISO_15118_2
             )
+            else:
+                charge_params = await ev_controller.get_charge_params_v2(
+                    Protocol.ISO_15118_2
+                )
 
             charge_parameter_discovery_req = ChargeParameterDiscoveryReq(
                 requested_energy_mode=charge_params.energy_mode,
@@ -947,9 +965,17 @@ class PowerDelivery(StateEVCC):
             )
 
     async def build_current_demand_data(self) -> CurrentDemandReq:
-        dc_ev_charge_params = (
-            await self.comm_session.ev_controller.get_dc_charge_params()
-        )
+
+        if (await self.comm_session.ev_controller.is_sae_j2847_v2g_active() == True
+            and self.comm_session.sae_j2847_active == ServiceID.V2H
+        ):
+            dc_ev_charge_params = (
+                await self.comm_session.ev_controller.get_dc_discharge_params()
+            )
+        else: 
+            dc_ev_charge_params = (
+                await self.comm_session.ev_controller.get_dc_charge_params()
+            )
         current_demand_req = CurrentDemandReq(
             dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_current=dc_ev_charge_params.dc_target_current,
@@ -1427,7 +1453,7 @@ class CurrentDemand(StateEVCC):
             self.comm_session.charging_session_stop_v2 = ChargingSession.PAUSE
             await self.stop_pause_charging()
         elif await self.comm_session.ev_controller.continue_charging():
-            current_demand_req = await self.build_current_demand_data()
+            current_demand_req = await self.build_current_demand_data(current_demand_res)
 
             self.create_next_message(
                 CurrentDemand,
@@ -1439,9 +1465,36 @@ class CurrentDemand(StateEVCC):
             self.comm_session.charging_session_stop_v2 = ChargingSession.TERMINATE
             await self.stop_pause_charging()
 
-    async def build_current_demand_data(self) -> CurrentDemandReq:
+    async def build_current_demand_data(self, current_demand_res: CurrentDemandRes) -> CurrentDemandReq:
         ev_controller = self.comm_session.ev_controller
-        dc_ev_charge_params = await ev_controller.get_dc_charge_params()
+
+        if (await ev_controller.is_sae_j2847_v2g_active() == True
+            and self.comm_session.sae_j2847_active == ServiceID.V2H
+        ):
+            dc_ev_charge_params = (
+                await ev_controller.get_dc_discharge_params()
+            )
+        elif (await ev_controller.is_sae_j2847_v2g_active() == True
+              and self.comm_session.sae_j2847_active == ServiceID.V2G
+        ):
+            # Trigger via CurrentDemandRes -> Check EvsePresentCurrent, EvseMaximumCurrentLimit & EvseMaximumPowerLimit
+            if (current_demand_res.evse_present_current.value < 0
+                and current_demand_res.evse_max_current_limit.value < 0
+                and current_demand_res.evse_max_power_limit.value < 0
+            ):
+                dc_ev_charge_params = (
+                    await ev_controller.get_dc_discharge_params()
+                )
+            else:
+                dc_ev_charge_params = (
+                    await ev_controller.get_dc_charge_params()
+                )
+        # Todo(sl): trigger via node-red bpt and normal charging
+            
+        else: 
+            dc_ev_charge_params = (
+                await ev_controller.get_dc_charge_params()
+            )
         current_demand_req = CurrentDemandReq(
             dc_ev_status=await ev_controller.get_dc_ev_status(),
             ev_target_current=dc_ev_charge_params.dc_target_current,

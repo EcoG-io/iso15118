@@ -141,6 +141,8 @@ class EVCCCommunicationSession(V2GCommunicationSession):
 
         self.is_tls = self.config.use_tls
 
+        self.sae_j2847_active: int = 0
+
     def create_sap(self) -> Union[SupportedAppProtocolReq, None]:
         """
         Sends a Supported App Protocol Request (SAP Request) via TCP to the

@@ -135,7 +135,9 @@ class ServiceID(IntEnum):
     # ("Service enabling the exchange of use case specific information about
     # the EVSE"). No idea what they mean by that, so we go with 'OtherCustom'.
     CUSTOM = 4
-
+    # SAE J2847/2 V2H/G
+    V2H = 28472
+    V2G = 28473
 
 class ServiceCategory(str, Enum):
     """See section 8.4.3.3.2 in ISO 15118-2"""
