@@ -1783,11 +1783,20 @@ class DCChargeLoop(StateSECC):
         self.update_dc_charge_loop_params(
             dc_charge_loop_req, selected_energy_service, control_mode
         )
-        await self.comm_session.evse_controller.send_charging_power_limits(
-            self.comm_session.protocol,
-            control_mode,
-            selected_energy_service.service,
-        )
+        try:
+            await self.comm_session.evse_controller.send_charging_power_limits(
+                self.comm_session.protocol,
+                control_mode,
+                selected_energy_service.service,
+            )
+        except asyncio.TimeoutError:
+            self.stop_state_machine(
+                "Error sending targets to charging station in charging loop.",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
+
         dc_charge_loop_res = await self.build_dc_charge_loop_res(
             dc_charge_loop_req.meter_info_requested
         )
