@@ -1,0 +1,10 @@
+{
+	"supportedProtocols": [
+		"ISO_15118_20_AC"
+	],
+	"supportedEnergyServices": [
+		"AC"
+	],
+	"isCertInstallNeeded": false,
+	"useTls": false
+}

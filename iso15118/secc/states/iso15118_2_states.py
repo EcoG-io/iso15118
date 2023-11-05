@@ -10,11 +10,8 @@ import time
 from typing import List, Optional, Tuple, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.interface import (
-    AuthorizationResponse,
-    EVChargeParamsLimits,
-    EVSessionContext15118,
-)
+from iso15118.secc.controller.ev_data import EVChargeParamsLimits, EVSessionContext15118
+from iso15118.secc.controller.interface import AuthorizationResponse
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
     CertAttributeError,
@@ -2235,7 +2232,7 @@ class CableCheck(StateSECC):
                 return
 
             self.cable_check_req_was_received = True
-        self.comm_session.evse_controller.ev_data_context.soc = (
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
             cable_check_req.dc_ev_status.ev_ress_soc
         )
 
@@ -2329,7 +2326,7 @@ class PreCharge(StateSECC):
             )
             return
 
-        self.comm_session.evse_controller.ev_data_context.soc = (
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
             precharge_req.dc_ev_status.ev_ress_soc
         )
 
@@ -2425,17 +2422,17 @@ class CurrentDemand(StateSECC):
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
 
-        self.comm_session.evse_controller.ev_data_context.soc = (
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
             current_demand_req.dc_ev_status.ev_ress_soc
         )
 
-        self.comm_session.evse_controller.ev_data_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
             None
             if current_demand_req.remaining_time_to_bulk_soc is None
             else current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
         )
 
-        self.comm_session.evse_controller.ev_data_context.remaining_time_to_full_soc_s = (  # noqa: E501
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.remaining_time_to_full_soc_s = (  # noqa: E501
             None
             if current_demand_req.remaining_time_to_full_soc is None
             else current_demand_req.remaining_time_to_full_soc.get_decimal_value()
