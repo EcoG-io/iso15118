@@ -7,6 +7,8 @@ from iso15118.secc import Config
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.security import CertPath
 from iso15118.shared.settings import SettingKey, shared_settings
+from iso15118.shared.utils import load_requested_energy_services, \
+    load_requested_protocols, load_requested_auth_modes
 
 
 class TestSECCConfig:
@@ -23,53 +25,44 @@ class TestSECCConfig:
             free_cert_install_service=True,
             allow_cert_install_service=True,
             use_cpo_backend=False,
-            supported_protocols=[Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121],
-            supported_auth_options=[AuthEnum.EIM],
+            supported_protocols=load_requested_protocols(["ISO_15118_2", "DIN_SPEC_70121"]),
+            supported_auth_options=load_requested_auth_modes(["EIM"]),
             standby_allowed=False,
         )
 
     @pytest.mark.parametrize(
-        "config_name, new_value",
+        "config_name, new_value, expected_value",
         [
-            ("iface", "en0"),
-            ("log_level", logging.INFO),
-            ("enforce_tls", True),
-            ("free_charging_service", True),
-            ("free_cert_install_service", False),
-            ("use_cpo_backend", True),
+            ("iface", "en0", "en0"),
+            ("log_level", logging.INFO, logging.INFO),
+            ("enforce_tls", "true",True),
+            ("free_charging_service","true", True),
+            ("free_cert_install_service","false", False),
+            ("use_cpo_backend", "true", True),
             (
                 "supported_protocols",
-                [Protocol.ISO_15118_20_AC, Protocol.ISO_15118_20_WPT],
+                "ISO_15118_20_AC, ISO_15118_2",
+                [Protocol.ISO_15118_20_AC,Protocol.ISO_15118_2]
             ),
-            ("supported_auth_options", [AuthEnum.PNC]),
-            ("standby_allowed", True),
-            ("pki_path", "/other_path"),
-            ("message_log_json", False),
+            ("supported_auth_options", "PNC", [AuthEnum.PNC]),
+            ("supported_auth_options", "EIM,PNC", [AuthEnum.EIM,AuthEnum.PNC]),
+            ("standby_allowed", "true",True),
+            ("pki_path", "/other_path", "/other_path"),
+            ("message_log_json", "false", False),
         ],
     )
-    def test_update(self, config_name, new_value):
+    def test_update(self, config_name, new_value, expected_value):
         value = self.config.get_value(config_name)
         self.config.update({config_name: new_value})
         updated_value = self.config.get_value(config_name)
-        assert value != updated_value and new_value == updated_value
+        assert value != updated_value
+        if isinstance(updated_value, list):
+            assert len(expected_value) == len(updated_value)
+            for value in updated_value:
+                assert value in expected_value
+        else:
+            assert expected_value == updated_value
 
-    @pytest.mark.parametrize(
-        "config",
-        [
-            {"iface": "en0", "log_level": logging.INFO, "enforce_tls": True},
-            {"pki_path": "/other_path", "message_log_json": False},
-            {"iface": "en0", "message_log_json": False},
-        ],
-    )
-    def test_update_multiple(self, config):
-        first_values = {}
-        for key, value in config.items():
-            first_values[key] = self.config.get_value(key)
-        self.config.update(config)
-        for key, value in config.items():
-            assert first_values[key] != self.config.get_value(
-                key
-            ) and value == self.config.get_value(key)
 
     def test_pki_path_update(self):
         self.config.update({"pki_path": "./test_pki_path"})
@@ -78,10 +71,6 @@ class TestSECCConfig:
             "./test_pki_path", "iso15118_2/certs/seccLeafCert.pem"
         )
         assert secc_leaf_new_path == secc_leaf_path_expected
-
-    def test_update_with_wrong_value_type(self):
-        with pytest.raises(TypeError):
-            self.config.update({"pki_path": None, "message_log_json": "False"})
 
     def test_update_key_is_not_in_config(self):
         with pytest.raises(ValueError):

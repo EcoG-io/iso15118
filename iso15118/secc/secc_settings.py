@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Callable, List, Optional, Type, Union
 
 import environs
@@ -117,7 +118,7 @@ class Config:
             logger.info(f"{key:30}: {value}")
 
     def _get_from_dict(
-        self, dictionary: dict, key: str, type: Type = str, default=None
+        self, dictionary: dict, key: str, type_of_value: Type = str, default=None
     ) -> Any:
         """
         Find a key in a dictionary, convert its associated value to a new type, and return the result.
@@ -132,10 +133,12 @@ class Config:
         The value associated with the key, converted to the new_type, or the default value if the key is not found.
         """
         if key in dictionary:
+            if type(dictionary[key]) == type_of_value:
+                return dictionary[key]
             try:
-                if type == bool:
+                if type_of_value == bool:
                     return dictionary[key].lower() == "true"
-                elif type == list:
+                elif type_of_value == list:
                     return dictionary[key].split(",")
                 else:
                     return type(dictionary[key])
@@ -144,46 +147,64 @@ class Config:
         else:
             return default
 
-    def update_shared_settings(self, source: dict):
-        for key, value in source.items():
-            current_value = shared_settings[key]
-            shared_settings.update(
-                {
-                    key: self._get_from_dict(
-                        source, key, type(current_value), current_value
-                    )
-                }
-            )
+    def update_shared_settings(self, new_config: dict):
+        try:
+            for key, value in new_config.items():
+                current_value = shared_settings[key]
+                shared_settings.update(
+                    {
+                        key: self._get_from_dict(
+                            new_config, key, type(current_value), current_value
+                        )
+                    }
+                )
+        except KeyError as exc:
+            logger.error(f"{exc}")
 
-    def update(self, source: dict):
-        for key, value in source.items():
-            current_value = self.as_dict()[key]
-            update_value = self._get_from_dict(
-                source, key, type(current_value), current_value
+    def update(self, new_config: dict):
+        for key, value in new_config.items():
+            old_value = self.get_value_str(key)
+            logger.info(f"Key: {key}")
+            if key in shared_settings.keys():
+                logger.info(f"Key: {key}")
+                self.update_shared_settings(new_config)
+            elif key in self.as_dict().keys():
+                current_value = self.as_dict()[key]
+                update_value = self._get_from_dict(
+                    new_config, key, type(current_value), current_value
+                )
+                if current_value == update_value:
+                    continue
+                if key == "supported_auth_options":
+                    update_value = load_requested_auth_modes(update_value)
+                elif key == "supported_protocols":
+                    update_value = load_requested_protocols(update_value)
+                elif key == "log_level":
+                    logging.getLogger().setLevel(value)
+                self.as_dict().update({key: update_value})
+            else:
+                raise ValueError("Key is not in the config")
+            logger.info(
+                f"Config is updated key = {key}: old value = "
+                f"{old_value} - new value = {self.get_value_str(key)}"
             )
-            if key == "supported_auth_options":
-                update_value = load_requested_auth_modes(update_value)
-            elif key == "supported_protocols":
-                update_value = load_requested_protocols(update_value)
-            elif key == "log_level":
-                logging.getLogger().setLevel(value)
-            self.as_dict().update({key: update_value})
-
     def as_dict(self):
         return self.__dict__
 
     def get_value(self, key):
-        if key in shared_settings:
+        if key in shared_settings.keys():
             return shared_settings[key]
         else:
             return self.as_dict()[key]
 
-    def get_value_str(self, key):
-        if key in shared_settings:
+    def get_value_str(self, key)->Optional[str]:
+        if key in shared_settings.keys():
             value = shared_settings[key]
-        else:
+        elif key in  self.as_dict().keys():
             value = self.as_dict()[key]
+        else:
+            return None
 
-        if type(value) == list:
-            return [enum_to_str(v) for v in value]
+        if type(value) == list and all(isinstance(item, Enum) for item in value):
+            value = [enum_to_str(v) for v in value]
         return str(value)
