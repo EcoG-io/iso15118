@@ -79,6 +79,7 @@ def load_requested_auth_modes(read_auth_modes: Optional[List[str]]) -> List[Auth
         )
     return [AuthEnum[x] for x in valid_auth_options]
 
+
 async def cancel_task(task):
     """Cancel the task safely"""
     task.cancel()
