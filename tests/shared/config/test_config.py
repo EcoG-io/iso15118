@@ -7,10 +7,7 @@ from iso15118.secc import Config
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.security import CertPath
 from iso15118.shared.settings import SettingKey, shared_settings
-from iso15118.shared.utils import (
-    load_requested_auth_modes,
-    load_requested_protocols,
-)
+from iso15118.shared.utils import load_requested_auth_modes, load_requested_protocols
 
 
 class TestSECCConfig:
