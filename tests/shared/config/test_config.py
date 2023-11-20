@@ -7,8 +7,11 @@ from iso15118.secc import Config
 from iso15118.shared.messages.enums import AuthEnum, Protocol
 from iso15118.shared.security import CertPath
 from iso15118.shared.settings import SettingKey, shared_settings
-from iso15118.shared.utils import load_requested_energy_services, \
-    load_requested_protocols, load_requested_auth_modes
+from iso15118.shared.utils import (
+    load_requested_auth_modes,
+    load_requested_energy_services,
+    load_requested_protocols,
+)
 
 
 class TestSECCConfig:
@@ -25,7 +28,9 @@ class TestSECCConfig:
             free_cert_install_service=True,
             allow_cert_install_service=True,
             use_cpo_backend=False,
-            supported_protocols=load_requested_protocols(["ISO_15118_2", "DIN_SPEC_70121"]),
+            supported_protocols=load_requested_protocols(
+                ["ISO_15118_2", "DIN_SPEC_70121"]
+            ),
             supported_auth_options=load_requested_auth_modes(["EIM"]),
             standby_allowed=False,
         )
@@ -35,18 +40,18 @@ class TestSECCConfig:
         [
             ("iface", "en0", "en0"),
             ("log_level", logging.INFO, logging.INFO),
-            ("enforce_tls", "true",True),
-            ("free_charging_service","true", True),
-            ("free_cert_install_service","false", False),
+            ("enforce_tls", "true", True),
+            ("free_charging_service", "true", True),
+            ("free_cert_install_service", "false", False),
             ("use_cpo_backend", "true", True),
             (
                 "supported_protocols",
                 "ISO_15118_20_AC, ISO_15118_2",
-                [Protocol.ISO_15118_20_AC,Protocol.ISO_15118_2]
+                [Protocol.ISO_15118_20_AC, Protocol.ISO_15118_2],
             ),
             ("supported_auth_options", "PNC", [AuthEnum.PNC]),
-            ("supported_auth_options", "EIM,PNC", [AuthEnum.EIM,AuthEnum.PNC]),
-            ("standby_allowed", "true",True),
+            ("supported_auth_options", "EIM,PNC", [AuthEnum.EIM, AuthEnum.PNC]),
+            ("standby_allowed", "true", True),
             ("pki_path", "/other_path", "/other_path"),
             ("message_log_json", "false", False),
         ],
@@ -62,7 +67,6 @@ class TestSECCConfig:
                 assert value in expected_value
         else:
             assert expected_value == updated_value
-
 
     def test_pki_path_update(self):
         self.config.update({"pki_path": "./test_pki_path"})

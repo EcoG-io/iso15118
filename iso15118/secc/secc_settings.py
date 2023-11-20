@@ -188,6 +188,7 @@ class Config:
                 f"Config is updated key = {key}: old value = "
                 f"{old_value} - new value = {self.get_value_str(key)}"
             )
+
     def as_dict(self):
         return self.__dict__
 
@@ -197,10 +198,10 @@ class Config:
         else:
             return self.as_dict()[key]
 
-    def get_value_str(self, key)->Optional[str]:
+    def get_value_str(self, key) -> Optional[str]:
         if key in shared_settings.keys():
             value = shared_settings[key]
-        elif key in  self.as_dict().keys():
+        elif key in self.as_dict().keys():
             value = self.as_dict()[key]
         else:
             return None
