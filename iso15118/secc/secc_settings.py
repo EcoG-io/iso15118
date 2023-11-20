@@ -1,16 +1,14 @@
-import dataclasses
-import json
 import logging
 import os
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, List, Optional, Type, Union
+from typing import Any, List, Optional, Type, Union
 
 import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.enums import AuthEnum, Protocol
-from iso15118.shared.settings import SettingKey, shared_settings
+from iso15118.shared.settings import shared_settings
 from iso15118.shared.utils import (
     enum_to_str,
     load_requested_auth_modes,
@@ -121,19 +119,22 @@ class Config:
         self, dictionary: dict, key: str, type_of_value: Type = str, default=None
     ) -> Any:
         """
-        Find a key in a dictionary, convert its associated value to a new type, and return the result.
+        Find a key in a dictionary, convert its associated value to a new type,
+        and return the result.
 
         Args:
         dictionary (dict): The dictionary to search in.
         key: The key to find in the dictionary.
         new_type (type): The target type to convert the value to.
-        default: The default value to return if the key is not found in the dictionary (optional).
+        default: The default value to return if the key is not found in the
+        dictionary (optional).
 
         Returns:
-        The value associated with the key, converted to the new_type, or the default value if the key is not found.
+        The value associated with the key, converted to the new_type, or the default
+        value if the key is not found.
         """
         if key in dictionary:
-            if type(dictionary[key]) == type_of_value:
+            if type(dictionary[key]) is type_of_value:
                 return dictionary[key]
             try:
                 if type_of_value == bool:
@@ -206,6 +207,6 @@ class Config:
         else:
             return None
 
-        if type(value) == list and all(isinstance(item, Enum) for item in value):
+        if type(value) is list and all(isinstance(item, Enum) for item in value):
             value = [enum_to_str(v) for v in value]
         return str(value)
