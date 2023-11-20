@@ -103,10 +103,9 @@ class Config:
         # enum values in PowerDeliveryReq's ChargeProgress field). In Standby, the
         # EV can still use value-added services while not consuming any power.
         self.standby_allowed = env.bool("STANDBY_ALLOWED", default=False)
-        # load_shared_settings()
+        load_shared_settings(env_path)
         env.seal()  # raise all errors at once, if any
         self.env_dump = dict(env.dump())
-        load_shared_settings(env_path)
         self.env_dump.update(shared_settings)
 
     def print_settings(self):

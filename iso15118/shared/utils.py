@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from enum import Enum
 from typing import Coroutine, List, Optional
 
 from iso15118.shared.exceptions import (
@@ -79,11 +78,6 @@ def load_requested_auth_modes(read_auth_modes: Optional[List[str]]) -> List[Auth
             f" file with key 'AUTH_MODES'"
         )
     return [AuthEnum[x] for x in valid_auth_options]
-
-
-def enum_to_str(enum_value: Enum):
-    return enum_value.name if enum_value is not None else None
-
 
 async def cancel_task(task):
     """Cancel the task safely"""
