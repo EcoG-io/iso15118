@@ -165,9 +165,7 @@ class Config:
     def update(self, new_config: dict):
         for key, value in new_config.items():
             old_value = self.get_value_str(key)
-            logger.info(f"Key: {key}")
             if key in shared_settings.keys():
-                logger.info(f"Key: {key}")
                 self.update_shared_settings(new_config)
             elif key in self.as_dict().keys():
                 current_value = self.as_dict()[key]

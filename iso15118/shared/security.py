@@ -249,7 +249,6 @@ def load_priv_key_pass(
     """
     if password_path:
         try:
-            print(f"PASSWORD PATH : {password_path}")
             with open(password_path, "r") as password_file:
                 password = password_file.readline().rstrip().encode(encoding="utf-8")
                 if password == b"":
