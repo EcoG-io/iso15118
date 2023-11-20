@@ -1,19 +1,14 @@
 import logging
 import os
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, List, Optional, Type, Union
+from typing import Any, List, Mapping, Optional, Type, Union
 
 import environs
 
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.enums import AuthEnum, Protocol
-from iso15118.shared.settings import shared_settings
-from iso15118.shared.utils import (
-    enum_to_str,
-    load_requested_auth_modes,
-    load_requested_protocols,
-)
+from iso15118.shared.settings import load_shared_settings, shared_settings
+from iso15118.shared.utils import load_requested_auth_modes, load_requested_protocols
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +37,7 @@ class Config:
         "EIM",
         "PNC",
     ]
+    env_dump: Optional[dict] = None
 
     def load_envs(self, env_path: Optional[str] = None) -> None:
         """
@@ -107,104 +103,13 @@ class Config:
         # enum values in PowerDeliveryReq's ChargeProgress field). In Standby, the
         # EV can still use value-added services while not consuming any power.
         self.standby_allowed = env.bool("STANDBY_ALLOWED", default=False)
-
+        # load_shared_settings()
         env.seal()  # raise all errors at once, if any
+        self.env_dump = dict(env.dump())
+        load_shared_settings(env_path)
+        self.env_dump.update(shared_settings)
+
+    def print_settings(self):
         logger.info("SECC settings:")
-        for key, value in shared_settings.items():
-            logger.info(f"{key.upper():30}: {value}")
-        for key, value in env.dump().items():
+        for key, value in self.env_dump.items():
             logger.info(f"{key:30}: {value}")
-
-    def _get_from_dict(
-        self, dictionary: dict, key: str, type_of_value: Type = str, default=None
-    ) -> Any:
-        """
-        Find a key in a dictionary, convert its associated value to a new type,
-        and return the result.
-
-        Args:
-        dictionary (dict): The dictionary to search in.
-        key: The key to find in the dictionary.
-        new_type (type): The target type to convert the value to.
-        default: The default value to return if the key is not found in the
-        dictionary (optional).
-
-        Returns:
-        The value associated with the key, converted to the new_type, or the default
-        value if the key is not found.
-        """
-        if key in dictionary:
-            if type(dictionary[key]) is type_of_value:
-                return dictionary[key]
-            try:
-                if type_of_value == bool:
-                    return dictionary[key].lower() == "true"
-                elif type_of_value == list:
-                    return dictionary[key].split(",")
-                else:
-                    return type(dictionary[key])
-            except (ValueError, TypeError):
-                return default
-        else:
-            return default
-
-    def update_shared_settings(self, new_config: dict):
-        try:
-            for key, value in new_config.items():
-                current_value = shared_settings[key]
-                shared_settings.update(
-                    {
-                        key: self._get_from_dict(
-                            new_config, key, type(current_value), current_value
-                        )
-                    }
-                )
-        except KeyError as exc:
-            logger.error(f"{exc}")
-
-    def update(self, new_config: dict):
-        for key, value in new_config.items():
-            old_value = self.get_value_str(key)
-            if key in shared_settings.keys():
-                self.update_shared_settings(new_config)
-            elif key in self.as_dict().keys():
-                current_value = self.as_dict()[key]
-                update_value = self._get_from_dict(
-                    new_config, key, type(current_value), current_value
-                )
-                if current_value == update_value:
-                    continue
-                if key == "supported_auth_options":
-                    update_value = load_requested_auth_modes(update_value)
-                elif key == "supported_protocols":
-                    update_value = load_requested_protocols(update_value)
-                elif key == "log_level":
-                    logging.getLogger().setLevel(value)
-                self.as_dict().update({key: update_value})
-            else:
-                raise ValueError("Key is not in the config")
-            logger.info(
-                f"Config is updated key = {key}: old value = "
-                f"{old_value} - new value = {self.get_value_str(key)}"
-            )
-
-    def as_dict(self):
-        return self.__dict__
-
-    def get_value(self, key):
-        if key in shared_settings.keys():
-            return shared_settings[key]
-        else:
-            return self.as_dict()[key]
-
-    def get_value_str(self, key) -> Optional[str]:
-        if key in shared_settings.keys():
-            value = shared_settings[key]
-        elif key in self.as_dict().keys():
-            value = self.as_dict()[key]
-        else:
-            return None
-
-        if type(value) is list and all(isinstance(item, Enum) for item in value):
-            value = [enum_to_str(v) for v in value]
-        return str(value)

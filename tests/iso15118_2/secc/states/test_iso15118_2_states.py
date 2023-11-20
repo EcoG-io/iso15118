@@ -53,6 +53,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.security import get_random_bytes
+from iso15118.shared.settings import load_shared_settings
 from iso15118.shared.states import Pause
 from tests.iso15118_2.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
@@ -92,6 +93,7 @@ class TestV2GSessionScenarios:
         self.comm_session.writer = Mock()
         self.comm_session.writer.get_extra_info = Mock()
         self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
+        load_shared_settings()
 
     def get_evse_data(self) -> EVSEDataContext:
         dc_limits = EVSEDCCPDLimits(

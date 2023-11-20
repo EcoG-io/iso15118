@@ -6,7 +6,7 @@ from typing import Optional
 import environs
 
 from iso15118.shared.network import validate_nic
-from iso15118.shared.settings import shared_settings
+from iso15118.shared.settings import load_shared_settings, shared_settings
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,7 @@ class Config:
             default="iso15118/shared/examples/evcc/iso15118_2/evcc_config_eim_ac.json",
         )
         env.seal()  # raise all errors at once, if any
+        load_shared_settings()
         logger.info("EVCC environment settings:")
         for key, value in shared_settings.items():
             logger.info(f"{key:30}: {value}")
