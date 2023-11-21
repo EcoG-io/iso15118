@@ -59,6 +59,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
     ScheduledDCChargeLoopResParams,
 )
 from iso15118.shared.notifications import StopNotification
+from iso15118.shared.settings import load_shared_settings
 from iso15118.shared.states import State, Terminate
 from tests.dinspec.secc.test_dinspec_secc_states import MockWriter
 from tests.iso15118_20.secc.test_messages import (
@@ -90,6 +91,7 @@ class TestEvScenarios:
         self.comm_session.evse_controller.ev_data_context = EVDataContext(
             ev_rated_limits=EVRatedLimits(dc_limits=EVDCCPDLimits())
         )
+        load_shared_settings()
 
     def get_evse_data(self) -> EVSEDataContext:
         dc_limits = EVSEDCCPDLimits(
