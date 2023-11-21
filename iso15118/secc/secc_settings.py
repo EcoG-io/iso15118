@@ -1,7 +1,7 @@
 import logging
 import os
 from dataclasses import dataclass
-from typing import List, Optional, Type, Union
+from typing import List, Optional, Type
 
 import environs
 
