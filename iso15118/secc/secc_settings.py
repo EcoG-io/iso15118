@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Config:
     iface: Optional[str] = None
-    log_level: Union[str, int] = None
+    log_level: Optional[str] = None
     evse_controller: Type[EVSEControllerInterface] = None
     enforce_tls: bool = False
     free_charging_service: bool = False
