@@ -206,7 +206,7 @@ class SessionStateMachine(ABC):
                 logger.trace(  # type: ignore[attr-defined]
                     f"{self.comm_session.evse_id}:::"
                     f"{v2gtp_msg.payload.hex()}:::"
-                    f"{self.get_exi_ns(v2gtp_msg.payload_type)}"
+                    f"{self.get_exi_ns(v2gtp_msg.payload_type).value}"
                 )
 
         except V2GMessageValidationError as exc:
