@@ -120,7 +120,7 @@ class SessionStateMachine(ABC):
     def get_exi_ns(
         self,
         payload_type: Union[DINPayloadTypes, ISOV2PayloadTypes, ISOV20PayloadTypes],
-    ) -> str:
+    ) -> Namespace:
         """
         Provides the right protocol namespace for the EXI decoder.
         In DIN SPEC 70121 and ISO 15118-2, all messages are defined
