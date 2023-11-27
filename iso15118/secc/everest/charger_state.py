@@ -12,11 +12,10 @@ class ChargerState:
     ReceiptRequired = False
     FreeService = False
     EVSEEnergyToBeDelivered = 0
-    debug_mode = 'None'
+    debug_mode = False
     stop_charging = False
-    auth_okay_eim = False
-    auth_pnc_status = 'Ongoing'
-    auth_pnc_certificate_status = 'Ongoing'
+    auth_status = 'Ongoing'
+    certificate_status = 'Ongoing'
     EVSE_UtilityInterruptEvent = False
     EVSE_EmergencyShutdown = False
     EVSE_Malfunction = False
@@ -49,9 +48,8 @@ class ChargerState:
     def reset(self):
         # Common
         self.stop_charging = False
-        self.auth_okay_eim = False
-        self.auth_pnc_status = 'Ongoing'
-        self.auth_pnc_certificate_status = 'Ongoing'
+        self.auth_status = 'Ongoing'
+        self.certificate_status = 'Ongoing'
         self.EVSE_UtilityInterruptEvent = False
         self.EVSE_EmergencyShutdown = False
         self.EVSE_Malfunction = False

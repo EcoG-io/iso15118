@@ -446,15 +446,13 @@ class SimEVSEController(EVSEControllerInterface):
 
         if id_token_type is AuthorizationTokenType.EXTERNAL:
 
-            eim_auth_status: bool = EVEREST_CHARGER_STATE.auth_okay_eim
-
-            if eim_auth_status is True:
+            if EVEREST_CHARGER_STATE.auth_status == "Accepted":
                 return AuthorizationStatus.ACCEPTED 
 
         elif id_token_type is AuthorizationTokenType.EMAID:
 
-            pnc_auth_status: str = EVEREST_CHARGER_STATE.auth_pnc_status
-            certificate_status = EVEREST_CHARGER_STATE.auth_pnc_certificate_status
+            pnc_auth_status: str = EVEREST_CHARGER_STATE.auth_status
+            certificate_status = EVEREST_CHARGER_STATE.certificate_status
 
             if pnc_auth_status == "Accepted" and certificate_status in ['Ongoing', 'Accepted']:
                 return AuthorizationStatus.ACCEPTED

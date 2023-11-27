@@ -565,7 +565,7 @@ def debugV2GMessages(decoded_message, v2gtp_msg):
     import base64
     from iso15118.shared.states import Base64
 
-    if EVEREST_CTX.charger_state.debug_mode == "Full":
+    if EVEREST_CTX.charger_state.debug_mode:
 
         if isinstance(decoded_message, Base64):
             return
