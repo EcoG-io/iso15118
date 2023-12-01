@@ -1086,6 +1086,8 @@ class SimEVSEController(EVSEControllerInterface):
             voltage: Union[PVEVTargetVoltage, RationalNumber],
             current: Union[PVEVTargetCurrent, RationalNumber],
     ):
+        print(f"KARATAS {voltage.value}")
+        print(f"KARATAS {current.value}")
         self.evse_data_context.session_context.evse_present_voltage = voltage
         self.evse_data_context.session_context.evse_present_current = current
 
