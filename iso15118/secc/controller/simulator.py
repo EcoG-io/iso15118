@@ -1082,11 +1082,12 @@ class SimEVSEController(EVSEControllerInterface):
         return IsolationLevel.VALID
 
     async def set_precharge(
-        self,
-        voltage: Union[PVEVTargetVoltage, RationalNumber],
-        current: Union[PVEVTargetCurrent, RationalNumber],
+            self,
+            voltage: Union[PVEVTargetVoltage, RationalNumber],
+            current: Union[PVEVTargetCurrent, RationalNumber],
     ):
-        pass
+        self.evse_data_context.session_context.evse_present_voltage = voltage
+        self.evse_data_context.session_context.evse_present_current = current
 
     async def send_charging_command(
         self,
