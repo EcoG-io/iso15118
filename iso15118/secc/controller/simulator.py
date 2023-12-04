@@ -1090,10 +1090,7 @@ class SimEVSEController(EVSEControllerInterface):
     ):
 
         self.evse_data_context.session_context.evse_present_voltage = voltage.get_decimal_value()
-        print(f"KARATAS set precharge: {voltage} - {current}")
-        print(f"KARATAS get decimal: {voltage.get_decimal_value()}")
-            # evse_present_voltagevoltage.value * 10**voltage.multiplier
-        self.evse_data_context.session_context.evse_present_current = 1
+        self.evse_data_context.session_context.evse_present_current = current.get_decimal_value()
     async def send_charging_command(
         self,
         voltage: Union[PVEVTargetVoltage, RationalNumber],
