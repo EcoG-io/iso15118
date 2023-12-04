@@ -552,6 +552,8 @@ class SimEVController(EVControllerInterface):
     async def is_precharged(
         self, present_voltage_evse: Union[PVEVSEPresentVoltage, RationalNumber]
     ) -> bool:
+        print(f"KARATAS {(await self.get_present_voltage()).get_decimal_value()}")
+        print(f"KARATAS {present_voltage_evse.get_decimal_value()}")
         if (
             self.precharge_loop_cycles == 5
             or present_voltage_evse.get_decimal_value()
