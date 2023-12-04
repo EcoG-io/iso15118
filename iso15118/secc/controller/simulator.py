@@ -1038,9 +1038,11 @@ class SimEVSEController(EVSEControllerInterface):
     ) -> Union[PVEVSEPresentVoltage, RationalNumber]:
         """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
         if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
+            print(f"protocol -> {protocol}")
             value, exponent = PhysicalValue.get_exponent_value_repr(
                 cast(int, self.evse_data_context.session_context.evse_present_voltage)
             )
+            print(f"value -> {value}, exponent {exponent}")
             try:
                 pv_evse_present_voltage = PVEVSEPresentVoltage(
                     multiplier=exponent, value=value, unit="V"
@@ -1086,8 +1088,11 @@ class SimEVSEController(EVSEControllerInterface):
             voltage: Union[PVEVTargetVoltage, RationalNumber],
             current: Union[PVEVTargetCurrent, RationalNumber],
     ):
+
+        self.evse_data_context.session_context.evse_present_voltage = voltage.get_decimal_value()
         print(f"KARATAS set precharge: {voltage} - {current}")
-        self.evse_data_context.session_context.evse_present_voltage = voltage.value * 10**voltage.multiplier
+        print(f"KARATAS get decimal: {voltage.get_decimal_value()}")
+            # evse_present_voltagevoltage.value * 10**voltage.multiplier
         self.evse_data_context.session_context.evse_present_current = 1
     async def send_charging_command(
         self,

@@ -136,7 +136,7 @@ class SimEVController(EVControllerInterface):
                 multiplier=0, value=1, unit=UnitSymbol.AMPERE
             ),
             dc_target_voltage=PVEVTargetVoltage(
-                multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
+                multiplier=3, value=20, unit=UnitSymbol.VOLTAGE
             ),
         )
 

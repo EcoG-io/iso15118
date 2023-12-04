@@ -2370,7 +2370,7 @@ class PreCharge(StateSECC):
                 Protocol.ISO_15118_2
             )
         )
-
+        print(f"evse_present_voltage {evse_present_voltage}")
         precharge_res = PreChargeRes(
             response_code=ResponseCode.OK,
             dc_evse_status=dc_charger_state,
