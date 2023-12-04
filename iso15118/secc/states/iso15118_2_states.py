@@ -2369,6 +2369,7 @@ class PreCharge(StateSECC):
                 Protocol.ISO_15118_2
             )
         )
+
         precharge_res = PreChargeRes(
             response_code=ResponseCode.OK,
             dc_evse_status=dc_charger_state,
