@@ -2359,7 +2359,6 @@ class PreCharge(StateSECC):
         # Set precharge voltage in every loop.
         # Because there are EVs that send a wrong Precharge-Voltage
         # in the first message (example: BMW i3 Rex 2018)
-        print(f"KARATASSSS -> {precharge_req.ev_target_voltage}")
         await self.comm_session.evse_controller.set_precharge(
             precharge_req.ev_target_voltage, precharge_req.ev_target_current
         )
@@ -2370,7 +2369,6 @@ class PreCharge(StateSECC):
                 Protocol.ISO_15118_2
             )
         )
-        print(f"evse_present_voltage {evse_present_voltage}")
         precharge_res = PreChargeRes(
             response_code=ResponseCode.OK,
             dc_evse_status=dc_charger_state,

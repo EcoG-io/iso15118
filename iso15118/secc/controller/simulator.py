@@ -1038,11 +1038,9 @@ class SimEVSEController(EVSEControllerInterface):
     ) -> Union[PVEVSEPresentVoltage, RationalNumber]:
         """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
         if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
-            print(f"protocol -> {protocol}")
             value, exponent = PhysicalValue.get_exponent_value_repr(
                 cast(int, self.evse_data_context.session_context.evse_present_voltage)
             )
-            print(f"value -> {value}, exponent {exponent}")
             try:
                 pv_evse_present_voltage = PVEVSEPresentVoltage(
                     multiplier=exponent, value=value, unit="V"
@@ -1084,13 +1082,17 @@ class SimEVSEController(EVSEControllerInterface):
         return IsolationLevel.VALID
 
     async def set_precharge(
-            self,
-            voltage: Union[PVEVTargetVoltage, RationalNumber],
-            current: Union[PVEVTargetCurrent, RationalNumber],
+        self,
+        voltage: Union[PVEVTargetVoltage, RationalNumber],
+        current: Union[PVEVTargetCurrent, RationalNumber],
     ):
+        self.evse_data_context.session_context.evse_present_voltage = (
+            voltage.get_decimal_value()
+        )
+        self.evse_data_context.session_context.evse_present_current = (
+            current.get_decimal_value()
+        )
 
-        self.evse_data_context.session_context.evse_present_voltage = voltage.get_decimal_value()
-        self.evse_data_context.session_context.evse_present_current = current.get_decimal_value()
     async def send_charging_command(
         self,
         voltage: Union[PVEVTargetVoltage, RationalNumber],
