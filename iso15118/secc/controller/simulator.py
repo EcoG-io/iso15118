@@ -1086,7 +1086,12 @@ class SimEVSEController(EVSEControllerInterface):
         voltage: Union[PVEVTargetVoltage, RationalNumber],
         current: Union[PVEVTargetCurrent, RationalNumber],
     ):
-        pass
+        self.evse_data_context.session_context.evse_present_voltage = (
+            voltage.get_decimal_value()
+        )
+        self.evse_data_context.session_context.evse_present_current = (
+            current.get_decimal_value()
+        )
 
     async def send_charging_command(
         self,
