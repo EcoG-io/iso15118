@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.23.8] - 2023-12-06
+* chore(deps-dev): bump pytest-asyncio from 0.21.1 to 0.23.2 by @dependabot in https://github.com/SwitchEV/iso15118/pull/332
+* Precharge EVSE voltage-current by @ikaratass in https://github.com/SwitchEV/iso15118/pull/333
+* JTT-458 Fix json logging in iso15118 by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/335
 
 ## [0.23.7] - 2023-11-22
 * log namespace value by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/328

@@ -244,7 +244,7 @@ class EXI:
                                    {exc}"
             ) from exc
 
-        if shared_settings[SettingKey.MESSAGE_LOG_EXI]:
+        if shared_settings[SettingKey.MESSAGE_LOG_JSON]:
             logger.info(f"Message to encode (ns={protocol_ns}): {msg_content}")
 
         try:

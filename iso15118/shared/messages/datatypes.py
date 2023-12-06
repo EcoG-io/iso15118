@@ -75,6 +75,9 @@ class PhysicalValue(BaseModel):
         while abs(calculated_value) < 1:
             calculated_value *= 10
             exponent -= 1
+        while exponent > 3:
+            exponent -= 1
+            calculated_value *= 10
 
         return cast(int, calculated_value), exponent
 
