@@ -1447,12 +1447,6 @@ class ACChargeLoop(StateSECC):
                 bpt_dynamic_params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(  # noqa
                     ControlMode.DYNAMIC, ServiceV20.AC_BPT
                 )  # noqa
-
-                await self.comm_session.evse_controller.send_charging_power_limits(
-                    self.comm_session.protocol,
-                    control_mode,
-                    selected_energy_service.service,
-                )
         else:
             logger.error(
                 f"Energy service {selected_energy_service.service} not yet supported"

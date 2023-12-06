@@ -10,7 +10,7 @@ import time
 from typing import List, Optional, Tuple, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.ev_data import EVChargeParamsLimits, EVSessionContext15118
+from iso15118.secc.controller.ev_data import EVSessionContext15118
 from iso15118.secc.controller.interface import AuthorizationResponse
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
@@ -1332,6 +1332,8 @@ class ChargeParameterDiscovery(StateSECC):
                 ResponseCode.FAILED_WRONG_ENERGY_TRANSFER_MODE,
             )
             return
+        
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
 
         self.comm_session.selected_energy_mode = charge_params_req.requested_energy_mode
         self.comm_session.selected_charging_type_is_ac = (
@@ -1348,51 +1350,17 @@ class ChargeParameterDiscovery(StateSECC):
             ac_evse_charge_params = (
                 await self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
-            ev_max_voltage: Union[
-                PVEVMaxVoltageLimit, PVEVMaxVoltage
-            ] = charge_params_req.ac_ev_charge_parameter.ev_max_voltage
-            ev_max_current: Union[
-                PVEVMaxCurrentLimit, PVEVMaxCurrent
-            ] = charge_params_req.ac_ev_charge_parameter.ev_max_current
-            e_amount = charge_params_req.ac_ev_charge_parameter.e_amount
-            ev_charge_params_limits = EVChargeParamsLimits(
-                ev_max_voltage=ev_max_voltage,
-                ev_max_current=ev_max_current,
-                e_amount=e_amount,
-            )
-            departure_time = charge_params_req.ac_ev_charge_parameter.departure_time
+            ev_data_context.update_ac_charge_parameters_v2(charge_params_req.ac_ev_charge_parameter)
         else:
             dc_evse_charge_params = (
                 await self.comm_session.evse_controller.get_dc_evse_charge_parameter()
             )
-            ev_max_voltage = (
-                charge_params_req.dc_ev_charge_parameter.ev_maximum_voltage_limit
-            )
-            ev_max_current = (
-                charge_params_req.dc_ev_charge_parameter.ev_maximum_current_limit
-            )
-            ev_energy_request = (
-                charge_params_req.dc_ev_charge_parameter.ev_energy_request
-            )
-            ev_max_power = (
-                charge_params_req.dc_ev_charge_parameter.ev_maximum_power_limit
-            )
-            ev_charge_params_limits = EVChargeParamsLimits(
-                ev_max_voltage=ev_max_voltage,
-                ev_max_current=ev_max_current,
-                ev_max_power=ev_max_power,
-                ev_energy_request=ev_energy_request,
-            )
-            departure_time = charge_params_req.dc_ev_charge_parameter.departure_time
-
-        self.comm_session.evse_controller.ev_charge_params_limits = (
-            ev_charge_params_limits
-        )
+            ev_data_context.update_dc_charge_parameters_v2(charge_params_req.dc_ev_charge_parameter)
 
         if not departure_time:
             departure_time = 0
         sa_schedule_list = await self.comm_session.evse_controller.get_sa_schedule_list(
-            ev_charge_params_limits,
+            ev_data_context,
             self.comm_session.config.free_charging_service,
             max_schedule_entries,
             departure_time,
@@ -2325,11 +2293,8 @@ class PreCharge(StateSECC):
                 ResponseCode.FAILED,
             )
             return
-
-        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
-            precharge_req.dc_ev_status.ev_ress_soc
-        )
-
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+        ev_data_context.update_pre_charge_v2(precharge_req)
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
         present_current = (
@@ -2338,15 +2303,15 @@ class PreCharge(StateSECC):
             )
         )
         if isinstance(present_current, PVEVSEPresentCurrent):
-            present_current_in_a = (
-                present_current.value * 10**present_current.multiplier
-            )
-            target_current = precharge_req.ev_target_current
-            target_current_in_a = target_current.value * 10**target_current.multiplier
+            present_current_in_a = present_current.get_decimal_value()
+            target_current_in_a = ev_data_context.target_current
         else:
-            present_current_in_a = present_current.value
-            target_current = precharge_req.ev_target_current
-            target_current_in_a = target_current.value
+            self.stop_state_machine(
+                f"Error reading EVSE Present Current",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         if present_current_in_a > 2 or target_current_in_a > 2:
             self.stop_state_machine(
@@ -2360,7 +2325,7 @@ class PreCharge(StateSECC):
         # Because there are EVs that send a wrong Precharge-Voltage
         # in the first message (example: BMW i3 Rex 2018)
         await self.comm_session.evse_controller.set_precharge(
-            precharge_req.ev_target_voltage, precharge_req.ev_target_current
+            ev_data_context.target_current, ev_data_context.target_voltage
         )
 
         dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
@@ -2422,28 +2387,12 @@ class CurrentDemand(StateSECC):
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
 
-        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
-            current_demand_req.dc_ev_status.ev_ress_soc
-        )
+        self.comm_session.evse_controller.ev_data_context.update_charge_loop_v2(current_demand_req)
 
-        self.comm_session.evse_controller.ev_data_context.ev_session_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
-            None
-            if current_demand_req.remaining_time_to_bulk_soc is None
-            else current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
-        )
-
-        self.comm_session.evse_controller.ev_data_context.ev_session_context.remaining_time_to_full_soc_s = (  # noqa: E501
-            None
-            if current_demand_req.remaining_time_to_full_soc is None
-            else current_demand_req.remaining_time_to_full_soc.get_decimal_value()
-        )
-
-        self.comm_session.evse_controller.ev_charge_params_limits.ev_max_current = (
-            current_demand_req.ev_max_current_limit
-        )
-
+        # Updates the power electronics targets based on EV requests
         await self.comm_session.evse_controller.send_charging_command(
-            current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
+            voltage=current_demand_req.ev_target_voltage,
+            charge_current=current_demand_req.ev_target_current
         )
 
         # We don't care about signed meter values from the EVCC, but if you
