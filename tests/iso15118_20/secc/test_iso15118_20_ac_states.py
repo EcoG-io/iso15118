@@ -222,7 +222,6 @@ class TestEvScenarios:
         auth_mode,
         next_req_is_auth_req,
     ):
-        self.comm_session.evse_controller = SimEVSEController()
         mock_is_authorized = AsyncMock(return_value=is_authorized_response)
         self.comm_session.evse_controller.is_authorized = mock_is_authorized
 
