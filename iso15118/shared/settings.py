@@ -8,7 +8,6 @@ class SettingKey:
     PKI_PATH = "PKI_PATH"
     MESSAGE_LOG_JSON = "MESSAGE_LOG_JSON"
     MESSAGE_LOG_EXI = "MESSAGE_LOG_EXI"
-    V20_SERVICE_CONFIG = "V20_SERVICE_CONFIG"
     ENABLE_TLS_1_3 = "ENABLE_TLS_1_3"
 
 
@@ -27,10 +26,6 @@ def load_shared_settings(env_path: Optional[str] = None):
         SettingKey.PKI_PATH: env.str("PKI_PATH", default=SHARED_CWD + "/pki/"),
         SettingKey.MESSAGE_LOG_JSON: env.bool("MESSAGE_LOG_JSON", default=True),
         SettingKey.MESSAGE_LOG_EXI: env.bool("MESSAGE_LOG_EXI", default=False),
-        SettingKey.V20_SERVICE_CONFIG: env.str(
-            "V20_SERVICE_CONFIG",
-            default=SHARED_CWD + "/examples/secc/15118_20/service_config.json",
-        ),
         SettingKey.ENABLE_TLS_1_3: env.bool("ENABLE_TLS_1_3", default=False),
     }
     shared_settings.update(settings)

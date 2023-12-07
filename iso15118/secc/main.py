@@ -19,7 +19,7 @@ async def main():
     config.load_envs()
     config.print_settings()
 
-    sim_evse_controller = await SimEVSEController.create()
+    sim_evse_controller = SimEVSEController()
     await sim_evse_controller.set_status(ServiceStatus.STARTING)
     await SECCHandler(
         exi_codec=ExificientEXICodec(),

@@ -7,9 +7,6 @@ import logging
 import time
 from typing import Dict, List, Optional, Union, cast
 
-from aiofile import async_open
-from pydantic import BaseModel, Field
-
 from iso15118.secc.controller.evse_data import (
     EVSEACBPTCPDLimits,
     EVSEACCLLimits,
@@ -125,6 +122,8 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     DynamicScheduleExchangeResParams,
     OverstayRule,
     OverstayRuleList,
+    Parameter,
+    ParameterSet,
     PowerSchedule,
     PowerScheduleEntry,
     PowerScheduleEntryList,
@@ -170,16 +169,9 @@ from iso15118.shared.security import (
     load_cert,
     load_priv_key,
 )
-from iso15118.shared.settings import SettingKey, shared_settings
 from iso15118.shared.states import State
 
 logger = logging.getLogger(__name__)
-
-
-class V20ServiceParamMapping(BaseModel):
-    service_id_parameter_set_mapping: Dict[int, ServiceParameterList] = Field(
-        ..., alias="service_id_parameter_set_mapping"
-    )
 
 
 def get_evse_context():
@@ -268,47 +260,15 @@ def get_evse_context():
     return EVSEDataContext(rated_limits=rated_limits, session_context=session_context)
 
 
-# This method is added to help read the service to parameter
-# mapping (json format) from file. The key is in the dictionary is
-# enum value of the energy transfer mode and value is the service parameter
-async def read_service_id_parameter_mappings():
-    try:
-        async with async_open(
-            shared_settings[SettingKey.V20_SERVICE_CONFIG], "r"
-        ) as v20_service_config:
-            try:
-                json_mapping = await v20_service_config.read()
-                v20_service_parameter_mapping = V20ServiceParamMapping.parse_raw(
-                    json_mapping
-                )
-                return v20_service_parameter_mapping.service_id_parameter_set_mapping
-            except ValueError as exc:
-                raise ValueError(
-                    f"Error reading 15118-20 service parameters settings file"
-                    f" at {shared_settings[SettingKey.V20_SERVICE_CONFIG]}"
-                ) from exc
-    except (FileNotFoundError, IOError) as exc:
-        raise FileNotFoundError(
-            f"V20 config not found at {shared_settings[SettingKey.V20_SERVICE_CONFIG]}"
-        ) from exc
-
-
 class SimEVSEController(EVSEControllerInterface):
     """
     A simulated version of an EVSE controller
     """
 
-    v20_service_id_parameter_mapping: Optional[Dict[int, ServiceParameterList]] = None
-
-    @classmethod
-    async def create(cls):
-        self = SimEVSEController()
+    def __init__(self):
+        super().__init__()
         self.ev_data_context = EVDataContext()
         self.evse_data_context = get_evse_context()
-        self.v20_service_id_parameter_mapping = (
-            await read_service_id_parameter_mappings()
-        )
-        return self
 
     def reset_ev_data_context(self):
         self.ev_data_context = EVDataContext()
@@ -478,17 +438,75 @@ class SimEVSEController(EVSEControllerInterface):
         self, service_id: int
     ) -> Optional[ServiceParameterList]:
         """Overrides EVSEControllerInterface.get_service_parameter_list()."""
-        if self.v20_service_id_parameter_mapping is None:
-            return None
-        if service_id in self.v20_service_id_parameter_mapping.keys():
-            service_parameter_list = self.v20_service_id_parameter_mapping[service_id]
-        else:
+        parameter_sets_list: List[ParameterSet] = []
+
+        try:
+            connector_parameter = Parameter(name="Connector", int_value=2)
+
+            nominal_voltage = 400
+
+            nominal_voltage_parameter = Parameter(
+                name="EVSENominalVoltage", int_value=nominal_voltage
+            )
+            # TODO: map the pricing type
+            pricing_parameter = Parameter(name="Pricing", int_value=0)
+
+            parameter_set_id: int = 1
+            # According to the spec, both EVSE and EV must offer Scheduled = 1 and
+            # Dynamic = 2 control modes
+            # As the EVCC Simulator will choose the first parameter set by default,
+            # we first advertise the one with Dynamic control mode 2
+            # The env variable 15118_20_PRIORITIZE_DYNAMIC_CONTROL_MODE is provided
+            # if this is to be inverted. When set, the first parameter set will be for
+            # scheduled control mode. This will be removed soon. For testing purposes
+            # only.
+            control_modes = [1, 2]
+
+            for control_mode in control_modes:
+                control_mode_parameter = Parameter(
+                    name="ControlMode", int_value=control_mode
+                )
+                mobility_needs_parameter = Parameter(
+                    name="MobilityNeedsMode", int_value=control_mode
+                )
+                parameters_list: list = [
+                    connector_parameter,
+                    nominal_voltage_parameter,
+                    pricing_parameter,
+                    control_mode_parameter,
+                    mobility_needs_parameter,
+                ]
+                parameter_set = ParameterSet(
+                    id=parameter_set_id, parameters=parameters_list
+                )
+                parameter_sets_list.append(parameter_set)
+                # increment the parameter set id for the next set of them
+                parameter_set_id += 1
+                if control_mode == 2:
+                    # [V2G20-2663]:The SECC shall only offer MobilityNeedsMode equal
+                    # to ‘2’ when ControlMode is set to ‘2’ (Dynamic).
+                    # So, for Dynamic mode the MobilityNeeds can have the value
+                    # of 1 or 2 so in this if clause we insert another parameter set
+                    # for Dynamic mode but for MobilityNeedsMode = 1 (MobilityNeeds
+                    # provided by the EVCC).
+                    parameters_list.remove(mobility_needs_parameter)
+                    mobility_needs_parameter = Parameter(
+                        name="MobilityNeedsMode", int_value=1
+                    )
+                    parameters_list.append(mobility_needs_parameter)
+                    parameter_set = ParameterSet(
+                        id=parameter_set_id, parameters=parameters_list
+                    )
+                    parameter_sets_list.append(parameter_set)
+                    # increment the parameter set id for the next set
+                    parameter_set_id += 1
+        except AttributeError as e:
             logger.error(
                 f"No ServiceParameterList available for service ID {service_id}"
             )
-            return None
+            raise e
 
-        return service_parameter_list
+        return ServiceParameterList(parameter_sets=parameter_sets_list)
 
     async def get_dynamic_se_params(
         self,

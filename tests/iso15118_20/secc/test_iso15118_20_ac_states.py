@@ -167,7 +167,7 @@ class TestEvScenarios:
         # EnergyTransferServiceList or VASList during ServiceDiscovery.
 
         self.comm_session.matched_services_v20 = []
-        self.comm_session.evse_controller = await SimEVSEController.create()
+        self.comm_session.evse_controller = SimEVSEController()
         service_ids = [1, 5]
         offered_energy_services: ServiceList = ServiceList(services=[])
         for service_id in service_ids:
@@ -222,7 +222,6 @@ class TestEvScenarios:
         auth_mode,
         next_req_is_auth_req,
     ):
-        self.comm_session.evse_controller = await SimEVSEController.create()
         mock_is_authorized = AsyncMock(return_value=is_authorized_response)
         self.comm_session.evse_controller.is_authorized = mock_is_authorized
 
