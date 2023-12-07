@@ -122,6 +122,8 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     DynamicScheduleExchangeResParams,
     OverstayRule,
     OverstayRuleList,
+    Parameter,
+    ParameterSet,
     PowerSchedule,
     PowerScheduleEntry,
     PowerScheduleEntryList,
@@ -141,8 +143,6 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ServiceParameterList,
     TaxRule,
     TaxRuleList,
-    Parameter,
-    ParameterSet,
 )
 from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
@@ -169,7 +169,6 @@ from iso15118.shared.security import (
     load_cert,
     load_priv_key,
 )
-
 from iso15118.shared.states import State
 
 logger = logging.getLogger(__name__)
