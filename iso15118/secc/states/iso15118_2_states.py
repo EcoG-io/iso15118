@@ -31,10 +31,6 @@ from iso15118.shared.messages.app_protocol import (
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
-    PVEVMaxCurrent,
-    PVEVMaxCurrentLimit,
-    PVEVMaxVoltage,
-    PVEVMaxVoltageLimit,
     PVEVSEPresentCurrent,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
@@ -1355,7 +1351,7 @@ class ChargeParameterDiscovery(StateSECC):
             dc_evse_charge_params = (
                 await self.comm_session.evse_controller.get_dc_evse_charge_parameter()
             )
-            ev_data_context.update_dc_charge_parameters_v2(charge_params_req.dc_ev_charge_parameter)
+            ev_data_context.update_dc_charge_parameters(charge_params_req.dc_ev_charge_parameter)
 
         if not departure_time:
             departure_time = 0
@@ -1602,6 +1598,11 @@ class PowerDelivery(StateSECC):
                 ResponseCode.FAILED_TARIFF_SELECTION_INVALID,
             )
             return
+
+        if power_delivery_req.dc_ev_power_delivery_parameter:
+            self.comm_session.evse_controller.ev_data_context.present_soc = (
+                power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ress_soc # noqa
+            )
 
         # TODO: Investigate this and reassess
         # if (
@@ -2200,7 +2201,8 @@ class CableCheck(StateSECC):
                 return
 
             self.cable_check_req_was_received = True
-        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
+
+        self.comm_session.evse_controller.ev_data_context.present_soc = (
             cable_check_req.dc_ev_status.ev_ress_soc
         )
 
@@ -2294,7 +2296,7 @@ class PreCharge(StateSECC):
             )
             return
         ev_data_context = self.comm_session.evse_controller.ev_data_context
-        ev_data_context.update_pre_charge_v2(precharge_req)
+        ev_data_context.update_pre_charge(precharge_req)
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
         present_current = (
@@ -2307,7 +2309,8 @@ class PreCharge(StateSECC):
             target_current_in_a = ev_data_context.target_current
         else:
             self.stop_state_machine(
-                f"Error reading EVSE Present Current",
+                f"Error reading EVSE Present Current.
+                Wrong type: {type(present_current)}",
                 message,
                 ResponseCode.FAILED,
             )
@@ -2387,7 +2390,7 @@ class CurrentDemand(StateSECC):
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
 
-        self.comm_session.evse_controller.ev_data_context.update_charge_loop_v2(current_demand_req)
+        self.comm_session.evse_controller.ev_data_context.update_charge_loop(current_demand_req)
 
         # Updates the power electronics targets based on EV requests
         await self.comm_session.evse_controller.send_charging_command(

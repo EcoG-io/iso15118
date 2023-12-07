@@ -12,10 +12,16 @@ from iso15118.shared.messages.datatypes import (
     PVEVMaxVoltage,
     PVEVMaxVoltageLimit,
 )
-from iso15118.shared.messages.iso15118_2.body import (ACEVChargeParameter,
-                                                      DCEVChargeParameter,
-                                                      PreChargeReq,
-                                                      CurrentDemandReq)
+from iso15118.shared.messages.iso15118_2.body import (
+    ACEVChargeParameter,
+    DCEVChargeParameter,
+    PreChargeReq,
+    CurrentDemandReq
+    )
+from iso15118.shared.messages.din_spec.body import (
+    DCEVChargeParameter as DIN_DCEVChargeParameter,
+    PreChargeReq as DIN_PreChargeReq
+    )
 from iso15118.shared.messages.enums import AuthEnum
 from iso15118.shared.messages.iso15118_2.datatypes import ChargeService
 
@@ -196,35 +202,67 @@ class EVDataContext:
         self.rated_limits.ac_limits.max_charge_current = ac_ev_charge_parameter.ev_max_current.get_decimal_value()
         self.rated_limits.ac_limits.min_charge_current = ac_ev_charge_parameter.ev_min_current.get_decimal_value()
     
-    def update_dc_charge_parameters_v2(self,
-                                       dc_ev_charge_parameter: DCEVChargeParameter):
-        self.departure_time = dc_ev_charge_parameter.departure_time
-        self.target_energy_request = dc_ev_charge_parameter.ev_energy_request.get_decimal_value()
-        self.rated_limits.dc_limits.max_voltage = dc_ev_charge_parameter.ev_maximum_voltage_limit.get_decimal_value()
-        self.rated_limits.dc_limits.max_charge_current = dc_ev_charge_parameter.ev_maximum_current_limit.get_decimal_value()
-        self.rated_limits.dc_limits.max_charge_power = dc_ev_charge_parameter.ev_maximum_power_limit.get_decimal_value()
-        self.maximum_energy_request = dc_ev_charge_parameter.ev_energy_capacity.get_decimal_value()
-        self.maximum_soc = dc_ev_charge_parameter.full_soc
-        self.bulk_soc = dc_ev_charge_parameter.bulk_soc
 
-    def update_pre_charge_v2(self, pre_charge_req: PreChargeReq):
+    def update_dc_charge_parameters(self,
+                                    dc_ev_charge_parameter: Union[DCEVChargeParameter, DIN_DCEVChargeParameter]):
+        try:
+            self.departure_time = dc_ev_charge_parameter.departure_time
+        except AttributeError:
+            # DIN_DCEVChargeParameter does not have departure_time
+            pass
+
+        self.present_soc = dc_ev_charge_parameter.dc_ev_status.ev_ress_soc
+        self.target_energy_request =  (  # noqa: E501
+            None
+            if dc_ev_charge_parameter.ev_energy_request is None
+            else dc_ev_charge_parameter.ev_energy_request.get_decimal_value()
+        )
+       
+        self.rated_limits.dc_limits.max_voltage = dc_ev_charge_parameter.ev_maximum_voltage_limit.get_decimal_value()
+
+        self.rated_limits.dc_limits.max_charge_current = dc_ev_charge_parameter.ev_maximum_current_limit.get_decimal_value()
+
+        self.rated_limits.dc_limits.max_charge_power = (  # noqa: E501
+            None
+            if dc_ev_charge_parameter.ev_maximum_power_limit is None
+            else dc_ev_charge_parameter.ev_maximum_power_limit.get_decimal_value()
+        )
+        
+        self.maximum_energy_request = (  # noqa: E501
+            None
+            if dc_ev_charge_parameter.ev_energy_capacity is None
+            else dc_ev_charge_parameter.ev_energy_capacity.get_decimal_value()
+        )
+       
+        self.maximum_soc = (  # noqa: E501
+            None
+            if  dc_ev_charge_parameter.full_soc is None
+            else dc_ev_charge_parameter.full_soc
+        )
+        self.bulk_soc = (  # noqa: E501
+            None
+            if dc_ev_charge_parameter.bulk_soc is None
+            else dc_ev_charge_parameter.bulk_soc
+        )
+    
+    def update_pre_charge(self, pre_charge_req: Union[PreChargeReq, DIN_PreChargeReq]):
         self.present_soc = pre_charge_req.dc_ev_status.ev_ress_soc
         self.target_current = pre_charge_req.ev_target_current.get_decimal_value()
         self.target_voltage = pre_charge_req.ev_target_voltage.get_decimal_value()
     
-    def update_charge_loop_v2(self, current_demand_req: CurrentDemandReq):
+    def update_charge_loop(self, current_demand_req: CurrentDemandReq):
         self.present_soc = current_demand_req.dc_ev_status.ev_ress_soc
         self.target_current = current_demand_req.ev_target_current.get_decimal_value()
         self.target_voltage = current_demand_req.ev_target_voltage.get_decimal_value()
         self.remaining_time_to_maximum_soc = (  # noqa: E501
             None
-            if current_demand_req.remaining_time_to_bulk_soc is None
-            else current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
+            if current_demand_req.remaining_time_to_full_soc is None
+            else current_demand_req.remaining_time_to_full_soc.get_decimal_value()
         )
         self.remaining_time_to_bulk_soc = (  # noqa: E501
             None
-            if current_demand_req.remaining_time_to_full_soc is None
-            else current_demand_req.remaining_time_to_full_soc.get_decimal_value()
+            if current_demand_req.remaining_time_to_bulk_soc is None
+            else current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
         )
         self.session_limits.dc_limits.max_charge_current = (  # noqa: E501
             None
