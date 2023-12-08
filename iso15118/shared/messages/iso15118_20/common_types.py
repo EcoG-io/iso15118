@@ -10,10 +10,9 @@ Pydantic's Field class is used to be able to create a json schema of each model
 (or class) that matches the definitions in the XSD schema, including the XSD
 element names by using the 'alias' attribute.
 """
-import math
 from abc import ABC
 from enum import Enum
-from typing import List, Tuple, Union
+from typing import List, Union
 
 from pydantic import Field, conbytes, conint, constr, validator
 from typing_extensions import TypeAlias
