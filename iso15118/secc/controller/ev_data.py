@@ -396,7 +396,7 @@ class EVDataContext:
         if charge_parameter.target_soc:
             self.target_soc = charge_parameter.target_soc
 
-         if energy_service == ServiceV20.DC_BPTC:
+        if energy_service == ServiceV20.DC_BPTC:
             self.rated_limits.dc_limits.max_discharge_power = charge_parameter.ev_max_discharge_power.get_decimal_value()
             self.rated_limits.dc_limits.min_discharge_power = charge_parameter.ev_min_discharge_power.get_decimal_value()
             self.rated_limits.dc_limits.max_discharge_current = charge_parameter.ev_max_discharge_current.get_decimal_value()
