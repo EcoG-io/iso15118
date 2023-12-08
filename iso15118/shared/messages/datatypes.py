@@ -1,5 +1,6 @@
+import math
 from enum import Enum
-from typing import List, Literal, Tuple, cast
+from typing import List, Literal, Tuple, Union, cast
 
 from pydantic import Field, root_validator
 
@@ -64,22 +65,13 @@ class PhysicalValue(BaseModel):
         return self.value * 10**self.multiplier
 
     @classmethod
-    def get_exponent_value_repr(cls, value: int) -> Tuple[int, int]:
-        exponent = 0
-        calculated_value = cast(float, value)
-        if value == 0:
-            return 0, 0
-        while abs(calculated_value) >= 10:
-            calculated_value /= 10
-            exponent += 1
-        while abs(calculated_value) < 1:
-            calculated_value *= 10
-            exponent -= 1
-        while exponent > 3:
-            exponent -= 1
-            calculated_value *= 10
-
-        return cast(int, calculated_value), exponent
+    def get_exponent_value_repr(
+        cls,
+        value: Union[int, float],
+        min_limit: float = INT_16_MIN,
+        max_limit: float = INT_16_MAX,
+    ) -> Tuple[int, int]:
+        return get_exponent_value_repr(value, min_limit, max_limit)
 
 
 class PVChargingProfileEntryMaxPower(PhysicalValue):
@@ -650,3 +642,27 @@ class SelectedServiceList(BaseModel):
     selected_service: List[SelectedService] = Field(
         ..., max_items=16, alias="SelectedService"
     )
+
+
+def get_exponent_value_repr(
+    value: Union[int, float],
+    min_limit: float = INT_16_MIN,
+    max_limit: float = INT_16_MAX,
+) -> Tuple[int, int]:
+    if value == 0:
+        return 0, 0
+
+    # Check the sign of the value to determine how to round the result
+    round_func = math.floor if value > 0 else math.ceil
+
+    # Iterate over possible exponents to find the best approximation
+    for exponent in range(-3, 4):
+        new_value = round_func(value * 10 ** (-exponent))
+        # If new_value after rounding fits within the range of a 16-bit integer,
+        # return it
+        if min_limit <= new_value <= max_limit:
+            return exponent, new_value
+
+    # If no exponent could make the value fit in a 16-bit integer range,
+    # return the original value with exponent 0
+    return 0, round_func(value)

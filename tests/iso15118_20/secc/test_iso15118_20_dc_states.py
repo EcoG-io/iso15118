@@ -29,6 +29,7 @@ from iso15118.secc.states.iso15118_20_states import (
     PowerDelivery,
     ScheduleExchange,
 )
+from iso15118.shared.messages.datatypes import PhysicalValue
 from iso15118.shared.messages.enums import (
     ControlMode,
     CpState,
@@ -978,7 +979,12 @@ class TestEvScenarios:
         The byte range still considers the one from ISO 15118-2:
         [-3, 3]
         """
-        exponent, value = RationalNumber._convert_to_exponent_number(float_value)
+        rational_repr = RationalNumber.get_rational_repr(float_value)
+
+        assert rational_repr.exponent == expected_exponent
+        assert rational_repr.value == expected_value
+
+        exponent, value = PhysicalValue.get_exponent_value_repr(float_value)
 
         assert exponent == expected_exponent
         assert value == expected_value
