@@ -1774,7 +1774,7 @@ class DCChargeLoop(StateSECC):
 
         dc_charge_loop_req: DCChargeLoopReq = cast(DCChargeLoopReq, msg)
 
-        self.update_dc_charge_loop_params(
+        self.comm_session.evse_controller.ev_data_context.update_charge_loop_parameters_v20(
             dc_charge_loop_req, selected_energy_service, control_mode
         )
         try:
@@ -1791,7 +1791,7 @@ class DCChargeLoop(StateSECC):
             )
             return
 
-        dc_charge_loop_res = await self.build_dc_charge_loop_res(
+        dc_charge_loop_res = await self._build_dc_charge_loop_res(
             dc_charge_loop_req.meter_info_requested
         )
         self.create_next_message(
@@ -1802,38 +1802,7 @@ class DCChargeLoop(StateSECC):
             ISOV20PayloadTypes.DC_MAINSTREAM,
         )
 
-    def update_dc_charge_loop_params(
-        self,
-        dc_charge_loop_req: DCChargeLoopReq,
-        selected_energy_service: SelectedEnergyService,
-        control_mode: ControlMode,
-    ) -> None:
-        params: Union[
-            ScheduledDCChargeLoopReqParams,
-            DynamicDCChargeLoopReqParams,
-            BPTScheduledDCChargeLoopReqParams,
-            BPTDynamicDCChargeLoopReqParams,
-        ] = None
-        if selected_energy_service.service == ServiceV20.DC:
-            if control_mode == ControlMode.SCHEDULED:
-                params = dc_charge_loop_req.scheduled_params
-            elif control_mode == ControlMode.DYNAMIC:
-                params = dc_charge_loop_req.dynamic_params
-        elif selected_energy_service.service == ServiceV20.DC_BPT:
-            if control_mode == ControlMode.SCHEDULED:
-                params = dc_charge_loop_req.bpt_scheduled_params
-            else:
-                params = dc_charge_loop_req.bpt_dynamic_params
-        else:
-            logger.error(
-                f"Energy service {selected_energy_service.service} not yet supported"
-            )
-            return
-        self.comm_session.evse_controller.ev_data_context.ev_session_context.dc_limits.update(  # noqa
-            params.dict()
-        )
-
-    async def build_dc_charge_loop_res(
+    async def _build_dc_charge_loop_res(
         self, meter_info_requested: bool
     ) -> DCChargeLoopRes:
         scheduled_params, dynamic_params = None, None
