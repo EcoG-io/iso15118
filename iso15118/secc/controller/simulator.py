@@ -5,7 +5,7 @@ This module contains the code to retrieve (hardware-related) data from the EVSE
 import base64
 import logging
 import time
-from typing import Dict, List, Optional, Union, cast
+from typing import Dict, List, Optional, Union
 
 from iso15118.secc.controller.evse_data import (
     EVSEACBPTCPDLimits,
@@ -1057,7 +1057,7 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
         if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
             value, exponent = PhysicalValue.get_exponent_value_repr(
-                cast(int, self.evse_data_context.session_context.evse_present_voltage)
+                self.evse_data_context.session_context.evse_present_voltage
             )
             try:
                 pv_evse_present_voltage = PVEVSEPresentVoltage(
@@ -1077,7 +1077,7 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
         if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
             value, exponent = PhysicalValue.get_exponent_value_repr(
-                cast(int, self.evse_data_context.session_context.evse_present_current)
+                self.evse_data_context.session_context.evse_present_current
             )
             try:
                 pv_evse_present_current = PVEVSEPresentCurrent(

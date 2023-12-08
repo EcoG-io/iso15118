@@ -10,15 +10,15 @@ Pydantic's Field class is used to be able to create a json schema of each model
 (or class) that matches the definitions in the XSD schema, including the XSD
 element names by using the 'alias' attribute.
 """
-import math
 from abc import ABC
 from enum import Enum
-from typing import List, Tuple, Union
+from typing import List, Union
 
 from pydantic import Field, conbytes, conint, constr, validator
 from typing_extensions import TypeAlias
 
 from iso15118.shared.messages import BaseModel
+from iso15118.shared.messages.datatypes import get_exponent_value_repr
 from iso15118.shared.messages.enums import (
     INT_8_MAX,
     INT_8_MIN,
@@ -179,72 +179,8 @@ class RationalNumber(BaseModel):
     def get_rational_repr(cls, float_value: Union[float, int]):
         if float_value is None:
             return None
-        exponent, value = cls._convert_to_exponent_number(float_value)
+        exponent, value = get_exponent_value_repr(float_value)
         return RationalNumber(exponent=exponent, value=value)
-
-    @classmethod
-    def _convert_to_exponent_number(
-        cls,
-        float_value: float,
-        min_limit: float = INT_16_MIN,
-        max_limit: float = INT_16_MAX,
-    ) -> Tuple[int, int]:
-        """
-        Convert to exponent number, by finding the best fit exponent.
-
-        For example, max limit for PVEVSEMinCurrentLimit is 400
-        float_value = 0.0000234 => exponent = -3, return value = 0
-        float_value = 0.000234 => exponent = -3, return value = 0
-        float_value = 0.00234 => exponent = -3, return value = 2
-        float_value = 0.0234 => exponent = -3, return value = 23
-        float_value = 0.234 => exponent = -3, return value = 234
-        float_value = 2.34 => exponent = -2, return value = 234
-        float_value = 23.4 => exponent = -1, return value = 234
-        float_value = 234 => exponent = 0, return value = 234
-        float_value = 2340 => exponent = 1, return value = 234
-        float_value = 23400 => exponent = 2, return value = 234
-        float_value = 234000 => exponent = 3, return value = 234
-
-        float_value = 0.4 => exponent = -3, return value = 400
-        float_value = 0.356 => exponent = -3, return value = 356
-        float_value = 0.157 => exponent = -3, return value = 157
-        float_value = 0.00356 => exponent = -3, return value = 3
-        float_value = 0.634 => exponent = -2, return value = 63
-
-        Note:
-            In ISO 15118-2, the min limit is 0 and the max is
-            dependent on the field.
-            In ISO 15118-20, the limits are defined by the
-            RationalNumber type which are the limits of the
-            int16 range: [-32768, 32767].
-            Also, in ISO 15118-20, the exponent assumes the range
-            of [-128, 127], but currently that is not being
-            taken into consideration.
-        Args:
-            float_value (float): parameter value
-
-        Returns:
-           a tuple where the first item is the exponent and other is the
-           int value with the applied exponent
-        """
-        # if the value is 0 return immediately
-        if float_value == 0:
-            return 0, 0
-
-        # Check the sign of the value to determine how to round the result
-        round_func = math.floor if float_value > 0 else math.ceil
-
-        # Iterate over possible exponents to find the best approximation
-        for exponent in range(-3, 4):
-            new_value = round_func(float_value * 10 ** (-exponent))
-            # If new_value after rounding fits within the range of a 16-bit integer,
-            # return it
-            if min_limit <= new_value <= max_limit:
-                return exponent, new_value
-
-        # If no exponent could make the value fit in a 16-bit integer range,
-        # return the original value with exponent 0
-        return 0, round_func(float_value)
 
 
 class EVSENotification(str, Enum):
