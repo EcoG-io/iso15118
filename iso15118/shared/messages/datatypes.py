@@ -68,8 +68,8 @@ class PhysicalValue(BaseModel):
     def get_exponent_value_repr(
         cls,
         value: Union[int, float],
-        min_limit: float = INT_16_MIN,
-        max_limit: float = INT_16_MAX,
+        min_limit: int = INT_16_MIN,
+        max_limit: int = INT_16_MAX,
     ) -> Tuple[int, int]:
         return get_exponent_value_repr(value, min_limit, max_limit)
 
@@ -646,8 +646,8 @@ class SelectedServiceList(BaseModel):
 
 def get_exponent_value_repr(
     value: Union[int, float],
-    min_limit: float = INT_16_MIN,
-    max_limit: float = INT_16_MAX,
+    min_limit: int = INT_16_MIN,
+    max_limit: int = INT_16_MAX,
 ) -> Tuple[int, int]:
     if value == 0:
         return 0, 0
@@ -656,6 +656,8 @@ def get_exponent_value_repr(
     round_func = math.floor if value > 0 else math.ceil
 
     # Iterate over possible exponents to find the best approximation
+    # TODO: Maybe it would be better to traverse the range in reverse.
+    # Makes the results slightly more readable.
     for exponent in range(-3, 4):
         new_value = round_func(value * 10 ** (-exponent))
         # If new_value after rounding fits within the range of a 16-bit integer,
