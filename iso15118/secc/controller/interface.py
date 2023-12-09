@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Union
 
-from iso15118.secc.controller.ev_data import EVChargeParamsLimits, EVDataContext
+from iso15118.secc.controller.ev_data import EVDataContext
 from iso15118.secc.controller.evse_data import EVSEDataContext
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
@@ -98,12 +98,12 @@ class EVSEControllerInterface(ABC):
     def __init__(self):
         self.ev_data_context = EVDataContext()
         self.evse_data_context = EVSEDataContext()
-        self.ev_charge_params_limits = EVChargeParamsLimits()
+
         self._selected_protocol: Optional[Protocol] = None
 
     def reset_ev_data_context(self):
         self.ev_data_context = EVDataContext()
-        self.ev_charge_params_limits = EVChargeParamsLimits()
+
 
     def get_ev_data_context(self) -> EVDataContext:
         return self.ev_data_context
@@ -152,14 +152,18 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_scheduled_se_params(
+    async def get_schedule_exchange_params(
         self,
         selected_energy_service: SelectedEnergyService,
+        control_mode: ControlMode,
         schedule_exchange_req: ScheduleExchangeReq,
-    ) -> Optional[ScheduledScheduleExchangeResParams]:
+    ) -> Optional[Union[
+        ScheduledScheduleExchangeResParams,
+        DynamicScheduleExchangeResParams]
+        ]:
         """
-        Gets the parameters for a ScheduleExchangeResponse, which correspond to the
-        Scheduled control mode. If the parameters are not yet ready when requested,
+        Gets the parameters for a ScheduleExchangeResponse.
+        If the parameters are not yet ready when requested,
         return None.
 
         Args:
@@ -167,38 +171,12 @@ class EVSEControllerInterface(ABC):
                                      The selected parameter set, that is associated
                                      with that energy service, influences the
                                      parameters for the ScheduleExchangeRes
+            control_mode: Control mode for this session - Scheduled/Dynamic
             schedule_exchange_req: The ScheduleExchangeReq, whose parameters influence
                                    the parameters for the ScheduleExchangeRes
 
         Returns:
-            Parameters for the ScheduleExchangeRes in Scheduled control mode, if
-            readily available. If you're still waiting for all parameters, return None.
-
-        Relevant for:
-        - ISO 15118-20
-        """
-
-    @abstractmethod
-    async def get_dynamic_se_params(
-        self,
-        selected_energy_service: SelectedEnergyService,
-        schedule_exchange_req: ScheduleExchangeReq,
-    ) -> Optional[DynamicScheduleExchangeResParams]:
-        """
-        Gets the parameters for a ScheduleExchangeResponse, which correspond to the
-        Dynamic control mode. If the parameters are not yet ready when requested,
-        return None.
-
-        Args:
-            selected_energy_service: The energy services, which the EVCC selected.
-                                     The selected parameter set, that is associated
-                                     with that energy service, influences the
-                                     parameters for the ScheduleExchangeRes
-            schedule_exchange_req: The ScheduleExchangeReq, whose parameters influence
-                                   the parameters for the ScheduleExchangeRes
-
-        Returns:
-            Parameters for the ScheduleExchangeRes in Dynamic control mode, if
+            Parameters for the ScheduleExchangeRes, if
             readily available. If you're still waiting for all parameters, return None.
 
         Relevant for:
@@ -248,7 +226,7 @@ class EVSEControllerInterface(ABC):
     @abstractmethod
     async def get_sa_schedule_list(
         self,
-        ev_charge_params_limits: EVChargeParamsLimits,
+        ev_data_context: EVDataContext,
         is_free_charging_service: bool,
         max_schedule_entries: Optional[int],
         departure_time: int = 0,
@@ -261,8 +239,7 @@ class EVSEControllerInterface(ABC):
         and the ampacity of the charging cable.
 
         Args:
-            ev_charge_params_limits: Lists the maximum limits of the EV: max_voltage,
-                            max_current and e_amount(AC)/energy_requested(DC)
+            ev_data_context: contains all the limits of the EV for AC and DC
             is_free_charging_service: Indicates if free sa schedules are to be returned.
             max_schedule_entries: The maximum amount of schedule entries the EVCC
                                   can handle, or None if not provided
@@ -602,8 +579,8 @@ class EVSEControllerInterface(ABC):
     @abstractmethod
     async def set_precharge(
         self,
-        voltage: Union[PVEVTargetVoltage, RationalNumber],
-        current: Union[PVEVTargetCurrent, RationalNumber],
+        current: float,
+        voltage: float,
     ):
         """
         Sets the precharge information coming from the EV.
@@ -614,7 +591,7 @@ class EVSEControllerInterface(ABC):
         - DIN SPEC 70121
         - ISO 15118-2
         """
-        raise NotImplementedError
+        self.send_charging_command(voltage=voltage, charge_current=current)
 
     @abstractmethod
     async def start_cable_check(self):
