@@ -193,11 +193,14 @@ class EVDataContext:
     def update_ac_charge_parameters_v2(self,
                                        ac_ev_charge_parameter: ACEVChargeParameter):
         self.departure_time = ac_ev_charge_parameter.departure_time
-        ac_limits = self.rated_limits.ac_limits
+        ac_rated_limits = self.rated_limits.ac_limits
         self.target_energy_request = ac_ev_charge_parameter.e_amount.get_decimal_value() # noqa: E501
-        ac_limits.max_voltage = ac_ev_charge_parameter.ev_max_voltage.get_decimal_value() # noqa: E501
-        ac_limits.max_charge_current = ac_ev_charge_parameter.ev_max_current.get_decimal_value() # noqa: E501
-        ac_limits.min_charge_current = ac_ev_charge_parameter.ev_min_current.get_decimal_value() # noqa: E501
+        ac_rated_limits.max_voltage = ac_ev_charge_parameter.ev_max_voltage.get_decimal_value() # noqa: E501
+        ac_rated_limits.max_charge_current = ac_ev_charge_parameter.ev_max_current.get_decimal_value() # noqa: E501
+        ac_rated_limits.min_charge_current = ac_ev_charge_parameter.ev_min_current.get_decimal_value() # noqa: E501
+
+        # Create the session limits based on the rated limits
+        self.session_limits.ac_limits.update(ac_rated_limits.as_dict())
     
 
     def update_dc_charge_parameters(self,
@@ -214,12 +217,13 @@ class EVDataContext:
             if dc_ev_charge_parameter.ev_energy_request is None
             else dc_ev_charge_parameter.ev_energy_request.get_decimal_value()
         )
-       
-        self.rated_limits.dc_limits.max_voltage = dc_ev_charge_parameter.ev_maximum_voltage_limit.get_decimal_value()
 
-        self.rated_limits.dc_limits.max_charge_current = dc_ev_charge_parameter.ev_maximum_current_limit.get_decimal_value()
+        dc_rated_limits = self.rated_limits.dc_limits
+        dc_rated_limits.max_voltage = dc_ev_charge_parameter.ev_maximum_voltage_limit.get_decimal_value()
 
-        self.rated_limits.dc_limits.max_charge_power = (  # noqa: E501
+        dc_rated_limits.max_charge_current = dc_ev_charge_parameter.ev_maximum_current_limit.get_decimal_value()
+
+        dc_rated_limits.max_charge_power = (  # noqa: E501
             None
             if dc_ev_charge_parameter.ev_maximum_power_limit is None
             else dc_ev_charge_parameter.ev_maximum_power_limit.get_decimal_value()
@@ -241,7 +245,11 @@ class EVDataContext:
             if dc_ev_charge_parameter.bulk_soc is None
             else dc_ev_charge_parameter.bulk_soc
         )
-    
+
+        # Create the session limits based on the rated limits
+        self.session_limits.dc_limits.update(dc_rated_limits.as_dict())
+
+
     def update_pre_charge_parameters(self, pre_charge_req: Union[PreChargeReq, DIN_PreChargeReq]):
         self.present_soc = pre_charge_req.dc_ev_status.ev_ress_soc
         self.target_current = pre_charge_req.ev_target_current.get_decimal_value()
@@ -338,6 +346,8 @@ class EVDataContext:
                 ac_rated_limits.min_discharge_power_l2 = charge_parameter.ev_min_discharge_power_l2.get_decimal_value() # noqa: E501
             if charge_parameter.ev_min_discharge_power_l3:
                 ac_rated_limits.min_discharge_power_l3 = charge_parameter.ev_min_discharge_power_l3.get_decimal_value() # noqa: E501
+        # Create the session limits based on the rated limits
+        self.session_limits.ac_limits.update(ac_rated_limits.as_dict())
 
     def update_ac_charge_loop_v20(
             self,
@@ -464,6 +474,8 @@ class EVDataContext:
             dc_rated_limits.min_discharge_power = charge_parameter.ev_min_discharge_power.get_decimal_value() # noqa: E501
             dc_rated_limits.max_discharge_current = charge_parameter.ev_max_discharge_current.get_decimal_value() # noqa: E501
             dc_rated_limits.min_discharge_current = charge_parameter.ev_min_discharge_current.get_decimal_value() # noqa: E501
+        # Create the session limits based on the rated limits
+        self.session_limits.dc_limits.update(dc_rated_limits.as_dict())
 
     def update_pre_charge_parameters_v20(self, pre_charge_req: DCPreChargeReq):
         self.present_voltage = pre_charge_req.ev_present_voltage.get_decimal_value()

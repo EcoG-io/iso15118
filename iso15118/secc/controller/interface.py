@@ -5,10 +5,10 @@ This module contains the abstract class for an SECC to retrieve data from the EV
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, cast
 
 from iso15118.secc.controller.ev_data import EVDataContext
-from iso15118.secc.controller.evse_data import EVSEDataContext
+from iso15118.secc.controller.evse_data import CurrentType, EVSEDataContext
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
@@ -19,6 +19,7 @@ from iso15118.shared.messages.datatypes import (
     PVEVSEPresentVoltage,
     PVEVTargetCurrent,
     PVEVTargetVoltage,
+    PhysicalValue,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     ResponseCode as ResponseCodeDINSPEC,
@@ -36,6 +37,7 @@ from iso15118.shared.messages.enums import (
     Protocol,
     ServiceV20,
     SessionStopAction,
+    UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEChargeParameter,
@@ -560,7 +562,20 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-20
         - DINSPEC
         """
-        raise NotImplementedError
+        if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
+            value, exponent = PhysicalValue.get_exponent_value_repr(
+                cast(int, self.evse_data_context.present_voltage)
+            )
+            try:
+                return PVEVSEPresentVoltage(
+                    multiplier=exponent, value=value, unit="V"
+                )
+            except ValueError:
+                return None
+        else:
+            return RationalNumber.get_rational_repr(
+                self.evse_data_context.present_voltage
+            )
 
     @abstractmethod
     async def get_evse_present_current(
@@ -574,7 +589,20 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-20
         - DINSPEC
         """
-        raise NotImplementedError
+        if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
+            value, exponent = PhysicalValue.get_exponent_value_repr(
+                cast(int, self.evse_data_context.present_current)
+            )
+            try:
+                return PVEVSEPresentVoltage(
+                    multiplier=exponent, value=value, unit="V"
+                )
+            except ValueError:
+                return None
+        else:
+            return RationalNumber.get_rational_repr(
+                self.evse_data_context.present_current
+            )
 
     @abstractmethod
     async def set_precharge(
@@ -620,11 +648,9 @@ class EVSEControllerInterface(ABC):
     @abstractmethod
     async def send_charging_command(
         self,
-        voltage: Union[PVEVTargetVoltage, RationalNumber],
-        charge_current: Union[PVEVTargetCurrent, RationalNumber],
-        charge_power: Optional[RationalNumber] = None,
-        discharge_current: Optional[RationalNumber] = None,
-        discharge_power: Optional[RationalNumber] = None,
+        ev_target_voltage: Optional[float],
+        ev_target_current: Optional[float],
+        is_session_bpt: bool = False,
     ):
         """
         This method is called in the state CurrentDemand/DCChargeLoop.
@@ -648,7 +674,8 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         """
-        raise NotImplementedError
+        # TODO retrieve from evse data context
+        raise False
 
     @abstractmethod
     async def is_evse_voltage_limit_achieved(self) -> bool:
@@ -658,7 +685,8 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         """
-        raise NotImplementedError
+        # TODO retrieve from evse data context
+        return False
 
     @abstractmethod
     async def is_evse_power_limit_achieved(self) -> bool:
@@ -668,7 +696,8 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         """
-        raise NotImplementedError
+        # TODO retrieve from evse data context
+        return False
 
     @abstractmethod
     async def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
@@ -678,7 +707,14 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         """
-        raise NotImplementedError
+        session_limits = self.evse_data_context.session_limits
+        voltage_limit = session_limits.dc_limits.max_voltage
+        value, exponent = PhysicalValue.get_exponent_value_repr(voltage_limit)
+        return PVEVSEMaxVoltageLimit(
+                multiplier=exponent,
+                value=value,
+                unit=UnitSymbol.VOLTAGE,
+            )
 
     @abstractmethod
     async def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
@@ -688,7 +724,27 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         """
-        raise NotImplementedError
+        # This is currently being used by -2 only.
+        session_limits = self.evse_data_context.session_limits
+        if self.evse_data_context.current_type == CurrentType.AC:
+            ac_limits = session_limits.ac_limits
+            min_session_power_limit = ac_limits.max_charge_power
+            if ac_limits.max_charge_power_l2:
+                min_session_power_limit = min(min_session_power_limit,
+                                              ac_limits.max_charge_power_l2)
+            if ac_limits.max_charge_power_l3:
+                min_session_power_limit = min(min_session_power_limit,
+                                                ac_limits.max_charge_power_l3)
+            current_limit_phase = min_session_power_limit / self.evse_data_context.present_voltage
+            value, exponent = PhysicalValue.get_exponent_value_repr(current_limit_phase)
+        elif self.evse_data_context.current_type == CurrentType.DC:
+            current_limit = session_limits.dc_limits.max_charge_current
+            value, exponent = PhysicalValue.get_exponent_value_repr(current_limit)
+        return PVEVSEMaxCurrentLimit(
+                multiplier=exponent,
+                value=value,
+                unit=UnitSymbol.AMPERE,
+        )
 
     @abstractmethod
     async def get_dc_charge_params_v20(
@@ -712,7 +768,16 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         """
-        raise NotImplementedError
+        session_limits = self.evse_data_context.session_limits
+        if session_limits.dc_limits.max_charge_power is None:
+            return None
+        power_limit = session_limits.dc_limits.max_charge_power
+        value, exponent = PhysicalValue.get_exponent_value_repr(power_limit)
+        return PVEVSEMaxPowerLimit(
+                multiplier=exponent,
+                value=value,
+                unit=UnitSymbol.WATT,
+            )
 
     @abstractmethod
     async def get_dc_charge_loop_params_v20(

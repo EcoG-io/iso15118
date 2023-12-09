@@ -20,7 +20,6 @@ from iso15118.secc.controller.evse_data import (
 )
 from iso15118.secc.controller.interface import (
     AuthorizationResponse,
-    EVChargeParamsLimits,
     EVDataContext,
     EVSEControllerInterface,
     ServiceStatus,
@@ -311,6 +310,25 @@ class SimEVSEController(EVSEControllerInterface):
         ac_three_phase = EnergyTransferModeEnum.AC_THREE_PHASE_CORE
         dc_extended = EnergyTransferModeEnum.DC_EXTENDED
         return [dc_extended, ac_three_phase]
+
+
+    async def get_schedule_exchange_params(
+        self,
+        selected_energy_service: SelectedEnergyService,
+        control_mode: ControlMode,
+        schedule_exchange_req: ScheduleExchangeReq,
+    ) -> Optional[Union[
+        ScheduledScheduleExchangeResParams,
+        DynamicScheduleExchangeResParams]
+        ]:
+        if control_mode == ControlMode.SCHEDULED:
+            return await self.get_scheduled_se_params(
+                selected_energy_service, schedule_exchange_req
+            )
+        else:
+            return await self.get_dynamic_se_params(
+                selected_energy_service, schedule_exchange_req
+            )
 
     async def get_scheduled_se_params(
         self,
@@ -610,7 +628,7 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def get_sa_schedule_list(
         self,
-        ev_charge_params_limits: EVChargeParamsLimits,
+        ev_data_context: EVDataContext,
         is_free_charging_service: bool,
         max_schedule_entries: Optional[int],
         departure_time: int = 0,
@@ -1113,11 +1131,9 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def send_charging_command(
         self,
-        voltage: Union[PVEVTargetVoltage, RationalNumber],
-        charge_current: Union[PVEVTargetCurrent, RationalNumber],
-        charge_power: Optional[RationalNumber] = None,
-        discharge_current: Optional[RationalNumber] = None,
-        discharge_power: Optional[RationalNumber] = None,
+        ev_target_voltage: Optional[float],
+        ev_target_current: Optional[float],
+        is_session_bpt: bool = False,
     ):
         pass
 
