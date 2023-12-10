@@ -509,30 +509,33 @@ class EVSEControllerInterface(ABC):
         target_active_power = evse_session_limits.max_charge_power
         target_active_power_l2 = None
         target_active_power_l3 = None
+        target_reactive_power = None
+        target_reactive_power_l2 = None
+        target_reactive_power_l3 = None
         target_active_power_value = RationalNumber.get_rational_repr(target_active_power)
         if evse_session_limits.max_charge_power_l2:
             target_active_power_l2 = evse_session_limits.max_charge_power_l2
-            target_active_power_l2_value = RationalNumber.get_rational_repr(target_active_power_l2) # noqa
+            target_active_power_l2 = RationalNumber.get_rational_repr(target_active_power_l2) # noqa
         if evse_session_limits.max_charge_power_l3:
             target_active_power_l3 = evse_session_limits.max_charge_power_l3
-            target_active_power_l3_value = RationalNumber.get_rational_repr(target_active_power_l3) # noqa
+            target_active_power_l3 = RationalNumber.get_rational_repr(target_active_power_l3) # noqa
         # Reactive Power
         if evse_session_limits.max_charge_reactive_power:
             target_reactive_power = evse_session_limits.max_charge_reactive_power
-            target_reactive_power_value = RationalNumber.get_rational_repr(target_reactive_power) # noqa
+            target_reactive_power = RationalNumber.get_rational_repr(target_reactive_power) # noqa
         if evse_session_limits.max_charge_reactive_power_l2:
             target_reactive_power_l2 = evse_session_limits.max_charge_reactive_power_l2
-            target_reactive_power_l2_value = RationalNumber.get_rational_repr(target_reactive_power_l2)
+            target_reactive_power_l2 = RationalNumber.get_rational_repr(target_reactive_power_l2)
         if evse_session_limits.max_charge_reactive_power_l3:
             target_reactive_power_l3 = evse_session_limits.max_charge_reactive_power_l3
-            target_reactive_power_l3_value = RationalNumber.get_rational_repr(target_reactive_power_l3)
+            target_reactive_power_l3 = RationalNumber.get_rational_repr(target_reactive_power_l3)
         # Present Power
         present_active_power = self.evse_data_context.present_active_power
-        present_active_power_value = RationalNumber.get_rational_repr(present_active_power) # noqa
+        present_active_power = RationalNumber.get_rational_repr(present_active_power) # noqa
         present_active_power_l2 = self.evse_data_context.present_active_power_l2
-        present_active_power_l2_value = RationalNumber.get_rational_repr(present_active_power) # noqa
+        present_active_power_l2  = RationalNumber.get_rational_repr(present_active_power_l2) # noqa
         present_active_power_l3 = self.evse_data_context.present_active_power_l3
-        present_active_power_l3_value = RationalNumber.get_rational_repr(present_active_power) # noqa
+        present_active_power_l3 = RationalNumber.get_rational_repr(present_active_power_l3) # noqa
         if (
             control_mode == ControlMode.DYNAMIC
             and selected_service == ServiceV20.AC_BPT
@@ -540,14 +543,14 @@ class EVSEControllerInterface(ABC):
             # BPT Dynamic Message
             bpt_dynamic_params = BPTDynamicACChargeLoopResParams(
                 evse_target_active_power=target_active_power_value,
-                evse_target_active_power_l2=target_active_power_l2_value,
-                evse_target_active_power_l3=target_active_power_l3_value,
-                evse_target_reactive_power=target_reactive_power_value,
-                evse_target_reactive_power_l2=target_reactive_power_l2_value,
-                evse_target_reactive_power_l3=target_reactive_power_l3_value,
-                evse_present_active_power=present_active_power_value,
-                evse_present_active_power_l2=present_active_power_l2_value,
-                evse_present_active_power_l3=present_active_power_l3_value,
+                evse_target_active_power_l2=target_active_power_l2,
+                evse_target_active_power_l3=target_active_power_l3,
+                evse_target_reactive_power=target_reactive_power,
+                evse_target_reactive_power_l2=target_reactive_power_l2,
+                evse_target_reactive_power_l3=target_reactive_power_l3,
+                evse_present_active_power=present_active_power,
+                evse_present_active_power_l2=present_active_power_l2,
+                evse_present_active_power_l3=present_active_power_l3,
             )
             return bpt_dynamic_params
         elif (
@@ -556,41 +559,41 @@ class EVSEControllerInterface(ABC):
         ):
             bpt_scheduled_params = BPTScheduledACChargeLoopResParams(
                 evse_target_active_power=target_active_power_value,
-                evse_target_active_power_l2=target_active_power_l2_value,
-                evse_target_active_power_l3=target_active_power_l3_value,
-                evse_target_reactive_power=target_reactive_power_value,
-                evse_target_reactive_power_l2=target_reactive_power_l2_value,
-                evse_target_reactive_power_l3=target_reactive_power_l3_value,
-                evse_present_active_power=present_active_power_value,
-                evse_present_active_power_l2=present_active_power_l2_value,
-                evse_present_active_power_l3=present_active_power_l3_value,
+                evse_target_active_power_l2=target_active_power_l2,
+                evse_target_active_power_l3=target_active_power_l3,
+                evse_target_reactive_power=target_reactive_power,
+                evse_target_reactive_power_l2=target_reactive_power_l2,
+                evse_target_reactive_power_l3=target_reactive_power_l3,
+                evse_present_active_power=present_active_power,
+                evse_present_active_power_l2=present_active_power_l2,
+                evse_present_active_power_l3=present_active_power_l3,
             )
             return bpt_scheduled_params
         elif (control_mode == ControlMode.DYNAMIC
               and selected_service == ServiceV20.AC):
             dynamic_params = DynamicACChargeLoopResParams(
                 evse_target_active_power=target_active_power_value,
-                evse_target_active_power_l2=target_active_power_l2_value,
-                evse_target_active_power_l3=target_active_power_l3_value,
-                evse_target_reactive_power=target_reactive_power_value,
-                evse_target_reactive_power_l2=target_reactive_power_l2_value,
-                evse_target_reactive_power_l3=target_reactive_power_l3_value,
-                evse_present_active_power=present_active_power_value,
-                evse_present_active_power_l2=present_active_power_l2_value,
-                evse_present_active_power_l3=present_active_power_l3_value,
+                evse_target_active_power_l2=target_active_power_l2,
+                evse_target_active_power_l3=target_active_power_l3,
+                evse_target_reactive_power=target_reactive_power,
+                evse_target_reactive_power_l2=target_reactive_power_l2,
+                evse_target_reactive_power_l3=target_reactive_power_l3,
+                evse_present_active_power=present_active_power,
+                evse_present_active_power_l2=present_active_power_l2,
+                evse_present_active_power_l3=present_active_power_l3,
             )
             return dynamic_params
         else:
             scheduled_params = ScheduledACChargeLoopResParams(
                 evse_target_active_power=target_active_power_value,
-                evse_target_active_power_l2=target_active_power_l2_value,
-                evse_target_active_power_l3=target_active_power_l3_value,
-                evse_target_reactive_power=target_reactive_power_value,
-                evse_target_reactive_power_l2=target_reactive_power_l2_value,
-                evse_target_reactive_power_l3=target_reactive_power_l3_value,
-                evse_present_active_power=present_active_power_value,
-                evse_present_active_power_l2=present_active_power_l2_value,
-                evse_present_active_power_l3=present_active_power_l3_value,
+                evse_target_active_power_l2=target_active_power_l2,
+                evse_target_active_power_l3=target_active_power_l3,
+                evse_target_reactive_power=target_reactive_power,
+                evse_target_reactive_power_l2=target_reactive_power_l2,
+                evse_target_reactive_power_l3=target_reactive_power_l3,
+                evse_present_active_power=present_active_power,
+                evse_present_active_power_l2=present_active_power_l2,
+                evse_present_active_power_l3=present_active_power_l3,
             )
             return scheduled_params
 
