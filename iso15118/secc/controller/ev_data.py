@@ -7,11 +7,12 @@ from iso15118.shared.messages.iso15118_2.body import (
     ACEVChargeParameter,
     DCEVChargeParameter,
     PreChargeReq,
-    CurrentDemandReq
+    CurrentDemandReq,
     )
 from iso15118.shared.messages.din_spec.body import (
     DCEVChargeParameter as DIN_DCEVChargeParameter,
-    PreChargeReq as DIN_PreChargeReq
+    PreChargeReq as DIN_PreChargeReq,
+    CurrentDemandReq as DIN_CurrentDemandReq,
     )
 from iso15118.shared.messages.enums import AuthEnum, ControlMode, ServiceV20
 from iso15118.shared.messages.iso15118_2.datatypes import ChargeService
@@ -20,13 +21,13 @@ from iso15118.shared.messages.iso15118_20.ac import (
     BPTDynamicACChargeLoopReqParams,
     BPTScheduledACChargeLoopReqParams,
     DynamicACChargeLoopReqParams,
-    ScheduledACChargeLoopReqParams
+    ScheduledACChargeLoopReqParams,
     )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     DynamicScheduleExchangeReqParams,
     ScheduleExchangeReq,
     ScheduledScheduleExchangeReqParams,
-    SelectedEnergyService
+    SelectedEnergyService,
     )
 from iso15118.shared.messages.iso15118_20.common_types import DisplayParameters
 from iso15118.shared.messages.iso15118_20.dc import (
@@ -38,7 +39,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DCChargeParameterDiscoveryReqParams,
     DCPreChargeReq,
     DynamicDCChargeLoopReqParams,
-    ScheduledDCChargeLoopReqParams
+    ScheduledDCChargeLoopReqParams,
     )
 
 
@@ -187,7 +188,7 @@ class EVDataContext:
         self.remaining_time_to_minimum_soc: Optional[float] = None
         # -20 does not have equivalent for this.
         # This is the time to achieve 80% SoC
-        self.bulk_soc = Optional[float] = None
+        self.bulk_soc: Optional[float] = None
         self.remaining_time_to_bulk_soc: Optional[float] = None
 
         # EV Meter data
@@ -288,7 +289,7 @@ class EVDataContext:
     
     def update_charge_loop_parameters(
             self,
-            current_demand_req: CurrentDemandReq
+            current_demand_req: Union[CurrentDemandReq, DIN_CurrentDemandReq],
     ) -> None:
         """Update the EV data context with the CurrentDemandReq parameters"""
         self.present_soc = current_demand_req.dc_ev_status.ev_ress_soc

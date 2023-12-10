@@ -8,15 +8,13 @@ import time
 from typing import Dict, List, Optional, Union
 
 from iso15118.secc.controller.evse_data import (
-    EVSEACBPTCPDLimits,
     EVSEACCLLimits,
     EVSEACCPDLimits,
     EVSEDataContext,
-    EVSEDCBPTCPDLimits,
     EVSEDCCLLimits,
     EVSEDCCPDLimits,
     EVSERatedLimits,
-    EVSESessionContext,
+    EVSESessionLimits,
 )
 from iso15118.secc.controller.interface import (
     AuthorizationResponse,
@@ -42,8 +40,6 @@ from iso15118.shared.messages.datatypes import (
     PVEVSEPeakCurrentRipple,
     PVEVSEPresentCurrent,
     PVEVSEPresentVoltage,
-    PVEVTargetCurrent,
-    PVEVTargetVoltage,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     PMaxScheduleEntry as PMaxScheduleEntryDINSPEC,
@@ -175,88 +171,90 @@ logger = logging.getLogger(__name__)
 
 def get_evse_context():
     ac_limits = EVSEACCPDLimits(
-        # 15118-2 AC CPD
-        evse_nominal_voltage=10,
-        evse_max_current=10,
-        evse_max_charge_power=10,
-        evse_min_charge_power=10,
-        evse_max_charge_power_l2=10,
-        evse_max_charge_power_l3=10,
-        evse_min_charge_power_l2=10,
-        evse_min_charge_power_l3=10,
-        evse_nominal_frequency=10,
-        max_power_asymmetry=10,
-        evse_power_ramp_limit=10,
-        evse_present_active_power=10,
-        evse_present_active_power_l2=10,
-        evse_present_active_power_l3=10,
-    )
-    ac_bpt_limits = EVSEACBPTCPDLimits(
-        evse_max_discharge_power=10,
-        evse_min_discharge_power=10,
-        evse_max_discharge_power_l2=10,
-        evse_max_discharge_power_l3=10,
-        evse_min_discharge_power_l2=10,
-        evse_min_discharge_power_l3=10,
+
+
+        max_current=10,
+        max_charge_power=10,
+        min_charge_power=10,
+        max_charge_power_l2=10,
+        max_charge_power_l3=10,
+        min_charge_power_l2=10,
+        min_charge_power_l3=10,
+
+        max_discharge_power=10,
+        min_discharge_power=10,
+        max_discharge_power_l2=10,
+        max_discharge_power_l3=10,
+        min_discharge_power_l2=10,
+        min_discharge_power_l3=10,
     )
     dc_limits = EVSEDCCPDLimits(
-        evse_max_charge_power=10,
-        evse_min_charge_power=10,
-        evse_max_charge_current=10,
-        evse_min_charge_current=10,
-        evse_max_voltage=10,
-        evse_min_voltage=10,
-        evse_power_ramp_limit=10,
-        # 15118-2 DC, DINSPEC
-        evse_current_regulation_tolerance=10,
-        evse_peak_current_ripple=10,
-        evse_energy_to_be_delivered=10,
-    )
-    dc_bpt_limits = EVSEDCBPTCPDLimits(
+        max_charge_power=10,
+        min_charge_power=10,
+        max_charge_current=10,
+        min_charge_current=10,
+        max_voltage=10,
+        min_voltage=10,
+
         # 15118-20 DC BPT
-        evse_max_discharge_power=10,
-        evse_min_discharge_power=10,
-        evse_max_discharge_current=10,
-        evse_min_discharge_current=10,
+        max_discharge_power=10,
+        min_discharge_power=10,
+        max_discharge_current=10,
+        min_discharge_current=10,
     )
     ac_cl_limits = EVSEACCLLimits(
-        evse_target_active_power=10,
-        evse_target_active_power_l2=10,
-        evse_target_active_power_l3=10,
-        evse_target_reactive_power=10,
-        evse_target_reactive_power_l2=10,
-        evse_target_reactive_power_l3=10,
-        evse_present_active_power=10,
-        evse_present_active_power_l2=10,
-        evse_present_active_power_l3=10,
-    )
+        max_charge_power=10,
+        max_charge_power_l2=10,
+        max_charge_power_l3=10,
+        max_charge_reactive_power=10,
+        max_charge_reactive_power_l2=10,
+        max_charge_reactive_power_l3=10,
+
+        # BPT attributes
+        max_discharge_power=10,
+        max_discharge_power_l2=10,
+        max_discharge_power_l3=10,
+        max_discharge_reactive_power=10,
+        max_discharge_active_power_l2=10,
+        max_discharge_active_power_l3=10,
+
+        )
     dc_cl_limits = EVSEDCCLLimits(
         # Optional in 15118-20 DC CL (Scheduled)
-        evse_max_charge_power=10,
-        evse_min_charge_power=10,
-        evse_max_charge_current=10,
-        evse_max_voltage=10,
+        max_charge_power=10,
+        min_charge_power=10,
+        max_charge_current=10,
+        max_voltage=10,
         # Optional and present in 15118-20 DC BPT CL (Scheduled)
-        evse_max_discharge_power=10,
-        evse_min_discharge_power=10,
-        evse_max_discharge_current=10,
-        evse_min_voltage=10,
+        max_discharge_power=10,
+        min_discharge_power=10,
+        max_discharge_current=10,
+        min_voltage=10,
     )
     rated_limits: EVSERatedLimits = EVSERatedLimits(
         ac_limits=ac_limits,
-        ac_bpt_limits=ac_bpt_limits,
         dc_limits=dc_limits,
-        dc_bpt_limits=dc_bpt_limits,
     )
 
-    session_context: EVSESessionContext = EVSESessionContext(
-        evse_present_voltage=1,
-        evse_present_current=1,
+    session_context: EVSESessionLimits = EVSESessionLimits(
         ac_limits=ac_cl_limits,
         dc_limits=dc_cl_limits,
     )
+    evse_data_context = EVSEDataContext(rated_limits=rated_limits,
+                                        session_context=session_context)
+    evse_data_context.nominal_voltage=10
+    evse_data_context.nominal_frequency=10
+    evse_data_context.max_power_asymmetry=10
+    evse_data_context.power_ramp_limit=10
+    evse_data_context.present_active_power=10
+    evse_data_context.present_active_power_l2=10
+    evse_data_context.present_active_power_l3=10
+    evse_data_context.current_regulation_tolerance=10
+    evse_data_context.energy_to_be_delivered=10
+    evse_data_context.present_current=1
+    evse_data_context.present_voltage=1
 
-    return EVSEDataContext(rated_limits=rated_limits, session_context=session_context)
+    return evse_data_context
 
 
 class SimEVSEController(EVSEControllerInterface):
@@ -782,66 +780,6 @@ class SimEVSEController(EVSEControllerInterface):
     async def set_present_protocol_state(self, state: State):
         logger.info(f"iso15118 state: {str(state)}")
 
-    async def send_charging_power_limits(
-        self,
-        protocol: Protocol,
-        control_mode: ControlMode,
-        selected_energy_service: ServiceV20,
-    ) -> None:
-        """
-        This method shall merge the EV-EVSE charging power limits and send it
-
-        Args:
-            protocol: protocol selected (DIN, ISO 15118-2, ISO 15118-20_AC,..)
-            control_mode: Control mode for this session - Scheduled/Dynamic
-            selected_energy_service: Enum for this Service - AC/AC_BPT/DC/DC_BPT
-
-        Returns: None
-
-        """
-        if protocol == Protocol.ISO_15118_20_AC:
-            charge_parameters: Optional[
-                Union[
-                    ACChargeParameterDiscoveryResParams,
-                    BPTACChargeParameterDiscoveryResParams,
-                ]
-            ]
-
-            charge_parameters = await self.get_ac_charge_params_v20(
-                selected_energy_service
-            )
-
-            ev_data_context = self.get_ev_data_context()
-            logger.info(f"EV data context: {ev_data_context}")
-
-            if isinstance(charge_parameters, BPTACChargeParameterDiscoveryResParams):
-                max_discharge_power = (
-                    ev_data_context.ev_session_context.dc_limits.ev_max_discharge_power
-                )
-                min_discharge_power = (
-                    ev_data_context.ev_session_context.dc_limits.ev_min_discharge_power
-                )
-
-            max_charge_power = min(
-                ev_data_context.ev_session_context.ac_limits.ev_max_charge_power,
-                charge_parameters.evse_max_charge_power.get_decimal_value(),
-            )
-
-            min_charge_power = max(
-                ev_data_context.ev_session_context.ac_limits.ev_min_charge_power,
-                charge_parameters.evse_min_charge_power.get_decimal_value(),
-            )
-
-            logger.debug(
-                f"\n\r --- EV-EVSE System Power Limits ---  \n"
-                f"max_charge_power [W]: {max_charge_power}\n"
-                f"min_charge_power [W]: {min_charge_power}\n"
-                f"max_discharge_power [W]: {max_discharge_power}\n"
-                f"min_discharge_power [W]: {min_discharge_power}\n"
-            )
-            # NOTE: Currently reactive limits are not available
-            # https://iso15118.elaad.io/pt2/15118-20/user-group/-/issues/65
-        return
 
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
@@ -1040,7 +978,7 @@ class SimEVSEController(EVSEControllerInterface):
             evse_status_code=DCEVSEStatusCode.EVSE_READY,
         )
 
-    async def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
+    async def get_dc_charge_parameters(self) -> DCEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_dc_evse_charge_parameter()."""
         return DCEVSEChargeParameter(
             dc_evse_status=DCEVSEStatus(
@@ -1068,6 +1006,24 @@ class SimEVSEController(EVSEControllerInterface):
                 multiplier=1, value=4, unit="A"
             ),
         )
+    
+    async def get_dc_charge_parameters_dinspec(self) -> DCEVSEChargeParameter:
+        """
+        Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
+
+        Relevant for:
+        - ISO 15118-2
+        """
+        return self.get_dc_charge_parameters(self)
+    
+    async def get_dc_charge_parameters_v2(self) -> DCEVSEChargeParameter:
+        """
+        Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
+
+        Relevant for:
+        - ISO 15118-2
+        """
+        return self.get_dc_charge_parameters(self)
 
     async def get_evse_present_voltage(
         self, protocol: Protocol
@@ -1117,25 +1073,14 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_cable_check_status()."""
         return IsolationLevel.VALID
 
-    async def set_precharge(
-        self,
-        voltage: Union[PVEVTargetVoltage, RationalNumber],
-        current: Union[PVEVTargetCurrent, RationalNumber],
-    ):
-        self.evse_data_context.session_context.evse_present_voltage = (
-            voltage.get_decimal_value()
-        )
-        self.evse_data_context.session_context.evse_present_current = (
-            current.get_decimal_value()
-        )
-
     async def send_charging_command(
         self,
         ev_target_voltage: Optional[float],
         ev_target_current: Optional[float],
         is_session_bpt: bool = False,
     ):
-        pass
+        self.evse_data_context.present_voltage = ev_target_voltage
+        self.evse_data_context.present_current = ev_target_current
 
     async def is_evse_current_limit_achieved(self) -> bool:
         return True
