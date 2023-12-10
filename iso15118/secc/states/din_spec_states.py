@@ -9,7 +9,6 @@ import time
 from typing import Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.interface import EVChargeParamsLimits
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
@@ -569,7 +568,7 @@ class PreCharge(StateSECC):
             return
 
         ev_data_context = self.comm_session.evse_controller.ev_data_context
-        ev_data_context.update_pre_charge(precharge_req)
+        ev_data_context.update_pre_charge_parameters(precharge_req)
 
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
@@ -584,8 +583,8 @@ class PreCharge(StateSECC):
             target_current_in_a = ev_data_context.target_current
         else:
             self.stop_state_machine(
-                f"Error reading EVSE Present Current.
-                Wrong type: {type(present_current)}",
+                f"Error reading EVSE Present Current.",
+                f"Wrong type: {type(present_current)}",
                 message,
                 ResponseCode.FAILED,
             )
@@ -682,7 +681,7 @@ class PowerDelivery(StateSECC):
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
 
         self.comm_session.evse_controller.ev_data_context.present_soc = (
-            power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ress_soc # noqa
+            power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ress_soc
         )
 
         logger.debug(
@@ -780,12 +779,13 @@ class CurrentDemand(StateSECC):
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
 
-        self.comm_session.evse_controller.ev_data_context.update_charge_loop(current_demand_req)
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+        ev_data_context.update_charge_loop_parameters(current_demand_req)
 
         # Updates the power electronics targets based on EV requests
         await self.comm_session.evse_controller.send_charging_command(
-            voltage=current_demand_req.ev_target_voltage,
-            charge_current=current_demand_req.ev_target_current
+            voltage=ev_data_context.target_voltage,
+            charge_current=ev_data_context.target_current,
         )
 
         current_demand_res: CurrentDemandRes = CurrentDemandRes(

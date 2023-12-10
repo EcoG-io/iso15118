@@ -15,10 +15,31 @@ from iso15118.shared.messages.din_spec.body import (
     )
 from iso15118.shared.messages.enums import AuthEnum, ControlMode, ServiceV20
 from iso15118.shared.messages.iso15118_2.datatypes import ChargeService
-from iso15118.shared.messages.iso15118_20.ac import ACChargeLoopReq, ACChargeParameterDiscoveryReq, BPTACChargeParameterDiscoveryReqParams, BPTDynamicACChargeLoopReqParams, BPTScheduledACChargeLoopReqParams, DynamicACChargeLoopReqParams, ScheduledACChargeLoopReqParams
-from iso15118.shared.messages.iso15118_20.common_messages import DynamicScheduleExchangeReqParams, ScheduleExchangeReq, ScheduledScheduleExchangeReqParams, SelectedEnergyService
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeLoopReq, ACChargeParameterDiscoveryReq, ACChargeParameterDiscoveryReqParams, BPTACChargeParameterDiscoveryReqParams,
+    BPTDynamicACChargeLoopReqParams,
+    BPTScheduledACChargeLoopReqParams,
+    DynamicACChargeLoopReqParams,
+    ScheduledACChargeLoopReqParams
+    )
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    DynamicScheduleExchangeReqParams,
+    ScheduleExchangeReq,
+    ScheduledScheduleExchangeReqParams,
+    SelectedEnergyService
+    )
 from iso15118.shared.messages.iso15118_20.common_types import DisplayParameters
-from iso15118.shared.messages.iso15118_20.dc import BPTDCChargeParameterDiscoveryReqParams, BPTDynamicDCChargeLoopReqParams, BPTScheduledDCChargeLoopReqParams, DCChargeLoopReq, DCChargeParameterDiscoveryReq, DCPreChargeReq, DynamicDCChargeLoopReqParams, ScheduledDCChargeLoopReqParams
+from iso15118.shared.messages.iso15118_20.dc import (
+    BPTDCChargeParameterDiscoveryReqParams,
+    BPTDynamicDCChargeLoopReqParams,
+    BPTScheduledDCChargeLoopReqParams,
+    DCChargeLoopReq,
+    DCChargeParameterDiscoveryReq,
+    DCChargeParameterDiscoveryReqParams,
+    DCPreChargeReq,
+    DynamicDCChargeLoopReqParams,
+    ScheduledDCChargeLoopReqParams
+    )
 
 
 @dataclass
@@ -107,22 +128,22 @@ class EVDCCLLimits(Limits):
 class EVRatedLimits(Limits):
     def __init__(
         self,
-        ac_limits: Optional[EVACCPDLimits] = None,
-        dc_limits: Optional[EVDCCPDLimits] = None,
+        ac_limits: Optional[EVACCPDLimits] = EVACCPDLimits(),
+        dc_limits: Optional[EVDCCPDLimits] = EVDCCPDLimits(),
     ):
-        self.ac_limits = ac_limits or EVACCPDLimits()
-        self.dc_limits = dc_limits or EVDCCPDLimits()
+        self.ac_limits = ac_limits
+        self.dc_limits = dc_limits
 
 
 @dataclass
 class EVSessionLimits(Limits):
     def __init__(
         self,
-        ac_limits: Optional[EVACCLLimits] = None,
-        dc_limits: Optional[EVDCCLLimits] = None,
+        ac_limits: Optional[EVACCLLimits] = EVACCLLimits(),
+        dc_limits: Optional[EVDCCLLimits] = EVDCCLLimits(),
     ):
-        self.ac_limits = ac_limits or EVACCLLimits()
-        self.dc_limits = dc_limits or EVDCCLLimits()
+        self.ac_limits = ac_limits
+        self.dc_limits = dc_limits
 
 
 class CurrentType(str, Enum):
@@ -134,12 +155,12 @@ class EVDataContext:
     def __init__(
         self,
         evcc_id: Optional[str] = None,
-        rated_limits: Optional[EVRatedLimits] = None,
-        session_limits: Optional[EVSessionLimits] = None,
+        rated_limits: Optional[EVRatedLimits] = EVRatedLimits(),
+        session_limits: Optional[EVSessionLimits] = EVSessionLimits(),
     ):
-        self.evcc_id = evcc_id or None
-        self.rated_limits = rated_limits or EVRatedLimits()
-        self.session_limits = session_limits or EVSessionLimits()
+        self.evcc_id = evcc_id
+        self.rated_limits = rated_limits
+        self.session_limits = session_limits
 
         self.current_type: Optional[CurrentType] = None
 
@@ -190,8 +211,11 @@ class EVDataContext:
         # and same as above
         self.target_voltage: float = 0.0
     
-    def update_ac_charge_parameters_v2(self,
-                                       ac_ev_charge_parameter: ACEVChargeParameter):
+    def update_ac_charge_parameters_v2(
+            self,
+            ac_ev_charge_parameter: ACEVChargeParameter
+    )-> None:
+        """Update the EV data context with the ACEVChargeParameter parameters"""
         self.departure_time = ac_ev_charge_parameter.departure_time
         ac_rated_limits = self.rated_limits.ac_limits
         self.target_energy_request = ac_ev_charge_parameter.e_amount.get_decimal_value() # noqa: E501
@@ -203,8 +227,11 @@ class EVDataContext:
         self.session_limits.ac_limits.update(ac_rated_limits.as_dict())
     
 
-    def update_dc_charge_parameters(self,
-                                    dc_ev_charge_parameter: Union[DCEVChargeParameter, DIN_DCEVChargeParameter]):
+    def update_dc_charge_parameters(
+            self,
+            dc_ev_charge_parameter: Union[DCEVChargeParameter, DIN_DCEVChargeParameter]
+    )-> None:
+        """Update the EV data context with the DCEVChargeParameter parameters"""
         try:
             self.departure_time = dc_ev_charge_parameter.departure_time
         except AttributeError:
@@ -250,12 +277,20 @@ class EVDataContext:
         self.session_limits.dc_limits.update(dc_rated_limits.as_dict())
 
 
-    def update_pre_charge_parameters(self, pre_charge_req: Union[PreChargeReq, DIN_PreChargeReq]):
+    def update_pre_charge_parameters(
+            self,
+            pre_charge_req: Union[PreChargeReq, DIN_PreChargeReq]
+    )-> None:
+        """Update the EV data context with the PreChargeReq parameters"""
         self.present_soc = pre_charge_req.dc_ev_status.ev_ress_soc
         self.target_current = pre_charge_req.ev_target_current.get_decimal_value()
         self.target_voltage = pre_charge_req.ev_target_voltage.get_decimal_value()
     
-    def update_charge_loop_parameters(self, current_demand_req: CurrentDemandReq):
+    def update_charge_loop_parameters(
+            self,
+            current_demand_req: CurrentDemandReq
+    ) -> None:
+        """Update the EV data context with the CurrentDemandReq parameters"""
         self.present_soc = current_demand_req.dc_ev_status.ev_ress_soc
         self.target_current = current_demand_req.ev_target_current.get_decimal_value()
         self.target_voltage = current_demand_req.ev_target_voltage.get_decimal_value()
@@ -290,10 +325,13 @@ class EVDataContext:
             control_mode: ControlMode,
             schedule_exchange_req: ScheduleExchangeReq
     ):
+        """Update the EV data context with the ScheduleExchangeReq parameters"""
         if control_mode == ControlMode.SCHEDULED:
-            _update_common_se_params(schedule_exchange_req.scheduled_params)
+            self._update_common_se_params(schedule_exchange_req,
+                                          schedule_exchange_req.scheduled_params)
         if control_mode == ControlMode.DYNAMIC:
-            _update_common_se_params(schedule_exchange_req.dynamic_params)
+            self._update_common_se_params(schedule_exchange_req,
+                                          schedule_exchange_req.dynamic_params)
             if schedule_exchange_req.dynamic_params.target_soc:
                 self.target_soc = schedule_exchange_req.dynamic_params.target_soc
             if schedule_exchange_req.dynamic_params.min_soc:
@@ -303,51 +341,83 @@ class EVDataContext:
             if schedule_exchange_req.dynamic_params.ev_min_v2x_energy_request:
                 self.min_v2x_energy_request = schedule_exchange_req.dynamic_params.ev_min_v2x_energy_request.get_decimal_value() # noqa: E501
 
-        def _update_common_se_params(
-                params: Union[
-                    ScheduledScheduleExchangeReqParams,
-                    DynamicScheduleExchangeReqParams
-                ]
-        ):
-            if params.departure_time:
-                self.departure_time = schedule_exchange_req.scheduled_params.departure_time
-            if params.ev_target_energy_request:
-                self.target_energy_request = schedule_exchange_req.scheduled_params.ev_target_energy_request.get_decimal_value() # noqa: E501
-            if params.ev_max_energy_request:
-                self.maximum_energy_request = schedule_exchange_req.scheduled_params.ev_max_energy_request.get_decimal_value() # noqa: E501
-            if params.ev_min_energy_request:
-                self.minimum_energy_request = schedule_exchange_req.scheduled_params.ev_min_energy_request.get_decimal_value() # noqa: E501
+    def _update_common_se_params(
+            self,
+            schedule_exchange_req: ScheduleExchangeReq,
+            params: Union[
+                ScheduledScheduleExchangeReqParams,
+                DynamicScheduleExchangeReqParams
+            ]
+    ):
+        """Update the EV data context with the common ScheduleExchangeReq parameters"""
+        if params.departure_time:
+            self.departure_time = schedule_exchange_req.scheduled_params.departure_time
+        if params.ev_target_energy_request:
+            self.target_energy_request = schedule_exchange_req.scheduled_params.ev_target_energy_request.get_decimal_value() # noqa: E501
+        if params.ev_max_energy_request:
+            self.maximum_energy_request = schedule_exchange_req.scheduled_params.ev_max_energy_request.get_decimal_value() # noqa: E501
+        if params.ev_min_energy_request:
+            self.minimum_energy_request = schedule_exchange_req.scheduled_params.ev_min_energy_request.get_decimal_value() # noqa: E501      
     
     def update_ac_charge_parameters_v20(
             self,
             energy_service: ServiceV20,
             charge_parameter: ACChargeParameterDiscoveryReq,
-    ):
+    )-> None:
+        """Update the EV data context with the ACChargeParameterDiscoveryReq parameters"""
         ac_rated_limits = self.rated_limits.ac_limits
-        ac_rated_limits.max_charge_power = charge_parameter.ev_max_charge_power.get_decimal_value() # noqa: E501
-        if charge_parameter.ev_max_charge_power_l2:
-            ac_rated_limits.max_charge_power_l2 = charge_parameter.ev_max_charge_power_l2.get_decimal_value() # noqa: E501
-        if charge_parameter.ev_max_charge_power_l3:
-            ac_rated_limits.max_charge_power_l3 = charge_parameter.ev_max_charge_power_l3.get_decimal_value() # noqa: E501
-        ac_rated_limits.min_charge_power = charge_parameter.ev_min_charge_power.get_decimal_value() # noqa: E501
-        if charge_parameter.ev_min_charge_power_l2:
-            ac_rated_limits.min_charge_power_l2 = charge_parameter.ev_min_charge_power_l2.get_decimal_value() # noqa: E501
-        if charge_parameter.ev_min_charge_power_l3:
-            ac_rated_limits.min_charge_power_l3 = charge_parameter.ev_min_charge_power_l3.get_decimal_value() # noqa: E501
-
-        if energy_service == ServiceV20.AC_BPT:
-            ac_rated_limits.max_discharge_power = charge_parameter.ev_max_discharge_power.get_decimal_value() # noqa: E501
-            if charge_parameter.ev_max_discharge_power_l2:
-                ac_rated_limits.max_discharge_power_l2 = charge_parameter.ev_max_discharge_power_l2.get_decimal_value() # noqa: E501
-            if charge_parameter.ev_max_discharge_power_l3:
-                ac_rated_limits.max_discharge_power_l3 = charge_parameter.ev_max_discharge_power_l3.get_decimal_value() # noqa: E501
-            ac_rated_limits.min_discharge_power = charge_parameter.ev_min_discharge_power.get_decimal_value() # noqa: E501
-            if charge_parameter.ev_min_discharge_power_l2:
-                ac_rated_limits.min_discharge_power_l2 = charge_parameter.ev_min_discharge_power_l2.get_decimal_value() # noqa: E501
-            if charge_parameter.ev_min_discharge_power_l3:
-                ac_rated_limits.min_discharge_power_l3 = charge_parameter.ev_min_discharge_power_l3.get_decimal_value() # noqa: E501
+        params: Union[ACChargeParameterDiscoveryReqParams,
+                      BPTACChargeParameterDiscoveryReqParams] = None
+        if energy_service == ServiceV20.AC:
+            params = charge_parameter.ac_params
+            self._update_common_ac_charge_parameters_v20(ac_rated_limits,
+                                                         params)
+        elif energy_service == ServiceV20.AC_BPT:
+            params = charge_parameter.bpt_ac_params
+            self._update_acbpt_charge_parameters_v20(ac_rated_limits,
+                                                     params)
+        else:
+            # Raise error?
+            return
         # Create the session limits based on the rated limits
-        self.session_limits.ac_limits.update(ac_rated_limits.as_dict())
+        self.session_limits.dc_limits.update(ac_rated_limits.as_dict())
+    
+    def _update_common_ac_charge_parameters_v20(
+            self,
+            ac_rated_limits: EVACCPDLimits,
+            params: Union[ACChargeParameterDiscoveryReqParams,
+                          BPTACChargeParameterDiscoveryReqParams],
+    )-> None:
+        """Update the EV data context with the common DCChargeParameterDiscoveryReq parameters"""
+        ac_rated_limits.max_charge_power = params.ev_max_charge_power.get_decimal_value() # noqa: E501
+        if params.ev_max_charge_power_l2:
+            ac_rated_limits.max_charge_power_l2 = params.ev_max_charge_power_l2.get_decimal_value() # noqa: E501
+        if params.ev_max_charge_power_l3:
+            ac_rated_limits.max_charge_power_l3 = params.ev_max_charge_power_l3.get_decimal_value() # noqa: E501
+        ac_rated_limits.min_charge_power = params.ev_min_charge_power.get_decimal_value() # noqa: E501
+        if params.ev_min_charge_power_l2:
+            ac_rated_limits.min_charge_power_l2 = params.ev_min_charge_power_l2.get_decimal_value() # noqa: E501
+        if params.ev_min_charge_power_l3:
+            ac_rated_limits.min_charge_power_l3 = params.ev_min_charge_power_l3.get_decimal_value() # noqa: E501
+
+    def _update_acbpt_charge_parameters_v20(
+            self,
+            ac_rated_limits: EVACCPDLimits,
+            params: BPTACChargeParameterDiscoveryReqParams,
+    )-> None:
+        """Update the EV data context with the BPTDCChargeParameterDiscoveryReq parameters"""
+        self._update_common_ac_charge_parameters_v20(ac_rated_limits, params)
+        ac_rated_limits.max_discharge_power = params.ev_max_discharge_power.get_decimal_value() # noqa: E501
+        if params.ev_max_discharge_power_l2:
+            ac_rated_limits.max_discharge_power_l2 = params.ev_max_discharge_power_l2.get_decimal_value() # noqa: E501
+        if params.ev_max_discharge_power_l3:
+            ac_rated_limits.max_discharge_power_l3 = params.ev_max_discharge_power_l3.get_decimal_value() # noqa: E501
+        ac_rated_limits.min_discharge_power = params.ev_min_discharge_power.get_decimal_value() # noqa: E501
+        if params.ev_min_discharge_power_l2:
+            ac_rated_limits.min_discharge_power_l2 = params.ev_min_discharge_power_l2.get_decimal_value() # noqa: E501
+        if params.ev_min_discharge_power_l3:
+            ac_rated_limits.min_discharge_power_l3 = params.ev_min_discharge_power_l3.get_decimal_value() # noqa: E501
+
 
     def update_ac_charge_loop_v20(
             self,
@@ -355,19 +425,22 @@ class EVDataContext:
             selected_energy_service: ServiceV20,
             control_mode: ControlMode,
     ) -> None:
+        """Update the EV data context with the ACChargeLoopReq parameters"""
         ac_limits = self.session_limits.ac_limits
         if selected_energy_service == ServiceV20.AC:
             if control_mode == ControlMode.SCHEDULED:
-                _update_common_ac_limits(ac_limits, ac_charge_loop_req.scheduled_params) # noqa: E501
+                self._update_common_ac_limits(ac_limits,
+                                              ac_charge_loop_req.scheduled_params)
             elif control_mode == ControlMode.DYNAMIC:
                  params = ac_charge_loop_req.dynamic_params
                   # Departure time only in Dynamic
                  if params.departure_time:
                     self.departure_time = params.departure_time
-                 _update_common_ac_limits(ac_limits, params)
+                 self._update_common_ac_limits(ac_limits, params)
         elif selected_energy_service == ServiceV20.AC_BPT:
             if control_mode == ControlMode.SCHEDULED:
-                _update_common_acbpt_limits(ac_limits, ac_charge_loop_req.bpt_scheduled_params) # noqa: E501
+                self._update_common_acbpt_limits(ac_limits,
+                                            ac_charge_loop_req.bpt_scheduled_params)
             elif control_mode == ControlMode.DYNAMIC:
                 params = ac_charge_loop_req.bpt_dynamic_params
                 # Departure time only in Dynamic
@@ -379,125 +452,155 @@ class EVDataContext:
                 if params.ev_min_v2x_energy_request:
                     self.min_v2x_energy_request = params.ev_min_v2x_energy_request.get_decimal_value() # noqa: E501
                 
-                _update_common_acbpt_limits(ac_limits, params)
+                self._update_common_acbpt_limits(ac_limits, params)
         else:
             # raise an error?
             return
         
-        def _update_common_ac_limits(
-                ac_limits: EVACCLLimits,
-                params: Union[
-                    ScheduledACChargeLoopReqParams,
-                    DynamicACChargeLoopReqParams,
-                    BPTScheduledACChargeLoopReqParams,
-                    BPTDynamicACChargeLoopReqParams
-                ]
-        ):
-            if params.ev_target_energy_request:
-                self.target_energy_request = params.ev_target_energy_request.get_decimal_value()
-            if params.ev_max_energy_request:
-                self.maximum_energy_request = params.ev_max_energy_request.get_decimal_value()
-            if params.ev_min_energy_request:
-                self.minimum_energy_request = params.ev_min_energy_request.get_decimal_value()
-            if params.ev_max_charge_power:
-                ac_limits.max_charge_power = params.ev_max_charge_power.get_decimal_value() # noqa: E501
-            if params.ev_max_charge_power_l2:
-                ac_limits.max_charge_power_l2 = params.ev_max_charge_power_l2.get_decimal_value() # noqa: E501
-            if params.ev_max_charge_power_l3:
-                ac_limits.max_charge_power_l3 = params.ev_max_charge_power_l3.get_decimal_value() # noqa: E501
-            if params.ev_min_charge_power:
-                ac_limits.min_charge_power = params.ev_min_charge_power.get_decimal_value() # noqa: E501
-            if params.ev_min_charge_power_l2:
-                ac_limits.min_charge_power_l2 = params.ev_min_charge_power_l2.get_decimal_value() # noqa: E501
-            if params.ev_min_charge_power_l3:
-                ac_limits.min_charge_power_l3 = params.ev_min_charge_power_l3.get_decimal_value() # noqa: E501
-            if params.ev_target_energy_request:
-                self.target_energy_request = params.ev_target_energy_request.get_decimal_value() # noqa: E501
-            if params.ev_max_energy_request:
-                self.maximum_energy_request = params.ev_max_energy_request.get_decimal_value() # noqa: E501
-            if params.ev_min_energy_request:
-                self.minimum_energy_request = params.ev_min_energy_request.get_decimal_value() # noqa: E501
-            if params.ev_present_active_power:
-                self.present_active_power = params.ev_present_active_power.get_decimal_value()
-            if params.ev_present_active_power_l2:
-                self.present_active_power_l2 = params.ev_present_active_power_l2.get_decimal_value()
-            if params.ev_present_active_power_l3:
-                self.present_active_power_l3 = params.ev_present_active_power_l3.get_decimal_value()
-            if params.ev_present_reactive_power:
-                self.present_reactive_power = params.ev_present_reactive_power.get_decimal_value()
-            if params.ev_present_reactive_power_l2:
-                self.present_reactive_power_l2 = params.ev_present_reactive_power_l2.get_decimal_value()
-            if params.ev_present_reactive_power_l3:
-                self.present_reactive_power_l3 = params.ev_present_reactive_power_l3.get_decimal_value()
+    def _update_common_ac_limits(
+            self,
+            ac_limits: EVACCLLimits,
+            params: Union[
+                ScheduledACChargeLoopReqParams,
+                DynamicACChargeLoopReqParams,
+                BPTScheduledACChargeLoopReqParams,
+                BPTDynamicACChargeLoopReqParams
+            ]
+    ):
+        """Update the EV data context with the common ACChargeLoopReq parameters"""
+        if params.ev_target_energy_request:
+            self.target_energy_request = params.ev_target_energy_request.get_decimal_value() # noqa: E501
+        if params.ev_max_energy_request:
+            self.maximum_energy_request = params.ev_max_energy_request.get_decimal_value() # noqa: E501
+        if params.ev_min_energy_request:
+            self.minimum_energy_request = params.ev_min_energy_request.get_decimal_value() # noqa: E501
+        if params.ev_max_charge_power:
+            ac_limits.max_charge_power = params.ev_max_charge_power.get_decimal_value() # noqa: E501
+        if params.ev_max_charge_power_l2:
+            ac_limits.max_charge_power_l2 = params.ev_max_charge_power_l2.get_decimal_value() # noqa: E501
+        if params.ev_max_charge_power_l3:
+            ac_limits.max_charge_power_l3 = params.ev_max_charge_power_l3.get_decimal_value() # noqa: E501
+        if params.ev_min_charge_power:
+            ac_limits.min_charge_power = params.ev_min_charge_power.get_decimal_value() # noqa: E501
+        if params.ev_min_charge_power_l2:
+            ac_limits.min_charge_power_l2 = params.ev_min_charge_power_l2.get_decimal_value() # noqa: E501
+        if params.ev_min_charge_power_l3:
+            ac_limits.min_charge_power_l3 = params.ev_min_charge_power_l3.get_decimal_value() # noqa: E501
+        if params.ev_target_energy_request:
+            self.target_energy_request = params.ev_target_energy_request.get_decimal_value() # noqa: E501
+        if params.ev_max_energy_request:
+            self.maximum_energy_request = params.ev_max_energy_request.get_decimal_value() # noqa: E501
+        if params.ev_min_energy_request:
+            self.minimum_energy_request = params.ev_min_energy_request.get_decimal_value() # noqa: E501
+        if params.ev_present_active_power:
+            self.present_active_power = params.ev_present_active_power.get_decimal_value() # noqa: E501
+        if params.ev_present_active_power_l2:
+            self.present_active_power_l2 = params.ev_present_active_power_l2.get_decimal_value() # noqa: E501
+        if params.ev_present_active_power_l3:
+            self.present_active_power_l3 = params.ev_present_active_power_l3.get_decimal_value() # noqa: E501
+        if params.ev_present_reactive_power:
+            self.present_reactive_power = params.ev_present_reactive_power.get_decimal_value() # noqa: E501
+        if params.ev_present_reactive_power_l2:
+            self.present_reactive_power_l2 = params.ev_present_reactive_power_l2.get_decimal_value() # noqa: E501
+        if params.ev_present_reactive_power_l3:
+            self.present_reactive_power_l3 = params.ev_present_reactive_power_l3.get_decimal_value() # noqa: E501
         
-        def _update_common_acbpt_limits(
-                ac_limits: EVACCLLimits,
-                params: Union[
-                    BPTScheduledACChargeLoopReqParams,
-                    BPTDynamicACChargeLoopReqParams
-                ]
-        ):
-            _update_common_ac_limits(ac_limits, params)
-            if params.ev_max_discharge_power:
-                ac_limits.max_discharge_power = params.ev_max_discharge_power.get_decimal_value() # noqa: E501
-            if params.ev_max_discharge_power_l2:
-                ac_limits.max_discharge_power_l2 = params.ev_max_discharge_power_l2.get_decimal_value() # noqa: E501
-            if params.ev_max_discharge_power_l3:
-                ac_limits.max_discharge_power_l3 = params.ev_max_discharge_power_l3.get_decimal_value() # noqa: E501
-            if params.ev_min_discharge_power:
-                ac_limits.min_discharge_power = params.ev_min_discharge_power.get_decimal_value() # noqa: E501
-            if params.ev_min_discharge_power_l2:
-                ac_limits.min_discharge_power_l2 = params.ev_min_discharge_power_l2.get_decimal_value() # noqa: E501
-            if params.ev_min_discharge_power_l3:
-                ac_limits.min_discharge_power_l3 = params.ev_min_discharge_power_l3.get_decimal_value() # noqa: E501
-            
+    def _update_common_acbpt_limits(
+            self,
+            ac_limits: EVACCLLimits,
+            params: Union[
+                BPTScheduledACChargeLoopReqParams,
+                BPTDynamicACChargeLoopReqParams
+            ]
+    ):
+        """Update the EV data context with the common ACChargeLoopReq BPT parameters"""
+        self._update_common_ac_limits(ac_limits, params)
+        if params.ev_max_discharge_power:
+            ac_limits.max_discharge_power = params.ev_max_discharge_power.get_decimal_value() # noqa: E501
+        if params.ev_max_discharge_power_l2:
+            ac_limits.max_discharge_power_l2 = params.ev_max_discharge_power_l2.get_decimal_value() # noqa: E501
+        if params.ev_max_discharge_power_l3:
+            ac_limits.max_discharge_power_l3 = params.ev_max_discharge_power_l3.get_decimal_value() # noqa: E501
+        if params.ev_min_discharge_power:
+            ac_limits.min_discharge_power = params.ev_min_discharge_power.get_decimal_value() # noqa: E501
+        if params.ev_min_discharge_power_l2:
+            ac_limits.min_discharge_power_l2 = params.ev_min_discharge_power_l2.get_decimal_value() # noqa: E501
+        if params.ev_min_discharge_power_l3:
+            ac_limits.min_discharge_power_l3 = params.ev_min_discharge_power_l3.get_decimal_value() # noqa: E501
     
     def update_dc_charge_parameters_v20(
             self,
             energy_service: ServiceV20,
-            charge_parameter: Union[
-                DCChargeParameterDiscoveryReq,
-                BPTDCChargeParameterDiscoveryReqParams
-            ]
-    ):
+            charge_parameter: DCChargeParameterDiscoveryReq,
+    )-> None:
+        """Update the EV data context with the DCChargeParameterDiscoveryReq parameters"""
         dc_rated_limits = self.rated_limits.dc_limits
-        dc_rated_limits.max_charge_power = charge_parameter.ev_max_charge_power.get_decimal_value() # noqa: E501
-        dc_rated_limits.min_charge_power = charge_parameter.ev_min_charge_power.get_decimal_value() # noqa: E501
-        dc_rated_limits.max_charge_current = charge_parameter.ev_max_charge_current.get_decimal_value() # noqa: E501
-        dc_rated_limits.max_voltage = charge_parameter.ev_max_voltage.get_decimal_value() # noqa: E501
-        dc_rated_limits.min_voltage = charge_parameter.ev_min_voltage.get_decimal_value()  # noqa: E501
-        if charge_parameter.target_soc:
-            self.target_soc = charge_parameter.target_soc
-
-        if energy_service == ServiceV20.DC_BPT:
-            dc_rated_limits.max_discharge_power = charge_parameter.ev_max_discharge_power.get_decimal_value() # noqa: E501
-            dc_rated_limits.min_discharge_power = charge_parameter.ev_min_discharge_power.get_decimal_value() # noqa: E501
-            dc_rated_limits.max_discharge_current = charge_parameter.ev_max_discharge_current.get_decimal_value() # noqa: E501
-            dc_rated_limits.min_discharge_current = charge_parameter.ev_min_discharge_current.get_decimal_value() # noqa: E501
+        params: Union[DCChargeParameterDiscoveryReqParams,
+                      BPTDCChargeParameterDiscoveryReqParams] = None
+        if energy_service == ServiceV20.DC:
+            params = charge_parameter.dc_params
+            self._update_common_dc_charge_parameters_v20(dc_rated_limits,
+                                                         params)
+        elif energy_service == ServiceV20.DC_BPT:
+            params = charge_parameter.bpt_dc_params
+            self._update_dcbpt_charge_parameters_v20(dc_rated_limits,
+                                                     params)
+        else:
+            # Raise error?
+            return
         # Create the session limits based on the rated limits
         self.session_limits.dc_limits.update(dc_rated_limits.as_dict())
+    
+    def _update_common_dc_charge_parameters_v20(
+            self,
+            dc_rated_limits: EVDCCPDLimits,
+            params: Union[DCChargeParameterDiscoveryReqParams,
+                          BPTDCChargeParameterDiscoveryReqParams],
+    )-> None:
+        """Update the EV data context with the common DCChargeParameterDiscoveryReq parameters"""
+        dc_rated_limits.max_charge_power = params.ev_max_charge_power.get_decimal_value() # noqa: E501
+        dc_rated_limits.min_charge_power = params.ev_min_charge_power.get_decimal_value() # noqa: E501
+        dc_rated_limits.max_charge_current = params.ev_max_charge_current.get_decimal_value() # noqa: E501
+        dc_rated_limits.max_voltage = params.ev_max_voltage.get_decimal_value() # noqa: E501
+        dc_rated_limits.min_voltage = params.ev_min_voltage.get_decimal_value()  # noqa: E501
+        if params.target_soc:
+            self.target_soc = params.target_soc
 
-    def update_pre_charge_parameters_v20(self, pre_charge_req: DCPreChargeReq):
+    def _update_dcbpt_charge_parameters_v20(
+            self,
+            dc_rated_limits: EVDCCPDLimits,
+            params: BPTDCChargeParameterDiscoveryReqParams,
+    )-> None:
+        """Update the EV data context with the BPTDCChargeParameterDiscoveryReq parameters"""
+        self._update_common_dc_charge_parameters_v20(dc_rated_limits, params)
+        dc_rated_limits.max_discharge_power = params.ev_max_discharge_power.get_decimal_value() # noqa: E501
+        dc_rated_limits.min_discharge_power = params.ev_min_discharge_power.get_decimal_value() # noqa: E501
+        dc_rated_limits.max_discharge_current = params.ev_max_discharge_current.get_decimal_value() # noqa: E501
+        dc_rated_limits.min_discharge_current = params.ev_min_discharge_current.get_decimal_value() # noqa: E501
+
+    def update_pre_charge_parameters_v20(self, pre_charge_req: DCPreChargeReq) -> None:
+        """Update the EV data context with the DCPreChargeReq parameters"""
         self.present_voltage = pre_charge_req.ev_present_voltage.get_decimal_value()
         self.target_voltage = pre_charge_req.ev_target_voltage.get_decimal_value()
     
-    def update_charge_loop_parameters_v20(
+    def update_dc_charge_loop_parameters_v20(
         self,
         dc_charge_loop_req: DCChargeLoopReq,
         selected_energy_service: SelectedEnergyService,
         control_mode: ControlMode,
     ) -> None:
+        """Update the EV data context with the DCChargeLoopReq parameters"""
         params: Union[
             ScheduledDCChargeLoopReqParams,
             DynamicDCChargeLoopReqParams,
             BPTScheduledDCChargeLoopReqParams,
             BPTDynamicDCChargeLoopReqParams,
         ] = None
-        self.present_voltage = dc_charge_loop_req.ev_present_voltage.get_decimal_value()
+        self.present_voltage = dc_charge_loop_req.ev_present_voltage.get_decimal_value() # noqa: E501
         
 
         if dc_charge_loop_req.display_parameters:
-            _update_display_parameters(dc_charge_loop_req.display_parameters)
+            self._update_display_parameters(dc_charge_loop_req.display_parameters)
 
         dc_limits = self.session_limits.dc_limits
         if selected_energy_service.service == ServiceV20.DC:
@@ -506,20 +609,20 @@ class EVDataContext:
                 # Target Current and Voltage only in Scheduled
                 self.target_current = params.ev_target_current.get_decimal_value()
                 self.target_voltage = params.ev_target_voltage.get_decimal_value()
-                _update_common_limits(dc_limits, params)
+                self._update_common_dc_limits(dc_limits, params)
             elif control_mode == ControlMode.DYNAMIC:
                 params: DynamicDCChargeLoopReqParams = dc_charge_loop_req.dynamic_params
                 # Departure time only in Dynamic
                 if params.departure_time:
                     self.departure_time = params.departure_time
-                _update_common_limits(dc_limits, params)
+                self._update_common_dc_limits(dc_limits, params)
         elif selected_energy_service.service == ServiceV20.DC_BPT:
             if control_mode == ControlMode.SCHEDULED:
                 params = dc_charge_loop_req.bpt_scheduled_params
                 # Target Current and Voltage only in Scheduled
                 self.target_current = params.ev_target_current.get_decimal_value()
                 self.target_voltage = params.ev_target_voltage.get_decimal_value()
-                _update_common_bpt_limits(dc_limits, params)
+                self._update_common_dc_bpt_limits(dc_limits, params)
             elif control_mode == ControlMode.DYNAMIC:
                 params = dc_charge_loop_req.bpt_dynamic_params
                 # Departure time only in Dynamic
@@ -530,67 +633,74 @@ class EVDataContext:
                     self.max_v2x_energy_request = params.ev_max_v2x_energy_request.get_decimal_value() # noqa: E501
                 if params.ev_min_v2x_energy_request:
                     self.min_v2x_energy_request = params.ev_min_v2x_energy_request.get_decimal_value() # noqa: E501
-                _update_common_bpt_limits(dc_limits, params) 
+                self._update_common_dc_bpt_limits(dc_limits, params) 
         else:
+            # Raise error?
             return
 
-        def _update_common_limits(
+    def _update_common_dc_limits(
+            self,
             dc_limits: EVDCCLLimits,
             params: Union[ScheduledDCChargeLoopReqParams,
-                            DynamicDCChargeLoopReqParams,
-                            BPTScheduledDCChargeLoopReqParams,
-                            BPTDynamicDCChargeLoopReqParams]
-        ):
-            if params.ev_max_charge_power:
-                dc_limits.max_charge_power = params.ev_max_charge_power.get_decimal_value() # noqa: E501
-            if params.ev_min_charge_power:
-                dc_limits.min_charge_power = params.ev_min_charge_power.get_decimal_value() # noqa: E501
-            if params.ev_max_charge_current:
-                dc_limits.max_charge_current = params.ev_max_charge_current.get_decimal_value()  # noqa: E501
-            if params.ev_max_voltage:
-                dc_limits.max_voltage = params.ev_max_voltage.get_decimal_value()  # noqa: E501
-            if params.ev_min_voltage:
-                dc_limits.min_voltage = params.ev_min_voltage.get_decimal_value()  # noqa: E501
+                          DynamicDCChargeLoopReqParams,
+                          BPTScheduledDCChargeLoopReqParams,
+                          BPTDynamicDCChargeLoopReqParams]
+    ):
+        """Update the EV data context with the common DCChargeLoopReq parameters"""
+        if params.ev_max_charge_power:
+            dc_limits.max_charge_power = params.ev_max_charge_power.get_decimal_value() # noqa: E501
+        if params.ev_min_charge_power:
+            dc_limits.min_charge_power = params.ev_min_charge_power.get_decimal_value() # noqa: E501
+        if params.ev_max_charge_current:
+            dc_limits.max_charge_current = params.ev_max_charge_current.get_decimal_value()  # noqa: E501
+        if params.ev_max_voltage:
+            dc_limits.max_voltage = params.ev_max_voltage.get_decimal_value()  # noqa: E501
+        if params.ev_min_voltage:
+            dc_limits.min_voltage = params.ev_min_voltage.get_decimal_value()  # noqa: E501
 
-            if params.ev_target_energy_request:
-                self.target_energy_request = params.ev_target_energy_request.get_decimal_value()
-            if params.ev_max_energy_request:
-                self.maximum_energy_request = params.ev_max_energy_request.get_decimal_value()
-            if params.ev_min_energy_request:
-                self.minimum_energy_request = params.ev_min_energy_request.get_decimal_value()
+        if params.ev_target_energy_request:
+            self.target_energy_request = params.ev_target_energy_request.get_decimal_value() # noqa: E501
+        if params.ev_max_energy_request:
+            self.maximum_energy_request = params.ev_max_energy_request.get_decimal_value() # noqa: E501
+        if params.ev_min_energy_request:
+            self.minimum_energy_request = params.ev_min_energy_request.get_decimal_value() # noqa: E501
 
-        def _update_common_bpt_limits(
-                dc_limits: EVDCCLLimits,
-                params: Union[BPTScheduledDCChargeLoopReqParams,
-                            BPTDynamicDCChargeLoopReqParams]
-        ):
-            _update_common_limits(dc_limits, params)
-            if params.ev_max_discharge_power:
-                dc_limits.max_discharge_power = params.ev_max_discharge_power.get_decimal_value() # noqa: E501
-            if params.ev_min_discharge_power:
-                dc_limits.min_discharge_power = params.ev_min_discharge_power.get_decimal_value() # noqa: E501
-            if params.ev_max_discharge_current:
-                dc_limits.max_discharge_current = params.ev_max_discharge_current.get_decimal_value() # noqa: E501
+    def _update_common_dc_bpt_limits(
+            self,
+            dc_limits: EVDCCLLimits,
+            params: Union[BPTScheduledDCChargeLoopReqParams,
+                        BPTDynamicDCChargeLoopReqParams]
+    ):
+        """Update the EV data context with the common DCChargeLoopReq BPT parameters"""
+        self._update_common_dc_limits(dc_limits, params)
+        if params.ev_max_discharge_power:
+            dc_limits.max_discharge_power = params.ev_max_discharge_power.get_decimal_value() # noqa: E501
+        if params.ev_min_discharge_power:
+            dc_limits.min_discharge_power = params.ev_min_discharge_power.get_decimal_value() # noqa: E501
+        if params.ev_max_discharge_current:
+            dc_limits.max_discharge_current = params.ev_max_discharge_current.get_decimal_value() # noqa: E501
         
-        def _update_display_parameters(
-                params: DisplayParameters
-        ):
-            if params.present_soc:
-                self.present_soc = params.present_soc
-            if params.target_soc:
-                self.target_soc = params.target_soc
-            if params.min_soc:
-                self.minimum_soc = params.min_soc
-            if params.max_soc:
-                self.maximum_soc = params.max_soc
-            if params.remaining_time_to_max_soc:
-                self.remaining_time_to_maximum_soc = params.remaining_time_to_max_soc
-            if params.remaining_time_to_min_soc:
-                self.remaining_time_to_minimum_soc = params.remaining_time_to_min_soc
-            if params.remaining_time_to_target_soc:
-                self.remaining_time_to_target_soc = params.remaining_time_to_target_soc
-            if params.battery_energy_capacity:
-                self.total_battery_capacity = params.battery_energy_capacity
+    def _update_display_parameters(
+            self,
+            params: DisplayParameters
+    ):
+        """Update the EV data context with the DisplayParameters parameters"""
+        if params.present_soc:
+            self.present_soc = params.present_soc
+        if params.target_soc:
+            self.target_soc = params.target_soc
+        if params.min_soc:
+            self.minimum_soc = params.min_soc
+        if params.max_soc:
+            self.maximum_soc = params.max_soc
+        if params.remaining_time_to_max_soc:
+            self.remaining_time_to_maximum_soc = params.remaining_time_to_max_soc
+        if params.remaining_time_to_min_soc:
+            self.remaining_time_to_minimum_soc = params.remaining_time_to_min_soc
+        if params.remaining_time_to_target_soc:
+            self.remaining_time_to_target_soc = params.remaining_time_to_target_soc
+        if params.battery_energy_capacity:
+            self.total_battery_capacity = params.battery_energy_capacity
 
 
 @dataclass
