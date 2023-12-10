@@ -1005,7 +1005,7 @@ class TestEvScenarios:
             service=selected_service, is_free=True, parameter_set=None
         )
         self.comm_session.evse_controller.evse_data_context = evse_params
-        self.comm_session.evse_controller.send_charging_power_limits = AsyncMock(
+        self.comm_session.evse_controller.send_charging_command = AsyncMock(
             return_value=None
         )
         ac_charge_loop = ACChargeLoop(self.comm_session)
