@@ -1328,7 +1328,8 @@ class ChargeParameterDiscovery(StateSECC):
                 ResponseCode.FAILED_WRONG_ENERGY_TRANSFER_MODE,
             )
             return
-        
+
+        evse_data_context = self.comm_session.evse_controller.evse_data_context
         ev_data_context = self.comm_session.evse_controller.ev_data_context
 
         self.comm_session.selected_energy_mode = charge_params_req.requested_energy_mode
@@ -1346,15 +1347,18 @@ class ChargeParameterDiscovery(StateSECC):
             ac_evse_charge_params = (
                 await self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
+            evse_data_context.update_ac_charge_parameters_v2(ac_evse_charge_params)
             ev_data_context.update_ac_charge_parameters_v2(charge_params_req.ac_ev_charge_parameter)
         else:
             dc_evse_charge_params = (
                 await self.comm_session.evse_controller.get_dc_evse_charge_parameter()
             )
+            evse_data_context.update_dc_charge_parameters_v2(dc_evse_charge_params)
             ev_data_context.update_dc_charge_parameters(charge_params_req.dc_ev_charge_parameter)
 
-        if not departure_time:
-            departure_time = 0
+        departure_time = (
+            ev_data_context.departure_time if ev_data_context.departure_time else 0
+        )
         sa_schedule_list = await self.comm_session.evse_controller.get_sa_schedule_list(
             ev_data_context,
             self.comm_session.config.free_charging_service,
@@ -2296,7 +2300,7 @@ class PreCharge(StateSECC):
             )
             return
         ev_data_context = self.comm_session.evse_controller.ev_data_context
-        ev_data_context.update_pre_charge(precharge_req)
+        ev_data_context.update_pre_charge_parameters(precharge_req)
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
         present_current = (
@@ -2309,8 +2313,8 @@ class PreCharge(StateSECC):
             target_current_in_a = ev_data_context.target_current
         else:
             self.stop_state_machine(
-                f"Error reading EVSE Present Current.
-                Wrong type: {type(present_current)}",
+                f"Error reading EVSE Present Current.",
+                f"Wrong type: {type(present_current)}",
                 message,
                 ResponseCode.FAILED,
             )
@@ -2390,13 +2394,25 @@ class CurrentDemand(StateSECC):
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
 
-        self.comm_session.evse_controller.ev_data_context.update_charge_loop(current_demand_req)
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+        ev_data_context.update_charge_loop_parameters(current_demand_req)
 
         # Updates the power electronics targets based on EV requests
-        await self.comm_session.evse_controller.send_charging_command(
-            voltage=current_demand_req.ev_target_voltage,
-            charge_current=current_demand_req.ev_target_current
-        )
+        try:
+            ev_target_voltage=ev_data_context.target_voltage
+            ev_target_current=ev_data_context.target_current
+            await self.comm_session.evse_controller.send_charging_command(
+                ev_target_voltage,
+                ev_target_current,
+            )
+        except asyncio.TimeoutError:
+            self.stop_state_machine(
+                "Error sending targets to charging station in charging loop.",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
+
 
         # We don't care about signed meter values from the EVCC, but if you
         # do, then set receipt_required to True and set the field meter_info
