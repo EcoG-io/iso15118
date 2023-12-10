@@ -813,66 +813,30 @@ class SimEVSEController(EVSEControllerInterface):
     ]:
         """Overrides EVSEControllerInterface.get_ac_charge_params_v20()."""
         ac_charge_parameter_discovery_res_params = ACChargeParameterDiscoveryResParams(
-            evse_max_charge_power=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.ac_limits.evse_max_charge_power
-            ),
-            evse_max_charge_power_l2=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.ac_limits.evse_max_charge_power_l2
-            ),
-            evse_max_charge_power_l3=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.ac_limits.evse_max_charge_power_l3
-            ),
-            evse_min_charge_power=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.ac_limits.evse_min_charge_power
-            ),
-            evse_min_charge_power_l2=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.ac_limits.evse_min_charge_power_l2
-            ),
-            evse_min_charge_power_l3=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.ac_limits.evse_min_charge_power_l3
-            ),
-            evse_nominal_frequency=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.ac_limits.evse_nominal_frequency
-            ),
-            max_power_asymmetry=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.ac_limits.max_power_asymmetry
-            ),
-            evse_power_ramp_limit=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.ac_limits.evse_power_ramp_limit
-            ),
-            evse_present_active_power=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.ac_limits.evse_present_active_power
-            ),
-            evse_present_active_power_l2=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.ac_limits.evse_present_active_power_l2  # noqa
-            ),
-            evse_present_active_power_l3=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.ac_limits.evse_present_active_power_l3  # noqa
-            ),
+            evse_max_charge_power=RationalNumber.get_rational_repr(30000),
+            evse_max_charge_power_l2=RationalNumber.get_rational_repr(30000),
+            evse_max_charge_power_l3=RationalNumber.get_rational_repr(30000),
+            evse_min_charge_power=RationalNumber.get_rational_repr(100),
+            evse_min_charge_power_l2=RationalNumber.get_rational_repr(100),
+            evse_min_charge_power_l3=RationalNumber.get_rational_repr(100),
+            evse_nominal_frequency=RationalNumber.get_rational_repr(50),
+            max_power_asymmetry=RationalNumber.get_rational_repr(0),
+            evse_power_ramp_limit=RationalNumber.get_rational_repr(100),
+            evse_present_active_power=RationalNumber.get_rational_repr(0),
+            evse_present_active_power_l2=RationalNumber.get_rational_repr(0),
+            evse_present_active_power_l3=RationalNumber.get_rational_repr(0),
         )
         if selected_service == ServiceV20.AC:
             return ac_charge_parameter_discovery_res_params
         elif selected_service == ServiceV20.AC_BPT:
             return BPTACChargeParameterDiscoveryResParams(
                 **(ac_charge_parameter_discovery_res_params.dict()),
-                evse_max_discharge_power=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.ac_bpt_limits.evse_max_discharge_power  # noqa
-                ),
-                evse_max_discharge_power_l2=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.ac_bpt_limits.evse_max_discharge_power_l2  # noqa
-                ),
-                evse_max_discharge_power_l3=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.ac_bpt_limits.evse_max_discharge_power_l3  # noqa
-                ),
-                evse_min_discharge_power=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.ac_bpt_limits.evse_min_discharge_power  # noqa
-                ),
-                evse_min_discharge_power_l2=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.ac_bpt_limits.evse_min_discharge_power_l2  # noqa
-                ),
-                evse_min_discharge_power_l3=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.ac_bpt_limits.evse_min_discharge_power_l3  # noqa
-                ),
+                evse_max_discharge_power=RationalNumber.get_rational_repr(30000),
+                evse_max_discharge_power_l2=RationalNumber.get_rational_repr(30000),
+                evse_max_discharge_power_l3=RationalNumber.get_rational_repr(30000),
+                evse_min_discharge_power=RationalNumber.get_rational_repr(100),
+                evse_min_discharge_power_l2=RationalNumber.get_rational_repr(100),
+                evse_min_discharge_power_l3=RationalNumber.get_rational_repr(100),
             )
         return None
 
@@ -918,24 +882,6 @@ class SimEVSEController(EVSEControllerInterface):
                 multiplier=1, value=4, unit="A"
             ),
         )
-
-    async def get_dc_charge_parameters_dinspec(self) -> DCEVSEChargeParameter:
-        """
-        Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
-
-        Relevant for:
-        - ISO 15118-2
-        """
-        return self.get_dc_charge_parameters(self)
-
-    async def get_dc_charge_parameters_v2(self) -> DCEVSEChargeParameter:
-        """
-        Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
-
-        Relevant for:
-        - ISO 15118-2
-        """
-        return self.get_dc_charge_parameters(self)
 
     async def start_cable_check(self):
         """Overrides EVSEControllerInterface.start_cable_check()."""

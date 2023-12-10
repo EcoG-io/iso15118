@@ -477,7 +477,6 @@ class EVSEControllerInterface(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     async def get_ac_charge_loop_params_v20(
         self, control_mode: ControlMode, selected_service: ServiceV20
     ) -> Union[
@@ -518,7 +517,22 @@ class EVSEControllerInterface(ABC):
             target_active_power_l3 = evse_session_limits.max_charge_power_l3
             target_active_power_l3_value = RationalNumber.get_rational_repr(target_active_power_l3) # noqa
         # Reactive Power
-        # No reactive control at the moment
+        if evse_session_limits.max_charge_reactive_power:
+            target_reactive_power = evse_session_limits.max_charge_reactive_power
+            target_reactive_power_value = RationalNumber.get_rational_repr(target_reactive_power) # noqa
+        if evse_session_limits.max_charge_reactive_power_l2:
+            target_reactive_power_l2 = evse_session_limits.max_charge_reactive_power_l2
+            target_reactive_power_l2_value = RationalNumber.get_rational_repr(target_reactive_power_l2)
+        if evse_session_limits.max_charge_reactive_power_l3:
+            target_reactive_power_l3 = evse_session_limits.max_charge_reactive_power_l3
+            target_reactive_power_l3_value = RationalNumber.get_rational_repr(target_reactive_power_l3)
+        # Present Power
+        present_active_power = self.evse_data_context.present_active_power
+        present_active_power_value = RationalNumber.get_rational_repr(present_active_power) # noqa
+        present_active_power_l2 = self.evse_data_context.present_active_power_l2
+        present_active_power_l2_value = RationalNumber.get_rational_repr(present_active_power) # noqa
+        present_active_power_l3 = self.evse_data_context.present_active_power_l3
+        present_active_power_l3_value = RationalNumber.get_rational_repr(present_active_power) # noqa
         if (
             control_mode == ControlMode.DYNAMIC
             and selected_service == ServiceV20.AC_BPT
@@ -528,7 +542,12 @@ class EVSEControllerInterface(ABC):
                 evse_target_active_power=target_active_power_value,
                 evse_target_active_power_l2=target_active_power_l2_value,
                 evse_target_active_power_l3=target_active_power_l3_value,
-                evse_target_reactive_power=None,
+                evse_target_reactive_power=target_reactive_power_value,
+                evse_target_reactive_power_l2=target_reactive_power_l2_value,
+                evse_target_reactive_power_l3=target_reactive_power_l3_value,
+                evse_present_active_power=present_active_power_value,
+                evse_present_active_power_l2=present_active_power_l2_value,
+                evse_present_active_power_l3=present_active_power_l3_value,
             )
             return bpt_dynamic_params
         elif (
@@ -539,7 +558,12 @@ class EVSEControllerInterface(ABC):
                 evse_target_active_power=target_active_power_value,
                 evse_target_active_power_l2=target_active_power_l2_value,
                 evse_target_active_power_l3=target_active_power_l3_value,
-                evse_target_reactive_power=None,
+                evse_target_reactive_power=target_reactive_power_value,
+                evse_target_reactive_power_l2=target_reactive_power_l2_value,
+                evse_target_reactive_power_l3=target_reactive_power_l3_value,
+                evse_present_active_power=present_active_power_value,
+                evse_present_active_power_l2=present_active_power_l2_value,
+                evse_present_active_power_l3=present_active_power_l3_value,
             )
             return bpt_scheduled_params
         elif (control_mode == ControlMode.DYNAMIC
@@ -548,7 +572,12 @@ class EVSEControllerInterface(ABC):
                 evse_target_active_power=target_active_power_value,
                 evse_target_active_power_l2=target_active_power_l2_value,
                 evse_target_active_power_l3=target_active_power_l3_value,
-                evse_target_reactive_power=None,
+                evse_target_reactive_power=target_reactive_power_value,
+                evse_target_reactive_power_l2=target_reactive_power_l2_value,
+                evse_target_reactive_power_l3=target_reactive_power_l3_value,
+                evse_present_active_power=present_active_power_value,
+                evse_present_active_power_l2=present_active_power_l2_value,
+                evse_present_active_power_l3=present_active_power_l3_value,
             )
             return dynamic_params
         else:
@@ -556,7 +585,12 @@ class EVSEControllerInterface(ABC):
                 evse_target_active_power=target_active_power_value,
                 evse_target_active_power_l2=target_active_power_l2_value,
                 evse_target_active_power_l3=target_active_power_l3_value,
-                evse_target_reactive_power=None,
+                evse_target_reactive_power=target_reactive_power_value,
+                evse_target_reactive_power_l2=target_reactive_power_l2_value,
+                evse_target_reactive_power_l3=target_reactive_power_l3_value,
+                evse_present_active_power=present_active_power_value,
+                evse_present_active_power_l2=present_active_power_l2_value,
+                evse_present_active_power_l3=present_active_power_l3_value,
             )
             return scheduled_params
 
@@ -586,7 +620,7 @@ class EVSEControllerInterface(ABC):
         """
         raise NotImplementedError
     
-    @abstractmethod
+
     async def get_dc_charge_parameters_dinspec(self) -> DCEVSEChargeParameter:
         """
         Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
@@ -594,9 +628,8 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         """
-        return self.get_dc_charge_parameters(self)
+        return await self.get_dc_charge_parameters()
     
-    @abstractmethod
     async def get_dc_charge_parameters_v2(self) -> DCEVSEChargeParameter:
         """
         Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
@@ -604,9 +637,8 @@ class EVSEControllerInterface(ABC):
         Relevant for:
         - ISO 15118-2
         """
-        return self.get_dc_charge_parameters(self)
+        return await self.get_dc_charge_parameters()
 
-    @abstractmethod
     async def get_evse_present_voltage(
         self, protocol: Protocol
     ) -> Union[PVEVSEPresentVoltage, RationalNumber]:
@@ -633,7 +665,6 @@ class EVSEControllerInterface(ABC):
                 self.evse_data_context.present_voltage
             )
 
-    @abstractmethod
     async def get_evse_present_current(
         self, protocol: Protocol
     ) -> Union[PVEVSEPresentCurrent, RationalNumber]:
@@ -738,7 +769,6 @@ class EVSEControllerInterface(ABC):
         # TODO retrieve from evse data context
         return False
 
-    @abstractmethod
     async def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
         """
         Gets the max voltage that can be provided by the charger
@@ -755,7 +785,6 @@ class EVSEControllerInterface(ABC):
                 unit=UnitSymbol.VOLTAGE,
             )
 
-    @abstractmethod
     async def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
         """
         Gets the max current that can be provided by the charger
@@ -799,7 +828,6 @@ class EVSEControllerInterface(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     async def get_evse_max_power_limit(self) -> PVEVSEMaxPowerLimit:
         """
         Gets the max power that can be provided by the charger
@@ -818,7 +846,6 @@ class EVSEControllerInterface(ABC):
                 unit=UnitSymbol.WATT,
             )
 
-    @abstractmethod
     async def get_dc_charge_loop_params_v20(
         self, control_mode: ControlMode, selected_service: ServiceV20
     ) -> Optional[

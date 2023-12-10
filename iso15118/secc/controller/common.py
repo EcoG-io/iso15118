@@ -6,8 +6,8 @@ class Limits(ABC):
         self,
         params: dict,
     ):
-        common_keys = set(self.as_dict().keys()) & set(params.as_dict().keys())
-        new_limits = {k: params.as_dict()[k] for k in common_keys}
+        common_keys = set(self.as_dict().keys()) & set(params.keys())
+        new_limits = {k: params[k] for k in common_keys}
         self.__dict__.update(new_limits)
 
     def as_dict(self):

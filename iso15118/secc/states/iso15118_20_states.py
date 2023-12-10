@@ -9,6 +9,7 @@ import time
 from typing import List, Optional, Tuple, Type, Union, cast
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.secc.controller.evse_data import EVSEDataContext
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
@@ -1327,7 +1328,7 @@ class ACChargeParameterDiscovery(StateSECC):
             return
         params = (
                 await self.comm_session.evse_controller.get_ac_charge_params_v20(
-                    ServiceV20.AC
+                    energy_service
                 )
             )
         ac_cpd_res = ACChargeParameterDiscoveryRes(
@@ -1339,7 +1340,7 @@ class ACChargeParameterDiscovery(StateSECC):
             bpt_ac_params=params if energy_service == ServiceV20.AC_BPT else None,
         )
         # Update EVSE Data Context
-        evse_data_context = self.comm_session.evse_controller.evse_data_context
+        evse_data_context = self.comm_session.evse_controller.evse_data_context = EVSEDataContext()
         evse_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_res)
         self.create_next_message(
             ScheduleExchange,

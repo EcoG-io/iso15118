@@ -135,6 +135,22 @@ class EVSEDataContext:
         self,
         rated_limits: EVSERatedLimits = EVSERatedLimits(),
         session_limits: EVSESessionLimits = EVSESessionLimits(),
+        departure_time: Optional[int] = None,
+        target_soc: Optional[int] = None,
+        min_soc: Optional[int] = None,
+        ack_max_delay: Optional[int] = None,
+        power_ramp_limit: Optional[float] = None,
+        nominal_voltage: Optional[float] = None,
+        nominal_frequency: Optional[float] = None,
+        max_power_asymmetry: Optional[float] = None,
+        current_regulation_tolerance: Optional[float] = None,
+        peak_current_ripple: Optional[float] = None,
+        energy_to_be_delivered: Optional[float] = None,
+        present_active_power: Optional[float] = 0,
+        present_active_power_l2: Optional[float] = 0,
+        present_active_power_l3: Optional[float] = 0,
+        present_current: Union[float, int] = 0,
+        present_voltage: Union[float, int] = 0,
     ):
 
         self.rated_limits = rated_limits
@@ -143,31 +159,31 @@ class EVSEDataContext:
         self.current_type: Optional[CurrentType] = None
 
         # Emobility Needs
-        self.departure_time: Optional[int] = None
-        self.target_soc: Optional[int] = None   # 0-100
-        self.min_soc: Optional[int] = None   # 0-100
-        self.ack_max_delay: Optional[int] = None
+        self.departure_time: Optional[int] = departure_time
+        self.target_soc: Optional[int] = target_soc   # 0-100
+        self.min_soc: Optional[int] = min_soc   # 0-100
+        self.ack_max_delay: Optional[int] = ack_max_delay
 
 
         #  Optional in 15118-20 DC and AC CPD
-        self.power_ramp_limit: Optional[float] = None
+        self.power_ramp_limit: Optional[float] = power_ramp_limit
         # Only used in -20 and -2 AC CPD
-        self.nominal_voltage: Optional[float] = None
-        self.nominal_frequency: Optional[float] = None
-        self.max_power_asymmetry: Optional[float] = None
+        self.nominal_voltage: Optional[float] = nominal_voltage
+        self.nominal_frequency: Optional[float] = nominal_frequency
+        self.max_power_asymmetry: Optional[float] = max_power_asymmetry
 
         #  Optional in 15118-2 CPD
-        self.current_regulation_tolerance: Optional[float] = None
-        self.peak_current_ripple: Optional[float] = None
-        self.energy_to_be_delivered: Optional[float] = None
+        self.current_regulation_tolerance: Optional[float] = current_regulation_tolerance
+        self.peak_current_ripple: Optional[float] = peak_current_ripple
+        self.energy_to_be_delivered: Optional[float] = energy_to_be_delivered
         # Metering
-        self.present_active_power: Optional[float] = None  # Optional in AC Scheduled CL
-        self.present_active_power_l2: Optional[float] = None  # Optional in AC Scheduled CL
-        self.present_active_power_l3: Optional[float] = None  # Optional in AC Scheduled CL
+        self.present_active_power: Optional[float] = present_active_power  # Optional in AC Scheduled CL
+        self.present_active_power_l2: Optional[float] = present_active_power_l2  # Optional in AC Scheduled CL
+        self.present_active_power_l3: Optional[float] = present_active_power_l3  # Optional in AC Scheduled CL
         
         # Required for -2 DC CurrentDemand, -20 DC CL
-        self.present_current: Union[float, int] = 0
-        self.present_voltage: Union[float, int] = 0
+        self.present_current: Union[float, int] = present_current
+        self.present_voltage: Union[float, int] = present_voltage
     
     # Note that there are no methods to update the session limits as those are updated by the interaction
     # with an external interface like a smart charging application, that gets access to the session limits
@@ -195,10 +211,11 @@ class EVSEDataContext:
     )-> None:
         """Update the EVSE data context with the AC charge parameters."""
         self.current_type = CurrentType.AC
-        rated_limits = self.rated_limits.ac_limits
+        rated_limits = self.rated_limits.ac_limits = EVSEACCPDLimits()
+        self.session_limits.ac_limits = EVSEACCLLimits()
         self.nominal_voltage = ac_charge_parameter.evse_nominal_voltage.get_decimal_value() # noqa: E501
         rated_limits.max_current = ac_charge_parameter.evse_max_current.get_decimal_value()
-        rated_limits.max_charge_power = rated_limits.max_current * rated_limits.nominal_voltage
+        rated_limits.max_charge_power = rated_limits.max_current * self.nominal_voltage
         rated_limits.max_discharge_power = 0
         rated_limits.min_charge_power = 0
         rated_limits.min_discharge_power = 0
@@ -211,14 +228,14 @@ class EVSEDataContext:
     )-> None:
         """Update the EVSE data context with the DC charge parameters."""
         self.current_type = CurrentType.DC
-        rated_limits = self.rated_limits.dc_limits
+        rated_limits = self.rated_limits.dc_limits = EVSEDCCPDLimits()
+        self.session_limits.dc_limits = EVSEDCCLLimits()
         rated_limits.max_charge_power = dc_charge_parameter.evse_maximum_power_limit.get_decimal_value() # noqa: E501
         rated_limits.max_charge_current = dc_charge_parameter.evse_maximum_current_limit.get_decimal_value() # noqa: E501
         rated_limits.max_voltage = dc_charge_parameter.evse_maximum_voltage_limit.get_decimal_value() # noqa: E501
         rated_limits.min_voltage = dc_charge_parameter.evse_minimum_voltage_limit.get_decimal_value() # noqa: E501
 
         self.peak_current_ripple = dc_charge_parameter.evse_peak_current_ripple.get_decimal_value() # noqa: E501
-        self.energy_to_be_delivered = dc_charge_parameter.evse_energy_to_be_delivered.get_decimal_value() # noqa: E501
         if dc_charge_parameter.evse_current_regulation_tolerance:
             self.current_regulation_tolerance = dc_charge_parameter.evse_current_regulation_tolerance.get_decimal_value() # noqa: E501
         if dc_charge_parameter.evse_energy_to_be_delivered:
@@ -234,7 +251,8 @@ class EVSEDataContext:
     )-> None:
         """Update the EVSE data context with the ACChargeParameterDiscoveryRes parameters"""
         self.current_type = CurrentType.AC
-        ac_rated_limits = self.rated_limits.ac_limits
+        ac_rated_limits = self.rated_limits.ac_limits = EVSEACCPDLimits()
+        self.session_limits.ac_limits = EVSEACCLLimits()
         params: Union[ACChargeParameterDiscoveryResParams,
                       BPTACChargeParameterDiscoveryResParams] = None
         if energy_service == ServiceV20.AC:
@@ -305,7 +323,8 @@ class EVSEDataContext:
     )-> None:
         """Update the EVSE data context with the DCChargeParameterDiscoveryRes parameters"""
         self.current_type = CurrentType.DC
-        dc_rated_limits = self.rated_limits.dc_limits
+        dc_rated_limits = self.rated_limits.dc_limits = EVSEDCCPDLimits()
+        self.session_limits.dc_limits = EVSEDCCLLimits()
         params: Union[DCChargeParameterDiscoveryResParams,
                       BPTDCChargeParameterDiscoveryResParams] = None
         if energy_service == ServiceV20.DC:

@@ -218,7 +218,8 @@ class EVDataContext:
     )-> None:
         """Update the EV data context with the ACEVChargeParameter parameters"""
         self.departure_time = ac_ev_charge_parameter.departure_time
-        ac_rated_limits = self.rated_limits.ac_limits
+        ac_rated_limits = self.rated_limits.ac_limits = EVACCPDLimits()
+        self.session_limits.ac_limits = EVACCLLimits()
         self.target_energy_request = ac_ev_charge_parameter.e_amount.get_decimal_value() # noqa: E501
         ac_rated_limits.max_voltage = ac_ev_charge_parameter.ev_max_voltage.get_decimal_value() # noqa: E501
         ac_rated_limits.max_charge_current = ac_ev_charge_parameter.ev_max_current.get_decimal_value() # noqa: E501
@@ -246,7 +247,8 @@ class EVDataContext:
             else dc_ev_charge_parameter.ev_energy_request.get_decimal_value()
         )
 
-        dc_rated_limits = self.rated_limits.dc_limits
+        dc_rated_limits = self.rated_limits.dc_limits = EVDCCPDLimits()
+        self.session_limits.dc_limits = EVDCCLLimits()
         dc_rated_limits.max_voltage = dc_ev_charge_parameter.ev_maximum_voltage_limit.get_decimal_value()
 
         dc_rated_limits.max_charge_current = dc_ev_charge_parameter.ev_maximum_current_limit.get_decimal_value()
@@ -366,7 +368,8 @@ class EVDataContext:
             charge_parameter: ACChargeParameterDiscoveryReq,
     )-> None:
         """Update the EV data context with the ACChargeParameterDiscoveryReq parameters"""
-        ac_rated_limits = self.rated_limits.ac_limits
+        ac_rated_limits = self.rated_limits.ac_limits = EVACCPDLimits()
+        self.session_limits.ac_limits = EVACCLLimits()
         params: Union[ACChargeParameterDiscoveryReqParams,
                       BPTACChargeParameterDiscoveryReqParams] = None
         if energy_service == ServiceV20.AC:
@@ -535,7 +538,8 @@ class EVDataContext:
             charge_parameter: DCChargeParameterDiscoveryReq,
     )-> None:
         """Update the EV data context with the DCChargeParameterDiscoveryReq parameters"""
-        dc_rated_limits = self.rated_limits.dc_limits
+        dc_rated_limits = self.rated_limits.dc_limits = EVDCCPDLimits()
+        self.session_limits.dc_limits = EVDCCLLimits()
         params: Union[DCChargeParameterDiscoveryReqParams,
                       BPTDCChargeParameterDiscoveryReqParams] = None
         if energy_service == ServiceV20.DC:
