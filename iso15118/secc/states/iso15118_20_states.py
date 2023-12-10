@@ -957,6 +957,9 @@ class ScheduleExchange(StateSECC):
             scheduled_params=params if control_mode == ControlMode.SCHEDULED else None,
             dynamic_params=params if control_mode == ControlMode.DYNAMIC else None,
         )
+        evse_data_context = self.comm_session.evse_controller.evse_data_context
+        evse_data_context.update_schedule_exchange_parameters(control_mode,
+                                                              schedule_exchange_res)
 
         # We don't know what request will come next (which state to transition to),
         # unless the schedule parameters are ready and we're in AC charging.
@@ -1315,11 +1318,6 @@ class ACChargeParameterDiscovery(StateSECC):
         ):
             ev_data_context = self.comm_session.evse_controller.ev_data_context
             ev_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_req)
-            params = (
-                await self.comm_session.evse_controller.get_ac_charge_params_v20(
-                    ServiceV20.AC
-                )
-            )
         else:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
@@ -1327,7 +1325,11 @@ class ACChargeParameterDiscovery(StateSECC):
                 ResponseCode.FAILED_WRONG_CHARGE_PARAMETER,
             )
             return
-
+        params = (
+                await self.comm_session.evse_controller.get_ac_charge_params_v20(
+                    ServiceV20.AC
+                )
+            )
         ac_cpd_res = ACChargeParameterDiscoveryRes(
             header=MessageHeader(
                 session_id=self.comm_session.session_id, timestamp=time.time()
@@ -1336,7 +1338,9 @@ class ACChargeParameterDiscovery(StateSECC):
             ac_params=params if energy_service == ServiceV20.AC else None,
             bpt_ac_params=params if energy_service == ServiceV20.AC_BPT else None,
         )
-
+        # Update EVSE Data Context
+        evse_data_context = self.comm_session.evse_controller.evse_data_context
+        evse_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_res)
         self.create_next_message(
             ScheduleExchange,
             ac_cpd_res,
@@ -1417,7 +1421,7 @@ class ACChargeLoop(StateSECC):
             )
             response_code = ResponseCode.FAILED_SERVICE_SELECTION_INVALID
         else:
-            params = await self.comm_session.evse_controller.get_dc_charge_loop_params_v20(control_mode, service) # noqa
+            params = await self.comm_session.evse_controller.get_ac_charge_loop_params_v20(control_mode, service) # noqa
 
         ac_charge_loop_res = ACChargeLoopRes(
             header=MessageHeader(
@@ -1504,7 +1508,6 @@ class DCChargeParameterDiscovery(StateSECC):
         if self.charge_parameter_valid(dc_cpd_req):
             ev_data_context = self.comm_session.evse_controller.ev_data_context
             ev_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_req)
-            params = await self.comm_session.evse_controller.get_dc_charge_params_v20(energy_service) # noqa
         else:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
@@ -1512,6 +1515,8 @@ class DCChargeParameterDiscovery(StateSECC):
                 ResponseCode.FAILED_WRONG_CHARGE_PARAMETER,
             )
             return
+
+        params = await self.comm_session.evse_controller.get_dc_charge_params_v20(energy_service) # noqa
 
         dc_cpd_res = DCChargeParameterDiscoveryRes(
             header=MessageHeader(
@@ -1521,6 +1526,9 @@ class DCChargeParameterDiscovery(StateSECC):
             dc_params=params if energy_service == ServiceV20.DC else None,
             bpt_dc_params=params if energy_service == ServiceV20.DC_BPT else None,
         )
+        # Update EVSE Data Context
+        evse_data_context = self.comm_session.evse_controller.evse_data_context
+        evse_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_res)
 
         self.create_next_message(
             ScheduleExchange,
@@ -1662,14 +1670,26 @@ class DCPreCharge(StateSECC):
         precharge_req: DCPreChargeReq = cast(DCPreChargeReq, msg)
         self.expecting_precharge_req = False
 
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+        ev_data_context.update_pre_charge_parameters_v20(precharge_req)
+
         next_state: Type[StateSECC] = None
         if precharge_req.ev_processing == Processing.FINISHED:
             next_state = PowerDelivery
         else:
-            await self.comm_session.evse_controller.set_precharge(
-                precharge_req.ev_target_voltage, precharge_req.ev_present_voltage
-            )
-
+            try:
+                # Current is set to 0 as that is not used for PreCharge
+                await self.comm_session.evse_controller.send_charging_command(
+                    ev_data_context.target_voltage,
+                    0,
+                )
+            except asyncio.TimeoutError:
+                self.stop_state_machine(
+                    "Error sending targets to charging station in charging loop.",
+                    message,
+                    ResponseCode.FAILED,
+                )
+                return
         dc_precharge_res = DCPreChargeRes(
             header=MessageHeader(
                 session_id=self.comm_session.session_id, timestamp=time.time()
@@ -1727,16 +1747,28 @@ class DCChargeLoop(StateSECC):
         dc_charge_loop_req: DCChargeLoopReq = cast(DCChargeLoopReq, msg)
 
         ev_data_context = self.comm_session.evse_controller.ev_data_context
-        ev_data_context.update_charge_loop_parameters_v20(
+        ev_data_context.update_dc_charge_loop_parameters_v20(
             dc_charge_loop_req, selected_energy_service, control_mode
         )
         try:
+            ev_target_voltage = None
+            ev_target_current = None
+            is_session_bpt = False
             if control_mode == ControlMode.SCHEDULED:
-                await self.comm_session.evse_controller.send_charging_command(
-                    voltage=ev_data_context.target_voltage,
-                    charge_current=ev_data_context.target_current,
-                )
-        except asyncio.TimeoutError:
+                # If the control is scheduled, then we check
+                # what are the EV targets, otherwise,
+                # the charging command requested
+                # will only depend on the EVSE/EV maximum capabilities
+                ev_target_voltage=ev_data_context.target_voltage
+                ev_target_current=ev_data_context.target_current
+            if selected_energy_service.service == ServiceV20.DC_BPT:
+                is_session_bpt=True
+            await self.comm_session.evse_controller.send_charging_command(
+                ev_target_voltage,
+                ev_target_current,
+                is_session_bpt
+            )
+        except (asyncio.TimeoutError, Exception) as e:
             self.stop_state_machine(
                 "Error sending targets to charging station in charging loop.",
                 message,

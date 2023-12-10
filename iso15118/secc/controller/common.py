@@ -6,14 +6,9 @@ class Limits(ABC):
         self,
         params: dict,
     ):
-        updated_params = {}
-        for k, v in params.items():
-            if type(v) is dict:
-                updated_params.update({k: v["value"] * 10 ** v["exponent"]})
-            elif type(v) in [int, float]:
-                updated_params.update({k: v})
-
-        self.__dict__.update(updated_params)
+        common_keys = set(self.as_dict().keys()) & set(params.as_dict().keys())
+        new_limits = {k: params.as_dict()[k] for k in common_keys}
+        self.__dict__.update(new_limits)
 
     def as_dict(self):
         return self.__dict__

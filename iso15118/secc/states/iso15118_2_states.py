@@ -1351,7 +1351,7 @@ class ChargeParameterDiscovery(StateSECC):
             ev_data_context.update_ac_charge_parameters_v2(charge_params_req.ac_ev_charge_parameter)
         else:
             dc_evse_charge_params = (
-                await self.comm_session.evse_controller.get_dc_evse_charge_parameter()
+                await self.comm_session.evse_controller.get_dc_charge_parameters_v2()
             )
             evse_data_context.update_dc_charge_parameters_v2(dc_evse_charge_params)
             ev_data_context.update_dc_charge_parameters(charge_params_req.dc_ev_charge_parameter)
@@ -2331,9 +2331,18 @@ class PreCharge(StateSECC):
         # Set precharge voltage in every loop.
         # Because there are EVs that send a wrong Precharge-Voltage
         # in the first message (example: BMW i3 Rex 2018)
-        await self.comm_session.evse_controller.set_precharge(
-            ev_data_context.target_current, ev_data_context.target_voltage
-        )
+        try:
+            await self.comm_session.evse_controller.send_charging_command(
+                ev_data_context.target_voltage,
+                ev_data_context.target_current,
+            )
+        except asyncio.TimeoutError:
+            self.stop_state_machine(
+                "Error sending targets to charging station in charging loop.",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
         evse_present_voltage = (
@@ -2399,11 +2408,9 @@ class CurrentDemand(StateSECC):
 
         # Updates the power electronics targets based on EV requests
         try:
-            ev_target_voltage=ev_data_context.target_voltage
-            ev_target_current=ev_data_context.target_current
             await self.comm_session.evse_controller.send_charging_command(
-                ev_target_voltage,
-                ev_target_current,
+                ev_data_context.target_voltage,
+                ev_data_context.target_current,
             )
         except asyncio.TimeoutError:
             self.stop_state_machine(
