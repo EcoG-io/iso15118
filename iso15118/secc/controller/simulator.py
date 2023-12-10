@@ -253,7 +253,6 @@ def get_evse_context():
     evse_data_context.energy_to_be_delivered=10
     evse_data_context.present_current=1
     evse_data_context.present_voltage=1
-
     return evse_data_context
 
 

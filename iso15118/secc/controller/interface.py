@@ -436,26 +436,6 @@ class EVSEControllerInterface(ABC):
         """Get the selected Protocol."""
         return self._selected_protocol
 
-    @abstractmethod
-    async def send_charging_power_limits(
-        self,
-        protocol: Protocol,
-        control_mode: ControlMode,
-        selected_energy_service: ServiceV20,
-    ) -> None:
-        """
-        This method shall merge the EV-EVSE charging power limits and send it
-
-        Args:
-            protocol: protocol selected (DIN, ISO 15118-2, ISO 15118-20_AC,..)
-            control_mode: Control mode for this session - Scheduled/Dynamic
-            selected_energy_service: Enum for this Service - AC/AC_BPT/DC/DC_BPT
-
-        Returns: None
-
-        """
-        raise NotImplementedError
-
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
@@ -681,23 +661,6 @@ class EVSEControllerInterface(ABC):
             )
 
     @abstractmethod
-    async def set_precharge(
-        self,
-        current: float,
-        voltage: float,
-    ):
-        """
-        Sets the precharge information coming from the EV.
-        The charger must adapt it's output voltage to the requested voltage from the EV.
-        The current may not exceed 2A (according 61851-23)
-
-        Relevant for:
-        - DIN SPEC 70121
-        - ISO 15118-2
-        """
-        self.send_charging_command(voltage=voltage, charge_current=current)
-
-    @abstractmethod
     async def start_cable_check(self):
         """
         This method is called at the beginning of the state CableCheck.
@@ -885,7 +848,6 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-20
         """
         evse_session_limits = self.evse_data_context.session_limits.dc_limits
-
         evse_max_charge_power = evse_session_limits.max_charge_power
         evse_min_charge_power = evse_session_limits.min_charge_power
         evse_max_charge_current = evse_session_limits.max_charge_current
