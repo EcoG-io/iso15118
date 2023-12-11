@@ -7,9 +7,6 @@ import logging
 import time
 from typing import Dict, List, Optional, Union
 
-from aiofile import async_open
-from pydantic import BaseModel, Field
-
 from iso15118.secc.controller.evse_data import (
     EVSEACCLLimits,
     EVSEACCPDLimits,
