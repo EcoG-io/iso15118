@@ -7,6 +7,9 @@ import logging
 import time
 from typing import Dict, List, Optional, Union
 
+from aiofile import async_open
+from pydantic import BaseModel, Field
+
 from iso15118.secc.controller.evse_data import (
     EVSEACCLLimits,
     EVSEACCPDLimits,
@@ -31,15 +34,12 @@ from iso15118.shared.messages.datatypes import (
 )
 from iso15118.shared.messages.datatypes import EVSENotification as EVSENotificationV2
 from iso15118.shared.messages.datatypes import (
-    PhysicalValue,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
     PVEVSEMaxVoltageLimit,
     PVEVSEMinCurrentLimit,
     PVEVSEMinVoltageLimit,
     PVEVSEPeakCurrentRipple,
-    PVEVSEPresentCurrent,
-    PVEVSEPresentVoltage,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     PMaxScheduleEntry as PMaxScheduleEntryDINSPEC,
@@ -104,10 +104,6 @@ from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryResParams,
     BPTACChargeParameterDiscoveryResParams,
-    BPTDynamicACChargeLoopResParams,
-    BPTScheduledACChargeLoopResParams,
-    DynamicACChargeLoopResParams,
-    ScheduledACChargeLoopResParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AbsolutePriceSchedule,
@@ -147,11 +143,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryResParams,
-    BPTDynamicDCChargeLoopRes,
-    BPTScheduledDCChargeLoopResParams,
     DCChargeParameterDiscoveryResParams,
-    DynamicDCChargeLoopRes,
-    ScheduledDCChargeLoopResParams,
 )
 from iso15118.shared.security import (
     CertPath,

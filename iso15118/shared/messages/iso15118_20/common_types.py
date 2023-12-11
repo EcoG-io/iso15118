@@ -12,7 +12,7 @@ element names by using the 'alias' attribute.
 """
 from abc import ABC
 from enum import Enum
-from typing import List, Union
+from typing import List, Tuple, Union
 
 from pydantic import Field, conbytes, conint, constr, validator
 from typing_extensions import TypeAlias

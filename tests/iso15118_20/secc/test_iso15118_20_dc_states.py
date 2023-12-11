@@ -331,7 +331,7 @@ class TestEvScenarios:
         assert updated_ev_context == expected_ev_context
 
     @pytest.mark.parametrize(
-        "params, selected_service, control_mode, expected_state, expected_ev_context, evse_data_context",
+        "params, selected_service, control_mode, expected_state, expected_ev_context, evse_data_context",  # noqa: E501
         [
             (
                 ScheduledDCChargeLoopReqParams(

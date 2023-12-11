@@ -377,12 +377,12 @@ class EVDataContext:
                 self.min_soc = schedule_exchange_req.dynamic_params.min_soc
             if schedule_exchange_req.dynamic_params.ev_max_v2x_energy_request:
                 self.max_v2x_energy_request = (
-                    schedule_exchange_req.dynamic_params.ev_max_v2x_energy_request.get_decimal_value()
-                )  # noqa: E501
+                    schedule_exchange_req.dynamic_params.ev_max_v2x_energy_request.get_decimal_value()  # noqa: E501
+                )
             if schedule_exchange_req.dynamic_params.ev_min_v2x_energy_request:
                 self.min_v2x_energy_request = (
-                    schedule_exchange_req.dynamic_params.ev_min_v2x_energy_request.get_decimal_value()
-                )  # noqa: E501
+                    schedule_exchange_req.dynamic_params.ev_min_v2x_energy_request.get_decimal_value()  # noqa: E501
+                )
 
     def _update_common_se_params(
         self,
@@ -411,7 +411,8 @@ class EVDataContext:
         energy_service: ServiceV20,
         charge_parameter: ACChargeParameterDiscoveryReq,
     ) -> None:
-        """Update the EV data context with the ACChargeParameterDiscoveryReq parameters"""
+        """Update the EV data context with the
+        ACChargeParameterDiscoveryReq parameters"""
         ac_rated_limits = self.rated_limits.ac_limits = EVACCPDLimits()
         self.session_limits.ac_limits = EVACCLLimits()
         params: Union[
@@ -436,7 +437,8 @@ class EVDataContext:
             ACChargeParameterDiscoveryReqParams, BPTACChargeParameterDiscoveryReqParams
         ],
     ) -> None:
-        """Update the EV data context with the common DCChargeParameterDiscoveryReq parameters"""
+        """Update the EV data context with the common
+        DCChargeParameterDiscoveryReq parameters"""
         ac_rated_limits.max_charge_power = (
             params.ev_max_charge_power.get_decimal_value()
         )  # noqa: E501
@@ -465,7 +467,8 @@ class EVDataContext:
         ac_rated_limits: EVACCPDLimits,
         params: BPTACChargeParameterDiscoveryReqParams,
     ) -> None:
-        """Update the EV data context with the BPTDCChargeParameterDiscoveryReq parameters"""
+        """Update the EV data context with the
+        BPTDCChargeParameterDiscoveryReq parameters"""
         self._update_common_ac_charge_parameters_v20(ac_rated_limits, params)
         ac_rated_limits.max_discharge_power = (
             params.ev_max_discharge_power.get_decimal_value()
@@ -657,7 +660,8 @@ class EVDataContext:
         energy_service: ServiceV20,
         charge_parameter: DCChargeParameterDiscoveryReq,
     ) -> None:
-        """Update the EV data context with the DCChargeParameterDiscoveryReq parameters"""
+        """Update the EV data context with the
+        DCChargeParameterDiscoveryReq parameters"""
         dc_rated_limits = self.rated_limits.dc_limits = EVDCCPDLimits()
         self.session_limits.dc_limits = EVDCCLLimits()
         params: Union[
@@ -682,7 +686,8 @@ class EVDataContext:
             DCChargeParameterDiscoveryReqParams, BPTDCChargeParameterDiscoveryReqParams
         ],
     ) -> None:
-        """Update the EV data context with the common DCChargeParameterDiscoveryReq parameters"""
+        """Update the EV data context with the common
+        DCChargeParameterDiscoveryReq parameters"""
         dc_rated_limits.max_charge_power = (
             params.ev_max_charge_power.get_decimal_value()
         )  # noqa: E501
@@ -706,7 +711,8 @@ class EVDataContext:
         dc_rated_limits: EVDCCPDLimits,
         params: BPTDCChargeParameterDiscoveryReqParams,
     ) -> None:
-        """Update the EV data context with the BPTDCChargeParameterDiscoveryReq parameters"""
+        """Update the EV data context with the
+        BPTDCChargeParameterDiscoveryReq parameters"""
         self._update_common_dc_charge_parameters_v20(dc_rated_limits, params)
         dc_rated_limits.max_discharge_power = (
             params.ev_max_discharge_power.get_decimal_value()

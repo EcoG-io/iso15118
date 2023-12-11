@@ -92,8 +92,6 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
-    BPTDynamicDCChargeLoopReqParams,
-    BPTScheduledDCChargeLoopReqParams,
     DCCableCheckReq,
     DCCableCheckRes,
     DCChargeLoopReq,
@@ -105,8 +103,6 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DCPreChargeRes,
     DCWeldingDetectionReq,
     DCWeldingDetectionRes,
-    DynamicDCChargeLoopReqParams,
-    ScheduledDCChargeLoopReqParams,
 )
 from iso15118.shared.messages.iso15118_20.timeouts import Timeouts
 from iso15118.shared.notifications import StopNotification
@@ -1336,7 +1332,7 @@ class ACChargeParameterDiscovery(StateSECC):
         # Update EVSE Data Context
         evse_data_context = (
             self.comm_session.evse_controller.evse_data_context
-        ) = EVSEDataContext()
+        ) = EVSEDataContext()  # noqa: E501
         evse_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_res)
         self.create_next_message(
             ScheduleExchange,
@@ -1774,7 +1770,7 @@ class DCChargeLoop(StateSECC):
             )
         except (asyncio.TimeoutError, Exception) as e:
             self.stop_state_machine(
-                "Error sending targets to charging station in charging loop.",
+                f"Error sending targets to charging station in charging loop." f": {e}",
                 message,
                 ResponseCode.FAILED,
             )
@@ -1817,13 +1813,6 @@ class DCChargeLoop(StateSECC):
         if meter_info_requested:
             meter_info = await self.comm_session.evse_controller.get_meter_info_v20()
 
-        evse_present_current = (
-            await self.comm_session.evse_controller.get_evse_present_current(  # noqa
-                Protocol.ISO_15118_20_DC
-            ),
-        )  # noqa
-        print("CURRRENT")
-        print(evse_present_current)
         dc_charge_loop_res = DCChargeLoopRes(
             header=MessageHeader(
                 session_id=self.comm_session.session_id, timestamp=time.time()
