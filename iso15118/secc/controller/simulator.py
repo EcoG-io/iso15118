@@ -1056,7 +1056,7 @@ class SimEVSEController(EVSEControllerInterface):
     ) -> Union[PVEVSEPresentVoltage, RationalNumber]:
         """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
         if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
-            value, exponent = PhysicalValue.get_exponent_value_repr(
+            exponent, value = PhysicalValue.get_exponent_value_repr(
                 self.evse_data_context.session_context.evse_present_voltage
             )
             try:
@@ -1076,7 +1076,7 @@ class SimEVSEController(EVSEControllerInterface):
     ) -> Union[PVEVSEPresentCurrent, RationalNumber]:
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
         if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
-            value, exponent = PhysicalValue.get_exponent_value_repr(
+            exponent, value = PhysicalValue.get_exponent_value_repr(
                 self.evse_data_context.session_context.evse_present_current
             )
             try:
