@@ -182,6 +182,76 @@ class RationalNumber(BaseModel):
         exponent, value = get_exponent_value_repr(float_value)
         return RationalNumber(exponent=exponent, value=value)
 
+    @classmethod
+    def _convert_to_exponent_number(
+        cls,
+        float_value: float,
+        min_limit: float = INT_16_MIN,
+        max_limit: float = INT_16_MAX,
+    ) -> Tuple[int, int]:
+        """
+        Convert to exponent number, by finding the best fit exponent.
+        taking into consideration the min -32768 and max 32767 limits.
+        Examples:
+        float_value = 0.0000234 => exponent = -7, return value = 234
+        float_value = 0.000234 => exponent = -6, return value = 234
+        float_value = 0.00234 => exponent = -5, return value = 234
+        float_value = 0.0234 => exponent = -4, return value = 234
+        float_value = 0.234 => exponent = -3, return value = 234
+        float_value = 2.34 => exponent = -2, return value = 234
+        float_value = 23.4 => exponent = -1, return value = 234
+        float_value = 234 => exponent = 0, return value = 234
+        float_value = 2340 => exponent = 0, return value = 2340
+        float_value = 23400 => exponent = 0, return value = 23400
+        float_value = 234000 => exponent = 1, return value = 23400
+        float_value = 2340000 => exponent = 2, return value = 23400
+
+        float_value = 2340000 => exponent = 2, return value = 23400
+        float_value = 23400000 => exponent = 3, return value = 23400
+
+        float_value = 0.4 => exponent = -1, return value = 4
+        float_value = 0.356 => exponent = -3, return value = 356
+        float_value = 0.157 => exponent = -3, return value = 157
+        float_value = 0.00356 => exponent = -5, return value = 356
+        float_value = 0.634 => exponent = -3, return value = 634
+
+        Note:
+            In ISO 15118-2, the min limit is 0 and the max is
+            dependent on the field.
+            In ISO 15118-20, the limits are defined by the
+            RationalNumber type which are the limits of the
+            int16 range: [-32768, 32767].
+            Also, in ISO 15118-20, the exponent assumes the range
+            of [-128, 127], but currently that is not being
+            taken into consideration.
+        Args:
+            float_value (float): parameter value
+
+        Returns:
+           a tuple where the first item is the exponent and other is the
+           int value with the applied exponent
+        """
+        exponent = 0
+        # In theory in -20 we can have exponents in the range [-128, 127]
+        # but up to 3 decimal cases is a good enough approximation
+        # and avoids any overflow issues due to python float precision/representation
+        while float_value != int(float_value):
+            float_value *= 10
+            exponent -= 1
+            if exponent == -3:
+                if int(float_value) == 0:
+                    exponent = 0
+                break
+        while not (min_limit <= float_value <= max_limit):
+            if abs(float_value) >= 10:
+                float_value /= 10
+                exponent += 1
+            elif abs(float_value) < 1 and float_value != 0:
+                float_value *= 10
+                exponent -= 1
+
+        return exponent, int(float_value)
+
 
 class EVSENotification(str, Enum):
     """See section 8.3.5.3.26 in ISO 15118-20"""

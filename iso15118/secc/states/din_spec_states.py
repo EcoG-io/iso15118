@@ -387,7 +387,9 @@ class ChargeParameterDiscovery(StateSECC):
         )
 
         ev_data_context = self.comm_session.evse_controller.ev_data_context
-        ev_data_context.update_dc_charge_parameters(charge_parameter_discovery_req.dc_ev_charge_parameter)
+        ev_data_context.update_dc_charge_parameters(
+            charge_parameter_discovery_req.dc_ev_charge_parameter
+        )
 
         dc_evse_charge_params = (
             await self.comm_session.evse_controller.get_dc_charge_parameters_dinspec()  # noqa
@@ -578,7 +580,7 @@ class PreCharge(StateSECC):
                 Protocol.DIN_SPEC_70121
             )
         )
-        
+
         if isinstance(present_current, PVEVSEPresentCurrent):
             present_current_in_a = present_current.get_decimal_value()
             target_current_in_a = ev_data_context.target_current

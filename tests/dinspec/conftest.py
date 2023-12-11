@@ -1,4 +1,3 @@
-from iso15118.shared.messages.iso15118_2.datatypes import DCEVPowerDeliveryParameter
 import pytest
 
 from iso15118.shared.messages.datatypes import (
@@ -17,7 +16,10 @@ from iso15118.shared.messages.din_spec.body import (
     CurrentDemandReq,
     PowerDeliveryReq,
 )
-from iso15118.shared.messages.din_spec.datatypes import DCEVStatus
+from iso15118.shared.messages.din_spec.datatypes import (
+    DCEVPowerDeliveryParameter,
+    DCEVStatus,
+)
 from iso15118.shared.messages.din_spec.header import MessageHeader
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage
 from iso15118.shared.messages.enums import DCEVErrorCode, UnitSymbol
@@ -90,11 +92,13 @@ def power_delivery_req_charge_start():
     power_delivery_req = PowerDeliveryReq(
         ready_to_charge=True,
         dc_ev_power_delivery_parameter=DCEVPowerDeliveryParameter(
-            dc_ev_status=DCEVStatus(ev_ready=True,
-                                    ev_error_code=DCEVErrorCode.NO_ERROR,
-                                    ev_ress_soc=60),
-            charging_complete=False
-        )
+            dc_ev_status=DCEVStatus(
+                ev_ready=True,
+                ev_error_code=DCEVErrorCode.NO_ERROR,
+                ev_ress_soc=60,
+            ),
+            charging_complete=False,
+        ),
     )
 
     return V2GMessage(
@@ -108,11 +112,11 @@ def power_delivery_req_charge_stop():
     power_delivery_req = PowerDeliveryReq(
         ready_to_charge=False,
         dc_ev_power_delivery_parameter=DCEVPowerDeliveryParameter(
-            dc_ev_status=DCEVStatus(ev_ready=True,
-                                    ev_error_code=DCEVErrorCode.NO_ERROR,
-                                    ev_ress_soc=90),
-            charging_complete=False
-        )
+            dc_ev_status=DCEVStatus(
+                ev_ready=True, ev_error_code=DCEVErrorCode.NO_ERROR, ev_ress_soc=90
+            ),
+            charging_complete=False,
+        ),
     )
 
     return V2GMessage(

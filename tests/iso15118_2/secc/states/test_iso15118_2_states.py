@@ -102,7 +102,7 @@ class TestV2GSessionScenarios:
             min_charge_current=10,
             max_voltage=10,
             min_voltage=10,
-             # 15118-20 DC BPT
+            # 15118-20 DC BPT
             max_discharge_power=10,
             min_discharge_power=10,
             max_discharge_current=10,
@@ -121,7 +121,8 @@ class TestV2GSessionScenarios:
             min_voltage=10,
         )
         rated_limits: EVSERatedLimits = EVSERatedLimits(
-            ac_limits=None, dc_limits=dc_limits,
+            ac_limits=None,
+            dc_limits=dc_limits,
         )
         session_limits: EVSESessionLimits = EVSESessionLimits(
             ac_limits=None, dc_limits=dc_cl_limits

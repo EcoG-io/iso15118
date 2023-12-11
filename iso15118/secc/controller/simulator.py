@@ -178,7 +178,6 @@ def get_evse_context():
         max_charge_power_l3=10,
         min_charge_power_l2=10,
         min_charge_power_l3=10,
-
         max_discharge_power=10,
         min_discharge_power=10,
         max_discharge_power_l2=10,
@@ -193,7 +192,6 @@ def get_evse_context():
         min_charge_current=10,
         max_voltage=10,
         min_voltage=10,
-
         # 15118-20 DC BPT
         max_discharge_power=10,
         min_discharge_power=10,
@@ -207,7 +205,6 @@ def get_evse_context():
         max_charge_reactive_power=10,
         max_charge_reactive_power_l2=10,
         max_charge_reactive_power_l3=10,
-
         # BPT attributes
         max_discharge_power=10,
         max_discharge_power_l2=10,
@@ -215,8 +212,7 @@ def get_evse_context():
         max_discharge_reactive_power=10,
         max_discharge_active_power_l2=10,
         max_discharge_active_power_l3=10,
-
-        )
+    )
     dc_cl_limits = EVSEDCCLLimits(
         # Optional in 15118-20 DC CL (Scheduled)
         max_charge_power=10,
@@ -238,19 +234,20 @@ def get_evse_context():
         ac_limits=ac_cl_limits,
         dc_limits=dc_cl_limits,
     )
-    evse_data_context = EVSEDataContext(rated_limits=rated_limits,
-                                        session_limits=session_limits)
-    evse_data_context.nominal_voltage=10
-    evse_data_context.nominal_frequency=10
-    evse_data_context.max_power_asymmetry=10
-    evse_data_context.power_ramp_limit=10
-    evse_data_context.present_active_power=10
-    evse_data_context.present_active_power_l2=10
-    evse_data_context.present_active_power_l3=10
-    evse_data_context.current_regulation_tolerance=10
-    evse_data_context.energy_to_be_delivered=10
-    evse_data_context.present_current=1
-    evse_data_context.present_voltage=1
+    evse_data_context = EVSEDataContext(
+        rated_limits=rated_limits, session_limits=session_limits
+    )
+    evse_data_context.nominal_voltage = 10
+    evse_data_context.nominal_frequency = 10
+    evse_data_context.max_power_asymmetry = 10
+    evse_data_context.power_ramp_limit = 10
+    evse_data_context.present_active_power = 10
+    evse_data_context.present_active_power_l2 = 10
+    evse_data_context.present_active_power_l3 = 10
+    evse_data_context.current_regulation_tolerance = 10
+    evse_data_context.energy_to_be_delivered = 10
+    evse_data_context.present_current = 1
+    evse_data_context.present_voltage = 1
     return evse_data_context
 
 
@@ -306,16 +303,14 @@ class SimEVSEController(EVSEControllerInterface):
         dc_extended = EnergyTransferModeEnum.DC_EXTENDED
         return [dc_extended, ac_three_phase]
 
-
     async def get_schedule_exchange_params(
         self,
         selected_energy_service: SelectedEnergyService,
         control_mode: ControlMode,
         schedule_exchange_req: ScheduleExchangeReq,
-    ) -> Optional[Union[
-        ScheduledScheduleExchangeResParams,
-        DynamicScheduleExchangeResParams]
-        ]:
+    ) -> Optional[
+        Union[ScheduledScheduleExchangeResParams, DynamicScheduleExchangeResParams]
+    ]:
         if control_mode == ControlMode.SCHEDULED:
             return await self.get_scheduled_se_params(
                 selected_energy_service, schedule_exchange_req
@@ -777,7 +772,6 @@ class SimEVSEController(EVSEControllerInterface):
     async def set_present_protocol_state(self, state: State):
         logger.info(f"iso15118 state: {str(state)}")
 
-
     # ============================================================================
     # |                          AC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
@@ -840,7 +834,6 @@ class SimEVSEController(EVSEControllerInterface):
             )
         return None
 
-
     # ============================================================================
     # |                          DC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
@@ -897,8 +890,7 @@ class SimEVSEController(EVSEControllerInterface):
         ev_target_current: Optional[float],
         is_session_bpt: bool = False,
     ):
-        self.evse_data_context.present_voltage = ev_target_voltage
-        self.evse_data_context.present_current = ev_target_current
+        pass
 
     async def is_evse_current_limit_achieved(self) -> bool:
         return True
@@ -925,48 +917,25 @@ class SimEVSEController(EVSEControllerInterface):
     ]:
         """Override EVSEControllerInterface.get_dc_charge_params_v20()."""
         dc_charge_parameter_discovery_res = DCChargeParameterDiscoveryResParams(
-            evse_max_charge_power=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.dc_limits.evse_max_charge_power
-            ),
-            evse_min_charge_power=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.dc_limits.evse_min_charge_power
-            ),
-            evse_max_charge_current=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.dc_limits.evse_max_charge_current
-            ),
-            evse_min_charge_current=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.dc_limits.evse_min_charge_current
-            ),
-            evse_max_voltage=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.dc_limits.evse_max_voltage
-            ),
-            evse_min_voltage=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.dc_limits.evse_min_voltage
-            ),
-            evse_power_ramp_limit=RationalNumber.get_rational_repr(
-                self.evse_data_context.rated_limits.dc_limits.evse_power_ramp_limit
-            ),
+            evse_max_charge_power=RationalNumber.get_rational_repr(1000),
+            evse_min_charge_power=RationalNumber.get_rational_repr(100),
+            evse_max_charge_current=RationalNumber.get_rational_repr(100),
+            evse_min_charge_current=RationalNumber.get_rational_repr(10),
+            evse_max_voltage=RationalNumber.get_rational_repr(500),
+            evse_min_voltage=RationalNumber.get_rational_repr(10),
+            evse_power_ramp_limit=RationalNumber.get_rational_repr(10),
         )
         if selected_service == ServiceV20.DC:
             return dc_charge_parameter_discovery_res
         elif selected_service == ServiceV20.DC_BPT:
             return BPTDCChargeParameterDiscoveryResParams(
                 **(dc_charge_parameter_discovery_res.dict()),
-                evse_max_discharge_power=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.dc_bpt_limits.evse_max_discharge_power  # noqa
-                ),
-                evse_min_discharge_power=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.dc_bpt_limits.evse_min_discharge_power  # noqa
-                ),
-                evse_max_discharge_current=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.dc_bpt_limits.evse_max_discharge_current  # noqa
-                ),
-                evse_min_discharge_current=RationalNumber.get_rational_repr(
-                    self.evse_data_context.rated_limits.dc_bpt_limits.evse_min_discharge_current  # noqa
-                ),
+                evse_max_discharge_power=RationalNumber.get_rational_repr(1000),
+                evse_min_discharge_power=RationalNumber.get_rational_repr(100),
+                evse_max_discharge_current=RationalNumber.get_rational_repr(100),
+                evse_min_discharge_current=RationalNumber.get_rational_repr(10),
             )
         return None
-
 
     async def get_15118_ev_certificate(
         self, base64_encoded_cert_installation_req: str, namespace: str

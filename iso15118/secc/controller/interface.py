@@ -13,12 +13,12 @@ from iso15118.secc.controller.evse_data import CurrentType, EVSEDataContext
 from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
+    PhysicalValue,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
     PVEVSEMaxVoltageLimit,
     PVEVSEPresentCurrent,
     PVEVSEPresentVoltage,
-    PhysicalValue,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
     ResponseCode as ResponseCodeDINSPEC,
@@ -80,6 +80,7 @@ from iso15118.shared.states import State
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class AuthorizationResponse:
     authorization_status: AuthorizationStatus
@@ -105,7 +106,6 @@ class EVSEControllerInterface(ABC):
 
     def reset_ev_data_context(self):
         self.ev_data_context = EVDataContext()
-
 
     def get_ev_data_context(self) -> EVDataContext:
         return self.ev_data_context
@@ -159,10 +159,9 @@ class EVSEControllerInterface(ABC):
         selected_energy_service: SelectedEnergyService,
         control_mode: ControlMode,
         schedule_exchange_req: ScheduleExchangeReq,
-    ) -> Optional[Union[
-        ScheduledScheduleExchangeResParams,
-        DynamicScheduleExchangeResParams]
-        ]:
+    ) -> Optional[
+        Union[ScheduledScheduleExchangeResParams, DynamicScheduleExchangeResParams]
+    ]:
         """
         Gets the parameters for a ScheduleExchangeResponse.
         If the parameters are not yet ready when requested,
@@ -505,6 +504,7 @@ class EVSEControllerInterface(ABC):
         """
         """Get AC CL parameters 15118-20."""
         evse_session_limits = self.evse_data_context.session_limits.ac_limits
+        # TODO: read the rated limits
         # Active Power
         target_active_power = evse_session_limits.max_charge_power
         target_active_power_l2 = None
@@ -512,30 +512,48 @@ class EVSEControllerInterface(ABC):
         target_reactive_power = None
         target_reactive_power_l2 = None
         target_reactive_power_l3 = None
-        target_active_power_value = RationalNumber.get_rational_repr(target_active_power)
+        target_active_power_value = RationalNumber.get_rational_repr(
+            target_active_power
+        )
         if evse_session_limits.max_charge_power_l2:
             target_active_power_l2 = evse_session_limits.max_charge_power_l2
-            target_active_power_l2 = RationalNumber.get_rational_repr(target_active_power_l2) # noqa
+            target_active_power_l2 = RationalNumber.get_rational_repr(
+                target_active_power_l2
+            )  # noqa
         if evse_session_limits.max_charge_power_l3:
             target_active_power_l3 = evse_session_limits.max_charge_power_l3
-            target_active_power_l3 = RationalNumber.get_rational_repr(target_active_power_l3) # noqa
+            target_active_power_l3 = RationalNumber.get_rational_repr(
+                target_active_power_l3
+            )  # noqa
         # Reactive Power
         if evse_session_limits.max_charge_reactive_power:
             target_reactive_power = evse_session_limits.max_charge_reactive_power
-            target_reactive_power = RationalNumber.get_rational_repr(target_reactive_power) # noqa
+            target_reactive_power = RationalNumber.get_rational_repr(
+                target_reactive_power
+            )  # noqa
         if evse_session_limits.max_charge_reactive_power_l2:
             target_reactive_power_l2 = evse_session_limits.max_charge_reactive_power_l2
-            target_reactive_power_l2 = RationalNumber.get_rational_repr(target_reactive_power_l2)
+            target_reactive_power_l2 = RationalNumber.get_rational_repr(
+                target_reactive_power_l2
+            )
         if evse_session_limits.max_charge_reactive_power_l3:
             target_reactive_power_l3 = evse_session_limits.max_charge_reactive_power_l3
-            target_reactive_power_l3 = RationalNumber.get_rational_repr(target_reactive_power_l3)
+            target_reactive_power_l3 = RationalNumber.get_rational_repr(
+                target_reactive_power_l3
+            )
         # Present Power
         present_active_power = self.evse_data_context.present_active_power
-        present_active_power = RationalNumber.get_rational_repr(present_active_power) # noqa
+        present_active_power = RationalNumber.get_rational_repr(
+            present_active_power
+        )  # noqa
         present_active_power_l2 = self.evse_data_context.present_active_power_l2
-        present_active_power_l2  = RationalNumber.get_rational_repr(present_active_power_l2) # noqa
+        present_active_power_l2 = RationalNumber.get_rational_repr(
+            present_active_power_l2
+        )  # noqa
         present_active_power_l3 = self.evse_data_context.present_active_power_l3
-        present_active_power_l3 = RationalNumber.get_rational_repr(present_active_power_l3) # noqa
+        present_active_power_l3 = RationalNumber.get_rational_repr(
+            present_active_power_l3
+        )  # noqa
         if (
             control_mode == ControlMode.DYNAMIC
             and selected_service == ServiceV20.AC_BPT
@@ -569,8 +587,7 @@ class EVSEControllerInterface(ABC):
                 evse_present_active_power_l3=present_active_power_l3,
             )
             return bpt_scheduled_params
-        elif (control_mode == ControlMode.DYNAMIC
-              and selected_service == ServiceV20.AC):
+        elif control_mode == ControlMode.DYNAMIC and selected_service == ServiceV20.AC:
             dynamic_params = DynamicACChargeLoopResParams(
                 evse_target_active_power=target_active_power_value,
                 evse_target_active_power_l2=target_active_power_l2,
@@ -597,7 +614,6 @@ class EVSEControllerInterface(ABC):
             )
             return scheduled_params
 
-
     # ============================================================================
     # |                          DC-SPECIFIC FUNCTIONS                           |
     # ============================================================================
@@ -612,7 +628,6 @@ class EVSEControllerInterface(ABC):
         """
         raise NotImplementedError
 
-
     @abstractmethod
     async def get_dc_charge_parameters(self) -> DCEVSEChargeParameter:
         """
@@ -622,7 +637,6 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-2
         """
         raise NotImplementedError
-    
 
     async def get_dc_charge_parameters_dinspec(self) -> DCEVSEChargeParameter:
         """
@@ -632,7 +646,7 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-2
         """
         return await self.get_dc_charge_parameters()
-    
+
     async def get_dc_charge_parameters_v2(self) -> DCEVSEChargeParameter:
         """
         Gets the DC-specific EVSE charge parameter (for ChargeParameterDiscoveryRes)
@@ -657,12 +671,7 @@ class EVSEControllerInterface(ABC):
             value, exponent = PhysicalValue.get_exponent_value_repr(
                 cast(int, self.evse_data_context.present_voltage)
             )
-            try:
-                return PVEVSEPresentVoltage(
-                    multiplier=exponent, value=value, unit="V"
-                )
-            except ValueError:
-                return None
+            return PVEVSEPresentVoltage(multiplier=exponent, value=value, unit="V")
         else:
             return RationalNumber.get_rational_repr(
                 self.evse_data_context.present_voltage
@@ -683,12 +692,7 @@ class EVSEControllerInterface(ABC):
             value, exponent = PhysicalValue.get_exponent_value_repr(
                 cast(int, self.evse_data_context.present_current)
             )
-            try:
-                return PVEVSEPresentVoltage(
-                    multiplier=exponent, value=value, unit="V"
-                )
-            except ValueError:
-                return None
+            return PVEVSEPresentCurrent(multiplier=exponent, value=value, unit="A")
         else:
             return RationalNumber.get_rational_repr(
                 self.evse_data_context.present_current
@@ -783,10 +787,10 @@ class EVSEControllerInterface(ABC):
         voltage_limit = session_limits.dc_limits.max_voltage
         value, exponent = PhysicalValue.get_exponent_value_repr(voltage_limit)
         return PVEVSEMaxVoltageLimit(
-                multiplier=exponent,
-                value=value,
-                unit=UnitSymbol.VOLTAGE,
-            )
+            multiplier=exponent,
+            value=value,
+            unit=UnitSymbol.VOLTAGE,
+        )
 
     async def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
         """
@@ -801,20 +805,24 @@ class EVSEControllerInterface(ABC):
             ac_limits = session_limits.ac_limits
             min_session_power_limit = ac_limits.max_charge_power
             if ac_limits.max_charge_power_l2:
-                min_session_power_limit = min(min_session_power_limit,
-                                              ac_limits.max_charge_power_l2)
+                min_session_power_limit = min(
+                    min_session_power_limit, ac_limits.max_charge_power_l2
+                )
             if ac_limits.max_charge_power_l3:
-                min_session_power_limit = min(min_session_power_limit,
-                                                ac_limits.max_charge_power_l3)
-            current_limit_phase = min_session_power_limit / self.evse_data_context.present_voltage
+                min_session_power_limit = min(
+                    min_session_power_limit, ac_limits.max_charge_power_l3
+                )
+            current_limit_phase = (
+                min_session_power_limit / self.evse_data_context.present_voltage
+            )
             value, exponent = PhysicalValue.get_exponent_value_repr(current_limit_phase)
         elif self.evse_data_context.current_type == CurrentType.DC:
             current_limit = session_limits.dc_limits.max_charge_current
             value, exponent = PhysicalValue.get_exponent_value_repr(current_limit)
         return PVEVSEMaxCurrentLimit(
-                multiplier=exponent,
-                value=value,
-                unit=UnitSymbol.AMPERE,
+            multiplier=exponent,
+            value=value,
+            unit=UnitSymbol.AMPERE,
         )
 
     @abstractmethod
@@ -844,10 +852,10 @@ class EVSEControllerInterface(ABC):
         power_limit = session_limits.dc_limits.max_charge_power
         value, exponent = PhysicalValue.get_exponent_value_repr(power_limit)
         return PVEVSEMaxPowerLimit(
-                multiplier=exponent,
-                value=value,
-                unit=UnitSymbol.WATT,
-            )
+            multiplier=exponent,
+            value=value,
+            unit=UnitSymbol.WATT,
+        )
 
     async def get_dc_charge_loop_params_v20(
         self, control_mode: ControlMode, selected_service: ServiceV20
@@ -885,10 +893,18 @@ class EVSEControllerInterface(ABC):
         if selected_service == ServiceV20.DC:
             if control_mode == ControlMode.SCHEDULED:
                 scheduled_params = ScheduledDCChargeLoopResParams(
-                    evse_maximum_charge_power=RationalNumber.get_rational_repr(evse_max_charge_power),
-                    evse_minimum_charge_power=RationalNumber.get_rational_repr(evse_min_charge_power),
-                    evse_maximum_charge_current=RationalNumber.get_rational_repr(evse_max_charge_current),
-                    evse_maximum_voltage=RationalNumber.get_rational_repr(evse_max_voltage),
+                    evse_maximum_charge_power=RationalNumber.get_rational_repr(
+                        evse_max_charge_power
+                    ),
+                    evse_minimum_charge_power=RationalNumber.get_rational_repr(
+                        evse_min_charge_power
+                    ),
+                    evse_maximum_charge_current=RationalNumber.get_rational_repr(
+                        evse_max_charge_current
+                    ),
+                    evse_maximum_voltage=RationalNumber.get_rational_repr(
+                        evse_max_voltage
+                    ),
                 )
                 return scheduled_params
             elif control_mode == ControlMode.DYNAMIC:
@@ -897,10 +913,18 @@ class EVSEControllerInterface(ABC):
                     min_soc=self.evse_data_context.min_soc,
                     target_soc=self.evse_data_context.target_soc,
                     ack_max_delay=self.evse_data_context.ack_max_delay,
-                    evse_maximum_charge_power=RationalNumber.get_rational_repr(evse_max_charge_power),
-                    evse_minimum_charge_power=RationalNumber.get_rational_repr(evse_min_charge_power),
-                    evse_maximum_charge_current=RationalNumber.get_rational_repr(evse_max_charge_current),
-                    evse_maximum_voltage=RationalNumber.get_rational_repr(evse_max_voltage),
+                    evse_maximum_charge_power=RationalNumber.get_rational_repr(
+                        evse_max_charge_power
+                    ),
+                    evse_minimum_charge_power=RationalNumber.get_rational_repr(
+                        evse_min_charge_power
+                    ),
+                    evse_maximum_charge_current=RationalNumber.get_rational_repr(
+                        evse_max_charge_current
+                    ),
+                    evse_maximum_voltage=RationalNumber.get_rational_repr(
+                        evse_max_voltage
+                    ),
                 )
                 return dynamic_params
             return None
@@ -908,16 +932,30 @@ class EVSEControllerInterface(ABC):
             evse_max_discharge_power = evse_session_limits.max_discharge_power
             evse_min_discharge_power = evse_session_limits.min_discharge_power
             evse_max_discharge_current = evse_session_limits.max_discharge_current
-            evse_min_voltage = evse_session_limits.evse_min_voltage
+            evse_min_voltage = evse_session_limits.min_voltage
             if control_mode == ControlMode.SCHEDULED:
                 bpt_scheduled_params = BPTScheduledDCChargeLoopResParams(
-                    evse_maximum_charge_power=RationalNumber.get_rational_repr(evse_max_charge_power),
-                    evse_minimum_charge_power=RationalNumber.get_rational_repr(evse_min_charge_power),
-                    evse_maximum_charge_current=RationalNumber.get_rational_repr(evse_max_charge_current),
-                    evse_maximum_voltage=RationalNumber.get_rational_repr(evse_max_voltage),
-                    evse_max_discharge_power=RationalNumber.get_rational_repr(evse_max_discharge_power),
-                    evse_min_discharge_power=RationalNumber.get_rational_repr(evse_min_discharge_power),
-                    evse_max_discharge_current=RationalNumber.get_rational_repr(evse_max_discharge_current),
+                    evse_maximum_charge_power=RationalNumber.get_rational_repr(
+                        evse_max_charge_power
+                    ),
+                    evse_minimum_charge_power=RationalNumber.get_rational_repr(
+                        evse_min_charge_power
+                    ),
+                    evse_maximum_charge_current=RationalNumber.get_rational_repr(
+                        evse_max_charge_current
+                    ),
+                    evse_maximum_voltage=RationalNumber.get_rational_repr(
+                        evse_max_voltage
+                    ),
+                    evse_max_discharge_power=RationalNumber.get_rational_repr(
+                        evse_max_discharge_power
+                    ),
+                    evse_min_discharge_power=RationalNumber.get_rational_repr(
+                        evse_min_discharge_power
+                    ),
+                    evse_max_discharge_current=RationalNumber.get_rational_repr(
+                        evse_max_discharge_current
+                    ),
                     evse_min_voltage=RationalNumber.get_rational_repr(evse_min_voltage),
                 )
                 return bpt_scheduled_params
@@ -927,13 +965,27 @@ class EVSEControllerInterface(ABC):
                     min_soc=self.evse_data_context.min_soc,
                     target_soc=self.evse_data_context.target_soc,
                     ack_max_delay=self.evse_data_context.ack_max_delay,
-                    evse_maximum_charge_power=RationalNumber.get_rational_repr(evse_max_charge_power),
-                    evse_minimum_charge_power=RationalNumber.get_rational_repr(evse_min_charge_power),
-                    evse_maximum_charge_current=RationalNumber.get_rational_repr(evse_max_charge_current),
-                    evse_maximum_voltage=RationalNumber.get_rational_repr(evse_max_voltage),
-                    evse_max_discharge_power=RationalNumber.get_rational_repr(evse_max_discharge_power),
-                    evse_min_discharge_power=RationalNumber.get_rational_repr(evse_min_discharge_power),
-                    evse_max_discharge_current=RationalNumber.get_rational_repr(evse_max_discharge_current),
+                    evse_maximum_charge_power=RationalNumber.get_rational_repr(
+                        evse_max_charge_power
+                    ),
+                    evse_minimum_charge_power=RationalNumber.get_rational_repr(
+                        evse_min_charge_power
+                    ),
+                    evse_maximum_charge_current=RationalNumber.get_rational_repr(
+                        evse_max_charge_current
+                    ),
+                    evse_maximum_voltage=RationalNumber.get_rational_repr(
+                        evse_max_voltage
+                    ),
+                    evse_max_discharge_power=RationalNumber.get_rational_repr(
+                        evse_max_discharge_power
+                    ),
+                    evse_min_discharge_power=RationalNumber.get_rational_repr(
+                        evse_min_discharge_power
+                    ),
+                    evse_max_discharge_current=RationalNumber.get_rational_repr(
+                        evse_max_discharge_current
+                    ),
                     evse_min_voltage=RationalNumber.get_rational_repr(evse_min_voltage),
                 )
                 return bpt_dynamic_params

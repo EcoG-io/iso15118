@@ -1348,13 +1348,17 @@ class ChargeParameterDiscovery(StateSECC):
                 await self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
             evse_data_context.update_ac_charge_parameters_v2(ac_evse_charge_params)
-            ev_data_context.update_ac_charge_parameters_v2(charge_params_req.ac_ev_charge_parameter)
+            ev_data_context.update_ac_charge_parameters_v2(
+                charge_params_req.ac_ev_charge_parameter
+            )
         else:
             dc_evse_charge_params = (
                 await self.comm_session.evse_controller.get_dc_charge_parameters_v2()
             )
             evse_data_context.update_dc_charge_parameters_v2(dc_evse_charge_params)
-            ev_data_context.update_dc_charge_parameters(charge_params_req.dc_ev_charge_parameter)
+            ev_data_context.update_dc_charge_parameters(
+                charge_params_req.dc_ev_charge_parameter
+            )
 
         departure_time = (
             ev_data_context.departure_time if ev_data_context.departure_time else 0
@@ -1605,7 +1609,7 @@ class PowerDelivery(StateSECC):
 
         if power_delivery_req.dc_ev_power_delivery_parameter:
             self.comm_session.evse_controller.ev_data_context.present_soc = (
-                power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ress_soc # noqa
+                power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ress_soc  # noqa
             )
 
         # TODO: Investigate this and reassess
@@ -2419,7 +2423,6 @@ class CurrentDemand(StateSECC):
                 ResponseCode.FAILED,
             )
             return
-
 
         # We don't care about signed meter values from the EVCC, but if you
         # do, then set receipt_required to True and set the field meter_info
