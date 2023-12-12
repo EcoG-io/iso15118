@@ -48,6 +48,12 @@ from iso15118.shared.messages.iso15118_20.dc import (
 )
 
 
+class UnknownEnergyService(Exception):
+    """
+    it is raised when the Service Id is not recognized
+    """
+
+
 @dataclass
 class EVACCPDLimits(Limits):
     """Holds the AC limits shared by the EV during ChargeParameterDiscovery"""
@@ -421,8 +427,7 @@ class EVDataContext:
             params = charge_parameter.bpt_ac_params
             self._update_acbpt_charge_parameters_v20(ac_rated_limits, params)
         else:
-            # Raise error?
-            return
+            raise UnknownEnergyService(f"Unknown Service {energy_service}")
         # Create the session limits based on the rated limits
         self.session_limits.dc_limits.update(ac_rated_limits.as_dict())
 
@@ -492,12 +497,12 @@ class EVDataContext:
     def update_ac_charge_loop_v20(
         self,
         ac_charge_loop_req: ACChargeLoopReq,
-        selected_energy_service: ServiceV20,
+        energy_service: ServiceV20,
         control_mode: ControlMode,
     ) -> None:
         """Update the EV data context with the ACChargeLoopReq parameters"""
         ac_limits = self.session_limits.ac_limits
-        if selected_energy_service == ServiceV20.AC:
+        if energy_service == ServiceV20.AC:
             if control_mode == ControlMode.SCHEDULED:
                 self._update_common_ac_limits(
                     ac_limits, ac_charge_loop_req.scheduled_params
@@ -508,7 +513,7 @@ class EVDataContext:
                 if params.departure_time:
                     self.departure_time = params.departure_time
                 self._update_common_ac_limits(ac_limits, params)
-        elif selected_energy_service == ServiceV20.AC_BPT:
+        elif energy_service == ServiceV20.AC_BPT:
             if control_mode == ControlMode.SCHEDULED:
                 self._update_common_acbpt_limits(
                     ac_limits, ac_charge_loop_req.bpt_scheduled_params
@@ -530,8 +535,7 @@ class EVDataContext:
 
                 self._update_common_acbpt_limits(ac_limits, params)
         else:
-            # raise an error?
-            return
+            raise UnknownEnergyService(f"Unknown Service {energy_service}")
 
     def _update_common_ac_limits(
         self,
@@ -670,8 +674,7 @@ class EVDataContext:
             params = charge_parameter.bpt_dc_params
             self._update_dcbpt_charge_parameters_v20(dc_rated_limits, params)
         else:
-            # Raise error?
-            return
+            raise UnknownEnergyService(f"Unknown Service {energy_service}")
         # Create the session limits based on the rated limits
         self.session_limits.dc_limits.update(dc_rated_limits.as_dict())
 
@@ -731,7 +734,7 @@ class EVDataContext:
     def update_dc_charge_loop_parameters_v20(
         self,
         dc_charge_loop_req: DCChargeLoopReq,
-        selected_energy_service: SelectedEnergyService,
+        energy_service: SelectedEnergyService,
         control_mode: ControlMode,
     ) -> None:
         """Update the EV data context with the DCChargeLoopReq parameters"""
@@ -749,7 +752,7 @@ class EVDataContext:
             self._update_display_parameters(dc_charge_loop_req.display_parameters)
 
         dc_limits = self.session_limits.dc_limits
-        if selected_energy_service.service == ServiceV20.DC:
+        if energy_service.service == ServiceV20.DC:
             if control_mode == ControlMode.SCHEDULED:
                 params = dc_charge_loop_req.scheduled_params
                 # Target Current and Voltage only in Scheduled
@@ -762,7 +765,7 @@ class EVDataContext:
                 if params.departure_time:
                     self.departure_time = params.departure_time
                 self._update_common_dc_limits(dc_limits, params)
-        elif selected_energy_service.service == ServiceV20.DC_BPT:
+        elif energy_service.service == ServiceV20.DC_BPT:
             if control_mode == ControlMode.SCHEDULED:
                 params = dc_charge_loop_req.bpt_scheduled_params
                 # Target Current and Voltage only in Scheduled
@@ -785,8 +788,7 @@ class EVDataContext:
                     )  # noqa: E501
                 self._update_common_dc_bpt_limits(dc_limits, params)
         else:
-            # Raise error?
-            return
+            raise UnknownEnergyService("Unknown Service" f"{energy_service.service}")
 
     def _update_common_dc_limits(
         self,

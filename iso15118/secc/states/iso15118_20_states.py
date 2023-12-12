@@ -9,6 +9,7 @@ import time
 from typing import List, Optional, Tuple, Type, Union, cast
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.secc.controller.ev_data import UnknownEnergyService
 from iso15118.secc.controller.evse_data import EVSEDataContext
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exi_codec import EXI
@@ -1316,10 +1317,11 @@ class ACChargeParameterDiscovery(StateSECC):
         energy_service = self.comm_session.selected_energy_service.service
         params = None
 
-        if self.charge_parameter_valid(ac_cpd_req.ac_params):
+        try:
+            self.charge_parameter_valid(ac_cpd_req.ac_params)
             ev_data_context = self.comm_session.evse_controller.ev_data_context
             ev_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_req)
-        else:
+        except UnknownEnergyService:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
                 message,
@@ -1357,6 +1359,7 @@ class ACChargeParameterDiscovery(StateSECC):
         ],
     ) -> bool:
         # TODO Implement [V2G20-1619] (FAILED_WrongChargeParameter)
+        # raise an error if the charge parameter is not valid
         return True
 
 
@@ -1513,10 +1516,10 @@ class DCChargeParameterDiscovery(StateSECC):
         energy_service = self.comm_session.selected_energy_service.service
         params = None
 
-        if self.charge_parameter_valid(energy_service, dc_cpd_req):
+        try:
             ev_data_context = self.comm_session.evse_controller.ev_data_context
             ev_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_req)
-        else:
+        except UnknownEnergyService:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
                 message,

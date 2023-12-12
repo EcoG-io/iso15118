@@ -227,7 +227,7 @@ class TestEvScenarios:
         assert authorization.expecting_authorization_req is next_req_is_auth_req
 
     @pytest.mark.parametrize(
-        "params, selected_service, expected_state, expected_ev_context",
+        "params, selected_service, expected_state, expected_ev_context,",
         [
             (
                 ACChargeParameterDiscoveryReqParams(
@@ -291,6 +291,31 @@ class TestEvScenarios:
                     ),
                 ),
             ),
+            (
+                ACChargeParameterDiscoveryReqParams(
+                    ev_max_charge_power=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l2=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power_l2=RationalNumber(exponent=0, value=100),
+                    ev_max_charge_power_l3=RationalNumber(exponent=2, value=300),
+                    ev_min_charge_power_l3=RationalNumber(exponent=0, value=100),
+                ),
+                ServiceV20.AC,
+                Terminate,
+                EVDataContext(
+                    evcc_id=None,
+                    rated_limits=EVRatedLimits(
+                        ac_limits=EVACCPDLimits(
+                            max_charge_power=30000,
+                            min_charge_power=100,
+                            max_charge_power_l2=30000,
+                            min_charge_power_l2=100,
+                            max_charge_power_l3=30000,
+                            min_charge_power_l3=100,
+                        )
+                    ),
+                ),
+            ),
         ],
     )
     async def test_15118_20_ac_charge_parameter_discovery_res_ev_context_update(
@@ -299,6 +324,10 @@ class TestEvScenarios:
         self.comm_session.selected_energy_service = SelectedEnergyService(
             service=selected_service, is_free=True, parameter_set=None
         )
+        if expected_state is Terminate:
+            # force an error when getting the EV context
+            # that will raise a UnknownService exception
+            self.comm_session.selected_energy_service.service = None
         ac_service_discovery = ACChargeParameterDiscovery(self.comm_session)
         ac_service_discovery_req = get_ac_service_discovery_req(
             params, selected_service

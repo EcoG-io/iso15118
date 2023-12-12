@@ -668,7 +668,7 @@ class EVSEControllerInterface(ABC):
         - DINSPEC
         """
         if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
-            value, exponent = PhysicalValue.get_exponent_value_repr(
+            exponent, value = PhysicalValue.get_exponent_value_repr(
                 cast(int, self.evse_data_context.present_voltage)
             )
             return PVEVSEPresentVoltage(multiplier=exponent, value=value, unit="V")
@@ -689,7 +689,7 @@ class EVSEControllerInterface(ABC):
         - DINSPEC
         """
         if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
-            value, exponent = PhysicalValue.get_exponent_value_repr(
+            exponent, value = PhysicalValue.get_exponent_value_repr(
                 cast(int, self.evse_data_context.present_current)
             )
             return PVEVSEPresentCurrent(multiplier=exponent, value=value, unit="A")
@@ -785,7 +785,7 @@ class EVSEControllerInterface(ABC):
         """
         session_limits = self.evse_data_context.session_limits
         voltage_limit = session_limits.dc_limits.max_voltage
-        value, exponent = PhysicalValue.get_exponent_value_repr(voltage_limit)
+        exponent, value = PhysicalValue.get_exponent_value_repr(voltage_limit)
         return PVEVSEMaxVoltageLimit(
             multiplier=exponent,
             value=value,
@@ -815,10 +815,10 @@ class EVSEControllerInterface(ABC):
             current_limit_phase = (
                 min_session_power_limit / self.evse_data_context.present_voltage
             )
-            value, exponent = PhysicalValue.get_exponent_value_repr(current_limit_phase)
+            exponent, value = PhysicalValue.get_exponent_value_repr(current_limit_phase)
         elif self.evse_data_context.current_type == CurrentType.DC:
             current_limit = session_limits.dc_limits.max_charge_current
-            value, exponent = PhysicalValue.get_exponent_value_repr(current_limit)
+            exponent, value = PhysicalValue.get_exponent_value_repr(current_limit)
         return PVEVSEMaxCurrentLimit(
             multiplier=exponent,
             value=value,
@@ -850,7 +850,7 @@ class EVSEControllerInterface(ABC):
         if session_limits.dc_limits.max_charge_power is None:
             return None
         power_limit = session_limits.dc_limits.max_charge_power
-        value, exponent = PhysicalValue.get_exponent_value_repr(power_limit)
+        exponent, value = PhysicalValue.get_exponent_value_repr(power_limit)
         return PVEVSEMaxPowerLimit(
             multiplier=exponent,
             value=value,
