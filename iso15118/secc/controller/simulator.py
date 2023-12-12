@@ -882,13 +882,13 @@ class SimEVSEController(EVSEControllerInterface):
         pass
 
     async def is_evse_current_limit_achieved(self) -> bool:
-        return True
+        return False
 
     async def is_evse_voltage_limit_achieved(self) -> bool:
-        return True
+        return False
 
     async def is_evse_power_limit_achieved(self) -> bool:
-        return True
+        return False
 
     async def get_evse_max_voltage_limit(self) -> PVEVSEMaxVoltageLimit:
         return PVEVSEMaxVoltageLimit(multiplier=0, value=600, unit="V")

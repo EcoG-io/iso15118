@@ -58,6 +58,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     PnCAuthSetupResParams,
     PowerDeliveryReq,
     PowerDeliveryRes,
+    ScheduledScheduleExchangeResParams,
     ScheduleExchangeReq,
     ScheduleExchangeRes,
     SelectedEnergyService,
@@ -91,13 +92,11 @@ from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
 from iso15118.shared.messages.iso15118_20.dc import (
-    BPTDCChargeParameterDiscoveryReqParams,
     DCCableCheckReq,
     DCCableCheckRes,
     DCChargeLoopReq,
     DCChargeLoopRes,
     DCChargeParameterDiscoveryReq,
-    DCChargeParameterDiscoveryReqParams,
     DCChargeParameterDiscoveryRes,
     DCPreChargeReq,
     DCPreChargeRes,
@@ -940,7 +939,16 @@ class ScheduleExchange(StateSECC):
         if params:
             evse_processing = Processing.FINISHED
             if control_mode == ControlMode.SCHEDULED:
-                self.comm_session.offered_schedules_V20 = params.schedule_tuples
+                if type(params) is ScheduledScheduleExchangeResParams:
+                    self.comm_session.offered_schedules_V20 = params.schedule_tuples
+                else:
+                    self.stop_state_machine(
+                        f"Unexpected control_mode {control_mode},"
+                        f" for params type {type(params)}",
+                        message,
+                        ResponseCode.FAILED,
+                    )
+                    return
 
         schedule_exchange_res = ScheduleExchangeRes(
             header=MessageHeader(
@@ -1505,7 +1513,7 @@ class DCChargeParameterDiscovery(StateSECC):
         energy_service = self.comm_session.selected_energy_service.service
         params = None
 
-        if self.charge_parameter_valid(dc_cpd_req):
+        if self.charge_parameter_valid(energy_service, dc_cpd_req):
             ev_data_context = self.comm_session.evse_controller.ev_data_context
             ev_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_req)
         else:
@@ -1542,11 +1550,16 @@ class DCChargeParameterDiscovery(StateSECC):
 
     def charge_parameter_valid(
         self,
-        dc_charge_params: Union[
-            DCChargeParameterDiscoveryReqParams, BPTDCChargeParameterDiscoveryReqParams
-        ],
+        energy_service: ServiceV20,
+        dc_cpd_req: DCChargeParameterDiscoveryReq,
     ) -> bool:
         # TODO Implement [V2G20-2272] (FAILED_WrongChargeParameter)
+        if energy_service == ServiceV20.DC:
+            pass
+            # params = dc_cpd_req.dc_params
+        elif energy_service == ServiceV20.DC_BPT:
+            pass
+            # params = dc_cpd_req.bpt_dc_params
         return True
 
 

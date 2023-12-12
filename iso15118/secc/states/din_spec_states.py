@@ -586,7 +586,7 @@ class PreCharge(StateSECC):
             target_current_in_a = ev_data_context.target_current
         else:
             self.stop_state_machine(
-                "Error reading EVSE Present Current.",
+                "Error reading EVSE Present Current."
                 f"Wrong type: {type(present_current)}",
                 message,
                 ResponseCode.FAILED,

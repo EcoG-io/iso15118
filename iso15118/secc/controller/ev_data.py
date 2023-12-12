@@ -272,12 +272,8 @@ class EVDataContext:
         dc_ev_charge_parameter: Union[DCEVChargeParameter, DIN_DCEVChargeParameter],
     ) -> None:
         """Update the EV data context with the DCEVChargeParameter parameters"""
-        try:
+        if type(dc_ev_charge_parameter) is DCEVChargeParameter:
             self.departure_time = dc_ev_charge_parameter.departure_time
-        except AttributeError:
-            # DIN_DCEVChargeParameter does not have departure_time
-            pass
-
         self.present_soc = dc_ev_charge_parameter.dc_ev_status.ev_ress_soc
         self.target_energy_request = (  # noqa: E501
             None
@@ -755,15 +751,13 @@ class EVDataContext:
         dc_limits = self.session_limits.dc_limits
         if selected_energy_service.service == ServiceV20.DC:
             if control_mode == ControlMode.SCHEDULED:
-                params: ScheduledDCChargeLoopReqParams = (
-                    dc_charge_loop_req.scheduled_params
-                )
+                params = dc_charge_loop_req.scheduled_params
                 # Target Current and Voltage only in Scheduled
                 self.target_current = params.ev_target_current.get_decimal_value()
                 self.target_voltage = params.ev_target_voltage.get_decimal_value()
                 self._update_common_dc_limits(dc_limits, params)
             elif control_mode == ControlMode.DYNAMIC:
-                params: DynamicDCChargeLoopReqParams = dc_charge_loop_req.dynamic_params
+                params = dc_charge_loop_req.dynamic_params
                 # Departure time only in Dynamic
                 if params.departure_time:
                     self.departure_time = params.departure_time
@@ -878,7 +872,9 @@ class EVDataContext:
         if params.remaining_time_to_target_soc:
             self.remaining_time_to_target_soc = params.remaining_time_to_target_soc
         if params.battery_energy_capacity:
-            self.total_battery_capacity = params.battery_energy_capacity
+            self.total_battery_capacity = (
+                params.battery_energy_capacity.get_decimal_value()
+            )  # noqa: E501
 
 
 @dataclass

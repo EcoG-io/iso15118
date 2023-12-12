@@ -142,7 +142,7 @@ class TestEvScenarios:
         evse_data_context.present_active_power = 10
         evse_data_context.present_active_power_l2 = 10
         evse_data_context.present_active_power_l3 = 10
-        return
+        return evse_data_context
 
     @pytest.mark.parametrize(
         "service_id_input, response_code",

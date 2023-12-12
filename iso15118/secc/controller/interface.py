@@ -744,7 +744,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def is_evse_current_limit_achieved(self) -> bool:
+    async def is_evse_current_limit_achieved(self):
         """
         Returns true if the current limit of the charger has achieved
 
@@ -752,10 +752,10 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-2
         """
         # TODO retrieve from evse data context
-        raise False
+        raise NotImplementedError
 
     @abstractmethod
-    async def is_evse_voltage_limit_achieved(self) -> bool:
+    async def is_evse_voltage_limit_achieved(self):
         """
         Returns true if the current limit of the charger has achieved
 
@@ -763,7 +763,7 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-2
         """
         # TODO retrieve from evse data context
-        return False
+        return NotImplementedError
 
     @abstractmethod
     async def is_evse_power_limit_achieved(self) -> bool:
