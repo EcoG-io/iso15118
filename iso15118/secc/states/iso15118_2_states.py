@@ -207,7 +207,6 @@ class SessionSetup(StateSECC):
             evse_id=await self.comm_session.evse_controller.get_evse_id(
                 Protocol.ISO_15118_2
             ),
-            evse_timestamp=time.time(),
         )
 
         self.comm_session.evcc_id = session_setup_req.evcc_id
