@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Union
 
-from iso15118.secc.controller.common import Limits
+from iso15118.secc.controller.common import Limits, UnknownEnergyService
 from iso15118.shared.messages.din_spec.body import (
     CurrentDemandReq as DIN_CurrentDemandReq,
 )
@@ -46,12 +46,6 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DynamicDCChargeLoopReqParams,
     ScheduledDCChargeLoopReqParams,
 )
-
-
-class UnknownEnergyService(Exception):
-    """
-    it is raised when the Service Id is not recognized
-    """
 
 
 @dataclass

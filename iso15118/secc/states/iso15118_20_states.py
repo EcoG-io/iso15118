@@ -9,7 +9,7 @@ import time
 from typing import List, Optional, Tuple, Type, Union, cast
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.ev_data import UnknownEnergyService
+from iso15118.secc.controller.common import UnknownEnergyService
 from iso15118.secc.controller.evse_data import EVSEDataContext
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exi_codec import EXI
@@ -1316,11 +1316,28 @@ class ACChargeParameterDiscovery(StateSECC):
 
         energy_service = self.comm_session.selected_energy_service.service
         params = None
-
         try:
+            params = await self.comm_session.evse_controller.get_ac_charge_params_v20(
+                energy_service
+            )
+            ac_cpd_res = ACChargeParameterDiscoveryRes(
+                header=MessageHeader(
+                    session_id=self.comm_session.session_id, timestamp=time.time()
+                ),
+                response_code=ResponseCode.OK,
+                ac_params=params if energy_service == ServiceV20.AC else None,
+                bpt_ac_params=params if energy_service == ServiceV20.AC_BPT else None,
+            )
+            # Update EV/EVSE Data Context
             self.charge_parameter_valid(ac_cpd_req.ac_params)
             ev_data_context = self.comm_session.evse_controller.ev_data_context
             ev_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_req)
+            evse_data_context = (
+                self.comm_session.evse_controller.evse_data_context
+            ) = EVSEDataContext()
+            evse_data_context.update_ac_charge_parameters_v20(
+                energy_service, ac_cpd_res
+            )
         except UnknownEnergyService:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
@@ -1328,22 +1345,6 @@ class ACChargeParameterDiscovery(StateSECC):
                 ResponseCode.FAILED_WRONG_CHARGE_PARAMETER,
             )
             return
-        params = await self.comm_session.evse_controller.get_ac_charge_params_v20(
-            energy_service
-        )
-        ac_cpd_res = ACChargeParameterDiscoveryRes(
-            header=MessageHeader(
-                session_id=self.comm_session.session_id, timestamp=time.time()
-            ),
-            response_code=ResponseCode.OK,
-            ac_params=params if energy_service == ServiceV20.AC else None,
-            bpt_ac_params=params if energy_service == ServiceV20.AC_BPT else None,
-        )
-        # Update EVSE Data Context
-        evse_data_context = (
-            self.comm_session.evse_controller.evse_data_context
-        ) = EVSEDataContext()  # noqa: E501
-        evse_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_res)
         self.create_next_message(
             ScheduleExchange,
             ac_cpd_res,
@@ -1515,10 +1516,25 @@ class DCChargeParameterDiscovery(StateSECC):
 
         energy_service = self.comm_session.selected_energy_service.service
         params = None
-
         try:
+            params = await self.comm_session.evse_controller.get_dc_charge_params_v20(
+                energy_service
+            )  # noqa
+            dc_cpd_res = DCChargeParameterDiscoveryRes(
+                header=MessageHeader(
+                    session_id=self.comm_session.session_id, timestamp=time.time()
+                ),
+                response_code=ResponseCode.OK,
+                dc_params=params if energy_service == ServiceV20.DC else None,
+                bpt_dc_params=params if energy_service == ServiceV20.DC_BPT else None,
+            )
+            # Update EV/EVSE Data Context
             ev_data_context = self.comm_session.evse_controller.ev_data_context
             ev_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_req)
+            evse_data_context = self.comm_session.evse_controller.evse_data_context
+            evse_data_context.update_dc_charge_parameters_v20(
+                energy_service, dc_cpd_res
+            )
         except UnknownEnergyService:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
@@ -1526,23 +1542,6 @@ class DCChargeParameterDiscovery(StateSECC):
                 ResponseCode.FAILED_WRONG_CHARGE_PARAMETER,
             )
             return
-
-        params = await self.comm_session.evse_controller.get_dc_charge_params_v20(
-            energy_service
-        )  # noqa
-
-        dc_cpd_res = DCChargeParameterDiscoveryRes(
-            header=MessageHeader(
-                session_id=self.comm_session.session_id, timestamp=time.time()
-            ),
-            response_code=ResponseCode.OK,
-            dc_params=params if energy_service == ServiceV20.DC else None,
-            bpt_dc_params=params if energy_service == ServiceV20.DC_BPT else None,
-        )
-        # Update EVSE Data Context
-        evse_data_context = self.comm_session.evse_controller.evse_data_context
-        evse_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_res)
-
         self.create_next_message(
             ScheduleExchange,
             dc_cpd_res,

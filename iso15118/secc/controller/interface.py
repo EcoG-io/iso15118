@@ -461,7 +461,7 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     async def get_ac_charge_params_v20(
-        self, selected_service: ServiceV20
+        self, energy_service: ServiceV20
     ) -> Optional[
         Union[
             ACChargeParameterDiscoveryResParams, BPTACChargeParameterDiscoveryResParams
@@ -827,7 +827,7 @@ class EVSEControllerInterface(ABC):
 
     @abstractmethod
     async def get_dc_charge_params_v20(
-        self, selected_service: ServiceV20
+        self, energy_service: ServiceV20
     ) -> Optional[
         Union[
             DCChargeParameterDiscoveryResParams, BPTDCChargeParameterDiscoveryResParams

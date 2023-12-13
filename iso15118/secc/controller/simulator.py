@@ -7,6 +7,7 @@ import logging
 import time
 from typing import Dict, List, Optional, Union
 
+from iso15118.secc.controller.common import UnknownEnergyService
 from iso15118.secc.controller.evse_data import (
     EVSEACCLLimits,
     EVSEACCPDLimits,
@@ -788,7 +789,7 @@ class SimEVSEController(EVSEControllerInterface):
         )
 
     async def get_ac_charge_params_v20(
-        self, selected_service: ServiceV20
+        self, energy_service: ServiceV20
     ) -> Optional[
         Union[
             ACChargeParameterDiscoveryResParams, BPTACChargeParameterDiscoveryResParams
@@ -809,9 +810,9 @@ class SimEVSEController(EVSEControllerInterface):
             evse_present_active_power_l2=RationalNumber.get_rational_repr(0),
             evse_present_active_power_l3=RationalNumber.get_rational_repr(0),
         )
-        if selected_service == ServiceV20.AC:
+        if energy_service == ServiceV20.AC:
             return ac_charge_parameter_discovery_res_params
-        elif selected_service == ServiceV20.AC_BPT:
+        elif energy_service == ServiceV20.AC_BPT:
             return BPTACChargeParameterDiscoveryResParams(
                 **(ac_charge_parameter_discovery_res_params.dict()),
                 evse_max_discharge_power=RationalNumber.get_rational_repr(30000),
@@ -821,7 +822,8 @@ class SimEVSEController(EVSEControllerInterface):
                 evse_min_discharge_power_l2=RationalNumber.get_rational_repr(100),
                 evse_min_discharge_power_l3=RationalNumber.get_rational_repr(100),
             )
-        return None
+        else:
+            raise UnknownEnergyService(f"Unknown Service {energy_service}")
 
     # ============================================================================
     # |                          DC-SPECIFIC FUNCTIONS                           |
@@ -900,7 +902,7 @@ class SimEVSEController(EVSEControllerInterface):
         return PVEVSEMaxPowerLimit(multiplier=1, value=1000, unit="W")
 
     async def get_dc_charge_params_v20(
-        self, selected_service: ServiceV20
+        self, energy_service: ServiceV20
     ) -> Union[
         DCChargeParameterDiscoveryResParams, BPTDCChargeParameterDiscoveryResParams
     ]:
@@ -914,9 +916,9 @@ class SimEVSEController(EVSEControllerInterface):
             evse_min_voltage=RationalNumber.get_rational_repr(10),
             evse_power_ramp_limit=RationalNumber.get_rational_repr(10),
         )
-        if selected_service == ServiceV20.DC:
+        if energy_service == ServiceV20.DC:
             return dc_charge_parameter_discovery_res
-        elif selected_service == ServiceV20.DC_BPT:
+        elif energy_service == ServiceV20.DC_BPT:
             return BPTDCChargeParameterDiscoveryResParams(
                 **(dc_charge_parameter_discovery_res.dict()),
                 evse_max_discharge_power=RationalNumber.get_rational_repr(1000),
@@ -924,7 +926,8 @@ class SimEVSEController(EVSEControllerInterface):
                 evse_max_discharge_current=RationalNumber.get_rational_repr(100),
                 evse_min_discharge_current=RationalNumber.get_rational_repr(10),
             )
-        return None
+        else:
+            raise UnknownEnergyService(f"Unknown Service {energy_service}")
 
     async def get_15118_ev_certificate(
         self, base64_encoded_cert_installation_req: str, namespace: str

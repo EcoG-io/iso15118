@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Union
 
-from iso15118.secc.controller.common import Limits
+from iso15118.secc.controller.common import Limits, UnknownEnergyService
 from iso15118.shared.messages.datatypes import DCEVSEChargeParameter
 from iso15118.shared.messages.enums import ControlMode, ServiceV20
 from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEChargeParameter
@@ -203,7 +203,7 @@ class EVSEDataContext:
     def update_schedule_exchange_parameters(
         self, control_mode: ControlMode, schedule_exchange_res: ScheduleExchangeRes
     ):
-        """Update the EV data context with the ScheduleExchangeReq parameters"""
+        """Update the EVSE data context with the ScheduleExchangeReq parameters"""
         if control_mode == ControlMode.DYNAMIC:
             se_params = schedule_exchange_res.dynamic_params
             if se_params.departure_time:
@@ -288,8 +288,7 @@ class EVSEDataContext:
             params = charge_parameter.bpt_ac_params
             self._update_acbpt_charge_parameters_v20(ac_rated_limits, params)
         else:
-            # Raise error?
-            return
+            raise UnknownEnergyService(f"Unknown Service {energy_service}")
         # Create the session limits based on the rated limits
         self.session_limits.dc_limits.update(ac_rated_limits.as_dict())
 
@@ -400,8 +399,7 @@ class EVSEDataContext:
             params = charge_parameter.bpt_dc_params
             self._update_dcbpt_charge_parameters_v20(dc_rated_limits, params)
         else:
-            # Raise error?
-            return
+            raise UnknownEnergyService(f"Unknown Service {energy_service}")
         # Create the session limits based on the rated limits
         self.session_limits.dc_limits.update(dc_rated_limits.as_dict())
 

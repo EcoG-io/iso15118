@@ -12,3 +12,9 @@ class Limits(ABC):
 
     def as_dict(self):
         return self.__dict__
+
+
+class UnknownEnergyService(Exception):
+    """
+    it is raised when the Service Id is not recognized
+    """
