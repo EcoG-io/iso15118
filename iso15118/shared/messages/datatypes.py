@@ -1,4 +1,3 @@
-import math
 from enum import Enum
 from typing import List, Literal, Tuple, Union
 
@@ -649,22 +648,64 @@ def get_exponent_value_repr(
     min_limit: int = INT_16_MIN,
     max_limit: int = INT_16_MAX,
 ) -> Tuple[int, int]:
-    if value == 0:
-        return 0, 0
+    """Convert to exponent number, by finding the best fit exponent.
+    taking into consideration the min -32768 and max 32767 limits.
+    Examples:
+    value = 0.0000234 => exponent = -7, return value = 234
+    value = 0.000234 => exponent = -6, return value = 234
+    value = 0.00234 => exponent = -5, return value = 234
+    value = 0.0234 => exponent = -4, return value = 234
+    value = 0.234 => exponent = -3, return value = 234
+    value = 2.34 => exponent = -2, return value = 234
+    value = 23.4 => exponent = -1, return value = 234
+    value = 234 => exponent = 0, return value = 234
+    value = 2340 => exponent = 0, return value = 2340
+    value = 23400 => exponent = 0, return value = 23400
+    value = 234000 => exponent = 1, return value = 23400
+    value = 2340000 => exponent = 2, return value = 23400
 
-    # Check the sign of the value to determine how to round the result
-    round_func = math.floor if value > 0 else math.ceil
+    value = 2340000 => exponent = 2, return value = 23400
+    value = 23400000 => exponent = 3, return value = 23400
 
-    # Iterate over possible exponents to find the best approximation
-    # TODO: Maybe it would be better to traverse the range in reverse.
-    # Makes the results slightly more readable.
-    for exponent in range(-3, 4):
-        new_value = round_func(value * 10 ** (-exponent))
-        # If new_value after rounding fits within the range of a 16-bit integer,
-        # return it
-        if min_limit <= new_value <= max_limit:
-            return exponent, new_value
+    value = 0.4 => exponent = -1, return value = 4
+    value = 0.356 => exponent = -3, return value = 356
+    value = 0.157 => exponent = -3, return value = 157
+    value = 0.00356 => exponent = -5, return value = 356
+    value = 0.634 => exponent = -3, return value = 634
 
-    # If no exponent could make the value fit in a 16-bit integer range,
-    # return the original value with exponent 0
-    return 0, round_func(value)
+    Note:
+        In ISO 15118-2, the min limit is 0 and the max is
+        dependent on the field.
+        In ISO 15118-20, the limits are defined by the
+        RationalNumber type which are the limits of the
+        int16 range: [-32768, 32767].
+        Also, in ISO 15118-20, the exponent assumes the range
+        of [-128, 127], but currently that is not being
+        taken into consideration.
+    Args:
+        value (int, float): parameter value
+
+    Returns:
+        a tuple where the first item is the exponent and other is the
+        int value with the applied exponent
+    """
+    exponent = 0
+    # In theory in -20 we can have exponents in the range [-128, 127]
+    # but up to 3 decimal cases is a good enough approximation
+    # and avoids any overflow issues due to python float precision/representation
+    while value != int(value):
+        value *= 10
+        exponent -= 1
+        if exponent == -3:
+            if int(value) == 0:
+                exponent = 0
+            break
+    while not (min_limit <= value <= max_limit):
+        if abs(value) >= 10:
+            value /= 10
+            exponent += 1
+        elif abs(value) < 1 and value != 0:
+            value *= 10
+            exponent -= 1
+
+    return exponent, int(value)

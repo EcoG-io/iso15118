@@ -12,7 +12,7 @@ element names by using the 'alias' attribute.
 """
 from abc import ABC
 from enum import Enum
-from typing import List, Union
+from typing import List, Optional, Union
 
 from pydantic import Field, conbytes, conint, constr, validator
 from typing_extensions import TypeAlias
@@ -176,7 +176,7 @@ class RationalNumber(BaseModel):
         return self.value * 10**self.exponent
 
     @classmethod
-    def get_rational_repr(cls, float_value: Union[float, int]):
+    def get_rational_repr(cls, float_value: Optional[Union[float, int]]):
         if float_value is None:
             return None
         exponent, value = get_exponent_value_repr(float_value)
