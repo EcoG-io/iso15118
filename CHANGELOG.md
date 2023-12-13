@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.24.0] - 2023-12-13
+* Big refactoring of EVSE/EVData by @tropxy in https://github.com/SwitchEV/iso15118/pull/337
+
 ## [0.23.12] - 2023-12-12
 * value and exponent tuple order is fixed by @ikaratass in https://github.com/SwitchEV/iso15118/pull/347
 
