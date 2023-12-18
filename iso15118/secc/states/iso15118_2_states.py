@@ -922,9 +922,7 @@ class PaymentDetails(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def _mobility_operator_root_cert_path(
-        self, leaf_cert_bytes: bytes, sub_ca_certs_bytes: List[bytes]
-    ) -> Optional[str]:
+    def _mobility_operator_root_cert_path(self) -> Optional[str]:
         """Return the path to the MO root.  Included to be patched in tests."""
         # Find the issuer for sub CA1
         # Compile a list of root CAs.
