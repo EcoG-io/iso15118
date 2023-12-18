@@ -956,10 +956,11 @@ class PaymentDetails(StateSECC):
             root_cert_path = self._mobility_operator_root_cert_path()
             try:
                 root_cert = load_cert(root_cert_path)
-                verify_certs(leaf_cert, sub_ca_certs, root_cert)
             except FileNotFoundError:
-                logger.warning(f"MO Root Cert cannot be found {root_cert_path}")
+                logger.warning(f"MO Root Cert not available.")
                 root_cert = None
+
+            verify_certs(leaf_cert, sub_ca_certs, root_cert)
 
             # Note that the eMAID format (14 or 15 characters) will be validated
             # by the definition of the eMAID type in
