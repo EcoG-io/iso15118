@@ -918,7 +918,7 @@ class PaymentDetails(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def _mobility_operator_root_cert_path(self) -> str:
+    def _mobility_operator_root_cert_path(self) -> Optional[str]:
         """Return the path to the MO root.  Included to be patched in tests."""
         return CertPath.MO_ROOT_DER
 
@@ -955,9 +955,14 @@ class PaymentDetails(StateSECC):
             #      to the PKI that is used.
             root_cert_path = self._mobility_operator_root_cert_path()
             try:
-                root_cert = load_cert(root_cert_path)
+                if root_cert_path:
+                    root_cert = load_cert(root_cert_path)
+                    logger.info(f"Using MO root at {root_cert_path}")
+                else:
+                    root_cert = None
+                    logger.info("No suitable MO root found.")
             except FileNotFoundError:
-                logger.warning(f"MO Root Cert not available.")
+                logger.warning("MO Root Cert not available.")
                 root_cert = None
 
             verify_certs(leaf_cert, sub_ca_certs, root_cert)

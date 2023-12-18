@@ -536,6 +536,9 @@ def verify_certs(
     except (CertNotYetValidError, CertExpiredError) as exc:
         raise exc
 
+    if not root_ca_cert:
+        logger.info("Can't validate the chain as MO root is not present.")
+        return None
     # Step 2.a: Categorize the sub-CA certificates into sub-CA 1 and sub-CA 2.
     #           A sub-CA 2 certificate's profile has its PathLength extension
     #           attribute set to 0, whereas a sub-CA 1 certificate's profile has
