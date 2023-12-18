@@ -140,6 +140,7 @@ from iso15118.shared.security import (
     load_cert,
     load_priv_key,
     log_certs_details,
+    read_mo_root_path,
     verify_certs,
     verify_signature,
 )
@@ -922,12 +923,11 @@ class PaymentDetails(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def _mobility_operator_root_cert_path(self) -> Optional[str]:
-        """Return the path to the MO root.  Included to be patched in tests."""
-        # Find the issuer for sub CA1
-        # Compile a list of root CAs.
-        # Build a dictionary and check if there is a match.
-        return CertPath.MO_ROOT_DER
+    def _mobility_operator_root_cert_path(
+        self, sub_ca_certs_bytes: List[bytes]
+    ) -> Optional[str]:
+        """Return the path to the MO root if an available root matches the chain."""
+        return read_mo_root_path(sub_ca_certs_bytes)
 
     async def process_message(
         self,
@@ -960,11 +960,11 @@ class PaymentDetails(StateSECC):
             # TODO Either an MO Root certificate or a V2G Root certificate
             #      could be used to verify, need to be flexible with regards
             #      to the PKI that is used.
-            root_cert_path = self._mobility_operator_root_cert_path()
+            root_cert_path = self._mobility_operator_root_cert_path(sub_ca_certs)
             try:
                 if root_cert_path:
                     root_cert = load_cert(root_cert_path)
-                    logger.info(f"Using MO root at {root_cert_path}")
+                    logger.info("Found matching root.")
                 else:
                     root_cert = None
                     logger.info("No suitable MO root found.")

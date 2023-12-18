@@ -476,6 +476,83 @@ def log_certs_details(certs: List[bytes]):
         logger.debug("===")
 
 
+def compile_all_available_root_ca_certs() -> Dict[str, str]:
+    der_certs_extension = ".der"
+    root_certs_on_disk: Dict[str, str] = dict()
+    files = [
+        file
+        for file in os.listdir(CertPath.CERTS_BASE_PATH)
+        if file.endswith(der_certs_extension)
+    ]
+    if len(files) == 0:
+        return dict()
+
+    for file in files:
+        file_path = os.path.join(CertPath.CERTS_BASE_PATH, file)
+        if os.path.isfile(file_path):
+            try:
+                cert_bytes = load_cert(file_path)
+                cert = load_der_x509_certificate(cert_bytes)
+                if cert.issuer == cert.subject:
+                    root_certs_on_disk[cert.issuer.rfc4514_string()] = file_path
+            except Exception as e:
+                logger.warning(f"Error reading cert ({file_path}): {e}")
+    return root_certs_on_disk
+
+
+def read_sub_ca_1_issuer(sub_ca_certs_bytes: List[bytes]) -> Optional[str]:
+    sub_ca_der_certs: List[Certificate] = [
+        load_der_x509_certificate(cert) for cert in sub_ca_certs_bytes
+    ]
+    for cert in sub_ca_der_certs:
+        try:
+            basic_contraints = cert.extensions.get_extension_for_oid(
+                ExtensionOID.BASIC_CONSTRAINTS
+            ).value
+            path_len = 0
+            if isinstance(basic_contraints, extensions.BasicConstraints):
+                path_len = basic_contraints.path_length
+
+            if path_len == 1:
+                sub_ca1_cert = cert
+                return sub_ca1_cert.issuer.rfc4514_string()
+        except ExtensionNotFound:
+            raise CertAttributeError(
+                subject=cert.subject.__str__(), attr="PathLength", invalid_value="None"
+            )
+    return None
+
+
+def read_mo_root_path(sub_ca_certs_bytes: List[bytes]):
+    # Find the issuer for sub CA1
+    try:
+        sub_ca_1_issuer = read_sub_ca_1_issuer(sub_ca_certs_bytes)
+        if not sub_ca_1_issuer:
+            return None
+        logger.debug(f"SubCA1 issuer is {sub_ca_1_issuer}")
+    except CertAttributeError:
+        logger.warning("Error parsing SubCA certificates. Can't identify MO root.")
+        return None
+
+    # Compile a list of root CAs.
+    # TODO: At the moment, the known list is compiled everytime a request comes through.
+    #  This is expensive. Explore ways to refresh known roots when a new root is added.
+    try:
+        known_roots = compile_all_available_root_ca_certs()
+    except Exception:
+        logger.debug("Error reading available root certs")
+        return None
+
+    logger.debug("Available Roots:")
+    for issuer, path in known_roots.items():
+        logger.debug(f"{issuer} : {path}")
+    if known_roots == dict():
+        return None
+
+    # Return if there is a match amongst the available roots.
+    return known_roots.get(sub_ca_1_issuer, None)
+
+
 def verify_certs(
     leaf_cert_bytes: bytes,
     sub_ca_certs_bytes: List[bytes],
@@ -1481,6 +1558,8 @@ class CertPath(str, Enum):
     OEM_ROOT_DER = "oemRootCACert.der"
     OEM_ROOT_PEM = "oemRootCACert.pem"
     OEM_CERT_CHAIN_PEM = "oemCertChain.pem"
+
+    CERTS_BASE_PATH = ""
 
     def __get__(self, instance, owner):
         return os.path.join(
