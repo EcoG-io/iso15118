@@ -922,8 +922,13 @@ class PaymentDetails(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def _mobility_operator_root_cert_path(self) -> str:
+    def _mobility_operator_root_cert_path(
+        self, leaf_cert_bytes: bytes, sub_ca_certs_bytes: List[bytes]
+    ) -> Optional[str]:
         """Return the path to the MO root.  Included to be patched in tests."""
+        # Find the issuer for sub CA1
+        # Compile a list of root CAs.
+        # Build a dictionary and check if there is a match.
         return CertPath.MO_ROOT_DER
 
     async def process_message(
@@ -959,11 +964,17 @@ class PaymentDetails(StateSECC):
             #      to the PKI that is used.
             root_cert_path = self._mobility_operator_root_cert_path()
             try:
-                root_cert = load_cert(root_cert_path)
-                verify_certs(leaf_cert, sub_ca_certs, root_cert)
+                if root_cert_path:
+                    root_cert = load_cert(root_cert_path)
+                    logger.info(f"Using MO root at {root_cert_path}")
+                else:
+                    root_cert = None
+                    logger.info("No suitable MO root found.")
             except FileNotFoundError:
-                logger.warning(f"MO Root Cert cannot be found {root_cert_path}")
+                logger.warning("MO Root Cert not available.")
                 root_cert = None
+
+            verify_certs(leaf_cert, sub_ca_certs, root_cert)
 
             # Note that the eMAID format (14 or 15 characters) will be validated
             # by the definition of the eMAID type in
@@ -1047,7 +1058,7 @@ class PaymentDetails(StateSECC):
         ) as exc:
             reason = ""
             if isinstance(exc, CertSignatureError):
-                response_code = ResponseCode.FAILED_CERT_CHAIN_ERROR
+                response_code = ResponseCode.FAILED_SIGNATURE_ERROR
                 reason = (
                     f"CertSignatureError for {exc.subject}, "
                     f"tried to verify with issuer: "

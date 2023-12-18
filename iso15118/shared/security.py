@@ -484,13 +484,13 @@ def verify_certs(
 ):
     """
     Verifies a certificate chain according to the following criteria:
-    1. Verify the signature of each certificate contained in the cert chain
+    1. Check that the current date is within the time span provided by the
+       certificate's notBefore and notAfter attributes
+    2. Verify the signature of each certificate contained in the cert chain
        (throws CertSignatureError if not)
        1.a) Get the sub_ca_certs in order: leaf -> sub_ca_2 -> sub_ca_1 -> root
             (if two sub-CAs are in use, otherwise: leaf -> sub_ca_2 -> root)
        2.b) Do the actual signature verification from leaf to root
-    2. Check that the current date is within the time span provided by the
-       certificate's notBefore and notAfter attributes
     3. Checks that none of the certificates has been revoked.
 
     Args:
@@ -516,13 +516,30 @@ def verify_certs(
     leaf_cert = load_der_x509_certificate(leaf_cert_bytes)
     sub_ca2_cert = None
     sub_ca1_cert = None
-    root_ca_cert = load_der_x509_certificate(root_ca_cert_bytes)
+    root_ca_cert = None
+    if root_ca_cert_bytes:
+        root_ca_cert = load_der_x509_certificate(root_ca_cert_bytes)
 
     sub_ca_der_certs: List[Certificate] = [
         load_der_x509_certificate(cert) for cert in sub_ca_certs_bytes
     ]
 
-    # Step 1.a: Categorize the sub-CA certificates into sub-CA 1 and sub-CA 2.
+    # Step 1: Check that each certificate is valid, i.e. the current time is
+    #         between the notBefore and notAfter timestamps of the certificate
+    try:
+        certs_to_check: List[Certificate] = [leaf_cert]
+        if len(sub_ca_der_certs) != 0:
+            certs_to_check.extend(sub_ca_der_certs)
+        if root_ca_cert:
+            certs_to_check.append(root_ca_cert)
+        check_validity(certs_to_check)
+    except (CertNotYetValidError, CertExpiredError) as exc:
+        raise exc
+
+    if not root_ca_cert:
+        logger.info("Can't validate the chain as MO root is not present.")
+        return None
+    # Step 2.a: Categorize the sub-CA certificates into sub-CA 1 and sub-CA 2.
     #           A sub-CA 2 certificate's profile has its PathLength extension
     #           attribute set to 0, whereas a sub-CA 1 certificate's profile has
     #           its PathLength extension attribute set to 0.
@@ -577,7 +594,7 @@ def verify_certs(
     if (sub_ca2_cert or sub_ca1_cert) and private_environment:
         raise CertChainLengthError(allowed_num_sub_cas=0, num_sub_cas=1)
 
-    # Step 1.b: Now that we have established the right order of sub-CA
+    # Step 2.b: Now that we have established the right order of sub-CA
     #           certificates we can start verifying the signatures from leaf
     #           certificate to root CA certificate
     cert_to_check = leaf_cert
@@ -687,19 +704,6 @@ def verify_certs(
             f"{exc.__class__.__name__} while verifying signature"
             f"of certificate {cert_to_check.subject}"
         )
-
-    # Step 2: Check that each certificate is valid, i.e. the current time is
-    #         between the notBefore and notAfter timestamps of the certificate
-    try:
-        certs_to_check: List[Certificate] = [leaf_cert]
-        if sub_ca2_cert:
-            certs_to_check.append(sub_ca2_cert)
-        if sub_ca1_cert:
-            certs_to_check.append(sub_ca1_cert)
-        certs_to_check.append(root_ca_cert)
-        check_validity(certs_to_check)
-    except (CertNotYetValidError, CertExpiredError) as exc:
-        raise exc
 
     # Step 3: Check the OCSP (Online Certificate Status Protocol) response to
     #         see whether or not a certificate has been revoked
