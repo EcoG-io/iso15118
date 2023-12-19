@@ -487,7 +487,7 @@ def compile_all_available_root_ca_certs() -> Dict[str, str]:
             if file.endswith(der_certs_extension)
         ]
     except Exception as e:
-        pass
+        logger.warning(f"Error while parsing directory for MO roots: {e}")
 
     if len(files) == 0:
         return dict()
