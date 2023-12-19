@@ -1216,6 +1216,7 @@ class Authorization(StateSECC):
                     in [
                         ResponseCode.OK,
                         ResponseCode.FAILED,
+                        ResponseCode.FAILED_CERTIFICATE_REVOKED,
                         ResponseCode.FAILED_SEQUENCE_ERROR,
                         ResponseCode.FAILED_SIGNATURE_ERROR,
                         ResponseCode.FAILED_UNKNOWN_SESSION,
