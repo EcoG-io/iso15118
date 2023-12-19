@@ -961,7 +961,7 @@ class PaymentDetails(StateSECC):
             try:
                 if root_cert_path:
                     root_cert = load_cert(root_cert_path)
-                    logger.info(f"Found matching root.")
+                    logger.info("Found matching root.")
                 else:
                     root_cert = None
                     logger.info("No suitable MO root found.")
