@@ -479,11 +479,16 @@ def log_certs_details(certs: List[bytes]):
 def compile_all_available_root_ca_certs() -> Dict[str, str]:
     der_certs_extension = ".der"
     root_certs_on_disk: Dict[str, str] = dict()
-    files = [
-        file
-        for file in os.listdir(CertPath.CERTS_BASE_PATH)
-        if file.endswith(der_certs_extension)
-    ]
+    files = []
+    try:
+        files = [
+            file
+            for file in os.listdir(CertPath.CERTS_BASE_PATH)
+            if file.endswith(der_certs_extension)
+        ]
+    except Exception as e:
+        pass
+
     if len(files) == 0:
         return dict()
 
