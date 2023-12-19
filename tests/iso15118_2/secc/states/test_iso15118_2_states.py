@@ -1,3 +1,4 @@
+import os.path
 from pathlib import Path
 from typing import List, cast
 from unittest.mock import AsyncMock, Mock, patch
@@ -51,8 +52,8 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ServiceName,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
-from iso15118.shared.security import get_random_bytes
-from iso15118.shared.settings import load_shared_settings
+from iso15118.shared.security import get_random_bytes, load_cert, read_mo_root_path
+from iso15118.shared.settings import SettingKey, load_shared_settings, shared_settings
 from iso15118.shared.states import Pause
 from tests.iso15118_2.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
@@ -303,10 +304,45 @@ class TestV2GSessionScenarios:
                 payment_details.message.body.payment_details_res.response_code
                 == expected_response_code
             )
-        # if is_authorized_return_value is not None:
-        #     mock_is_authorized.assert_called_once()
-        # else:
-        #     mock_is_authorized.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "pki_path, sub_ca_1, matching_mo_root",
+        [
+            (
+                Path(__file__).parent.parent.parent
+                / "sample_certs/mo_roots/single_mo_root",
+                Path(__file__).parent.parent.parent
+                / "sample_certs/mo_roots/single_mo_root/subCA1Cert.der",
+                Path(__file__).parent.parent.parent
+                / "sample_certs/mo_roots/single_mo_root/iso15118_2/"
+                "certs/moRootCACert.der",
+            ),
+            (
+                Path(__file__).parent.parent.parent
+                / "sample_certs/mo_roots/no_matching_root",
+                Path(__file__).parent.parent.parent
+                / "sample_certs/mo_roots/no_matching_roots/subCA1Cert.der",
+                None,
+            ),
+            (
+                Path(__file__).parent.parent.parent
+                / "sample_certs/mo_roots/two_mo_roots",
+                Path(__file__).parent.parent.parent
+                / "sample_certs/mo_roots/two_mo_roots/subCA1Cert.der",
+                Path(__file__).parent.parent.parent
+                / "sample_certs/mo_roots/two_mo_roots/iso15118_2/"
+                "certs/moRootCACert.der",
+            ),
+        ],
+    )
+    async def test_mo_root_search(self, pki_path, sub_ca_1, matching_mo_root):
+        shared_settings[SettingKey.PKI_PATH] = str(Path(pki_path))
+        sub_ca_1_cert = load_cert(sub_ca_1)
+        matching_root = read_mo_root_path([sub_ca_1_cert])
+        if matching_root is not None:
+            assert os.path.abspath(matching_mo_root) == os.path.abspath(matching_root)
+        else:
+            assert matching_mo_root is None
 
     @pytest.mark.parametrize(
         "auth_type, is_authorized_return_value, expected_next_state,"
