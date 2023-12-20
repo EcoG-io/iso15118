@@ -960,7 +960,8 @@ class PaymentDetails(StateSECC):
             # TODO Either an MO Root certificate or a V2G Root certificate
             #      could be used to verify, need to be flexible with regards
             #      to the PKI that is used.
-            root_cert_path = self._mobility_operator_root_cert_path(sub_ca_certs)
+            # root_cert_path = self._mobility_operator_root_cert_path(sub_ca_certs)
+            root_cert_path = None
             try:
                 if root_cert_path:
                     root_cert = load_cert(root_cert_path)
