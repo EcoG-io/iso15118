@@ -2329,7 +2329,7 @@ class PreCharge(StateSECC):
                 ResponseCode.FAILED,
             )
             return
-
+        print(f"KARATAS present_current_in_a:{present_current_in_a} - target_current_in_a :{target_current_in_a}")
         if present_current_in_a > 2 or target_current_in_a > 2:
             self.stop_state_machine(
                 "Target current or present current too high in state Precharge",
