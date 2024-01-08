@@ -308,6 +308,72 @@ class TestV2GSessionScenarios:
         # else:
         #     mock_is_authorized.assert_not_called()
 
+    @patch(
+        "iso15118.secc.states.iso15118_2_states.PaymentDetails._mobility_operator_root_cert_path"
+        # noqa
+    )
+    @pytest.mark.parametrize(
+        "mo_root, "
+        "contract_cert, "
+        "is_authorized_return_value, "
+        "expected_response_code, "
+        "expected_next_state",
+        [
+            (
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "moSubCA2Cert.der",
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "contractLeafCert.der",
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
+                ResponseCode.OK,
+                Authorization,
+            ),
+            (
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "moSubCA2Cert.der",
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "contractLeafCert_Expired.der",
+                None,
+                ResponseCode.FAILED_CERTIFICATE_EXPIRED,
+                Terminate,
+            ),
+        ],
+    )
+    async def test_payment_details_next_state_on_payment_details_contract_variants_incorrect_mo_root(
+        self,
+        mock_mo_root_path,
+        mo_root,
+        contract_cert,
+        is_authorized_return_value,
+        expected_response_code,
+        expected_next_state: StateSECC,
+    ):
+        self.comm_session.selected_auth_option = AuthEnum.PNC_V2
+        mock_mo_root_path.return_value = mo_root
+        mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
+        self.comm_session.evse_controller.is_authorized = mock_is_authorized
+        payment_details = PaymentDetails(self.comm_session)
+        payment_details_req = get_dummy_v2g_message_payment_details_req(contract_cert)
+        await payment_details.process_message(payment_details_req)
+
+        assert (
+            payment_details.next_state == expected_next_state
+        ), "State did not progress after PaymentDetailsReq"
+
+        if isinstance(payment_details.message, V2GMessageV2):
+            assert (
+                payment_details.message.body.payment_details_res.response_code
+                == expected_response_code
+            )
+        # if is_authorized_return_value is not None:
+        #     mock_is_authorized.assert_called_once()
+        # else:
+        #     mock_is_authorized.assert_not_called()
+
     @pytest.mark.parametrize(
         "auth_type, is_authorized_return_value, expected_next_state,"
         "expected_response_code, expected_evse_processing, is_ready_to_charge",

@@ -530,8 +530,6 @@ def verify_certs(
         certs_to_check: List[Certificate] = [leaf_cert]
         if len(sub_ca_der_certs) != 0:
             certs_to_check.extend(sub_ca_der_certs)
-        if root_ca_cert:
-            certs_to_check.append(root_ca_cert)
         check_validity(certs_to_check)
     except (CertNotYetValidError, CertExpiredError) as exc:
         raise exc
@@ -539,6 +537,7 @@ def verify_certs(
     if not root_ca_cert:
         logger.info("Can't validate the chain as MO root is not present.")
         return None
+
     # Step 2.a: Categorize the sub-CA certificates into sub-CA 1 and sub-CA 2.
     #           A sub-CA 2 certificate's profile has its PathLength extension
     #           attribute set to 0, whereas a sub-CA 1 certificate's profile has

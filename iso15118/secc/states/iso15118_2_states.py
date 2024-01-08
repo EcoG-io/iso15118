@@ -965,7 +965,20 @@ class PaymentDetails(StateSECC):
                 logger.warning("MO Root Cert not available.")
                 root_cert = None
 
-            verify_certs(leaf_cert, sub_ca_certs, root_cert)
+            try:
+                verify_certs(leaf_cert, sub_ca_certs, root_cert)
+            except CertSignatureError as cse:
+                # This error means there was an error while validating the parent-child
+                # relationship in the cert chain. This could also very well be
+                # a limitation on the SECC that the root certificate present
+                # doesn't match the chain passed through.
+                # So set root_cert to None and pass the incoming chain to the backend
+                # for further checks.
+                logger.info(
+                    "Local chain verification failed. "
+                    "Passing verification to backend."
+                )
+                root_cert = None
 
             # Note that the eMAID format (14 or 15 characters) will be validated
             # by the definition of the eMAID type in
