@@ -967,7 +967,7 @@ class PaymentDetails(StateSECC):
 
             try:
                 verify_certs(leaf_cert, sub_ca_certs, root_cert)
-            except CertSignatureError as cse:
+            except CertSignatureError:
                 # This error means there was an error while validating the parent-child
                 # relationship in the cert chain. This could also very well be
                 # a limitation on the SECC that the root certificate present

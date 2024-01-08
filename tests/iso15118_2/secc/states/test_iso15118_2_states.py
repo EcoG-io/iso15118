@@ -309,8 +309,7 @@ class TestV2GSessionScenarios:
         #     mock_is_authorized.assert_not_called()
 
     @patch(
-        "iso15118.secc.states.iso15118_2_states.PaymentDetails._mobility_operator_root_cert_path"
-        # noqa
+        "iso15118.secc.states.iso15118_2_states.PaymentDetails._mobility_operator_root_cert_path"  # noqa
     )
     @pytest.mark.parametrize(
         "mo_root, "
@@ -343,7 +342,7 @@ class TestV2GSessionScenarios:
             ),
         ],
     )
-    async def test_payment_details_next_state_on_payment_details_contract_variants_incorrect_mo_root(
+    async def test_payment_details_next_state_on_payment_details_contract_variants_incorrect_mo_root(  # noqa
         self,
         mock_mo_root_path,
         mo_root,
