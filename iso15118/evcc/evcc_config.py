@@ -68,6 +68,7 @@ class EVCCConfig(BaseModel):
     # ISO 15118-20 as well as PMaxSchedule and SalesTariff in ISO 15118-2).
     # The SECC must not transmit more entries than defined in this parameter.
     max_supporting_points: Optional[int] = Field(1024, alias="maxSupportingPoints")
+    is_alive_after_session: bool = Field(True, alias="isAliveAfterSession")
 
     def load_raw_values(self):
         # conversion of list of strings to enum types.
