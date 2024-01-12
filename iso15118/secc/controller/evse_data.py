@@ -233,7 +233,7 @@ class EVSEDataContext:
         # Create the session limits based on the rated limits
         self.session_limits.ac_limits.update(rated_limits.as_dict())
 
-    def update_dc_charge_parameters_v2(
+    def update_dc_charge_parameters(
         self, dc_charge_parameter: DCEVSEChargeParameter
     ) -> None:
         """Update the EVSE data context with the DC charge parameters."""
