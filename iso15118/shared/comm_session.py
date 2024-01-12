@@ -513,6 +513,10 @@ class V2GCommunicationSession(SessionStateMachine):
                 FaultyStateImplementationError,
                 EXIDecodingError,
                 InvalidV2GTPMessageError,
+                AttributeError,
+                ValueError,
+                ConnectionResetError,
+                Exception,
             ) as exc:
                 message_name = ""
                 additional_info = ""
@@ -527,24 +531,10 @@ class V2GCommunicationSession(SessionStateMachine):
 
                 stop_reason = (
                     f"{exc.__class__.__name__} occurred while processing message "
-                    f"{message_name} in state {str(self.current_state)}"
-                    f":{additional_info}"
+                    f"{message_name} in state {str(self.current_state)} : {exc}. "
+                    f"{additional_info}"
                 )
 
-                self.stop_reason = StopNotification(
-                    False,
-                    stop_reason,
-                    self.peer_name,
-                )
-
-                await self.stop(stop_reason)
-                self.session_handler_queue.put_nowait(self.stop_reason)
-                return
-            except (AttributeError, ValueError) as exc:
-                stop_reason = (
-                    f"{exc.__class__.__name__} occurred while processing message in "
-                    f"state {str(self.current_state)}: {exc}"
-                )
                 self.stop_reason = StopNotification(
                     False,
                     stop_reason,
