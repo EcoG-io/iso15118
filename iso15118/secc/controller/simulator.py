@@ -879,6 +879,7 @@ class SimEVSEController(EVSEControllerInterface):
         self,
         ev_target_voltage: Optional[float],
         ev_target_current: Optional[float],
+        is_precharge: bool = False,
         is_session_bpt: bool = False,
     ):
         pass
