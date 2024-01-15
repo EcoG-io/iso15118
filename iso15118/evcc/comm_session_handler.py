@@ -161,7 +161,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         # Protocol equal to “TCP” and Security equal to “No transport layer security”
         # according to Table 23. Remove it from the supported protocols list if
         # use_tls is enabled
-        if self.config.use_tls:
+        if self.is_tls:
             try:
                 supported_protocols.remove(Protocol.DIN_SPEC_70121)
                 logger.warning(
