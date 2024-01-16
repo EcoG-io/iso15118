@@ -410,11 +410,11 @@ class V2GCommunicationSession(SessionStateMachine):
             await evse_controller.session_ended(str(self.current_state), reason)
         logger.info(f"{terminate_or_pause}d the data link")
         await asyncio.sleep(3)
-        try:
-            self.writer.close()
-            await self.writer.wait_closed()
-        except (asyncio.TimeoutError, ConnectionResetError) as exc:
-            logger.info(str(exc))
+        # try:
+        #     self.writer.close()
+        #     await self.writer.wait_closed()
+        # except (asyncio.TimeoutError, ConnectionResetError) as exc:
+        #     logger.info(str(exc))
         logger.info("TCP connection closed to peer with address " f"{self.peer_name}")
 
     async def send(self, message: V2GTPMessage):
