@@ -410,6 +410,7 @@ class V2GCommunicationSession(SessionStateMachine):
             await evse_controller.session_ended(str(self.current_state), reason)
         logger.info(f"{terminate_or_pause}d the data link")
         await asyncio.sleep(3)
+        logger.info("Now close tcp connection.")
         # try:
         #     self.writer.close()
         #     await self.writer.wait_closed()
@@ -455,6 +456,7 @@ class V2GCommunicationSession(SessionStateMachine):
                 if message == b"" and self.reader.at_eof():
                     stop_reason: str = "TCP peer closed connection"
                     await self.stop(reason=stop_reason)
+                    logger.info("Push stop notification.")
                     self.session_handler_queue.put_nowait(
                         StopNotification(
                             False,
@@ -484,6 +486,7 @@ class V2GCommunicationSession(SessionStateMachine):
                 self.stop_reason = StopNotification(False, error_msg, self.peer_name)
 
                 await self.stop(reason=error_msg)
+                logger.info("Push stop notification..")
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
             gc_enabled = gc.isenabled()
@@ -501,6 +504,7 @@ class V2GCommunicationSession(SessionStateMachine):
 
                 if self.current_state.next_state in (Terminate, Pause):
                     await self.stop(reason=self.comm_session.stop_reason.reason)
+                    logger.info("Push stop notification...")
                     self.comm_session.session_handler_queue.put_nowait(
                         self.comm_session.stop_reason
                     )
@@ -542,6 +546,7 @@ class V2GCommunicationSession(SessionStateMachine):
                 )
 
                 await self.stop(stop_reason)
+                logger.info("Push stop notification....")
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
             finally:
