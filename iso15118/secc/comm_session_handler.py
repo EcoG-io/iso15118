@@ -330,6 +330,7 @@ class CommunicationSessionHandler:
         finally:
             if session_stop_action == SessionStopAction.TERMINATE:
                 del self.comm_sessions[peer_ip_address]
+                logger.info(f"Session with {peer_ip_address} terminated.")
             else:
                 logger.debug(
                     f"Preserved session state: {self.comm_sessions[peer_ip_address][0].ev_session_context}"  # noqa
