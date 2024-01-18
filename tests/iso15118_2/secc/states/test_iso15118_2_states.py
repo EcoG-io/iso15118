@@ -368,10 +368,10 @@ class TestV2GSessionScenarios:
                 payment_details.message.body.payment_details_res.response_code
                 == expected_response_code
             )
-        # if is_authorized_return_value is not None:
-        #     mock_is_authorized.assert_called_once()
-        # else:
-        #     mock_is_authorized.assert_not_called()
+        if is_authorized_return_value is not None:
+            mock_is_authorized.assert_called_once()
+        else:
+            mock_is_authorized.assert_not_called()
 
     @pytest.mark.parametrize(
         "auth_type, is_authorized_return_value, expected_next_state,"
