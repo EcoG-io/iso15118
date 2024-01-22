@@ -550,7 +550,9 @@ class CommunicationSessionHandler:
                 elif isinstance(notification, StopNotification):
                     await cancel_task(self.comm_session[1])
                     del self.comm_session
-                    if not notification.successful:
+                    if notification.successful:
+                        break
+                    else:
                         try:
                             await self.restart_sdp(True)
                         except SDPFailedError as exc:
