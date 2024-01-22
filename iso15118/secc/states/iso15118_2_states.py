@@ -2358,6 +2358,7 @@ class PreCharge(StateSECC):
             await self.comm_session.evse_controller.send_charging_command(
                 ev_data_context.target_voltage,
                 ev_data_context.target_current,
+                is_precharge=True,
             )
         except asyncio.TimeoutError:
             self.stop_state_machine(
