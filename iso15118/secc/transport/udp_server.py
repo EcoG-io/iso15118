@@ -80,11 +80,11 @@ class UDPServer(asyncio.DatagramProtocol):
                 # an error when running code-quality
                 # checks in MacOS, where the SO_BINDTODEVICE
                 # attribute is not available
-                socket.SO_BINDTODEVICE = 25  # type: ignore
+                socket.SO_BINDTODEVICE = 25  # type: ignore [attr-defined]
 
             sock.setsockopt(
                 socket.SOL_SOCKET,
-                socket.SO_BINDTODEVICE,  # type: ignore
+                socket.SO_BINDTODEVICE,  # type: ignore [attr-defined]
                 (iface + "\0").encode("ascii"),
             )
             sock.bind(("", SDP_SERVER_PORT))
