@@ -173,7 +173,6 @@ Supported settings in EVCC configuration are given below:
 | sdpRetryCycles         | `1`                                                          | Indicates how often shall SDP (SECC Discovery Protocol) retries happen before reverting to using nominal duty cycle PWM-based charging |
 | maxContractCerts       | `3`                                                          | Maximum amount of contract certificates the EV stores.                                                                                 |
 | maxSupportingPoints    | `1024`                                                       | Indicates the maximum number of entries the EVCC supports within the sub-elements of a ScheduleTuple                                   |
-| isAliveAfterSession    | `True`                                                       | Whether or not the EVCC keeps running after a charging session is finished                                                             |
 
 
 The SECC and EVCC have been tested together under:

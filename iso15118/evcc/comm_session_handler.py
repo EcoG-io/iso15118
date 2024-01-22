@@ -306,7 +306,7 @@ class CommunicationSessionHandler:
 
         logger.info("Communication session handler started")
 
-        await wait_for_tasks(self.list_of_tasks, asyncio.ALL_COMPLETED)
+        await wait_for_tasks(self.list_of_tasks)
 
     async def send_sdp(self):
         """
@@ -551,8 +551,7 @@ class CommunicationSessionHandler:
                     await cancel_task(self.comm_session[1])
                     del self.comm_session
                     if notification.successful:
-                        if not self.config.is_alive_after_session:
-                            break
+                        break
                     else:
                         try:
                             await self.restart_sdp(True)
