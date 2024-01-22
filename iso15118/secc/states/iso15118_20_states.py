@@ -1697,8 +1697,7 @@ class DCPreCharge(StateSECC):
             try:
                 # Current is set to 0 as that is not used for PreCharge
                 await self.comm_session.evse_controller.send_charging_command(
-                    ev_data_context.target_voltage,
-                    0,
+                    ev_data_context.target_voltage, 0, is_precharge=True
                 )
             except asyncio.TimeoutError:
                 self.stop_state_machine(
