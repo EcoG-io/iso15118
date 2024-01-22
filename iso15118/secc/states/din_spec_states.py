@@ -386,6 +386,7 @@ class ChargeParameterDiscovery(StateSECC):
             charge_parameter_discovery_req.requested_energy_mode
         )
 
+        evse_data_context = self.comm_session.evse_controller.evse_data_context
         ev_data_context = self.comm_session.evse_controller.ev_data_context
         ev_data_context.update_dc_charge_parameters(
             charge_parameter_discovery_req.dc_ev_charge_parameter
@@ -394,6 +395,7 @@ class ChargeParameterDiscovery(StateSECC):
         dc_evse_charge_params = (
             await self.comm_session.evse_controller.get_dc_charge_parameters_dinspec()  # noqa
         )
+        evse_data_context.update_dc_charge_parameters(dc_evse_charge_params)
 
         sa_schedule_list = (
             await self.comm_session.evse_controller.get_sa_schedule_list_dinspec(

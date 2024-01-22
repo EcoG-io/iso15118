@@ -965,7 +965,20 @@ class PaymentDetails(StateSECC):
                 logger.warning("MO Root Cert not available.")
                 root_cert = None
 
-            verify_certs(leaf_cert, sub_ca_certs, root_cert)
+            try:
+                verify_certs(leaf_cert, sub_ca_certs, root_cert)
+            except CertSignatureError:
+                # This error means there was an error while validating the parent-child
+                # relationship in the cert chain. This could also very well be
+                # a limitation on the SECC that the root certificate present
+                # doesn't match the chain passed through.
+                # So set root_cert to None and pass the incoming chain to the backend
+                # for further checks.
+                logger.info(
+                    "Local chain verification failed. "
+                    "Passing verification to backend."
+                )
+                root_cert = None
 
             # Note that the eMAID format (14 or 15 characters) will be validated
             # by the definition of the eMAID type in
@@ -1361,7 +1374,7 @@ class ChargeParameterDiscovery(StateSECC):
             dc_evse_charge_params = (
                 await self.comm_session.evse_controller.get_dc_charge_parameters_v2()
             )
-            evse_data_context.update_dc_charge_parameters_v2(dc_evse_charge_params)
+            evse_data_context.update_dc_charge_parameters(dc_evse_charge_params)
             ev_data_context.update_dc_charge_parameters(
                 charge_params_req.dc_ev_charge_parameter
             )
