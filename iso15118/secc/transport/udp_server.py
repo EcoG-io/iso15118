@@ -74,12 +74,17 @@ class UDPServer(asyncio.DatagramProtocol):
             sock.bind(full_ipv6_address)
         else:
             # Required if running on a Linux VM on Windows
+
             if not hasattr(socket, "SO_BINDTODEVICE"):
-                socket.SO_BINDTODEVICE = 25
+                # type ignore is added to avoid
+                # an error when running code-quality
+                # checks in MacOS, where the SO_BINDTODEVICE
+                # attribute is not available
+                socket.SO_BINDTODEVICE = 25  # type: ignore
 
             sock.setsockopt(
                 socket.SOL_SOCKET,
-                socket.SO_BINDTODEVICE,
+                socket.SO_BINDTODEVICE,  # type: ignore
                 (iface + "\0").encode("ascii"),
             )
             sock.bind(("", SDP_SERVER_PORT))
