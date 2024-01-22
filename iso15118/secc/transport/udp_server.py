@@ -74,6 +74,7 @@ class UDPServer(asyncio.DatagramProtocol):
             sock.bind(full_ipv6_address)
         else:
             # Required if running on a Linux VM on Windows
+
             if not hasattr(socket, "SO_BINDTODEVICE"):
                 socket.SO_BINDTODEVICE = 25
 

@@ -813,9 +813,16 @@ class EVSEControllerInterface(ABC):
                 min_session_power_limit = min(
                     min_session_power_limit, ac_limits.max_charge_power_l3
                 )
-            current_limit_phase = (
-                min_session_power_limit / self.evse_data_context.present_voltage
-            )
+            present_voltage = self.evse_data_context.present_voltage
+            if present_voltage == 0:
+                present_voltage = self.evse_data_context.nominal_voltage
+            if present_voltage == 0:
+                present_voltage = 230
+                logger.warning(
+                    "Present voltage and nominal voltage are 0,"
+                    "using 230 Vrms as default"
+                )
+            current_limit_phase = min_session_power_limit / present_voltage
             exponent, value = PhysicalValue.get_exponent_value_repr(current_limit_phase)
         elif self.evse_data_context.current_type == CurrentType.DC:
             current_limit = session_limits.dc_limits.max_charge_current
