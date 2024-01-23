@@ -61,10 +61,10 @@ def get_dc_evse_status():
 
 def get_dc_evse_status_stop_charging():
     return DCEVSEStatus(
-        evse_notification=EVSENotification.STOP_CHARGING,
+        evse_notification=EVSENotification.NONE,
         notification_max_delay=0,
         evse_isolation_status=IsolationLevel.VALID,
-        evse_status_code=DCEVSEStatusCode.EVSE_READY,
+        evse_status_code=DCEVSEStatusCode.EVSE_SHUTDOWN,
     )
 
 
