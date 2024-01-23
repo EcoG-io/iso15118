@@ -324,6 +324,13 @@ class CommunicationSessionHandler:
                 queue.task_done()
 
     def close_session(self):
+        """
+        Use this method to prevent the SECC from waiting until SECC timeout is hit to
+        terminate (For example when State A/E/F has been signalled).
+        The method feed_eof() would indicate to the tcp reader that the
+        peer has closed the connection. This would in turn cause a ConnectionResetError
+         and push StopNotification() which will eventually end the session.
+        """
         if self._current_peer_ip is None:
             return
         try:
