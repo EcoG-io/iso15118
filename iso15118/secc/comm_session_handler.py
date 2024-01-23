@@ -191,6 +191,9 @@ class CommunicationSessionHandler:
         # triggers (e.g. pause/terminate)
         self._rcv_queue: asyncio.Queue = asyncio.Queue()
 
+        # Store the ip of the peer
+        self._current_peer_ip: Optional[str] = None
+
         # The comm_sessions dict keys are of type str (the IPv6 address), the
         # values are a tuple containing the SECCCommunicationSession and the
         # associated ayncio.Task object (so we can cancel the task when needed)
@@ -302,6 +305,7 @@ class CommunicationSessionHandler:
                         )
                     )
                     self.comm_sessions[notification.ip_address] = (comm_session, task)
+                    self._current_peer_ip = notification.ip_address
                 elif isinstance(notification, StopNotification):
                     try:
                         await self.end_current_session(
@@ -318,6 +322,14 @@ class CommunicationSessionHandler:
             # TODO: What about an except here?
             finally:
                 queue.task_done()
+
+    def close_session(self):
+        if self._current_peer_ip is None:
+            return
+        try:
+            self.comm_sessions[self._current_peer_ip][0].reader.feed_eof()
+        except Exception as e:
+            logger.warning(f"Error while indicating EOF to transport reader: {e}")
 
     async def end_current_session(
         self, peer_ip_address: str, session_stop_action: SessionStopAction
@@ -336,6 +348,7 @@ class CommunicationSessionHandler:
                 )
 
         self.tcp_server_handler = None
+        self._current_peer_ip = None
         if self.udp_server:
             self.udp_server.resume_udp_server()
 
