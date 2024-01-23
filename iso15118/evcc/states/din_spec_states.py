@@ -19,7 +19,6 @@ from iso15118.shared.messages.datatypes import (
     DCEVChargeParams,
     DCEVSEStatus,
     DCEVSEStatusCode,
-    EVSENotification,
     SelectedService,
     SelectedServiceList,
 )
