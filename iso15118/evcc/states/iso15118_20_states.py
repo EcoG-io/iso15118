@@ -1576,7 +1576,7 @@ class DCPreCharge(StateEVCC):
                 bpt_channel_selection = ChannelSelection.DISCHARGE
             else:
                 bpt_channel_selection = ChannelSelection.CHARGE
-        await self.comm_session.ev_controller.enable_charging(True)make 
+        await self.comm_session.ev_controller.enable_charging(True)
         power_delivery_req = PowerDeliveryReq(
             header=MessageHeader(
                 session_id=self.comm_session.session_id,
