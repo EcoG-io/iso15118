@@ -8,7 +8,12 @@ from iso15118.secc.controller.evse_data import (
     EVSESessionLimits,
 )
 from iso15118.secc.controller.interface import EVSEControllerInterface
-from iso15118.shared.messages.datatypes import PVEVSEMaxCurrentLimit, UnitSymbol
+from iso15118.shared.messages.datatypes import (
+    PVEVSEMaxCurrent,
+    PVEVSEMaxCurrentLimit,
+    PVEVSEMaxPowerLimit,
+    UnitSymbol,
+)
 
 
 class DummyEVSEControllerInterface(EVSEControllerInterface):
@@ -154,12 +159,13 @@ def evse_controller_interface():
 class TestEVSEControllerInterface:
     async def test_get_evse_max_current_limit_ac(self, evse_controller_interface):
         evse_controller_interface.evse_data_context.current_type = CurrentType.AC
-        expected_limit = PVEVSEMaxCurrentLimit(
+        expected_limit = PVEVSEMaxCurrent(
             multiplier=0,
             value=100,
             unit=UnitSymbol.AMPERE,
         )
         limit = await evse_controller_interface.get_evse_max_current_limit()
+        assert type(limit) == type(expected_limit)
         assert limit == expected_limit
 
     async def test_get_evse_max_current_limit_dc(self, evse_controller_interface):
@@ -170,18 +176,20 @@ class TestEVSEControllerInterface:
             unit=UnitSymbol.AMPERE,
         )
         limit = await evse_controller_interface.get_evse_max_current_limit()
+        assert type(limit) == type(expected_limit)
         assert limit == expected_limit
 
     async def test_get_evse_present_voltage_is_0(self, evse_controller_interface):
         evse_controller_interface.evse_data_context.current_type = CurrentType.AC
         evse_controller_interface.evse_data_context.present_voltage = 0
         evse_controller_interface.evse_data_context.nominal_voltage = 230
-        expected_limit = PVEVSEMaxCurrentLimit(
+        expected_limit = PVEVSEMaxCurrent(
             multiplier=0,
             value=100,
             unit=UnitSymbol.AMPERE,
         )
         limit = await evse_controller_interface.get_evse_max_current_limit()
+        assert type(limit) == type(expected_limit)
         assert limit == expected_limit
 
     async def test_get_evse_present_and_nominal_voltage_are_0(
@@ -192,10 +200,11 @@ class TestEVSEControllerInterface:
         evse_controller_interface.evse_data_context.current_type = CurrentType.AC
         evse_controller_interface.evse_data_context.present_voltage = 0
         evse_controller_interface.evse_data_context.nominal_voltage = 0
-        expected_limit = PVEVSEMaxCurrentLimit(
+        expected_limit = PVEVSEMaxCurrent(
             multiplier=0,
             value=100,
             unit=UnitSymbol.AMPERE,
         )
         limit = await evse_controller_interface.get_evse_max_current_limit()
+        assert type(limit) == type(expected_limit)
         assert limit == expected_limit
