@@ -14,6 +14,7 @@ from iso15118.shared.messages.datatypes import (
     DCEVSEChargeParameter,
     DCEVSEStatus,
     PhysicalValue,
+    PVEVSEMaxCurrent,
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxPowerLimit,
     PVEVSEMaxVoltageLimit,
@@ -793,7 +794,9 @@ class EVSEControllerInterface(ABC):
             unit=UnitSymbol.VOLTAGE,
         )
 
-    async def get_evse_max_current_limit(self) -> PVEVSEMaxCurrentLimit:
+    async def get_evse_max_current_limit(
+        self,
+    ) -> Union[PVEVSEMaxCurrentLimit, PVEVSEMaxCurrent]:
         """
         Gets the max current that can be provided by the charger
 
@@ -824,14 +827,19 @@ class EVSEControllerInterface(ABC):
                 )
             current_limit_phase = min_session_power_limit / present_voltage
             exponent, value = PhysicalValue.get_exponent_value_repr(current_limit_phase)
+            return PVEVSEMaxCurrent(
+                multiplier=exponent,
+                value=value,
+                unit=UnitSymbol.AMPERE,
+            )
         elif self.evse_data_context.current_type == CurrentType.DC:
             current_limit = session_limits.dc_limits.max_charge_current
             exponent, value = PhysicalValue.get_exponent_value_repr(current_limit)
-        return PVEVSEMaxCurrentLimit(
-            multiplier=exponent,
-            value=value,
-            unit=UnitSymbol.AMPERE,
-        )
+            return PVEVSEMaxCurrentLimit(
+                multiplier=exponent,
+                value=value,
+                unit=UnitSymbol.AMPERE,
+            )
 
     @abstractmethod
     async def get_dc_charge_params_v20(
