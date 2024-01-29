@@ -11,7 +11,6 @@ from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.datatypes import (
     PVEVSEMaxCurrent,
     PVEVSEMaxCurrentLimit,
-    PVEVSEMaxPowerLimit,
     UnitSymbol,
 )
 
