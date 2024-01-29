@@ -165,7 +165,7 @@ class TestEVSEControllerInterface:
             unit=UnitSymbol.AMPERE,
         )
         limit = await evse_controller_interface.get_evse_max_current_limit()
-        assert type(limit) == type(expected_limit)
+        assert isinstance(limit, PVEVSEMaxCurrent)
         assert limit == expected_limit
 
     async def test_get_evse_max_current_limit_dc(self, evse_controller_interface):
@@ -176,7 +176,7 @@ class TestEVSEControllerInterface:
             unit=UnitSymbol.AMPERE,
         )
         limit = await evse_controller_interface.get_evse_max_current_limit()
-        assert type(limit) == type(expected_limit)
+        assert isinstance(limit, PVEVSEMaxCurrentLimit)
         assert limit == expected_limit
 
     async def test_get_evse_present_voltage_is_0(self, evse_controller_interface):
@@ -189,7 +189,7 @@ class TestEVSEControllerInterface:
             unit=UnitSymbol.AMPERE,
         )
         limit = await evse_controller_interface.get_evse_max_current_limit()
-        assert type(limit) == type(expected_limit)
+        assert isinstance(limit, PVEVSEMaxCurrent)
         assert limit == expected_limit
 
     async def test_get_evse_present_and_nominal_voltage_are_0(
@@ -206,5 +206,5 @@ class TestEVSEControllerInterface:
             unit=UnitSymbol.AMPERE,
         )
         limit = await evse_controller_interface.get_evse_max_current_limit()
-        assert type(limit) == type(expected_limit)
+        assert isinstance(limit, PVEVSEMaxCurrent)
         assert limit == expected_limit
