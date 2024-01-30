@@ -790,7 +790,9 @@ class EVSEControllerInterface(ABC):
             voltage_limit = session_limits.dc_limits.max_voltage
         else:
             ac_evse_charge_params = await self.get_ac_charge_params_v2()
-            voltage_limit = ac_evse_charge_params.evse_nominal_voltage.get_decimal_value()
+            voltage_limit = (
+                ac_evse_charge_params.evse_nominal_voltage.get_decimal_value()
+            )
         exponent, value = PhysicalValue.get_exponent_value_repr(voltage_limit)
         return PVEVSEMaxVoltageLimit(
             multiplier=exponent,
