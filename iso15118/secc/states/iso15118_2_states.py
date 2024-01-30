@@ -1349,27 +1349,32 @@ class ChargeParameterDiscovery(StateSECC):
             return
 
         evse_data_context = self.comm_session.evse_controller.evse_data_context
+        logger.debug(f"evse_data_context : {evse_data_context}")
         ev_data_context = self.comm_session.evse_controller.ev_data_context
-
+        logger.debug(f"ev_data_context : {ev_data_context}")
         self.comm_session.selected_energy_mode = charge_params_req.requested_energy_mode
+        logger.debug(f"selected_energy_mode : {self.comm_session.selected_energy_mode}")
         self.comm_session.selected_charging_type_is_ac = (
             self.comm_session.selected_energy_mode.value.startswith("AC")
         )
-
+        logger.debug(f"selected_charging_type_is_ac : {self.comm_session.selected_charging_type_is_ac}")
         max_schedule_entries: Optional[
             int
         ] = charge_params_req.max_entries_sa_schedule_tuple
-
+        logger.debug(f"max_schedule_entries : {max_schedule_entries}")
         ac_evse_charge_params: Optional[ACEVSEChargeParameter] = None
         dc_evse_charge_params: Optional[DCEVSEChargeParameter] = None
         if charge_params_req.ac_ev_charge_parameter:
             ac_evse_charge_params = (
                 await self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
+            logger.debug(f"ac_evse_charge_params : {ac_evse_charge_params}")
             evse_data_context.update_ac_charge_parameters_v2(ac_evse_charge_params)
             ev_data_context.update_ac_charge_parameters_v2(
                 charge_params_req.ac_ev_charge_parameter
             )
+            logger.debug(f"update_ac_charge_parameters_v2 : {evse_data_context}")
+            logger.debug(f"update_ac_charge_parameters_v2 : {ev_data_context}")
         else:
             dc_evse_charge_params = (
                 await self.comm_session.evse_controller.get_dc_charge_parameters_v2()
@@ -1382,17 +1387,18 @@ class ChargeParameterDiscovery(StateSECC):
         departure_time = (
             ev_data_context.departure_time if ev_data_context.departure_time else 0
         )
+        logger.debug(f"departure_time : {departure_time}")
         sa_schedule_list = await self.comm_session.evse_controller.get_sa_schedule_list(
             ev_data_context,
             self.comm_session.config.free_charging_service,
             max_schedule_entries,
             departure_time,
         )
-
+        logger.debug(f"sa_schedule_list : {sa_schedule_list}")
         sa_schedule_list_valid = self.validate_sa_schedule_list(
             sa_schedule_list, departure_time
         )
-
+        logger.debug(f"sa_schedule_list_valid : {sa_schedule_list_valid}")
         if (
             sa_schedule_list_valid
             and self.comm_session.ev_session_context.sa_schedule_tuple_id
