@@ -1349,9 +1349,9 @@ class ChargeParameterDiscovery(StateSECC):
             return
 
         evse_data_context = self.comm_session.evse_controller.evse_data_context
-        logger.debug(f"evse_data_context : {evse_data_context}")
+        logger.debug(f"evse_data_context : {evse_data_context.__dict__}")
         ev_data_context = self.comm_session.evse_controller.ev_data_context
-        logger.debug(f"ev_data_context : {ev_data_context}")
+        logger.debug(f"ev_data_context : {ev_data_context.__dict__}")
         self.comm_session.selected_energy_mode = charge_params_req.requested_energy_mode
         logger.debug(f"selected_energy_mode : {self.comm_session.selected_energy_mode}")
         self.comm_session.selected_charging_type_is_ac = (
@@ -1373,8 +1373,8 @@ class ChargeParameterDiscovery(StateSECC):
             ev_data_context.update_ac_charge_parameters_v2(
                 charge_params_req.ac_ev_charge_parameter
             )
-            logger.debug(f"update_ac_charge_parameters_v2 : {evse_data_context}")
-            logger.debug(f"update_ac_charge_parameters_v2 : {ev_data_context}")
+            logger.debug(f"update_ac_charge_parameters_v2 : {evse_data_context.__dict__}")
+            logger.debug(f"update_ac_charge_parameters_v2 : {ev_data_context.__dict__}")
         else:
             dc_evse_charge_params = (
                 await self.comm_session.evse_controller.get_dc_charge_parameters_v2()
