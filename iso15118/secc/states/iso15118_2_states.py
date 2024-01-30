@@ -6,7 +6,9 @@ SessionStopReq.
 import asyncio
 import base64
 import logging
+import random
 import time
+from datetime import datetime
 from typing import List, Optional, Tuple, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
@@ -140,6 +142,7 @@ from iso15118.shared.security import (
     verify_signature,
 )
 from iso15118.shared.states import Base64, Pause, State, Terminate
+from iso15118.shared.utils import time_list
 
 logger = logging.getLogger(__name__)
 
@@ -2391,7 +2394,6 @@ class PreCharge(StateSECC):
 
         self.expecting_precharge_req = False
 
-
 class CurrentDemand(StateSECC):
     """
     The ISO 15118-2 state in which the SECC processes an
@@ -2421,21 +2423,28 @@ class CurrentDemand(StateSECC):
         if not msg:
             return
 
+        start = datetime.now()
+
         if msg.body.power_delivery_req:
             await PowerDelivery(self.comm_session).process_message(message, message_exi)
             return
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
-
         ev_data_context = self.comm_session.evse_controller.ev_data_context
+        time_0 = datetime.now()
+        time_list[0] = time_0 - start
+        print(f"time list 0 : {time_list[0]}")
         ev_data_context.update_charge_loop_parameters(current_demand_req)
-
+        time_1 = datetime.now()
+        time_list[1] = time_1 - time_0
         # Updates the power electronics targets based on EV requests
         try:
             await self.comm_session.evse_controller.send_charging_command(
                 ev_data_context.target_voltage,
                 ev_data_context.target_current,
             )
+            time_2 = datetime.now()
+            time_list[2] = time_2 - time_1
         except asyncio.TimeoutError:
             self.stop_state_machine(
                 "Error sending targets to charging station in charging loop.",
@@ -2447,6 +2456,8 @@ class CurrentDemand(StateSECC):
         # We don't care about signed meter values from the EVCC, but if you
         # do, then set receipt_required to True and set the field meter_info
         evse_controller = self.comm_session.evse_controller
+        time_3 = datetime.now()
+        time_list[3] = time_3 - time_2
         current_demand_res = CurrentDemandRes(
             response_code=ResponseCode.OK,
             dc_evse_status=await evse_controller.get_dc_evse_status(),
@@ -2476,6 +2487,8 @@ class CurrentDemand(StateSECC):
             #     self.comm_session.protocol),
             receipt_required=False,
         )
+        time_4 = datetime.now()
+        time_list[4] = time_4 - time_3
 
         if current_demand_res.meter_info:
             self.comm_session.sent_meter_info = current_demand_res.meter_info
@@ -2501,7 +2514,9 @@ class CurrentDemand(StateSECC):
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.ISO_V2_MSG_DEF,
         )
-
+        time_5 = datetime.now()
+        time_list[5] = time_5 - time_4
+        time_list[6] = time_5 - start
         self.expecting_current_demand_req = False
 
 

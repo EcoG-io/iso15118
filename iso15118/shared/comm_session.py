@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from asyncio.streams import StreamReader, StreamWriter
 from typing import List, Optional, Tuple, Type, Union
 
+
 from pydantic import ValidationError
 from typing_extensions import TYPE_CHECKING
 
@@ -53,7 +54,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.notifications import StopNotification
 from iso15118.shared.states import Pause, State, Terminate
-from iso15118.shared.utils import wait_for_tasks
+from iso15118.shared.utils import wait_for_tasks, time_list
 
 logger = logging.getLogger(__name__)
 
@@ -446,6 +447,7 @@ class V2GCommunicationSession(SessionStateMachine):
         Args:
             timeout:    The time the EVCC / SECC is waiting for a next message
         """
+        session_time_list = []
         while True:
             try:
                 # The biggest message is the Certificate Installation Response,
@@ -497,6 +499,15 @@ class V2GCommunicationSession(SessionStateMachine):
                     # next_v2gtp_msg would not be set only if the next state is either
                     # Terminate or Pause on the EVCC side
                     await self.send(self.current_state.next_v2gtp_msg)
+                    print(str(self.current_state))
+
+                    if str(self.current_state) == "CurrentDemand":
+                        session_time_list.append(time_list.copy())
+                        # print(time_list)
+                    elif str(self.current_state) == "SessionStop":
+                        for session_time in session_time_list:
+                            print(session_time)
+                        session_time_list.clear()
                     await self._update_state_info(self.current_state)
 
                 if self.current_state.next_state in (Terminate, Pause):
