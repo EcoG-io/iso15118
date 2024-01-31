@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.1] - 2024-01-31
+* fixed type returned by get_evse_max_current_limit by @tropxy in https://github.com/SwitchEV/iso15118/pull/373
+* Fix for ChargeParameterDiscovery  get_evse_max_voltage by @tropxy in https://github.com/SwitchEV/iso15118/pull/376
+
 ## [0.25.0] - 2024-01-23
 * JTT-529: Changed order of validation. Start with checking validity of availabl… by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/350
 * chore(deps-dev): bump black from 23.11.0 to 23.12.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/352
