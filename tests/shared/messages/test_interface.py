@@ -11,6 +11,7 @@ from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.datatypes import (
     PVEVSEMaxCurrent,
     PVEVSEMaxCurrentLimit,
+    PVEVSEMaxVoltageLimit,
     UnitSymbol,
 )
 
@@ -206,4 +207,30 @@ class TestEVSEControllerInterface:
         )
         limit = await evse_controller_interface.get_evse_max_current_limit()
         assert isinstance(limit, PVEVSEMaxCurrent)
+        assert limit == expected_limit
+
+    async def test_get_evse_max_voltage_limit_ac(self, evse_controller_interface):
+        evse_controller_interface.evse_data_context.current_type = CurrentType.AC
+        evse_controller_interface.evse_data_context.nominal_voltage = 230
+        expected_limit = PVEVSEMaxVoltageLimit(
+            multiplier=0,
+            value=230,
+            unit=UnitSymbol.VOLTAGE,
+        )
+        limit = await evse_controller_interface.get_evse_max_voltage_limit()
+        assert isinstance(limit, PVEVSEMaxVoltageLimit)
+        assert limit == expected_limit
+
+    async def test_get_evse_max_voltage_limit_dc(self, evse_controller_interface):
+        evse_controller_interface.evse_data_context.current_type = CurrentType.DC
+        evse_controller_interface.evse_data_context.session_limits.dc_limits.max_voltage = (
+            1000
+        )
+        expected_limit = PVEVSEMaxVoltageLimit(
+            multiplier=0,
+            value=1000,
+            unit=UnitSymbol.VOLTAGE,
+        )
+        limit = await evse_controller_interface.get_evse_max_voltage_limit()
+        assert isinstance(limit, PVEVSEMaxVoltageLimit)
         assert limit == expected_limit
