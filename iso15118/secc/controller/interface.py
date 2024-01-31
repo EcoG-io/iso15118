@@ -786,7 +786,10 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-2
         """
         session_limits = self.evse_data_context.session_limits
-        voltage_limit = session_limits.dc_limits.max_voltage
+        if self.evse_data_context.current_type == CurrentType.AC:
+            voltage_limit = self.evse_data_context.nominal_voltage
+        else:
+            voltage_limit = session_limits.dc_limits.max_voltage
         exponent, value = PhysicalValue.get_exponent_value_repr(voltage_limit)
         return PVEVSEMaxVoltageLimit(
             multiplier=exponent,
