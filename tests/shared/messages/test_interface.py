@@ -223,7 +223,7 @@ class TestEVSEControllerInterface:
 
     async def test_get_evse_max_voltage_limit_dc(self, evse_controller_interface):
         evse_controller_interface.evse_data_context.current_type = CurrentType.DC
-        evse_controller_interface.evse_data_context.session_limits.dc_limits.max_voltage = (
+        evse_controller_interface.evse_data_context.session_limits.dc_limits.max_voltage = (  # noqa: E501
             1000
         )
         expected_limit = PVEVSEMaxVoltageLimit(
