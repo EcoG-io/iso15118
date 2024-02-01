@@ -2125,7 +2125,7 @@ class ChargingStatus(StateSECC):
                 message, message_exi
             )
             return
-
+        await asyncio.sleep(0.2)
         # We don't care about signed meter values from the EVCC, but if you
         # do, then set receipt_required to True and set the field meter_info
         evse_controller = self.comm_session.evse_controller
