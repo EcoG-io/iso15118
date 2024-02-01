@@ -486,10 +486,10 @@ class V2GCommunicationSession(SessionStateMachine):
                 await self.stop(reason=error_msg)
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
-            gc_enabled = gc.isenabled()
+            # gc_enabled = gc.isenabled()
             try:
-                if gc_enabled:
-                    gc.disable()
+                # if gc_enabled:
+                #     gc.disable()
                 # This will create the values needed for the next state, such as
                 # next_state, next_v2gtp_message, next_message_payload_type etc.
                 await self.process_message(message)
@@ -544,6 +544,6 @@ class V2GCommunicationSession(SessionStateMachine):
                 await self.stop(stop_reason)
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
-            finally:
-                if gc_enabled:
-                    gc.enable()
+            # finally:
+            #     if gc_enabled:
+            #         gc.enable()
