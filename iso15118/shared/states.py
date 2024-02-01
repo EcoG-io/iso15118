@@ -1,6 +1,7 @@
 import base64
 import logging
 from abc import ABC, abstractmethod
+import time
 from typing import TYPE_CHECKING, Optional, Type, Union
 
 from pydantic import ValidationError
@@ -40,6 +41,7 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.messages.xmldsig import Signature
+from iso15118.shared.utils import time_list
 
 logger = logging.getLogger(__name__)
 
@@ -245,6 +247,7 @@ class State(ABC):
         Raises:
             EXIEncodingError
         """
+        time_10 = time.time_ns()
         # Step 1
         self.next_state = next_state
         self.next_msg_timeout = next_msg_timeout
@@ -307,17 +310,25 @@ class State(ABC):
                 note = Notification(
                     fault_code=FaultCode.PARSING_ERROR, fault_msg=fault_msg
                 )
+            time_11 = time.time_ns()
+            time_list[11] = time_11 - time_10
             header: MessageHeaderV2 = MessageHeaderV2(
                 session_id=self.comm_session.session_id,
                 signature=signature,
                 notification=note,
             )
+            time_12 = time.time_ns()
+            time_list[12] = time_12 - time_11
             body: Body = Body.parse_obj({str(next_msg): next_msg.dict()})
+            time_13 = time.time_ns()
+            time_list[13] = time_13 - time_12
             try:
                 to_be_exi_encoded = V2GMessageV2(header=header, body=body)
             except ValidationError as exc:
                 logger.exception(exc)
                 raise exc
+            time_14 = time.time_ns()
+            time_list[14] = time_14 - time_13
             self.message = to_be_exi_encoded
         elif isinstance(next_msg, Base64):
             # Incoming message is base64 encoded EXI message.

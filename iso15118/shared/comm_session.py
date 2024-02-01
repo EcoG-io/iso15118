@@ -504,10 +504,19 @@ class V2GCommunicationSession(SessionStateMachine):
                     if str(self.current_state) == "CurrentDemand":
                         session_time_list.append(time_list.copy())
                         # print(time_list)
-                    elif str(self.current_state) == "SessionStop":
+
+                    if self.current_state.next_state in (Terminate, Pause):
+                        logger.info("Writing Session time")
+                        file = open('time.txt', 'w')
                         for session_time in session_time_list:
-                            print(session_time)
+                            for t in session_time:
+                                if t:
+                                    file.write(f"{t},")
+                            file.write("\n")
+
+                        file.close()
                         session_time_list.clear()
+                    print(str(self.current_state.next_state))
                     await self._update_state_info(self.current_state)
 
                 if self.current_state.next_state in (Terminate, Pause):

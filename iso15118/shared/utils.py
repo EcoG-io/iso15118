@@ -11,7 +11,7 @@ from iso15118.shared.messages.enums import AuthEnum, Protocol, ServiceV20
 
 logger = logging.getLogger(__name__)
 
-time_list = [None] * 7
+time_list = [None] * 17
 
 def _format_list(read_settings: List[str]) -> List[str]:
     read_settings = list(filter(None, read_settings))

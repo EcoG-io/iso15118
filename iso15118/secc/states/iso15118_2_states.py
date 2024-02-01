@@ -2457,21 +2457,34 @@ class CurrentDemand(StateSECC):
         evse_controller = self.comm_session.evse_controller
         time_3 = time.time_ns()
         time_list[3] = time_3 - time_2
+        dc_evse_status = await evse_controller.get_dc_evse_status()
+        time_4 = time.time_ns()
+        time_list[4] = time_4 - time_3
+        present_voltage = await evse_controller.get_evse_present_voltage(
+            Protocol.ISO_15118_2
+        )
+        time_5 = time.time_ns()
+        time_list[5] = time_5 - time_4
+        present_current = await evse_controller.get_evse_present_current(
+                Protocol.ISO_15118_2
+        )
+        time_6 = time.time_ns()
+        time_list[6] = time_6 - time_5
+        current_limit_achieved = await evse_controller.is_evse_current_limit_achieved()
+        time_7 = time.time_ns()
+        time_list[7] = time_7 - time_6
+        voltage_limit_achieved = (
+                await evse_controller.is_evse_voltage_limit_achieved()
+            )
+        time_8 = time.time_ns()
+        time_list[8] = time_8 - time_7
         current_demand_res = CurrentDemandRes(
             response_code=ResponseCode.OK,
-            dc_evse_status=await evse_controller.get_dc_evse_status(),
-            evse_present_voltage=await evse_controller.get_evse_present_voltage(
-                Protocol.ISO_15118_2
-            ),
-            evse_present_current=await evse_controller.get_evse_present_current(
-                Protocol.ISO_15118_2
-            ),
-            evse_current_limit_achieved=(
-                await evse_controller.is_evse_current_limit_achieved()
-            ),
-            evse_voltage_limit_achieved=(
-                await evse_controller.is_evse_voltage_limit_achieved()
-            ),
+            dc_evse_status=dc_evse_status,
+            evse_present_voltage=present_voltage,
+            evse_present_current=present_current,
+            evse_current_limit_achieved=current_limit_achieved,
+            evse_voltage_limit_achieved=voltage_limit_achieved,
             evse_power_limit_achieved=await evse_controller.is_evse_power_limit_achieved(),  # noqa
             evse_max_voltage_limit=await evse_controller.get_evse_max_voltage_limit(),
             evse_max_current_limit=await evse_controller.get_evse_max_current_limit(),
@@ -2486,8 +2499,8 @@ class CurrentDemand(StateSECC):
             #     self.comm_session.protocol),
             receipt_required=False,
         )
-        time_4 = time.time_ns()
-        time_list[4] = time_4 - time_3
+        time_9 = time.time_ns()
+        time_list[9] = time_9 - time_8
 
         if current_demand_res.meter_info:
             self.comm_session.sent_meter_info = current_demand_res.meter_info
@@ -2513,9 +2526,9 @@ class CurrentDemand(StateSECC):
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.ISO_V2_MSG_DEF,
         )
-        time_5 = time.time_ns()
-        time_list[5] = time_5 - time_4
-        time_list[6] = time_5 - start
+        time_10 = time.time_ns()
+        time_list[15] = time_10 - time_9
+        time_list[16] = time_10 - start
         self.expecting_current_demand_req = False
 
 
