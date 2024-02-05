@@ -73,7 +73,6 @@ class SDPRequest:
     """
 
     def __init__(self, security: Security, transport_protocol: Transport):
-
         if security not in Security.options():
             logger.error(
                 f"'{security}' is not a valid value for "

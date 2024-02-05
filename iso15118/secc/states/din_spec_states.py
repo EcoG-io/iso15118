@@ -4,6 +4,7 @@ V2GMessage objects of the DIN SPEC 70121 protocol, from SessionSetupReq to
 SessionStopReq.
 """
 
+from iso15118.secc.everest import context as EVEREST_CTX
 import logging
 from datetime import datetime, timedelta
 import time
@@ -74,7 +75,6 @@ from iso15118.shared.states import State, Terminate
 logger = logging.getLogger(__name__)
 
 # *** EVerest code start ***
-from iso15118.secc.everest import context as EVEREST_CTX
 # *** EVerest code end ***
 
 # ============================================================================
@@ -109,14 +109,14 @@ class SessionSetup(StateSECC):
         session_setup_req: SessionSetupReq = msg.body.session_setup_req
 
         # EVerest code start #
-        evcc_id : str = session_setup_req.evcc_id[0:2]
+        evcc_id: str = session_setup_req.evcc_id[0:2]
         MAC_COLONS = 5
         if session_setup_req.evcc_id.find(':') == -1:
-            for i in range (MAC_COLONS):
-                evcc_id+=':' + session_setup_req.evcc_id[i*2+2:i*2+4]
+            for i in range(MAC_COLONS):
+                evcc_id += ':' + session_setup_req.evcc_id[i*2+2:i*2+4]
         EVEREST_CTX.publish('EVCCIDD', evcc_id.upper())
         await self.comm_session.evse_controller.reset_evse_values()
-        # EVerest code end #     
+        # EVerest code end #
 
         # Check session ID. Most likely, we need to create a new one
         session_id: str = get_random_bytes(8).hex().upper()
@@ -269,7 +269,8 @@ class ServicePaymentSelection(StateSECC):
         )
 
         # EVerest code start #
-        EVEREST_CTX.publish('SelectedPaymentOption', service_payment_selection_req.selected_payment_option)
+        EVEREST_CTX.publish('SelectedPaymentOption',
+                            service_payment_selection_req.selected_payment_option)
         # EVerest code end #
 
         if service_payment_selection_req.selected_payment_option != AuthEnum.EIM_V2:
@@ -314,7 +315,7 @@ class ContractAuthentication(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
-         # EVerest code start #
+        # EVerest code start #
         self.authorizationRequested = False
         # EVerest code end #
 
@@ -332,19 +333,19 @@ class ContractAuthentication(StateSECC):
         msg = self.check_msg_dinspec(message, [ContractAuthenticationReq])
         if not msg:
             return
-        
+
         authorization_result: AuthorizationStatus = AuthorizationStatus.ONGOING
 
         if await self.comm_session.evse_controller.is_free() is True:
             authorization_result = AuthorizationStatus.ACCEPTED
-        else: 
+        else:
             if self.isAuthorizationRequested() is False:
                 EVEREST_CTX.publish('Require_Auth_EIM', None)
                 self.authorizationRequested = True
 
             authorization_result = await self.comm_session.evse_controller.is_authorized(
                 id_token_type=(AuthorizationTokenType.EXTERNAL)
-            )  
+            )
 
         next_state: Type["State"] = None
 
@@ -353,7 +354,7 @@ class ContractAuthentication(StateSECC):
             next_state = ChargeParameterDiscovery
         else:
             auth_status = EVSEProcessing.ONGOING
-            
+
         contract_authentication_res: ContractAuthenticationRes = (
             ContractAuthenticationRes(
                 response_code=ResponseCode.OK, evse_processing=auth_status
@@ -366,7 +367,7 @@ class ContractAuthentication(StateSECC):
             Timeouts.V2G_SECC_SEQUENCE_TIMEOUT,
             Namespace.DIN_MSG_DEF,
         )
-    
+
     # EVerest code start #
     def isAuthorizationRequested(self) -> bool:
         return self.authorizationRequested
@@ -404,7 +405,8 @@ class ChargeParameterDiscovery(StateSECC):
         )
 
         # EVerest code start #
-        EVEREST_CTX.publish('RequestedEnergyTransferMode', charge_parameter_discovery_req.requested_energy_mode)
+        EVEREST_CTX.publish('RequestedEnergyTransferMode',
+                            charge_parameter_discovery_req.requested_energy_mode)
         # EVerest code end #
 
         if charge_parameter_discovery_req.requested_energy_mode not in (
@@ -437,7 +439,7 @@ class ChargeParameterDiscovery(StateSECC):
         ev_max_voltage_limit: float = dc_ev_charge_params.ev_maximum_voltage_limit.value * pow(
             10, dc_ev_charge_params.ev_maximum_voltage_limit.multiplier
         )
-        # if ev_max_voltage_limit < 0: ev_max_voltage_limit = 0 
+        # if ev_max_voltage_limit < 0: ev_max_voltage_limit = 0
         ev_maxvalues: dict = dict([
             ("DC_EVMaximumCurrentLimit", ev_max_current_limit),
             ("DC_EVMaximumVoltageLimit", ev_max_voltage_limit)
@@ -462,7 +464,7 @@ class ChargeParameterDiscovery(StateSECC):
                 10, dc_ev_charge_params.ev_energy_request.multiplier
             )
             EVEREST_CTX.publish('DC_EVEnergyRequest', p_ev_energy_request)
-        
+
         if dc_ev_charge_params.full_soc:
             EVEREST_CTX.publish('DC_FullSOC', dc_ev_charge_params.full_soc)
         if dc_ev_charge_params.bulk_soc:
@@ -471,13 +473,15 @@ class ChargeParameterDiscovery(StateSECC):
         ev_status: dict = dict([
             ("DC_EVReady", dc_ev_charge_params.dc_ev_status.ev_ready),
             ("DC_EVErrorCode", dc_ev_charge_params.dc_ev_status.ev_error_code),
-            ("DC_EVRESSSOC",dc_ev_charge_params.dc_ev_status.ev_ress_soc),
+            ("DC_EVRESSSOC", dc_ev_charge_params.dc_ev_status.ev_ress_soc),
         ])
 
         if dc_ev_charge_params.dc_ev_status.ev_cabin_conditioning:
-            ev_status.update({"DC_EVCabinConditioning": dc_ev_charge_params.dc_ev_status.ev_cabin_conditioning})
+            ev_status.update(
+                {"DC_EVCabinConditioning": dc_ev_charge_params.dc_ev_status.ev_cabin_conditioning})
         if dc_ev_charge_params.dc_ev_status.ev_ress_conditioning:
-            ev_status.update({"DC_EVRESSConiditioning": dc_ev_charge_params.dc_ev_status.ev_ress_conditioning})
+            ev_status.update(
+                {"DC_EVRESSConiditioning": dc_ev_charge_params.dc_ev_status.ev_ress_conditioning})
 
         EVEREST_CTX.publish('DC_EVStatus', ev_status)
         # EVerest code end #
@@ -551,9 +555,11 @@ class CableCheck(StateSECC):
             ("DC_EVRESSSOC", cable_check_req.dc_ev_status.ev_ress_soc),
         ])
         if cable_check_req.dc_ev_status.ev_cabin_conditioning:
-            ev_status.update({"DC_EVCabinConditioning": cable_check_req.dc_ev_status.ev_cabin_conditioning})
+            ev_status.update(
+                {"DC_EVCabinConditioning": cable_check_req.dc_ev_status.ev_cabin_conditioning})
         if cable_check_req.dc_ev_status.ev_ress_conditioning:
-            ev_status.update({"DC_EVRESSConiditioning": cable_check_req.dc_ev_status.ev_ress_conditioning})
+            ev_status.update(
+                {"DC_EVRESSConiditioning": cable_check_req.dc_ev_status.ev_ress_conditioning})
 
         EVEREST_CTX.publish('DC_EVStatus', ev_status)
         # EVerest code end #
@@ -662,7 +668,8 @@ class PreCharge(StateSECC):
         message_exi: bytes = None,
     ):
         msg = self.check_msg_dinspec(
-            message, [PreChargeReq, PowerDeliveryReq], self.expecting_pre_charge_req
+            message, [PreChargeReq,
+                      PowerDeliveryReq], self.expecting_pre_charge_req
         )
         if not msg:
             return
@@ -680,15 +687,19 @@ class PreCharge(StateSECC):
             ("DC_EVRESSSOC", precharge_req.dc_ev_status.ev_ress_soc),
         ])
         if precharge_req.dc_ev_status.ev_cabin_conditioning:
-            ev_status.update({"DC_EVCabinConditioning": precharge_req.dc_ev_status.ev_cabin_conditioning})
+            ev_status.update(
+                {"DC_EVCabinConditioning": precharge_req.dc_ev_status.ev_cabin_conditioning})
         if precharge_req.dc_ev_status.ev_ress_conditioning:
-            ev_status.update({"DC_EVRESSConiditioning": precharge_req.dc_ev_status.ev_ress_conditioning})
+            ev_status.update(
+                {"DC_EVRESSConiditioning": precharge_req.dc_ev_status.ev_ress_conditioning})
 
         EVEREST_CTX.publish('DC_EVStatus'. ev_status)
 
-        ev_target_voltage = precharge_req.ev_target_voltage.value * pow(10, precharge_req.ev_target_voltage.multiplier)
+        ev_target_voltage = precharge_req.ev_target_voltage.value * \
+            pow(10, precharge_req.ev_target_voltage.multiplier)
         # if ev_target_voltage < 0: ev_target_voltage = 0
-        ev_target_current = precharge_req.ev_target_current.value * pow(10, precharge_req.ev_target_current.multiplier)
+        ev_target_current = precharge_req.ev_target_current.value * \
+            pow(10, precharge_req.ev_target_current.multiplier)
         # if ev_target_current < 0: ev_target_current = 0
         ev_targetvalues: dict = dict([
             ("DC_EVTargetVoltage", ev_target_voltage),
@@ -817,8 +828,9 @@ class PowerDelivery(StateSECC):
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
 
         # EVerest code start #
-        
-        EVEREST_CTX.publish('DC_ChargingComplete', power_delivery_req.dc_ev_power_delivery_parameter.charging_complete)
+
+        EVEREST_CTX.publish(
+            'DC_ChargingComplete', power_delivery_req.dc_ev_power_delivery_parameter.charging_complete)
 
         ev_status: dict = dict([
             ("DC_EVReady", power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ready),
@@ -826,13 +838,16 @@ class PowerDelivery(StateSECC):
             ("DC_EVRESSSOC", power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ress_soc),
         ])
         if power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_cabin_conditioning:
-            ev_status.update({"DC_EVCabinConditioning": power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_cabin_conditioning})
+            ev_status.update(
+                {"DC_EVCabinConditioning": power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_cabin_conditioning})
         if power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ress_conditioning:
-            ev_status.update({"DC_EVRESSConiditioning": power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ress_conditioning})
+            ev_status.update(
+                {"DC_EVRESSConiditioning": power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ress_conditioning})
 
         EVEREST_CTX.publish('DC_EVStatus', ev_status)
         if power_delivery_req.dc_ev_power_delivery_parameter.bulk_charging_complete is not None:
-            EVEREST_CTX.publish('DC_BulkChargingComplete', power_delivery_req.dc_ev_power_delivery_parameter.bulk_charging_complete)
+            EVEREST_CTX.publish(
+                'DC_BulkChargingComplete', power_delivery_req.dc_ev_power_delivery_parameter.bulk_charging_complete)
         # EVerest code end #
 
         logger.debug(
@@ -956,7 +971,8 @@ class CurrentDemand(StateSECC):
             EVEREST_CTX.publish('currentDemand_Started', None)
             self.firstMessage = False
 
-        EVEREST_CTX.publish('DC_ChargingComplete', current_demand_req.charging_complete)
+        EVEREST_CTX.publish('DC_ChargingComplete',
+                            current_demand_req.charging_complete)
 
         ev_status: dict = dict([
             ("DC_EVReady", current_demand_req.dc_ev_status.ev_ready),
@@ -964,14 +980,18 @@ class CurrentDemand(StateSECC):
             ("DC_EVRESSSOC", current_demand_req.dc_ev_status.ev_ress_soc),
         ])
         if current_demand_req.dc_ev_status.ev_cabin_conditioning:
-            ev_status.update({"DC_EVCabinConditioning": current_demand_req.dc_ev_status.ev_cabin_conditioning})
+            ev_status.update(
+                {"DC_EVCabinConditioning": current_demand_req.dc_ev_status.ev_cabin_conditioning})
         if current_demand_req.dc_ev_status.ev_ress_conditioning:
-            ev_status.update({"DC_EVRESSConiditioning": current_demand_req.dc_ev_status.ev_ress_conditioning})
+            ev_status.update(
+                {"DC_EVRESSConiditioning": current_demand_req.dc_ev_status.ev_ress_conditioning})
         EVEREST_CTX.publish('DC_EVStatus', ev_status)
 
-        ev_target_voltage = current_demand_req.ev_target_voltage.value * pow(10, current_demand_req.ev_target_voltage.multiplier)
+        ev_target_voltage = current_demand_req.ev_target_voltage.value * \
+            pow(10, current_demand_req.ev_target_voltage.multiplier)
         # if ev_target_voltage < 0: ev_target_voltage = 0
-        ev_target_current = current_demand_req.ev_target_current.value * pow(10, current_demand_req.ev_target_current.multiplier)
+        ev_target_current = current_demand_req.ev_target_current.value * \
+            pow(10, current_demand_req.ev_target_current.multiplier)
         # if ev_target_current < 0: ev_target_current = 0
         ev_targetvalues: dict = dict([
             ("DC_EVTargetVoltage", ev_target_voltage),
@@ -980,35 +1000,38 @@ class CurrentDemand(StateSECC):
         EVEREST_CTX.publish('DC_EVTargetVoltageCurrent', ev_targetvalues)
 
         if current_demand_req.bulk_charging_complete:
-            EVEREST_CTX.publish('DC_BulkChargingComplete', current_demand_req.bulk_charging_complete)
+            EVEREST_CTX.publish('DC_BulkChargingComplete',
+                                current_demand_req.bulk_charging_complete)
 
         ev_maxvalues: dict = dict()
-                
-        if current_demand_req.ev_max_current_limit: 
+
+        if current_demand_req.ev_max_current_limit:
             ev_max_current_limit: float = current_demand_req.ev_max_current_limit.value * pow(
                 10, current_demand_req.ev_max_current_limit.multiplier
             )
             # if ev_max_current_limit < 0: ev_max_current_limit = 0
-            ev_maxvalues.update({"DC_EVMaximumCurrentLimit": ev_max_current_limit})
+            ev_maxvalues.update(
+                {"DC_EVMaximumCurrentLimit": ev_max_current_limit})
 
         if current_demand_req.ev_max_voltage_limit:
             ev_max_voltage_limit: float = current_demand_req.ev_max_voltage_limit.value * pow(
                 10, current_demand_req.ev_max_voltage_limit.multiplier
             )
             # if ev_max_voltage_limit < 0: ev_max_voltage_limit = 0
-            ev_maxvalues.update({"DC_EVMaximumVoltageLimit": ev_max_voltage_limit})
+            ev_maxvalues.update(
+                {"DC_EVMaximumVoltageLimit": ev_max_voltage_limit})
 
         if current_demand_req.ev_max_power_limit:
             ev_max_power_limit: float = current_demand_req.ev_max_power_limit.value * pow(
                 10, current_demand_req.ev_max_power_limit.multiplier
             )
-            # if ev_max_power_limit < 0: ev_max_power_limit = 0 
+            # if ev_max_power_limit < 0: ev_max_power_limit = 0
             ev_maxvalues.update({"DC_EVMaximumPowerLimit": ev_max_power_limit})
-        
+
         if ev_maxvalues:
             EVEREST_CTX.publish('DC_EVMaximumLimits', ev_maxvalues)
-        
-        format = "%Y-%m-%dT%H:%M:%SZ" #"yyyy-MM-dd'T'HH:mm:ss'Z'"
+
+        format = "%Y-%m-%dT%H:%M:%SZ"  # "yyyy-MM-dd'T'HH:mm:ss'Z'"
         datetime_now_utc = datetime.utcnow()
 
         ev_reamingTime: dict = dict()
@@ -1017,16 +1040,20 @@ class CurrentDemand(StateSECC):
             seconds_bulk_soc: float = current_demand_req.remaining_time_to_bulk_soc.value * pow(
                 10, current_demand_req.remaining_time_to_bulk_soc.multiplier
             )
-            re_bulk_soc_time = datetime_now_utc + timedelta(seconds=seconds_bulk_soc)
-            ev_reamingTime.update({"EV_RemainingTimeToBulkSoC": re_bulk_soc_time.strftime(format)})
-            
+            re_bulk_soc_time = datetime_now_utc + \
+                timedelta(seconds=seconds_bulk_soc)
+            ev_reamingTime.update(
+                {"EV_RemainingTimeToBulkSoC": re_bulk_soc_time.strftime(format)})
+
         if current_demand_req.remaining_time_to_full_soc:
             seconds_full_soc: float = current_demand_req.remaining_time_to_full_soc.value * pow(
                 10, current_demand_req.remaining_time_to_full_soc.multiplier
             )
-            re_full_soc_time = datetime_now_utc + timedelta(seconds=seconds_full_soc)
-            ev_reamingTime.update({"EV_RemainingTimeToFullSoC": re_full_soc_time.strftime(format)})
-        
+            re_full_soc_time = datetime_now_utc + \
+                timedelta(seconds=seconds_full_soc)
+            ev_reamingTime.update(
+                {"EV_RemainingTimeToFullSoC": re_full_soc_time.strftime(format)})
+
         if ev_reamingTime:
             EVEREST_CTX.publish('DC_EVRemainingTime', ev_reamingTime)
         # EVerest code end #
@@ -1129,10 +1156,12 @@ class WeldingDetection(StateSECC):
         ])
         EVEREST_CTX.publish('DC_EVStatus', ev_status)
         if welding_detection_req.dc_ev_status.ev_cabin_conditioning:
-            ev_status.update({"DC_EVCabinConditioning": welding_detection_req.dc_ev_status.ev_cabin_conditioning})
+            ev_status.update(
+                {"DC_EVCabinConditioning": welding_detection_req.dc_ev_status.ev_cabin_conditioning})
         if welding_detection_req.dc_ev_status.ev_ress_conditioning:
-            ev_status.update({"DC_EVRESSConiditioning": welding_detection_req.dc_ev_status.ev_ress_conditioning})
-        
+            ev_status.update(
+                {"DC_EVRESSConiditioning": welding_detection_req.dc_ev_status.ev_ress_conditioning})
+
         self.expect_welding_detection = False
         self.create_next_message(
             None,

@@ -1,16 +1,21 @@
 import time
 
-from iso15118.shared.messages.enums import ControlMode, ServiceV20
+from iso15118.shared.messages.enums import AuthEnum, ControlMode, ServiceV20
 from iso15118.shared.messages.iso15118_20.common_messages import (
+    AuthorizationReq,
     ChargeProgress,
+    ContractCertificateChain,
     DynamicScheduleExchangeReqParams,
+    EIMAuthReqParams,
     EVPowerProfile,
     EVPowerProfileEntryList,
+    PnCAuthReqParams,
     PowerDeliveryReq,
     PowerScheduleEntry,
     ScheduledScheduleExchangeReqParams,
     ScheduleExchangeReq,
     ServiceDetailReq,
+    SubCertificates,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
     MessageHeader,
@@ -24,6 +29,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DCChargeParameterDiscoveryReqParams,
     DCPreChargeReq,
 )
+from iso15118.shared.security import get_random_bytes
 from tests.tools import MOCK_SESSION_ID
 
 
@@ -34,6 +40,29 @@ def get_v2g_message_service_detail_req(service_list: int) -> ServiceDetailReq:
             timestamp=time.time(),
         ),
         service_id=service_list,
+    )
+
+
+def get_v2g_message_authorization_req(auth_service: AuthEnum) -> AuthorizationReq:
+    eim_params = None
+    pnc_params = None
+    if auth_service == AuthEnum.EIM:
+        eim_params = EIMAuthReqParams()
+    else:
+        pnc_params = PnCAuthReqParams(
+            gen_challenge=get_random_bytes(16),
+            contract_cert_chain=ContractCertificateChain(
+                certificate=b"00", sub_certificates=SubCertificates(certificates=[])
+            ),
+        )
+    return AuthorizationReq(
+        header=MessageHeader(
+            session_id=MOCK_SESSION_ID,
+            timestamp=time.time(),
+        ),
+        selected_auth_service=auth_service,
+        eim_params=eim_params,
+        pnc_params=pnc_params,
     )
 
 

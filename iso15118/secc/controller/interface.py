@@ -25,6 +25,9 @@ from iso15118.shared.messages.datatypes import (
     PVEVTargetVoltage,
 )
 from iso15118.shared.messages.din_spec.datatypes import (
+    ResponseCode as ResponseCodeDINSPEC,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
     SAScheduleTupleEntry as SAScheduleTupleEntryDINSPEC,
 )
 from iso15118.shared.messages.enums import (
@@ -45,6 +48,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargeService,
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
+from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode as ResponseCodeV2
 from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTuple
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryResParams,
@@ -64,6 +68,9 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ServiceParameterList,
 )
 from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus, RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import (
+    ResponseCode as ResponseCodeV20,
+)
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryResParams,
     BPTDynamicDCChargeLoopRes,
@@ -73,6 +80,14 @@ from iso15118.shared.messages.iso15118_20.dc import (
     ScheduledDCChargeLoopResParams,
 )
 from iso15118.shared.states import State
+
+
+@dataclass
+class AuthorizationResponse:
+    authorization_status: AuthorizationStatus
+    certificate_response_status: Optional[
+        Union[ResponseCodeV2, ResponseCodeV20, ResponseCodeDINSPEC]
+    ] = None
 
 
 @dataclass
@@ -293,7 +308,7 @@ class EVSEControllerInterface(ABC):
         id_token_type: Optional[AuthorizationTokenType] = None,
         certificate_chain: Optional[bytes] = None,
         hash_data: Optional[List[Dict[str, str]]] = None,
-    ) -> AuthorizationStatus:
+    ) -> AuthorizationResponse:
         """
         Provides the information on whether or not the user is authorized to charge at
         this EVSE. The auth token could be an RFID card, a whitelisted MAC address

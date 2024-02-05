@@ -806,7 +806,6 @@ class ChargeParameterDiscovery(StateEVCC):
             # EVerest code end #
 
             if self.comm_session.selected_charging_type_is_ac:
-
                 power_delivery_req = PowerDeliveryReq(
                     charge_progress=charge_progress,
                     sa_schedule_tuple_id=schedule_id,

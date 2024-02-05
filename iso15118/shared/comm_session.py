@@ -6,6 +6,7 @@ receiving, and processing messages during an ISO 15118 communication session.
 """
 
 import asyncio
+import gc
 import logging
 from abc import ABC, abstractmethod
 from asyncio.streams import StreamReader, StreamWriter
@@ -182,7 +183,8 @@ class SessionStateMachine(ABC):
         try:
             # First extract the V2GMessage payload from the V2GTPMessage ...
             # and then decode the bytearray into the message
-            v2gtp_msg = V2GTPMessage.from_bytes(self.comm_session.protocol, message)
+            v2gtp_msg = V2GTPMessage.from_bytes(
+                self.comm_session.protocol, message)
         except InvalidV2GTPMessageError as exc:
             logger.exception("Incoming TCPPacket is not a valid V2GTPMessage")
             raise exc
@@ -220,9 +222,10 @@ class SessionStateMachine(ABC):
         except EXIDecodingError as exc:
             logger.exception(f"{exc}")
             raise exc
-        
+
         if self.comm_session.__class__.__name__ == "SECCCommunicationSession":
-            debugV2GMessages(decoded_message=decoded_message, v2gtp_msg=v2gtp_msg)
+            debugV2GMessages(decoded_message=decoded_message,
+                             v2gtp_msg=v2gtp_msg)
 
         # Shouldn't happen, but just to be sure (otherwise mypy would complain)
         if not decoded_message:
@@ -238,7 +241,8 @@ class SessionStateMachine(ABC):
             await self.current_state.process_message(decoded_message, v2gtp_msg.payload)
         except MessageProcessingError as exc:
             logger.exception(
-                f"{exc.__class__.__name__} while processing " f"{exc.message_name}"
+                f"{exc.__class__.__name__} while processing " f"{
+                    exc.message_name}"
             )
             raise exc
         except FaultyStateImplementationError as exc:
@@ -413,7 +417,8 @@ class V2GCommunicationSession(SessionStateMachine):
             await self.writer.wait_closed()
         except ConnectionResetError as exc:
             logger.info(str(exc))
-        logger.info("TCP connection closed to peer with address " f"{self.peer_name}")
+        logger.info("TCP connection closed to peer with address " f"{
+                    self.peer_name}")
 
     async def send(self, message: V2GTPMessage):
         """
@@ -422,11 +427,12 @@ class V2GCommunicationSession(SessionStateMachine):
         Args:
             message: A V2GTPMessage
         """
-        logger.info(f"Sending {str(self.current_state.message)}")
+
         # TODO: we may also check for writer exceptions
         self.writer.write(message.to_bytes())
         await self.writer.drain()
         self.last_message_sent = message
+        logger.info(f"Sent {str(self.current_state.message)}")
 
     async def rcv_loop(self, timeout: float):
         """
@@ -449,7 +455,6 @@ class V2GCommunicationSession(SessionStateMachine):
                 # which is estimated to be maximum between 5k to 6k
                 # TODO check if that still holds with -20 (e.g. cross certs)
                 message = await asyncio.wait_for(self.reader.read(7000), timeout)
-
                 if message == b"" and self.reader.at_eof():
                     stop_reason: str = "TCP peer closed connection"
                     await self.stop(reason=stop_reason)
@@ -477,15 +482,19 @@ class V2GCommunicationSession(SessionStateMachine):
                             f"while waiting for SupportedAppProtocolReq"
                         )
                 else:
-                    error_msg = f"{exc.__class__.__name__} occurred. {str(exc)}"
+                    error_msg = f"{
+                        exc.__class__.__name__} occurred. {str(exc)}"
 
-                self.stop_reason = StopNotification(False, error_msg, self.peer_name)
+                self.stop_reason = StopNotification(
+                    False, error_msg, self.peer_name)
 
                 await self.stop(reason=error_msg)
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
-
+            gc_enabled = gc.isenabled()
             try:
+                if gc_enabled:
+                    gc.disable()
                 # This will create the values needed for the next state, such as
                 # next_state, next_v2gtp_message, next_message_payload_type etc.
                 await self.process_message(message)
@@ -500,7 +509,8 @@ class V2GCommunicationSession(SessionStateMachine):
                     await self.send(self.current_state.next_v2gtp_msg)
                     await self._update_state_info(self.current_state)
                     if self.comm_session.__class__.__name__ == "SECCCommunicationSession":
-                        debugV2GMessages(decoded_message=self.current_state.message, v2gtp_msg=self.current_state.next_v2gtp_msg)
+                        debugV2GMessages(decoded_message=self.current_state.message,
+                                         v2gtp_msg=self.current_state.next_v2gtp_msg)
 
                 if self.current_state.next_state in (Terminate, Pause):
                     await self.stop(reason=self.comm_session.stop_reason.reason)
@@ -508,6 +518,7 @@ class V2GCommunicationSession(SessionStateMachine):
                         self.comm_session.stop_reason
                     )
                     return
+
                 timeout = self.current_state.next_msg_timeout
                 self.go_to_next_state()
             except (
@@ -556,6 +567,9 @@ class V2GCommunicationSession(SessionStateMachine):
                 await self.stop(stop_reason)
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
+            finally:
+                if gc_enabled:
+                    gc.enable()
 
 def debugV2GMessages(decoded_message, v2gtp_msg):
     from iso15118.secc.everest import context as EVEREST_CTX

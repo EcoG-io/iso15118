@@ -82,7 +82,6 @@ class EVSessionContext:
     requested_energy_mode: Optional[EnergyTransferModeEnum] = None
 
 class EVControllerInterface(ABC):
-
     # ============================================================================
     # |             COMMON FUNCTIONS (FOR ALL ENERGY TRANSFER MODES)             |
     # ============================================================================
