@@ -12,10 +12,8 @@ from typing import List, Optional, Tuple, Type, Union
 import os
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.interface import (
-    EVChargeParamsLimits,
-    EVSessionContext,
-)
+from iso15118.secc.controller.ev_data import EVChargeParamsLimits, EVSessionContext
+from iso15118.secc.controller.interface import AuthorizationResponse
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
     CertAttributeError,
@@ -1385,34 +1383,52 @@ class Authorization(StateSECC):
                 ),
             )
         )
-
         response_code: Optional[
             Union[ResponseCodeV2, ResponseCodeV20, ResponseCodeDINSPEC]
         ] = ResponseCode.OK
-        if resp_status := current_authorization_status.certificate_response_status:
-            # according to table 112 of ISO 15118-2, the Response code
-            # for this message can only be one of the following:
-            # OK, FAILED,
-            # FAILED_SEQUENCE_ERROR, FAILED_SIGNATURE_ERROR,
-            # FAILED_UNKNOWN_SESSION or FAILED_CHALLENGE_INVALID
-
-            response_code = (
-                resp_status
-                if resp_status
-                in [
-                    ResponseCode.OK,
-                    ResponseCode.FAILED,
-                    ResponseCode.FAILED_SEQUENCE_ERROR,
-                    ResponseCode.FAILED_SIGNATURE_ERROR,
-                    ResponseCode.FAILED_UNKNOWN_SESSION,
-                    ResponseCode.FAILED_CHALLENGE_INVALID,
-                ]
-                else ResponseCode.FAILED
+        current_authorization_status = AuthorizationResponse(
+            authorization_status=AuthorizationStatus.ONGOING
+        )
+        if not self.authorization_complete:
+            current_authorization_status = (
+                await self.comm_session.evse_controller.is_authorized(
+                    id_token_type=(
+                        AuthorizationTokenType.EMAID
+                        if self.comm_session.selected_auth_option == AuthEnum.PNC_V2
+                        else AuthorizationTokenType.EXTERNAL
+                    ),
+                )
             )
 
+            if resp_status := current_authorization_status.certificate_response_status:
+                # according to table 112 of ISO 15118-2, the Response code
+                # for this message can only be one of the following:
+                # OK, FAILED,
+                # FAILED_SEQUENCE_ERROR, FAILED_SIGNATURE_ERROR,
+                # FAILED_UNKNOWN_SESSION or FAILED_CHALLENGE_INVALID
+
+                response_code = (
+                    resp_status
+                    if resp_status
+                    in [
+                        ResponseCode.OK,
+                        ResponseCode.FAILED,
+                        ResponseCode.FAILED_SEQUENCE_ERROR,
+                        ResponseCode.FAILED_SIGNATURE_ERROR,
+                        ResponseCode.FAILED_UNKNOWN_SESSION,
+                        ResponseCode.FAILED_CHALLENGE_INVALID,
+                    ]
+                    else ResponseCode.FAILED
+                )
+
+            if (
+                current_authorization_status.authorization_status
+                == AuthorizationStatus.ACCEPTED
+            ):
+                self.authorization_complete = True
+
         if (
-            current_authorization_status.authorization_status
-            == AuthorizationStatus.ACCEPTED
+            self.authorization_complete
             and self.comm_session.evse_controller.ready_to_charge()
         ):
             auth_status = EVSEProcessing.FINISHED
@@ -2594,7 +2610,7 @@ class CableCheck(StateSECC):
         #     await self.comm_session.evse_controller.start_cable_check()
         #     self.cable_check_req_was_received = True
 
-        self.comm_session.evse_controller.ev_data_context.soc = (
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
             cable_check_req.dc_ev_status.ev_ress_soc
         )
 
@@ -2714,7 +2730,7 @@ class PreCharge(StateSECC):
             )
             return
 
-        self.comm_session.evse_controller.ev_data_context.soc = (
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
             precharge_req.dc_ev_status.ev_ress_soc
         )
 
@@ -2899,17 +2915,103 @@ class CurrentDemand(StateSECC):
             EVEREST_CTX.publish('DC_EVRemainingTime', ev_reamingTime)
         # EVerest code end #
 
-        self.comm_session.evse_controller.ev_data_context.soc = (
+        # EVerest code start #
+        if self.firstMessage is True:
+            EVEREST_CTX.publish('currentDemand_Started', None)
+            self.firstMessage = False
+
+        EVEREST_CTX.publish('DC_ChargingComplete',
+                            current_demand_req.charging_complete)
+
+        ev_status: dict = dict([
+            ("DC_EVReady", current_demand_req.dc_ev_status.ev_ready),
+            ("DC_EVErrorCode", current_demand_req.dc_ev_status.ev_error_code),
+            ("DC_EVRESSSOC", current_demand_req.dc_ev_status.ev_ress_soc),
+        ])
+        EVEREST_CTX.publish('DC_EVStatus', ev_status)
+
+        ev_target_voltage = current_demand_req.ev_target_voltage.value * \
+            pow(10, current_demand_req.ev_target_voltage.multiplier)
+        # if ev_target_voltage < 0: ev_target_voltage = 0
+        ev_target_current = current_demand_req.ev_target_current.value * \
+            pow(10, current_demand_req.ev_target_current.multiplier)
+        # if ev_target_current < 0: ev_target_current = 0
+        ev_targetvalues: dict = dict([
+            ("DC_EVTargetVoltage", ev_target_voltage),
+            ("DC_EVTargetCurrent", ev_target_current),
+        ])
+        EVEREST_CTX.publish('DC_EVTargetVoltageCurrent', ev_targetvalues)
+
+        if current_demand_req.bulk_charging_complete:
+            EVEREST_CTX.publish('DC_BulkChargingComplete',
+                                current_demand_req.bulk_charging_complete)
+
+        ev_maxvalues: dict = dict()
+
+        if current_demand_req.ev_max_current_limit:
+            ev_max_current_limit: float = current_demand_req.ev_max_current_limit.value * pow(
+                10, current_demand_req.ev_max_current_limit.multiplier
+            )
+            # if ev_max_current_limit < 0: ev_max_current_limit = 0
+            ev_maxvalues.update(
+                {"DC_EVMaximumCurrentLimit": ev_max_current_limit})
+
+        if current_demand_req.ev_max_voltage_limit:
+            ev_max_voltage_limit: float = current_demand_req.ev_max_voltage_limit.value * pow(
+                10, current_demand_req.ev_max_voltage_limit.multiplier
+            )
+            # if ev_max_voltage_limit < 0: ev_max_voltage_limit = 0
+            ev_maxvalues.update(
+                {"DC_EVMaximumVoltageLimit": ev_max_voltage_limit})
+
+        if current_demand_req.ev_max_power_limit:
+            ev_max_power_limit: float = current_demand_req.ev_max_power_limit.value * pow(
+                10, current_demand_req.ev_max_power_limit.multiplier
+            )
+            # if ev_max_power_limit < 0: ev_max_power_limit = 0
+            ev_maxvalues.update({"DC_EVMaximumPowerLimit": ev_max_power_limit})
+
+        if ev_maxvalues:
+            EVEREST_CTX.publish('DC_EVMaximumLimits', ev_maxvalues)
+
+        format = "%Y-%m-%dT%H:%M:%SZ"  # "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        datetime_now_utc = datetime.utcnow()
+
+        ev_reamingTime: dict = dict()
+
+        if current_demand_req.remaining_time_to_bulk_soc:
+            seconds_bulk_soc: float = current_demand_req.remaining_time_to_bulk_soc.value * pow(
+                10, current_demand_req.remaining_time_to_bulk_soc.multiplier
+            )
+            re_bulk_soc_time = datetime_now_utc + \
+                timedelta(seconds=seconds_bulk_soc)
+            ev_reamingTime.update(
+                {"EV_RemainingTimeToBulkSoC": re_bulk_soc_time.strftime(format)})
+
+        if current_demand_req.remaining_time_to_full_soc:
+            seconds_full_soc: float = current_demand_req.remaining_time_to_full_soc.value * pow(
+                10, current_demand_req.remaining_time_to_full_soc.multiplier
+            )
+            re_full_soc_time = datetime_now_utc + \
+                timedelta(seconds=seconds_full_soc)
+            ev_reamingTime.update(
+                {"EV_RemainingTimeToFullSoC": re_full_soc_time.strftime(format)})
+
+        if ev_reamingTime:
+            EVEREST_CTX.publish('DC_EVRemainingTime', ev_reamingTime)
+        # EVerest code end #
+
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
             current_demand_req.dc_ev_status.ev_ress_soc
         )
 
-        self.comm_session.evse_controller.ev_data_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
             None
             if current_demand_req.remaining_time_to_bulk_soc is None
             else current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
         )
 
-        self.comm_session.evse_controller.ev_data_context.remaining_time_to_full_soc_s = (  # noqa: E501
+        self.comm_session.evse_controller.ev_data_context.ev_session_context.remaining_time_to_full_soc_s = (  # noqa: E501
             None
             if current_demand_req.remaining_time_to_full_soc is None
             else current_demand_req.remaining_time_to_full_soc.get_decimal_value()

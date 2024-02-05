@@ -8,7 +8,7 @@ import environs
 from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.secc.controller.interface import EVSessionContext
 from iso15118.shared.messages.enums import AuthEnum, Protocol
-from iso15118.shared.settings import shared_settings
+from iso15118.shared.settings import load_shared_settings, shared_settings
 from iso15118.shared.utils import load_requested_auth_modes, load_requested_protocols
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Config:
     iface: Optional[str] = None
-    log_level: Optional[int] = None
+    log_level: Optional[str] = None
     evse_controller: Type[EVSEControllerInterface] = None
     enforce_tls: bool = False
     free_charging_service: bool = False
@@ -47,6 +47,7 @@ class Config:
     ciphersuites: List[str] = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDH-ECDSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256"
 
     verify_contract_cert_chain = False
+    env_dump: Optional[dict] = None
 
     def load_envs(self, env_path: Optional[str] = None) -> None:
         """
@@ -112,15 +113,14 @@ class Config:
         # enum values in PowerDeliveryReq's ChargeProgress field). In Standby, the
         # EV can still use value-added services while not consuming any power.
         self.standby_allowed = env.bool("STANDBY_ALLOWED", default=False)
-
+        load_shared_settings(env_path)
         env.seal()  # raise all errors at once, if any
-        self.secc_env = env.dump()
+        self.env_dump = dict(env.dump())
+        self.env_dump.update(shared_settings)
 
-    def log_settings(self):
+    def print_settings(self):
         logger.info("SECC settings:")
-        for key, value in shared_settings.items():
-            logger.info(f"{key:30}: {value}")
-        for key, value in self.secc_env.items():
+        for key, value in self.env_dump.items():
             logger.info(f"{key:30}: {value}")
 
 save_ev_session_context: EVSessionContext = EVSessionContext()

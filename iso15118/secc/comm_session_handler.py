@@ -16,11 +16,8 @@ import socket
 from asyncio.streams import StreamReader, StreamWriter
 from typing import Any, Coroutine, Dict, List, Optional, Tuple, Union
 
-from iso15118.secc.controller.interface import (
-    EVSEControllerInterface,
-    EVSessionContext,
-    ServiceStatus,
-)
+from iso15118.secc.controller.ev_data import EVSessionContext
+from iso15118.secc.controller.interface import EVSEControllerInterface, ServiceStatus
 from iso15118.secc.failed_responses import (
     init_failed_responses_din_spec_70121,
     init_failed_responses_iso_v2,

@@ -4,6 +4,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.23.8] - 2023-12-06
+* chore(deps-dev): bump pytest-asyncio from 0.21.1 to 0.23.2 by @dependabot in https://github.com/SwitchEV/iso15118/pull/332
+* Precharge EVSE voltage-current by @ikaratass in https://github.com/SwitchEV/iso15118/pull/333
+* JTT-458 Fix json logging in iso15118 by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/335
+
+## [0.23.7] - 2023-11-22
+* log namespace value by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/328
+
+## [0.23.6] - 2023-11-21
+* Report session stop reason by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/315
+* chore(deps-dev): bump pytest-asyncio from 0.21.1 to 0.22.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/318
+* [JTT-291] - Relaxation of the PV limits by @tropxy in https://github.com/SwitchEV/iso15118/pull/319
+* Updates to store EV and EVSE limits shared in CPD and CL (-20 AC and DC). by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/279
+* chore(deps-dev): bump black from 23.10.0 to 23.11.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/321
+* chore(deps-dev): bump mypy from 1.6.1 to 1.7.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/322
+* Imp/jtt 113 update env attributes on run time by @ikaratass in https://github.com/SwitchEV/iso15118/pull/304
+
+**Full Changelog**: https://github.com/SwitchEV/iso15118/compare/0.23.5...0.23.6
+## [0.23.5] - 2023-10-26
+* JTT-206 Skip requesting authorization status once response is received by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/310
+
 ## [0.23.4] - 2023-10-20
 * chore(deps-dev): bump black from 23.7.0 to 23.9.1 by @dependabot in https://github.com/SwitchEV/iso15118/pull/296
 * Simplify instructions to run locally by @OrangeTux in https://github.com/SwitchEV/iso15118/pull/302

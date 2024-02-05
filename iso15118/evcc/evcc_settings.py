@@ -49,5 +49,4 @@ class Config:
         for key, value in env.dump().items():
             logger.info(f"{key:30}: {value}")
 
-
 ev_session_context: EVSessionContext = EVSessionContext()

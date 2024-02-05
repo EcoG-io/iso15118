@@ -1,5 +1,4 @@
 import os
-
 SHARED_CWD = os.path.dirname(os.path.abspath(__file__))
 JAR_FILE_PATH = SHARED_CWD + "/EXICodec.jar"
 

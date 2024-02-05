@@ -120,7 +120,7 @@ class SessionStateMachine(ABC):
     def get_exi_ns(
         self,
         payload_type: Union[DINPayloadTypes, ISOV2PayloadTypes, ISOV20PayloadTypes],
-    ) -> str:
+    ) -> Namespace:
         """
         Provides the right protocol namespace for the EXI decoder.
         In DIN SPEC 70121 and ISO 15118-2, all messages are defined
@@ -207,7 +207,7 @@ class SessionStateMachine(ABC):
                 logger.trace(  # type: ignore[attr-defined]
                     f"{self.comm_session.evse_id}:::"
                     f"{v2gtp_msg.payload.hex()}:::"
-                    f"{self.get_exi_ns(v2gtp_msg.payload_type)}"
+                    f"{self.get_exi_ns(v2gtp_msg.payload_type).value}"
                 )
 
         except V2GMessageValidationError as exc:
@@ -413,6 +413,7 @@ class V2GCommunicationSession(SessionStateMachine):
         if hasattr(self.comm_session, "evse_controller"):
             evse_controller = self.comm_session.evse_controller
             await evse_controller.update_data_link(terminate_or_pause)
+            await evse_controller.session_ended(str(self.current_state), reason)
         logger.info(f"{terminate_or_pause}d the data link")
         await asyncio.sleep(3)
         try:
