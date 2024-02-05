@@ -61,7 +61,7 @@ class TestEvScenarios:
         self.comm_session_mock.selected_energy_mode = EnergyTransferModeEnum.DC_CORE
         self.comm_session_mock.selected_auth_option = AuthEnum.EIM_V2
         self.comm_session_mock.writer = MockWriter()
-        self.comm_session_mock.ongoing_timer: float = -1
+        self.comm_session_mock.ongoing_timer = -1
 
     @pytest.fixture(autouse=True)
     def _is_welding_detection_complete(self):

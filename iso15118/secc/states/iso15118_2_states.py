@@ -8,7 +8,7 @@ import base64
 from datetime import datetime, timedelta
 import logging
 import time
-from typing import List, Optional, Type, Union
+from typing import List, Optional, Tuple, Type, Union
 import os
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
@@ -32,7 +32,19 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.datatypes import DCEVSEChargeParameter, DCEVSEStatus, DCEVSEStatusCode
+from iso15118.shared.messages.datatypes import (
+    DCEVSEChargeParameter,
+    DCEVSEStatus,
+    DCEVSEStatusCode,
+    PVEVMaxCurrent,
+    PVEVMaxCurrentLimit,
+    PVEVMaxVoltage,
+    PVEVMaxVoltageLimit,
+    PVEVSEPresentCurrent,
+)
+from iso15118.shared.messages.din_spec.datatypes import (
+    ResponseCode as ResponseCodeDINSPEC,
+)
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
     AuthEnum,
@@ -99,6 +111,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     EnergyTransferModeList,
     Parameter,
     ParameterSet,
+)
+from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode as ResponseCodeV2
+from iso15118.shared.messages.iso15118_2.datatypes import (
     SAScheduleList,
     SAScheduleTuple,
     ServiceCategory,
@@ -110,6 +125,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     SubCertificates,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
+from iso15118.shared.messages.iso15118_20.common_types import (
+    ResponseCode as ResponseCodeV20,
+)
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
@@ -221,6 +239,9 @@ class SessionSetup(StateSECC):
         )
 
         self.comm_session.evcc_id = session_setup_req.evcc_id
+        self.comm_session.evse_controller.ev_data_context.evcc_id = (
+            session_setup_req.evcc_id
+        )
         self.comm_session.session_id = session_id
 
         self.create_next_message(
@@ -744,7 +765,9 @@ class CertificateInstallation(StateSECC):
                         base64_certificate_install_req, Namespace.ISO_V2_MSG_DEF
                     )
                 )
-                certificate_installation_res: Base64 = Base64(
+                certificate_installation_res: Union[
+                    CertificateInstallationRes, Base64
+                ] = Base64(
                     message=base64_certificate_installation_res,
                     message_name=CertificateInstallationRes.__name__,
                     namespace=Namespace.ISO_V2_MSG_DEF,
@@ -754,6 +777,7 @@ class CertificateInstallation(StateSECC):
                     certificate_installation_res,
                     signature,
                 ) = self.generate_certificate_installation_res()
+
         except Exception as e:
             error = f"Error building CertificateInstallationRes: {e}"
             logger.error(error)
@@ -815,7 +839,7 @@ class CertificateInstallation(StateSECC):
 
     def generate_certificate_installation_res(
         self,
-    ) -> (CertificateInstallationRes, Signature):
+    ) -> Tuple[CertificateInstallationRes, Signature]:
         # Here we create the CertificateInstallationRes message ourselves as we
         # have access to all certificates and private keys needed.
         # This is however not the real production case.
@@ -1152,10 +1176,32 @@ class PaymentDetails(StateSECC):
                     id_token_type=AuthorizationTokenType.EMAID,
                 )
             )
-
-            response_code = ResponseCode.OK
-            if current_authorization_status.certificate_response_status:
-                response_code = current_authorization_status.certificate_response_status
+            response_code: Optional[
+                Union[ResponseCodeV2, ResponseCodeV20, ResponseCodeDINSPEC]
+            ] = ResponseCode.OK
+            if resp_status := current_authorization_status.certificate_response_status:
+                # according to table 112 of ISO 15118-2, the Response code
+                # for this message can only be one of the following:
+                # OK, FAILED,
+                # FAILED_SEQUENCE_ERROR, FAILED_SIGNATURE_ERROR,
+                # FAILED_UNKNOWN_SESSION, FAILED_CHALLENGE_INVALID
+                # FAILED_CERTIFICATE_EXPIRED, FAILED_CERTIFICATE_REVOKED,
+                # FAILED_NO_CERTIFICATE_AVAILABLE
+                response_code = (
+                    resp_status
+                    if resp_status
+                    in [
+                        ResponseCode.OK,
+                        ResponseCode.FAILED,
+                        ResponseCode.FAILED_SEQUENCE_ERROR,
+                        ResponseCode.FAILED_SIGNATURE_ERROR,
+                        ResponseCode.FAILED_UNKNOWN_SESSION,
+                        ResponseCode.FAILED_CERTIFICATE_EXPIRED,
+                        ResponseCode.FAILED_CERTIFICATE_REVOKED,
+                        ResponseCode.FAILED_NO_CERTIFICATE_AVAILABLE,
+                    ]
+                    else ResponseCode.FAILED
+                )
 
             if current_authorization_status.authorization_status in [
                 AuthorizationStatus.ACCEPTED,
@@ -1211,6 +1257,9 @@ class PaymentDetails(StateSECC):
             elif isinstance(exc, CertExpiredError):
                 response_code = ResponseCode.FAILED_CERTIFICATE_EXPIRED
                 reason = f"CertExpiredError for {exc.subject}"
+            elif isinstance(exc, CertNotYetValidError):
+                response_code = ResponseCode.FAILED_CERTIFICATE_EXPIRED
+                reason = f"[V2G2-824] (Certificate not yet valid.) CertExpiredError for {exc.subject}"  # noqa
             elif isinstance(exc, CertRevokedError):
                 response_code = ResponseCode.FAILED_CERTIFICATE_REVOKED
                 reason = f"CertRevokedError for {exc.subject}"
@@ -1320,23 +1369,46 @@ class Authorization(StateSECC):
         else:
             if (self.isAuthorizationRequested() is False and
                     self.comm_session.selected_auth_option is AuthEnum.EIM_V2
-                    ):
+                ):
                 EVEREST_CTX.publish('Require_Auth_EIM', None)
                 self.authorizationRequested = True
 
         # note that the certificate_chain and hashed_data are empty here
         # as they were already send previously in the PaymentDetails state
-        current_authorization_status = await self.comm_session.evse_controller.is_authorized(
-            id_token_type=(
-                AuthorizationTokenType.EMAID
-                if self.comm_session.selected_auth_option == AuthEnum.PNC_V2
-                else AuthorizationTokenType.EXTERNAL
+
+        current_authorization_status = (
+            await self.comm_session.evse_controller.is_authorized(
+                id_token_type=(
+                    AuthorizationTokenType.EMAID
+                    if self.comm_session.selected_auth_option == AuthEnum.PNC_V2
+                    else AuthorizationTokenType.EXTERNAL
+                ),
             )
         )
 
-        response_code = ResponseCode.OK
-        if current_authorization_status.certificate_response_status:
-            response_code = current_authorization_status.certificate_response_status
+        response_code: Optional[
+            Union[ResponseCodeV2, ResponseCodeV20, ResponseCodeDINSPEC]
+        ] = ResponseCode.OK
+        if resp_status := current_authorization_status.certificate_response_status:
+            # according to table 112 of ISO 15118-2, the Response code
+            # for this message can only be one of the following:
+            # OK, FAILED,
+            # FAILED_SEQUENCE_ERROR, FAILED_SIGNATURE_ERROR,
+            # FAILED_UNKNOWN_SESSION or FAILED_CHALLENGE_INVALID
+
+            response_code = (
+                resp_status
+                if resp_status
+                in [
+                    ResponseCode.OK,
+                    ResponseCode.FAILED,
+                    ResponseCode.FAILED_SEQUENCE_ERROR,
+                    ResponseCode.FAILED_SIGNATURE_ERROR,
+                    ResponseCode.FAILED_UNKNOWN_SESSION,
+                    ResponseCode.FAILED_CHALLENGE_INVALID,
+                ]
+                else ResponseCode.FAILED
+            )
 
         if (
             current_authorization_status.authorization_status
@@ -1480,8 +1552,12 @@ class ChargeParameterDiscovery(StateSECC):
             ac_evse_charge_params = (
                 await self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
-            ev_max_voltage = charge_params_req.ac_ev_charge_parameter.ev_max_voltage
-            ev_max_current = charge_params_req.ac_ev_charge_parameter.ev_max_current
+            ev_max_voltage: Union[
+                PVEVMaxVoltageLimit, PVEVMaxVoltage
+            ] = charge_params_req.ac_ev_charge_parameter.ev_max_voltage
+            ev_max_current: Union[
+                PVEVMaxCurrentLimit, PVEVMaxCurrent
+            ] = charge_params_req.ac_ev_charge_parameter.ev_max_current
             e_amount = charge_params_req.ac_ev_charge_parameter.e_amount
             ev_min_current = charge_params_req.ac_ev_charge_parameter.ev_min_current
             ev_charge_params_limits = EVChargeParamsLimits(
@@ -1521,9 +1597,13 @@ class ChargeParameterDiscovery(StateSECC):
             ev_energy_request = (
                 charge_params_req.dc_ev_charge_parameter.ev_energy_request
             )
+            ev_max_power = (
+                charge_params_req.dc_ev_charge_parameter.ev_maximum_power_limit
+            )
             ev_charge_params_limits = EVChargeParamsLimits(
                 ev_max_voltage=ev_max_voltage,
                 ev_max_current=ev_max_current,
+                ev_max_power=ev_max_power,
                 ev_energy_request=ev_energy_request,
             )
             departure_time = charge_params_req.dc_ev_charge_parameter.departure_time
@@ -1629,7 +1709,7 @@ class ChargeParameterDiscovery(StateSECC):
             )
 
         signature = None
-        next_state = None
+        next_state: Type[State] = None
         if sa_schedule_list:
             self.comm_session.offered_schedules = sa_schedule_list
             if charge_params_req.ac_ev_charge_parameter:
@@ -1892,7 +1972,7 @@ class PowerDelivery(StateSECC):
         logger.debug(f"ChargeProgress set to {
                      power_delivery_req.charge_progress}")
 
-        next_state: Type[State]
+        next_state: Type[State] = None
         if power_delivery_req.charge_progress == ChargeProgress.START:
 
             # EVerest code start #
@@ -2281,7 +2361,7 @@ class SessionStop(StateSECC):
         msg = self.check_msg_v2(message, [SessionStopReq])
         if not msg:
             return
-
+        next_state: Type[State] = None
         if msg.body.session_stop_req.charging_session == ChargingSession.PAUSE:
             next_state = Pause
             session_stop_state = SessionStopAction.PAUSE
@@ -2300,7 +2380,8 @@ class SessionStop(StateSECC):
 
         self.comm_session.stop_reason = StopNotification(
             True,
-            f"EV requested to {session_stop_state.value} the communication session",
+            f"EV requested to {
+                session_stop_state.value} the communication session",
             self.comm_session.writer.get_extra_info("peername"),
             session_stop_state,
         )
@@ -2397,6 +2478,7 @@ class ChargingStatus(StateSECC):
             sa_schedule_tuple_id=self.comm_session.selected_schedule,
             # EVerest code start #
             ac_evse_status=await evse_controller.get_ac_evse_status(),
+            evse_max_current=await evse_controller.get_evse_max_current_limit(),
             # TODO Could maybe request an OCPP setting that determines
             #      whether or not a receipt is required and when
             #      (probably only makes sense at the beginning and end of
@@ -2643,9 +2725,16 @@ class PreCharge(StateSECC):
                 Protocol.ISO_15118_2
             )
         )
-        present_current_in_a = present_current.value * 10**present_current.multiplier
-        target_current = precharge_req.ev_target_current
-        target_current_in_a = target_current.value * 10**target_current.multiplier
+        if isinstance(present_current, PVEVSEPresentCurrent):
+            present_current_in_a = (
+                present_current.value * 10**present_current.multiplier
+            )
+            target_current = precharge_req.ev_target_current
+            target_current_in_a = target_current.value * 10**target_current.multiplier
+        else:
+            present_current_in_a = present_current.value
+            target_current = precharge_req.ev_target_current
+            target_current_in_a = target_current.value
 
         if present_current_in_a > 2 or target_current_in_a > 2:
             self.stop_state_machine(
@@ -2813,6 +2902,23 @@ class CurrentDemand(StateSECC):
         self.comm_session.evse_controller.ev_data_context.soc = (
             current_demand_req.dc_ev_status.ev_ress_soc
         )
+
+        self.comm_session.evse_controller.ev_data_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
+            None
+            if current_demand_req.remaining_time_to_bulk_soc is None
+            else current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
+        )
+
+        self.comm_session.evse_controller.ev_data_context.remaining_time_to_full_soc_s = (  # noqa: E501
+            None
+            if current_demand_req.remaining_time_to_full_soc is None
+            else current_demand_req.remaining_time_to_full_soc.get_decimal_value()
+        )
+
+        self.comm_session.evse_controller.ev_charge_params_limits.ev_max_current = (
+            current_demand_req.ev_max_current_limit
+        )
+
         await self.comm_session.evse_controller.send_charging_command(
             current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
         )
@@ -2937,9 +3043,6 @@ class WeldingDetection(StateSECC):
         # EVerest code end #
 
         welding_detection_res = WeldingDetectionRes(
-            # todo llr: java exi codec throws error with this message.
-            #  Exception Description: No conversion value provided for the value [OK]
-            #  in field [ns5:WeldingDetectionRes.ns5:ResponseCode/text()].
             response_code=ResponseCode.OK,
             dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
             evse_present_voltage=(

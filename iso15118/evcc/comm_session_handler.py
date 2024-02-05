@@ -11,7 +11,7 @@ import asyncio
 import logging
 from asyncio.streams import StreamReader, StreamWriter
 from ipaddress import IPv6Address
-from typing import List, Optional, Tuple, Union
+from typing import Coroutine, List, Optional, Tuple, Union
 
 from pydantic.error_wrappers import ValidationError
 
@@ -107,7 +107,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         self.service_details_to_request: List[int] = []
         # Protocols supported by the EVCC as sent to the SECC via
         # the SupportedAppProtocolReq message
-        self.supported_protocols: List[Protocol] = []
+        self.supported_app_protocols: List[AppProtocol] = []
         # The Ongoing timer (given in seconds) starts running once the EVCC
         # receives a response with the field EVSEProcessing set to 'Ongoing'.
         # Once the timer is up, the EV will terminate the communication session.
@@ -200,8 +200,8 @@ class EVCCCommunicationSession(V2GCommunicationSession):
             )
             app_protocols.append(app_protocol_entry)
 
-        self.supported_protocols = app_protocols
-        sap_req = SupportedAppProtocolReq(app_protocol=self.supported_protocols)
+        self.supported_app_protocols = app_protocols
+        sap_req = SupportedAppProtocolReq(app_protocol=self.supported_app_protocols)
 
         return sap_req
 
@@ -275,13 +275,13 @@ class CommunicationSessionHandler:
         codec: IEXICodec,
         ev_controller: EVControllerInterface,
     ):
-        self.list_of_tasks = []
-        self.udp_client = None
-        self.tcp_client = None
-        self.tls_client = None
-        self.config = config
-        self.iface = iface
-        self.ev_controller = ev_controller
+        self.list_of_tasks: List[Coroutine] = []
+        self.udp_client: UDPClient = None
+        self.tcp_client: TCPClient = None
+        self.tls_client: bool = None
+        self.config: EVCCConfig = config
+        self.iface: str = iface
+        self.ev_controller: EVControllerInterface = ev_controller
         self.sdp_retries_number = SDP_MAX_REQUEST_COUNTER
         self._sdp_retry_cycles = self.config.sdp_retry_cycles
 
@@ -289,7 +289,7 @@ class CommunicationSessionHandler:
         EXI().set_exi_codec(codec)
 
         # Receiving queue for UDP client to notify about incoming datagrams
-        self._rcv_queue = asyncio.Queue(0)
+        self._rcv_queue: asyncio.Queue = asyncio.Queue(0)
 
         # The communication session is a tuple containing the session itself
         # and the associated task, so we can cancel the task when needed

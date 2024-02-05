@@ -30,7 +30,7 @@ class EVCCConfig(BaseModel):
     raw_supported_energy_services: List[str] = Field(
         _default_supported_energy_services, max_items=4, alias="supportedEnergyServices"
     )
-    supported_energy_services: Optional[List[ServiceV20]] = None
+    supported_energy_services: List[ServiceV20] = None
     is_cert_install_needed: bool = Field(False, alias="isCertInstallNeeded")
     # Indicates the security level (either TCP (unencrypted) or TLS (encrypted))
     # the EVCC shall send in the SDP request
@@ -119,3 +119,4 @@ async def load_from_file(file_name: str) -> EVCCConfig:
         return ev_config
     except Exception as err:
         logger.debug(f"Error on loading evcc config file:{err}")
+    return EVCCConfig()

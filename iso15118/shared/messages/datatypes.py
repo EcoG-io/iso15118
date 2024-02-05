@@ -32,6 +32,7 @@ class PhysicalValue(BaseModel):
     """
 
     _max_limit: int = 0
+    _min_limit: int = 0
     # XSD int16 range [-32768, 32767]
     value: int = Field(..., ge=INT_16_MIN, le=INT_16_MAX, alias="Value")
     # XSD type byte with value range [-3..3]
@@ -491,8 +492,12 @@ class PVEVTargetCurrentDin(PVEVTargetCurrent):
     See section 9.5.2.4 in DIN SPEC 70121
 
     In DIN the Element unit is optional, in ISO it is mandatory.
+    In DIN there is no range for the value specified.
+    There are EVs that sometimes send values below zero
+    (e.g. Skoda Enyaq).
     """
 
+    _min_limit: int = -10
     unit: Literal[UnitSymbol.AMPERE] = Field(None, alias="Unit")
 
 

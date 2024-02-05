@@ -3,6 +3,7 @@ This module contains a dummy implementation of the abstract class for an EVCC to
 retrieve data from the EV. The DummyEVController overrides all abstract methods from
 EVControllerInterface.
 """
+from iso15118.evcc.everest import context as EVEREST_CONTEXT, float2Value_Multiplier
 import logging
 import random
 from typing import List, Optional, Tuple, Union
@@ -130,8 +131,8 @@ from iso15118.shared.settings import get_PKI_PATH
 
 logger = logging.getLogger(__name__)
 
-from iso15118.evcc.everest import context as EVEREST_CONTEXT, float2Value_Multiplier
 EVEREST_EV_STATE = EVEREST_CONTEXT.ev_state
+
 
 class SimEVController(EVControllerInterface):
     """
@@ -142,57 +143,67 @@ class SimEVController(EVControllerInterface):
         self.config = evcc_config
         self.charging_loop_cycles: int = 0
         self.precharge_loop_cycles: int = 0
+        self.welding_detection_cycles: int = 0
         self._charging_is_completed = False
         self._soc = 10
-        max_current_limit_value, max_current_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_max_current_limit)
-        max_power_limit_value, max_power_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_max_power_limit)
-        max_voltage_limit_value, max_voltage_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_max_voltage_limit)
-        energy_capacity_value, energy_capacity_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_energy_capacity)
-        target_current_value, target_current_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_target_current)
-        target_voltage_value, target_voltage_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_target_voltage)
+        max_current_limit_value, max_current_limit_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_max_current_limit)
+        max_power_limit_value, max_power_limit_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_max_power_limit)
+        max_voltage_limit_value, max_voltage_limit_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_max_voltage_limit)
+        energy_capacity_value, energy_capacity_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_energy_capacity)
+        target_current_value, target_current_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_target_current)
+        target_voltage_value, target_voltage_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_target_voltage)
 
         self.dc_ev_charge_params: DCEVChargeParams = DCEVChargeParams(
-            dc_max_current_limit = PVEVMaxCurrentLimit(
+            dc_max_current_limit=PVEVMaxCurrentLimit(
                 multiplier=max_current_limit_multiplier, value=max_current_limit_value, unit=UnitSymbol.AMPERE
             ),
-            dc_max_power_limit = PVEVMaxPowerLimit(
+            dc_max_power_limit=PVEVMaxPowerLimit(
                 multiplier=max_power_limit_multiplier, value=max_power_limit_value, unit=UnitSymbol.WATT
             ),
-            dc_max_voltage_limit = PVEVMaxVoltageLimit(
+            dc_max_voltage_limit=PVEVMaxVoltageLimit(
                 multiplier=max_voltage_limit_multiplier, value=max_voltage_limit_value, unit=UnitSymbol.VOLTAGE
             ),
-            dc_energy_capacity = PVEVEnergyCapacity(
+            dc_energy_capacity=PVEVEnergyCapacity(
                 multiplier=energy_capacity_multiplier, value=energy_capacity_value, unit=UnitSymbol.WATT_HOURS
             ),
-            dc_target_current = PVEVTargetCurrent(
+            dc_target_current=PVEVTargetCurrent(
                 multiplier=target_current_multiplier, value=target_current_value, unit=UnitSymbol.AMPERE
             ),
-            dc_target_voltage = PVEVTargetVoltage(
+            dc_target_voltage=PVEVTargetVoltage(
                 multiplier=target_voltage_multiplier, value=target_voltage_value, unit=UnitSymbol.VOLTAGE
             ),
         )
 
-        max_discharge_current_limit_value, max_discharge_current_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_discharge_max_current_limit)
-        max_discharge_power_limit_value, max_discharge_power_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_discharge_max_power_limit)
-        discharge_target_current_value, discharge_target_current_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_discharge_target_current)
+        max_discharge_current_limit_value, max_discharge_current_limit_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_discharge_max_current_limit)
+        max_discharge_power_limit_value, max_discharge_power_limit_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_discharge_max_power_limit)
+        discharge_target_current_value, discharge_target_current_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_discharge_target_current)
 
         self.dc_ev_discharge_params: DCEVChargeParams = DCEVChargeParams(
-            dc_max_current_limit = PVEVMaxCurrentLimit(
+            dc_max_current_limit=PVEVMaxCurrentLimit(
                 multiplier=max_discharge_current_limit_multiplier, value=-max_discharge_current_limit_value, unit=UnitSymbol.AMPERE
             ),
-            dc_max_power_limit = PVEVMaxPowerLimit(
+            dc_max_power_limit=PVEVMaxPowerLimit(
                 multiplier=max_discharge_power_limit_multiplier, value=-max_discharge_power_limit_value, unit=UnitSymbol.WATT
             ),
-            dc_max_voltage_limit = PVEVMaxVoltageLimit(
+            dc_max_voltage_limit=PVEVMaxVoltageLimit(
                 multiplier=max_voltage_limit_multiplier, value=max_voltage_limit_value, unit=UnitSymbol.VOLTAGE
             ),
-            dc_energy_capacity = PVEVEnergyCapacity(
+            dc_energy_capacity=PVEVEnergyCapacity(
                 multiplier=energy_capacity_multiplier, value=energy_capacity_value, unit=UnitSymbol.WATT_HOURS
             ),
-            dc_target_current = PVEVTargetCurrent(
+            dc_target_current=PVEVTargetCurrent(
                 multiplier=discharge_target_current_multiplier, value=-discharge_target_current_value, unit=UnitSymbol.AMPERE
             ),
-            dc_target_voltage = PVEVTargetVoltage(
+            dc_target_voltage=PVEVTargetVoltage(
                 multiplier=target_voltage_multiplier, value=target_voltage_value, unit=UnitSymbol.VOLTAGE
             ),
         )
@@ -219,7 +230,8 @@ class SimEVController(EVControllerInterface):
             # The check digit (last character) is not a correctly computed one
             return "WMIV1234567890ABCDEX"
         else:
-            logger.error(f"Invalid protocol '{protocol}', can't determine EVCCID")
+            logger.error(f"Invalid protocol '{
+                         protocol}', can't determine EVCCID")
             raise InvalidProtocolError
 
     async def get_energy_transfer_mode(
@@ -251,13 +263,13 @@ class SimEVController(EVControllerInterface):
         matched_vas_services = [
             service for service in services if not service.is_energy_service
         ]
-        selected_vas_services: List[MatchedService] = []
+        selected_vas_services: List[SelectedVAS] = []
         for vas_service in matched_vas_services:
             selected_vas_services.append(
                 SelectedVAS(
-                    service=vas_service,
+                    service=vas_service.service,
                     is_free=vas_service.is_free,
-                    parameter_set=selected_vas_services.parameter_sets[0],
+                    parameter_set=vas_service.parameter_sets[0],
                 )
             )
         return selected_vas_services
@@ -268,7 +280,8 @@ class SimEVController(EVControllerInterface):
         dc_charge_params = None
 
         if (await self.get_energy_transfer_mode(protocol)).startswith("AC"):
-            e_amount = PVEAmount(multiplier=0, value=60, unit=UnitSymbol.WATT_HOURS)
+            e_amount = PVEAmount(multiplier=0, value=60,
+                                 unit=UnitSymbol.WATT_HOURS)
             ev_max_voltage = PVEVMaxVoltage(
                 multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
             )
@@ -316,20 +329,26 @@ class SimEVController(EVControllerInterface):
     ]:
         """Overrides EVControllerInterface.get_charge_params_v20()."""
 
-        max_current_limit_value, max_current_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_max_current_limit)
-        max_power_limit_value, max_power_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_max_power_limit)
-        max_voltage_limit_value, max_voltage_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_max_voltage_limit)
+        max_current_limit_value, max_current_limit_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_max_current_limit)
+        max_power_limit_value, max_power_limit_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_max_power_limit)
+        max_voltage_limit_value, max_voltage_limit_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_max_voltage_limit)
 
         ac_cpd_params = ACChargeParameterDiscoveryReqParams(
             ev_max_charge_power=RationalNumber(exponent=3, value=11),
             ev_min_charge_power=RationalNumber(exponent=0, value=100),
         )
         dc_cpd_params = DCChargeParameterDiscoveryReqParams(
-            ev_max_charge_power=RationalNumber(exponent=max_power_limit_multiplier, value=max_power_limit_value),
+            ev_max_charge_power=RationalNumber(
+                exponent=max_power_limit_multiplier, value=max_power_limit_value),
             ev_min_charge_power=RationalNumber(exponent=0, value=100),
-            ev_max_charge_current=RationalNumber(exponent=max_current_limit_multiplier, value=max_current_limit_value),
+            ev_max_charge_current=RationalNumber(
+                exponent=max_current_limit_multiplier, value=max_current_limit_value),
             ev_min_charge_current=RationalNumber(exponent=0, value=10),
-            ev_max_voltage=RationalNumber(exponent=max_voltage_limit_multiplier, value=max_voltage_limit_value),
+            ev_max_voltage=RationalNumber(
+                exponent=max_voltage_limit_multiplier, value=max_voltage_limit_value),
             ev_min_voltage=RationalNumber(exponent=0, value=10),
         )
         if selected_service.service == ServiceV20.AC:
@@ -354,7 +373,8 @@ class SimEVController(EVControllerInterface):
         else:
             # TODO Implement the remaining energy transer services
             logger.error(
-                f"Energy transfer service {selected_service.service} not supported"
+                f"Energy transfer service {
+                    selected_service.service} not supported"
             )
             raise NotImplementedError
 
@@ -432,7 +452,8 @@ class SimEVController(EVControllerInterface):
         """Overrides EVControllerInterface.process_scheduled_se_params()."""
         is_ready = bool(random.getrandbits(1))
         if not is_ready:
-            logger.debug("Scheduled parameters for ScheduleExchangeReq not yet ready")
+            logger.debug(
+                "Scheduled parameters for ScheduleExchangeReq not yet ready")
             # TODO The standard doesn't clearly define what the ChargeProgress should
             #      be if EVProcessing is set to ONGOING. Will assume
             #      ChargeProgress.START but check with standardisation community
@@ -479,7 +500,8 @@ class SimEVController(EVControllerInterface):
         """Overrides EVControllerInterface.process_dynamic_se_params()."""
         is_ready = bool(random.getrandbits(1))
         if not is_ready:
-            logger.debug("Dynamic parameters for ScheduleExchangeReq not yet ready")
+            logger.debug(
+                "Dynamic parameters for ScheduleExchangeReq not yet ready")
             # TODO The standard doesn't clearly define what the ChargeProgress should
             #      be if EVProcessing is set to ONGOING. Will assume
             #      ChargeProgress.START but check with standardisation community
@@ -508,8 +530,9 @@ class SimEVController(EVControllerInterface):
 
     async def is_cert_install_needed(self) -> bool:
         """Overrides EVControllerInterface.is_cert_install_needed()."""
-        
-        contract_leaf_path = os.path.join(get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER)
+
+        contract_leaf_path = os.path.join(
+            get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER)
 
         if self.config.is_cert_install_needed or os.path.exists(contract_leaf_path) is False:
             return True
@@ -574,7 +597,8 @@ class SimEVController(EVControllerInterface):
             # (with p_max set to 0 kW). Instead, the 'duration' informs how long the
             # current power level applies before the offered charging schedule ends.
             if schedule_entry_details.time_interval.duration:
-                zero_power = PVPMax(multiplier=0, value=0, unit=UnitSymbol.WATT)
+                zero_power = PVPMax(multiplier=0, value=0,
+                                    unit=UnitSymbol.WATT)
                 last_profile_entry_details = ProfileEntryDetails(
                     start=(
                         schedule_entry_details.time_interval.start
@@ -599,10 +623,9 @@ class SimEVController(EVControllerInterface):
 
     async def pause(self) -> bool:
         return EVEREST_EV_STATE.Pause
-    
+
     async def reset_ev_values(self):
         EVEREST_EV_STATE.reset()
-
 
     async def store_contract_cert_and_priv_key(
         self, contract_cert_chain: CertificateChain, priv_key: bytes
@@ -614,14 +637,15 @@ class SimEVController(EVControllerInterface):
         serialized_priv_key = ec_priv_key.private_bytes(
             encoding=Encoding.PEM,
             format=PrivateFormat.PKCS8,
-            encryption_algorithm=BestAvailableEncryption(priv_key_pwd.encode(encoding="utf-8"))
+            encryption_algorithm=BestAvailableEncryption(
+                priv_key_pwd.encode(encoding="utf-8"))
         )
         with open(os.path.join(get_PKI_PATH(), KeyPath.CONTRACT_LEAF_PEM), 'wb') as f:
             f.write(serialized_priv_key)
         with open(os.path.join(get_PKI_PATH(), KeyPasswordPath.CONTRACT_LEAF_KEY_PASSWORD), 'wb') as f:
             f.write(priv_key_pwd.encode(encoding="utf-8"))
-        with open(os.path.join(get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER), 'wb') as f: 
-                f.write(contract_cert_chain.certificate)
+        with open(os.path.join(get_PKI_PATH(), CertPath.CONTRACT_LEAF_DER), 'wb') as f:
+            f.write(contract_cert_chain.certificate)
 
         for sub_ca_cert in contract_cert_chain.sub_certificates.certificates:
             cert = load_der_x509_certificate(sub_ca_cert)
@@ -629,14 +653,15 @@ class SimEVController(EVControllerInterface):
                 ExtensionOID.BASIC_CONSTRAINTS
             ).value.path_length
             if path_len == 0:
-                with open(os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA2_DER), 'wb') as f: 
+                with open(os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA2_DER), 'wb') as f:
                     f.write(sub_ca_cert)
             elif path_len == 1:
-                with open(os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA1_DER), 'wb') as f: 
+                with open(os.path.join(get_PKI_PATH(), CertPath.MO_SUB_CA1_DER), 'wb') as f:
                     f.write(sub_ca_cert)
             else:
-                raise CertChainLengthError(allowed_num_sub_cas=2, num_sub_cas=path_len)
-        
+                raise CertChainLengthError(
+                    allowed_num_sub_cas=2, num_sub_cas=path_len)
+
     async def get_prioritised_emaids(self) -> Optional[EMAIDList]:
         return None
 
@@ -683,7 +708,10 @@ class SimEVController(EVControllerInterface):
         return PVRemainingTimeToBulkSOC(multiplier=0, value=80, unit="s")
 
     async def welding_detection_has_finished(self):
-        return True
+        if self.welding_detection_cycles == 3:
+            return True
+        self.welding_detection_cycles += 1
+        return False
 
     async def stop_charging(self) -> None:
         self._charging_is_completed = True
@@ -725,8 +753,10 @@ class SimEVController(EVControllerInterface):
             if selected_service == ServiceV20.AC_BPT:
                 bpt_dynamic_params = BPTDynamicACChargeLoopReqParams(
                     **(dynamic_params.dict()),
-                    ev_max_discharge_power=RationalNumber(exponent=3, value=11),
-                    ev_min_discharge_power=RationalNumber(exponent=-3, value=1),
+                    ev_max_discharge_power=RationalNumber(
+                        exponent=3, value=11),
+                    ev_min_discharge_power=RationalNumber(
+                        exponent=-3, value=1),
                     # Add more optional fields if wanted
                 )
                 return bpt_dynamic_params
@@ -758,28 +788,40 @@ class SimEVController(EVControllerInterface):
         self,
     ) -> ScheduledDCChargeLoopReqParams:
         """Overrides EVControllerInterface.get_scheduled_dc_charge_loop_params()."""
-        target_current_value, target_current_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_target_current)
-        target_voltage_value, target_voltage_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_target_voltage)
+        target_current_value, target_current_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_target_current)
+        target_voltage_value, target_voltage_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_target_voltage)
         return ScheduledDCChargeLoopReqParams(
-            ev_target_current=RationalNumber(exponent=target_current_multiplier, value=target_current_value),
-            ev_target_voltage=RationalNumber(exponent=target_voltage_multiplier, value=target_voltage_value),
+            ev_target_current=RationalNumber(
+                exponent=target_current_multiplier, value=target_current_value),
+            ev_target_voltage=RationalNumber(
+                exponent=target_voltage_multiplier, value=target_voltage_value),
         )
 
     async def get_dynamic_dc_charge_loop_params(self) -> DynamicDCChargeLoopReqParams:
         """Overrides EVControllerInterface.get_dynamic_dc_charge_loop_params()."""
-        max_current_limit_value, max_current_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_max_current_limit)
-        max_power_limit_value, max_power_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_max_power_limit)
-        max_voltage_limit_value, max_voltage_limit_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_max_voltage_limit)
-        energy_capacity_value, energy_capacity_multiplier = float2Value_Multiplier(EVEREST_EV_STATE.dc_energy_capacity)
+        max_current_limit_value, max_current_limit_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_max_current_limit)
+        max_power_limit_value, max_power_limit_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_max_power_limit)
+        max_voltage_limit_value, max_voltage_limit_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_max_voltage_limit)
+        energy_capacity_value, energy_capacity_multiplier = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_energy_capacity)
 
         return DynamicDCChargeLoopReqParams(
-            ev_target_energy_request=RationalNumber(exponent=energy_capacity_multiplier, value=energy_capacity_value),
+            ev_target_energy_request=RationalNumber(
+                exponent=energy_capacity_multiplier, value=energy_capacity_value),
             ev_max_energy_request=RationalNumber(exponent=3, value=60),
             ev_min_energy_request=RationalNumber(exponent=0, value=1),
-            ev_max_charge_power=RationalNumber(exponent=max_power_limit_multiplier, value=max_power_limit_value),
+            ev_max_charge_power=RationalNumber(
+                exponent=max_power_limit_multiplier, value=max_power_limit_value),
             ev_min_charge_power=RationalNumber(exponent=0, value=0),
-            ev_max_charge_current=RationalNumber(exponent=max_current_limit_multiplier, value=max_current_limit_value),
-            ev_max_voltage=RationalNumber(exponent=max_voltage_limit_multiplier, value=max_voltage_limit_value),
+            ev_max_charge_current=RationalNumber(
+                exponent=max_current_limit_multiplier, value=max_current_limit_value),
+            ev_max_voltage=RationalNumber(
+                exponent=max_voltage_limit_multiplier, value=max_voltage_limit_value),
             ev_min_voltage=RationalNumber(exponent=0, value=150),
         )
 
@@ -810,12 +852,14 @@ class SimEVController(EVControllerInterface):
 
     async def get_present_voltage(self) -> RationalNumber:
         """Overrides EVControllerInterface.get_present_voltage()."""
-        value, exponent = float2Value_Multiplier(EVEREST_EV_STATE.dc_target_voltage)
+        value, exponent = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_target_voltage)
         return RationalNumber(exponent=exponent, value=value)
 
     async def get_target_voltage(self) -> RationalNumber:
         """Overrides EVControllerInterface.get_target_voltage()."""
-        value, exponent = float2Value_Multiplier(EVEREST_EV_STATE.dc_target_voltage)
+        value, exponent = float2Value_Multiplier(
+            EVEREST_EV_STATE.dc_target_voltage)
         return RationalNumber(exponent=exponent, value=value)
 
     # ============================================================================
@@ -828,7 +872,7 @@ class SimEVController(EVControllerInterface):
     async def get_dc_discharge_params(self) -> DCEVChargeParams:
         """Applies to both DIN SPEC and 15118-2"""
         return self.dc_ev_discharge_params
-    
+
     async def get_charge_params_v2h(self, protocol: Protocol) -> ChargeParamsV2:
         """Overrides EVControllerInterface.get_charge_params_v2()."""
         ac_charge_params = None

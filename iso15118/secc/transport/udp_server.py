@@ -47,7 +47,7 @@ class UDPServer(asyncio.DatagramProtocol):
         self.pause_server: bool = False
 
     @staticmethod
-    async def _create_socket(iface: str) -> "socket":
+    async def _create_socket(iface: str) -> socket.socket:
         """
         This method is necessary because Python does not allow
         async def __init__.
@@ -113,6 +113,8 @@ class UDPServer(asyncio.DatagramProtocol):
         loop = asyncio.get_running_loop()
         # One protocol instance will be created to serve all client requests
         self._transport, _ = await loop.create_datagram_endpoint(
+            # DatagramTransport is a subclass of BaseTransport,
+            # which is not recognized by mypy
             lambda: self,
             sock=await self._create_socket(self.iface),
         )

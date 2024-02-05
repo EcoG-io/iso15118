@@ -1,7 +1,7 @@
 import json
 import logging
 from base64 import b64decode, b64encode
-from typing import Union
+from typing import Optional, Type, Union
 
 from pydantic import ValidationError
 
@@ -17,9 +17,11 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
+from iso15118.shared.messages.din_spec.body import BodyBase as BodyBaseDINSPEC
 from iso15118.shared.messages.din_spec.body import get_msg_type as get_msg_type_dinspec
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import Namespace
+from iso15118.shared.messages.iso15118_2.body import BodyBase as BodyBaseV2
 from iso15118.shared.messages.iso15118_2.body import get_msg_type
 from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
@@ -53,6 +55,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionStopReq,
     SessionStopRes,
 )
+from iso15118.shared.messages.iso15118_20.common_types import V2GMessage
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
@@ -247,7 +250,9 @@ class EXI:
         try:
             exi_stream = self.exi_codec.encode(msg_content, protocol_ns)
         except Exception as exc:
-            logger.error(f"EXIEncodingError for {str(msg_element)}: {exc}")
+            logger.error(
+                f"EXIEncodingError in {protocol_ns} with {str(msg_content)}: {exc}"
+            )
             raise EXIEncodingError(
                 f"EXIEncodingError for {str(msg_element)}: " f"{exc}"
             ) from exc
@@ -321,7 +326,7 @@ class EXI:
                 # When parsing the dict, we need to remove the first key, which is
                 # the message name itself (e.g. SessionSetupReq)
                 msg_dict = decoded_dict[msg_name]
-                msg_classes_dict = {
+                msg_classes_dict: dict[str, Type[V2GMessage]] = {
                     "SessionSetupReq": SessionSetupReq,
                     "SessionSetupRes": SessionSetupRes,
                     "AuthorizationSetupReq": AuthorizationSetupReq,
@@ -358,7 +363,7 @@ class EXI:
                     "SessionStopRes": SessionStopRes,
                     # TODO add all the other message types and states
                 }
-                msg_class = msg_classes_dict.get(msg_name)
+                msg_class: Type[V2GMessage] = msg_classes_dict.get(msg_name)
                 if not msg_class:
                     logger.error(
                         "Unable to identify message to parse given the message "
@@ -370,6 +375,17 @@ class EXI:
 
             raise EXIDecodingError("Can't identify protocol to use for decoding")
         except ValidationError as exc:
+            msg_type: Optional[
+                Type[
+                    Union[
+                        BodyBaseDINSPEC,
+                        BodyBaseV2,
+                        V2GMessage,
+                        SupportedAppProtocolReq,
+                        SupportedAppProtocolRes,
+                    ]
+                ],
+            ] = None
             if namespace == Namespace.ISO_V2_MSG_DEF:
                 msg_name = next(iter(decoded_dict["V2G_Message"]["Body"]))
                 msg_type = get_msg_type(msg_name)

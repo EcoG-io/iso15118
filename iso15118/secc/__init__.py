@@ -26,10 +26,10 @@ class SECCHandler(CommunicationSessionHandler):
             evse_controller,
         )
 
-    async def start(self, iface: str):
+    async def start(self, iface: str, start_udp_server: Optional[bool] = True):
         try:
             logger.info(f"Starting 15118 version: {__version__}")
-            await self.start_session_handler(iface)
+            await self.start_session_handler(iface, start_udp_server)
         except Exception as exc:
             logger.error(f"SECC terminated: {exc}")
             # Re-raise so the process ends with a non-zero exit code and the

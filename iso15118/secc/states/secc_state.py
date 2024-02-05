@@ -36,6 +36,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
 from iso15118.shared.messages.iso15118_20.common_types import (
     ResponseCode as ResponseCodeV20,
 )
+from iso15118.shared.messages.iso15118_20.common_types import V2GMessage
 from iso15118.shared.messages.iso15118_20.common_types import (
     V2GMessage as V2GMessageV20,
 )
@@ -235,7 +236,7 @@ class StateSECC(State, ABC):
         ]
         if isinstance(message, V2GMessageV2) or isinstance(message, V2GMessageDINSPEC):
             # ISO 15118-2
-            msg_body = message.body.get_message()
+            msg_body = message.body.get_message()  # type: ignore
         else:
             # SupportedAppProtocolReq, V2GRequestV20 (ISO 15118-20)
             msg_body = message
@@ -317,7 +318,12 @@ class StateSECC(State, ABC):
         self.comm_session.stop_reason = StopNotification(
             False, reason, self.comm_session.writer.get_extra_info("peername")
         )
-
+        msg_type: Optional[
+            Union[
+                Type[Union[BodyBaseDINSPEC, BodyBaseV2, V2GMessage]],
+                SupportedAppProtocolReq,
+            ]
+        ] = None
         if isinstance(faulty_request, V2GMessageV2):
             msg_type = get_msg_type(str(faulty_request))
             msg_namespace = Namespace.ISO_V2_MSG_DEF
@@ -328,8 +334,8 @@ class StateSECC(State, ABC):
             msg_type = type(faulty_request)
             msg_namespace = Namespace.ISO_V20_BASE
         elif isinstance(faulty_request, SupportedAppProtocolReq):
-            msg_namespace = Namespace.SAP
             msg_type = faulty_request
+            msg_namespace = Namespace.SAP
         else:
             msg_type = message_body_type
             msg_namespace = namespace

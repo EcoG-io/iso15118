@@ -14,7 +14,7 @@ import asyncio
 import logging
 import socket
 from asyncio.streams import StreamReader, StreamWriter
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Coroutine, Dict, List, Optional, Tuple, Union
 
 from iso15118.secc.controller.interface import (
     EVSEControllerInterface,
@@ -51,7 +51,13 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     eMAID,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import ScheduleTuple
-from iso15118.shared.messages.sdp import SDPRequest, Security, create_sdp_response
+from iso15118.shared.messages.sdp import (
+    SDPRequest,
+    SDPResponse,
+    SDPResponseWireless,
+    Security,
+    create_sdp_response,
+)
 from iso15118.shared.messages.timeouts import Timeouts
 from iso15118.shared.messages.v2gtp import V2GTPMessage
 from iso15118.shared.notifications import (
@@ -172,13 +178,13 @@ class CommunicationSessionHandler:
     def __init__(
         self, config: Config, codec: IEXICodec, evse_controller: EVSEControllerInterface
     ):
-        self.list_of_tasks = []
-        self.udp_server = None
-        self.tcp_server = None
-        self.tcp_server_handler = None
-        self.config = config
-        self.evse_controller = evse_controller
-        self.udp_processor_lock = asyncio.Lock()
+        self.list_of_tasks: List[Coroutine] = []
+        self.udp_server: Optional[UDPServer] = None
+        self.tcp_server: Optional[TCPServer] = None
+        self.tcp_server_handler: Optional[asyncio.Task[Any]] = None
+        self.config: Config = config
+        self.evse_controller: EVSEControllerInterface = evse_controller
+        self.udp_processor_lock: asyncio.Lock = asyncio.Lock()
 
         # List of server status events
         self.status_event_list: List[asyncio.Event] = []
@@ -188,15 +194,18 @@ class CommunicationSessionHandler:
 
         # Receiving queue for UDP or TCP packets and session
         # triggers (e.g. pause/terminate)
-        self._rcv_queue = asyncio.Queue()
+        self._rcv_queue: asyncio.Queue = asyncio.Queue()
 
         # The comm_sessions dict keys are of type str (the IPv6 address), the
         # values are a tuple containing the SECCCommunicationSession and the
         # associated ayncio.Task object (so we can cancel the task when needed)
-        self.comm_sessions: Dict[str,
-                                 (SECCCommunicationSession, asyncio.Task)] = {}
+        self.comm_sessions: Dict[
+            str, Tuple[SECCCommunicationSession, asyncio.Task]
+        ] = {}
 
-    async def start_session_handler(self, iface: str):
+    async def start_session_handler(
+        self, iface: str, start_udp_server: Optional[bool] = True
+    ):
         """
         This method is necessary, because python does not allow
         async def __init__.
@@ -204,17 +213,23 @@ class CommunicationSessionHandler:
         constructor.
         """
 
-        self.udp_server = UDPServer(self._rcv_queue, iface)
-        udp_ready_event: asyncio.Event = asyncio.Event()
-        self.status_event_list.append(udp_ready_event)
+        if start_udp_server:
+            self.udp_server = UDPServer(self._rcv_queue, iface)
+            udp_ready_event: asyncio.Event = asyncio.Event()
+            self.status_event_list.append(udp_ready_event)
+            self.list_of_tasks.append(self.udp_server.start(udp_ready_event))
+        else:
+            logger.info(f"UDP server disabled on {iface}")
+
         self.tcp_server = TCPServer(
             self._rcv_queue, iface, self.config.ciphersuites)
 
-        self.list_of_tasks = [
-            self.get_from_rcv_queue(self._rcv_queue),
-            self.udp_server.start(udp_ready_event),
-            self.check_status_task(True),
-        ]
+        self.list_of_tasks.extend(
+            [
+                self.get_from_rcv_queue(self._rcv_queue),
+                self.check_status_task(True),
+            ]
+        )
 
         logger.info("Communication session handler started")
 
@@ -263,7 +278,8 @@ class CommunicationSessionHandler:
                 if isinstance(notification, UDPPacketNotification):
                     await self.process_incoming_udp_packet(notification)
                 elif isinstance(notification, TCPClientNotification):
-                    self.udp_server.pause_udp_server()
+                    if self.udp_server:
+                        self.udp_server.pause_udp_server()
                     logger.info(
                         "TCP client connected, client address is "
                         f"{notification.ip_address}."
@@ -274,11 +290,9 @@ class CommunicationSessionHandler:
                         comm_session.resume()
                     except (KeyError, ConnectionResetError) as e:
                         if isinstance(e, ConnectionResetError):
-                            logger.info(
-                                "Can't resume session. End and start new one.")
+                            logger.info("Can't resume session. End and start new one.")
                             await self.end_current_session(
-                                notification.ip_address,
-                                SessionStopAction.TERMINATE,
+                                notification.ip_address, SessionStopAction.TERMINATE
                             )
                         comm_session = SECCCommunicationSession(
                             notification.transport,
@@ -317,12 +331,6 @@ class CommunicationSessionHandler:
             self, peer_ip_address: str, session_stop_action: SessionStopAction
     ):
         try:
-            if session_stop_action == SessionStopAction.TERMINATE:
-                del self.comm_sessions[peer_ip_address]
-            else:
-                logger.debug(
-                    f"Preserved session state: {self.comm_sessions[peer_ip_address][0].ev_session_context}"  # noqa
-                )
             await cancel_task(self.tcp_server_handler)
             await cancel_task(self.comm_sessions[peer_ip_address][1])
         except Exception as e:
@@ -334,14 +342,11 @@ class CommunicationSessionHandler:
                 logger.debug(
                     f"Preserved session state: {self.comm_sessions[peer_ip_address][0].ev_session_context}"  # noqa
                 )
-
         self.tcp_server_handler = None
-        self.udp_server.resume_udp_server()
+        if self.udp_server:
+            self.udp_server.resume_udp_server()
 
     async def start_tcp_server(self, with_tls: bool):
-        if self.tcp_server_handler and self.tcp_server.is_tls_enabled == with_tls:
-            return
-
         if self.tcp_server_handler:
             logger.info("Reset current tcp handler.")
             try:
@@ -364,6 +369,24 @@ class CommunicationSessionHandler:
             )
         await self.check_status_task(False)
 
+    async def process_sdp_request(
+        self, sdp_request: SDPRequest
+    ) -> Union[SDPResponse, SDPResponseWireless]:
+        if self.config.enforce_tls or sdp_request.security == Security.TLS:
+            await self.start_tcp_server(True)
+        else:
+            await self.start_tcp_server(False)
+
+        port = self.tcp_server.port
+        # convert IPv6 address from presentation to numeric format
+        ipv6_bytes = socket.inet_pton(
+            socket.AF_INET6, self.tcp_server.ipv6_address_host
+        )
+
+        return create_sdp_response(
+            sdp_request, ipv6_bytes, port, self.tcp_server.is_tls_enabled
+        )
+
     async def process_incoming_udp_packet(self, message: UDPPacketNotification):
         """
         We expect this to be an SDP request from the UDP client. It could be an
@@ -385,22 +408,7 @@ class CommunicationSessionHandler:
                 try:
                     sdp_request = SDPRequest.from_payload(v2gtp_msg.payload)
                     logger.info(f"SDPRequest received: {sdp_request}")
-
-                    if self.config.enforce_tls or sdp_request.security == Security.TLS:
-                        await self.start_tcp_server(True)
-                        port = self.tcp_server.port_tls
-                    else:
-                        await self.start_tcp_server(False)
-                        port = self.tcp_server.port_no_tls
-
-                    # convert IPv6 address from presentation to numeric format
-                    ipv6_bytes = socket.inet_pton(
-                        socket.AF_INET6, self.tcp_server.ipv6_address_host
-                    )
-
-                    sdp_response = create_sdp_response(
-                        sdp_request, ipv6_bytes, port, self.tcp_server.is_tls_enabled
-                    )
+                    sdp_response = await self.process_sdp_request(sdp_request)
                 except InvalidSDPRequestError as exc:
                     logger.exception(
                         f"{exc.__class__.__name__}, received bytes: "

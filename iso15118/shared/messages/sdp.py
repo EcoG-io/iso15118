@@ -4,6 +4,11 @@ from ipaddress import IPv6Address
 from typing import Union
 
 from iso15118.shared.exceptions import InvalidSDPRequestError, InvalidSDPResponseError
+from iso15118.shared.messages.enums import (
+    DINPayloadTypes,
+    ISOV2PayloadTypes,
+    ISOV20PayloadTypes,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +99,9 @@ class SDPRequest:
         self.security = security
         self.transport_protocol = transport_protocol
         # SDPRequest has the same payload type in -2 and -20
-        self.payload_type = 0x9000
+        self.payload_type: Union[
+            DINPayloadTypes, ISOV2PayloadTypes, ISOV20PayloadTypes
+        ] = ISOV2PayloadTypes.SDP_REQUEST
 
     def to_payload(self) -> bytes:
         message = self.security.to_bytes(1, "big") + self.transport_protocol.to_bytes(

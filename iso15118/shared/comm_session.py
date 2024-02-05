@@ -140,11 +140,11 @@ class SessionStateMachine(ABC):
         elif self.comm_session.protocol == Protocol.DIN_SPEC_70121:
             return Namespace.DIN_MSG_DEF
         elif self.comm_session.protocol.ns.startswith(Namespace.ISO_V20_BASE):
-            return self.v20_payload_type_to_namespace.get(
-                payload_type.value, Namespace.ISO_V20_COMMON_MSG
-            )
-        else:
-            return Namespace.ISO_V20_COMMON_MSG
+            if isinstance(payload_type, ISOV20PayloadTypes):
+                return self.v20_payload_type_to_namespace.get(
+                    payload_type, Namespace.ISO_V20_COMMON_MSG
+                )
+        return Namespace.ISO_V20_COMMON_MSG
 
     async def process_message(self, message: bytes):
         """
@@ -204,23 +204,24 @@ class SessionStateMachine(ABC):
             )
 
             if hasattr(self.comm_session, "evse_id"):
-                logger.trace(
+                logger.trace(  # type: ignore[attr-defined]
                     f"{self.comm_session.evse_id}:::"
                     f"{v2gtp_msg.payload.hex()}:::"
-                    f"{self.get_exi_ns(v2gtp_msg.payload_type).value}"
+                    f"{self.get_exi_ns(v2gtp_msg.payload_type)}"
                 )
 
         except V2GMessageValidationError as exc:
-            self.comm_session.current_state.stop_state_machine(
-                exc.reason,
-                None,
-                exc.response_code,
-                exc.message,
-                self.get_exi_ns(v2gtp_msg.payload_type),
+            logger.error(
+                f"EXI message (ns={self.get_exi_ns(v2gtp_msg.payload_type)}) "
+                f"where validation failed: {v2gtp_msg.payload.hex()}"
             )
-            return
+            raise exc
         except EXIDecodingError as exc:
             logger.exception(f"{exc}")
+            logger.error(
+                f"EXI message (ns={self.get_exi_ns(v2gtp_msg.payload_type)}) "
+                f"where error occured: {v2gtp_msg.payload.hex()}"
+            )
             raise exc
 
         if self.comm_session.__class__.__name__ == "SECCCommunicationSession":
@@ -375,7 +376,8 @@ class V2GCommunicationSession(SessionStateMachine):
 
     async def _update_state_info(self, state: State):
         if hasattr(self.comm_session, "evse_controller"):
-            await self.comm_session.evse_controller.set_present_protocol_state(state)
+            evse_controller = self.comm_session.evse_controller
+            await evse_controller.set_present_protocol_state(state)
 
     async def stop(self, reason: str):
         """
@@ -409,13 +411,14 @@ class V2GCommunicationSession(SessionStateMachine):
         # Signal data link layer to either terminate or pause the data
         # link connection
         if hasattr(self.comm_session, "evse_controller"):
-            await self.comm_session.evse_controller.update_data_link(terminate_or_pause)
+            evse_controller = self.comm_session.evse_controller
+            await evse_controller.update_data_link(terminate_or_pause)
         logger.info(f"{terminate_or_pause}d the data link")
         await asyncio.sleep(3)
         try:
             self.writer.close()
             await self.writer.wait_closed()
-        except ConnectionResetError as exc:
+        except (asyncio.TimeoutError, ConnectionResetError) as exc:
             logger.info(str(exc))
         logger.info("TCP connection closed to peer with address " f"{
                     self.peer_name}")
@@ -467,7 +470,7 @@ class V2GCommunicationSession(SessionStateMachine):
                     )
                     return
             except (asyncio.TimeoutError, ConnectionResetError) as exc:
-                if type(exc) == asyncio.TimeoutError:
+                if type(exc) is asyncio.TimeoutError:
                     if self.last_message_sent:
                         error_msg = (
                             f"{exc.__class__.__name__} occurred. Waited "
@@ -538,7 +541,7 @@ class V2GCommunicationSession(SessionStateMachine):
                 if isinstance(exc, InvalidV2GTPMessageError):
                     additional_info = f": {exc}"
 
-                stop_reason: str = (
+                stop_reason = (
                     f"{exc.__class__.__name__} occurred while processing message "
                     f"{message_name} in state {str(self.current_state)}"
                     f":{additional_info}"
@@ -554,7 +557,7 @@ class V2GCommunicationSession(SessionStateMachine):
                 self.session_handler_queue.put_nowait(self.stop_reason)
                 return
             except (AttributeError, ValueError) as exc:
-                stop_reason: str = (
+                stop_reason = (
                     f"{exc.__class__.__name__} occurred while processing message in "
                     f"state {str(self.current_state)}: {exc}"
                 )

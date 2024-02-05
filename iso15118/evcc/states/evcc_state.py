@@ -12,14 +12,12 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
-from iso15118.shared.messages.din_spec.body import BodyBase as BodyBaseDINSPEC
 from iso15118.shared.messages.din_spec.body import Response as ResponseDINSPEC
 from iso15118.shared.messages.din_spec.body import (
     SessionSetupRes as SessionSetupResDINSPEC,
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import ISOV20PayloadTypes, Namespace
-from iso15118.shared.messages.iso15118_2.body import BodyBase as BodyBaseV2
 from iso15118.shared.messages.iso15118_2.body import Response as ResponseV2
 from iso15118.shared.messages.iso15118_2.body import (
     SessionSetupRes as SessionSetupResV2,
@@ -132,9 +130,14 @@ class StateEVCC(State, ABC):
             V2GMessageV20,
             V2GMessageDINSPEC,
         ],
-        expected_msg_type: Type[T],
-    ) -> Optional[T]:
-        return self.check_msg(message, expected_msg_type, expected_msg_type)
+        expected_msg_type: Union[
+            Type[SupportedAppProtocolRes],
+            Type[ResponseV2],
+            Type[V2GResponseV20],
+            Type[ResponseDINSPEC],
+        ],
+    ) -> Optional[V2GMessageV20]:
+        return self.check_msg(message, V2GMessageV20, expected_msg_type)
 
     def check_msg(
         self,
@@ -184,12 +187,9 @@ class StateEVCC(State, ABC):
             )
             return None
 
-        msg_body: Union[
-            SupportedAppProtocolRes, BodyBaseV2, V2GResponseV20, BodyBaseDINSPEC
-        ]
         if isinstance(message, V2GMessageV2) or isinstance(message, V2GMessageDINSPEC):
             # ISO 15118-2 or DIN SPEC 72101
-            msg_body = message.body.get_message()
+            msg_body = message.body.get_message()  # type: ignore
         else:
             # SupportedAppProtocolReq, V2GRequest (ISO 15118-20)
             msg_body = message
@@ -208,7 +208,8 @@ class StateEVCC(State, ABC):
             return None
 
         if (
-            not isinstance(
+            message is not None
+            and not isinstance(
                 msg_body,
                 (
                     SupportedAppProtocolRes,
