@@ -25,6 +25,7 @@ from iso15118.shared.messages.enums import (
     Namespace,
     ParameterName,
     ServiceV20,
+    SessionStopAction,
 )
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.ac import (
@@ -958,6 +959,7 @@ class PowerDelivery(StateEVCC):
                     session_stop_req,
                     Timeouts.SESSION_STOP_REQ,
                     Namespace.ISO_V20_COMMON_MSG,
+                    ISOV20PayloadTypes.MAINSTREAM,
                 )
 
             return
@@ -1131,11 +1133,16 @@ class SessionStop(StateEVCC):
         if not msg:
             return
 
+        session_stop_reason = self.comm_session.charging_session_stop_v20.lower()
+        if session_stop_reason == "pause":
+            session_stop_action = SessionStopAction.PAUSE
+        else:
+            session_stop_action = SessionStopAction.TERMINATE
         self.comm_session.stop_reason = StopNotification(
             True,
-            f"Communication session "
-            f"{self.comm_session.charging_session_stop_v20.lower()}d",
+            f"Communication session " f"{session_stop_reason}d",
             self.comm_session.writer.get_extra_info("peername"),
+            session_stop_action,
         )
 
         if (

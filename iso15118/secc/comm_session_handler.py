@@ -194,7 +194,8 @@ class CommunicationSessionHandler:
         # The comm_sessions dict keys are of type str (the IPv6 address), the
         # values are a tuple containing the SECCCommunicationSession and the
         # associated ayncio.Task object (so we can cancel the task when needed)
-        self.comm_sessions: Dict[str, (SECCCommunicationSession, asyncio.Task)] = {}
+        self.comm_sessions: Dict[str,
+                                 (SECCCommunicationSession, asyncio.Task)] = {}
 
     async def start_session_handler(self, iface: str):
         """
@@ -207,7 +208,8 @@ class CommunicationSessionHandler:
         self.udp_server = UDPServer(self._rcv_queue, iface)
         udp_ready_event: asyncio.Event = asyncio.Event()
         self.status_event_list.append(udp_ready_event)
-        self.tcp_server = TCPServer(self._rcv_queue, iface, self.config.ciphersuites)
+        self.tcp_server = TCPServer(
+            self._rcv_queue, iface, self.config.ciphersuites)
 
         self.list_of_tasks = [
             self.get_from_rcv_queue(self._rcv_queue),
@@ -273,7 +275,8 @@ class CommunicationSessionHandler:
                         comm_session.resume()
                     except (KeyError, ConnectionResetError) as e:
                         if isinstance(e, ConnectionResetError):
-                            logger.info("Can't resume session. End and start new one.")
+                            logger.info(
+                                "Can't resume session. End and start new one.")
                             await self.end_current_session(
                                 notification.ip_address,
                                 SessionStopAction.TERMINATE,
@@ -291,7 +294,8 @@ class CommunicationSessionHandler:
                             Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT
                         )
                     )
-                    self.comm_sessions[notification.ip_address] = (comm_session, task)
+                    self.comm_sessions[notification.ip_address] = (
+                        comm_session, task)
                 elif isinstance(notification, StopNotification):
                     try:
                         await self.end_current_session(
@@ -314,8 +318,14 @@ class CommunicationSessionHandler:
             self, peer_ip_address: str, session_stop_action: SessionStopAction
     ):
         try:
-            await cancel_task(self.comm_sessions[peer_ip_address][1])
+            if session_stop_action == SessionStopAction.TERMINATE:
+                del self.comm_sessions[peer_ip_address]
+            else:
+                logger.debug(
+                    f"Preserved session state: {self.comm_sessions[peer_ip_address][0].ev_session_context}"  # noqa
+                )
             await cancel_task(self.tcp_server_handler)
+            await cancel_task(self.comm_sessions[peer_ip_address][1])
         except Exception as e:
             logger.warning(f"Unexpected error ending current session: {e}")
         finally:
@@ -330,11 +340,17 @@ class CommunicationSessionHandler:
         self.udp_server.resume_udp_server()
 
     async def start_tcp_server(self, with_tls: bool):
-        if self.tcp_server_handler is not None:
-            """A TCP server is already available, ready to respond.
-            (Perhaps created when the last SDP request was received.)
-            """
+        if self.tcp_server_handler and self.tcp_server.is_tls_enabled == with_tls:
             return
+
+        if self.tcp_server_handler:
+            logger.info("Reset current tcp handler.")
+            try:
+                await cancel_task(self.tcp_server_handler)
+            except Exception as e:
+                logger.warning(
+                    f"Error cancelling existing tcp server handler: {e}")
+            self.tcp_server_handler = None
 
         server_ready_event: asyncio.Event = asyncio.Event()
         self.status_event_list.clear()

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "iso15118"
-version = "0.20.0"
+version = "0.22.0"
 description = "Implementation of DIN SPEC 70121, ISO 15118-2 and -20 specs for SECC"
 authors = ["André Duarte <andre@switch-ev.com>",
            "Dr. Marc Mültin <marc@switch-ev.com>",
@@ -14,25 +14,23 @@ authors = ["André Duarte <andre@switch-ev.com>",
 [tool.poetry.dependencies]
 python = "^3.9"
 environs = "^9.5.0"
-cryptography = "39.0.0"
+cryptography = "40.0.1"
 pydantic = "^1.9.0"
 psutil = "^5.9.0"
 py4j = "^0.10.9"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.1.1"
-pytest-asyncio = "^0.18.3"
+pytest-asyncio = ">=0.18.3,<0.22.0"
 asynctest = "^0.13.0"
 freezegun = "^1.2.1"
 black = "22.3.0"
 isort = "^5.10.1"
-flake8 = "^4.0.1"
+flake8 = ">=4.0.1,<7.0.0"
 pytest-cov = "^3.0.0"
 aiofile = "^3.7.4"
 toml = "0.10.2"
-
-[tool.poetry.group.dev.dependencies]
-mypy = "^0.982"
+mypy = "1.2.0"
 
 [tool.isort]
 profile = "black"

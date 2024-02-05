@@ -1,9 +1,11 @@
 from pathlib import Path
+from typing import List
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
 from iso15118.secc import Config
+from iso15118.secc.controller.interface import EVSessionContext15118
 from iso15118.secc.states.iso15118_2_states import (
     Authorization,
     ChargeParameterDiscovery,
@@ -13,6 +15,8 @@ from iso15118.secc.states.iso15118_2_states import (
     PowerDelivery,
     ServiceDetail,
     ServiceDiscovery,
+    SessionSetup,
+    SessionStop,
     Terminate,
     WeldingDetection,
 )
@@ -22,18 +26,25 @@ from iso15118.shared.messages.enums import (
     AuthEnum,
     AuthorizationStatus,
     AuthorizationTokenType,
+    EnergyTransferModeEnum,
     EVSEProcessing,
+    Protocol,
 )
 from iso15118.shared.messages.iso15118_2.body import ResponseCode
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ACEVSEStatus,
+    AuthOptionList,
     CertificateChain,
+    ChargeService,
+    EnergyTransferModeList,
     ServiceCategory,
     ServiceDetails,
+    ServiceID,
     ServiceName,
 )
 from iso15118.shared.security import get_random_bytes
-from tests.secc.states.test_messages import (
+from iso15118.shared.states import Pause
+from tests.iso15118_2.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
     get_dummy_charging_status_req,
@@ -48,10 +59,15 @@ from tests.secc.states.test_messages import (
     get_power_delivery_req_charging_profile_in_limits,
     get_power_delivery_req_charging_profile_not_in_limits_span_over_sa,
     get_power_delivery_req_charging_profile_out_of_boundary,
+    get_v2g_message_charge_parameter_discovery_req,
     get_v2g_message_power_delivery_req,
     get_v2g_message_power_delivery_req_charging_profile_in_boundary_valid,
     get_v2g_message_service_detail_req,
+    get_v2g_message_service_discovery_req,
+    get_v2g_message_session_setup_from_pause,
+    get_v2g_message_session_stop_with_pause,
 )
+from tests.tools import MOCK_SESSION_ID
 
 
 @patch("iso15118.shared.states.EXI.to_exi", new=Mock(return_value=b"01"))
@@ -61,6 +77,7 @@ class TestV2GSessionScenarios:
     def _comm_session(self, comm_secc_session_mock):
         self.comm_session = comm_secc_session_mock
         self.comm_session.config = Config()
+        self.comm_session.ev_session_context = EVSessionContext15118()
         self.comm_session.is_tls = False
         self.comm_session.writer = Mock()
         self.comm_session.writer.get_extra_info = Mock()
@@ -136,7 +153,7 @@ class TestV2GSessionScenarios:
 
     @pytest.mark.parametrize(
         "auth_type, is_authorized_return_value, expected_next_state,"
-        "expected_response_code, expected_evse_processing",
+        "expected_response_code, expected_evse_processing, is_ready_to_charge",
         [
             (
                 AuthEnum.EIM,
@@ -144,6 +161,15 @@ class TestV2GSessionScenarios:
                 ChargeParameterDiscovery,
                 ResponseCode.OK,
                 EVSEProcessing.FINISHED,
+                True,
+            ),
+            (
+                AuthEnum.EIM,
+                AuthorizationStatus.ACCEPTED,
+                None,
+                ResponseCode.OK,
+                EVSEProcessing.ONGOING,
+                False,
             ),
             (
                 AuthEnum.EIM,
@@ -151,6 +177,7 @@ class TestV2GSessionScenarios:
                 None,
                 ResponseCode.OK,
                 EVSEProcessing.ONGOING,
+                True,
             ),
             (
                 AuthEnum.EIM,
@@ -158,6 +185,7 @@ class TestV2GSessionScenarios:
                 Terminate,
                 ResponseCode.FAILED,
                 EVSEProcessing.FINISHED,
+                True,
             ),
             (
                 AuthEnum.PNC_V2,
@@ -165,6 +193,15 @@ class TestV2GSessionScenarios:
                 ChargeParameterDiscovery,
                 ResponseCode.OK,
                 EVSEProcessing.FINISHED,
+                True,
+            ),
+            (
+                AuthEnum.PNC_V2,
+                AuthorizationStatus.ACCEPTED,
+                None,
+                ResponseCode.OK,
+                EVSEProcessing.ONGOING,
+                False,
             ),
             (
                 AuthEnum.PNC_V2,
@@ -172,6 +209,7 @@ class TestV2GSessionScenarios:
                 None,
                 ResponseCode.OK,
                 EVSEProcessing.ONGOING,
+                True,
             ),
             (
                 AuthEnum.PNC_V2,
@@ -179,6 +217,7 @@ class TestV2GSessionScenarios:
                 Terminate,
                 ResponseCode.FAILED,
                 EVSEProcessing.FINISHED,
+                True,
             ),
         ],
     )
@@ -189,8 +228,10 @@ class TestV2GSessionScenarios:
         expected_next_state: StateSECC,
         expected_response_code: ResponseCode,
         expected_evse_processing: EVSEProcessing,
+        is_ready_to_charge: bool,
     ):
-
+        mock_is_ready_to_charge = Mock(return_value=is_ready_to_charge)
+        self.comm_session.evse_controller.ready_to_charge = mock_is_ready_to_charge
         self.comm_session.selected_auth_option = auth_type
         mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
         self.comm_session.evse_controller.is_authorized = mock_is_authorized
@@ -517,3 +558,186 @@ class TestV2GSessionScenarios:
             service_details.message.body.service_detail_res.response_code
             is response_code
         )
+
+    async def test_session_pause(self):
+        session_stop_state = SessionStop(self.comm_session)
+        await session_stop_state.process_message(
+            message=get_v2g_message_session_stop_with_pause()
+        )
+        assert session_stop_state.next_state is Pause
+
+    @pytest.mark.parametrize(
+        "ev_session_context, session_id, response_code",
+        [
+            (
+                EVSessionContext15118(),
+                "00",
+                ResponseCode.OK_NEW_SESSION_ESTABLISHED,
+            ),
+            (
+                EVSessionContext15118(session_id=MOCK_SESSION_ID),
+                MOCK_SESSION_ID,
+                ResponseCode.OK_OLD_SESSION_JOINED,
+            ),
+            (
+                EVSessionContext15118(session_id=MOCK_SESSION_ID),
+                "ABCDEF123456",
+                ResponseCode.OK_NEW_SESSION_ESTABLISHED,
+            ),
+        ],
+    )
+    async def test_session_wakeup(self, ev_session_context, session_id, response_code):
+        self.comm_session.ev_session_context = ev_session_context
+        session_setup = SessionSetup(self.comm_session)
+        await session_setup.process_message(
+            message=get_v2g_message_session_setup_from_pause(session_id)
+        )
+        assert session_setup.response_code is response_code
+        assert session_setup.next_state is ServiceDiscovery
+
+    @pytest.mark.parametrize(
+        "ev_session_context, auth_options, charge_service",
+        [
+            (
+                EVSessionContext15118(
+                    session_id=MOCK_SESSION_ID, auth_options=[AuthEnum.PNC_V2]
+                ),
+                [AuthEnum.PNC_V2],
+                ChargeService(
+                    service_id=ServiceID.CHARGING,
+                    service_name=ServiceName.CHARGING,
+                    service_category=ServiceCategory.CHARGING,
+                    free_service=False,
+                    supported_energy_transfer_mode=EnergyTransferModeList(
+                        energy_modes=[
+                            EnergyTransferModeEnum.DC_EXTENDED,
+                            EnergyTransferModeEnum.AC_THREE_PHASE_CORE,
+                        ]
+                    ),
+                ),
+            ),
+            (
+                EVSessionContext15118(
+                    session_id=MOCK_SESSION_ID, auth_options=[AuthEnum.EIM_V2]
+                ),
+                [AuthEnum.EIM_V2],
+                ChargeService(
+                    service_id=ServiceID.CHARGING,
+                    service_name=ServiceName.CHARGING,
+                    service_category=ServiceCategory.CHARGING,
+                    free_service=False,
+                    supported_energy_transfer_mode=EnergyTransferModeList(
+                        energy_modes=[
+                            EnergyTransferModeEnum.DC_EXTENDED,
+                            EnergyTransferModeEnum.AC_THREE_PHASE_CORE,
+                        ]
+                    ),
+                ),
+            ),
+        ],
+    )
+    async def test_resumed_session_auth_options_charge_service(
+        self,
+        ev_session_context: EVSessionContext15118,
+        auth_options: List[AuthEnum],
+        charge_service: ChargeService,
+    ):
+        self.comm_session.ev_session_context = ev_session_context
+        service_discovery = ServiceDiscovery(self.comm_session)
+        await service_discovery.process_message(
+            message=get_v2g_message_service_discovery_req()
+        )
+        assert (
+            service_discovery.message.body.service_discovery_res.charge_service
+            == charge_service
+        )
+
+        assert (
+            service_discovery.message.body.service_discovery_res.auth_option_list
+            == AuthOptionList(auth_options=auth_options)
+        )
+
+    @pytest.mark.parametrize(
+        "ev_session_context, schedule_tuple_id, match_status",
+        [
+            (
+                EVSessionContext15118(
+                    session_id=MOCK_SESSION_ID, sa_schedule_tuple_id=1
+                ),
+                1,
+                True,
+            ),
+            (
+                EVSessionContext15118(
+                    session_id=MOCK_SESSION_ID, sa_schedule_tuple_id=2
+                ),
+                2,
+                False,
+            ),
+        ],
+    )
+    async def test_resumed_session_sa_schedule_tuple(
+        self,
+        ev_session_context: EVSessionContext15118,
+        schedule_tuple_id: int,
+        match_status: bool,
+    ):
+        self.comm_session.ev_session_context = ev_session_context
+        charge_parameter_discovery = ChargeParameterDiscovery(self.comm_session)
+        energy_transfer_modes = (
+            await self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+                Protocol.ISO_15118_2
+            )
+        )
+        await charge_parameter_discovery.process_message(
+            message=get_v2g_message_charge_parameter_discovery_req(
+                energy_transfer_modes[0]
+            )
+        )
+        sa_schedule_list = (
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res.sa_schedule_list.schedule_tuples  # noqa
+        )
+
+        filtered_list = list(
+            filter(
+                lambda schedule_entry: schedule_entry.sa_schedule_tuple_id
+                == schedule_tuple_id,
+                sa_schedule_list,
+            )
+        )
+
+        if match_status:
+            assert len(filtered_list) == 1
+        else:
+            assert len(filtered_list) == 0
+
+    @pytest.mark.parametrize(
+        "free_charging_service",
+        [
+            False,
+            True,
+        ],
+    )
+    async def test_sales_tariff_in_free_charging_schedules(self, free_charging_service):
+        self.comm_session.config.free_charging_service = free_charging_service
+        charge_parameter_discovery = ChargeParameterDiscovery(self.comm_session)
+        energy_transfer_modes = (
+            await self.comm_session.evse_controller.get_supported_energy_transfer_modes(
+                Protocol.ISO_15118_2
+            )
+        )
+        await charge_parameter_discovery.process_message(
+            message=get_v2g_message_charge_parameter_discovery_req(
+                energy_transfer_modes[0]
+            )
+        )
+        for (
+            schedule_tuple
+        ) in (
+            charge_parameter_discovery.message.body.charge_parameter_discovery_res.sa_schedule_list.schedule_tuples  # noqa
+        ):
+            assert (
+                schedule_tuple.sales_tariff is None
+                if free_charging_service
+                else not None
+            )

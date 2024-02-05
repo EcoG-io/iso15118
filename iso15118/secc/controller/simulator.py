@@ -5,7 +5,8 @@ This module contains the code to retrieve (hardware-related) data from the EVSE
 import base64
 import logging
 import math
-import time, calendar
+import time
+import calendar
 from typing import Dict, List, Optional, Union
 import dateutil.parser
 import os
@@ -156,6 +157,7 @@ from iso15118.secc.everest import context as EVEREST_CONTEXT, float2Value_Multip
 from iso15118.secc.everest import float2Value_Multiplier
 
 import asyncio
+from iso15118.shared.states import State
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +219,7 @@ class SimEVSEController(EVSEControllerInterface):
 
     async def get_evse_id(self, protocol: Protocol) -> str:
         """Overrides EVSEControllerInterface.get_evse_id()."""
-        
+
         if protocol == Protocol.DIN_SPEC_70121:
             #  To transform a string-based DIN SPEC 91286 EVSE ID to hexBinary
             #  representation and vice versa, the following conversion rules shall
@@ -232,7 +234,6 @@ class SimEVSEController(EVSEControllerInterface):
         else:
             evse_id: str = EVEREST_CHARGER_STATE.EVSEID
             return evse_id
-        
 
     async def get_supported_energy_transfer_modes(
         self, protocol: Protocol
@@ -294,9 +295,11 @@ class SimEVSEController(EVSEControllerInterface):
             power_range_start=RationalNumber(exponent=0, value=0),
         )
 
-        price_rule_stack = PriceRuleStack(duration=3600, price_rules=[price_rule])
+        price_rule_stack = PriceRuleStack(
+            duration=3600, price_rules=[price_rule])
 
-        price_rule_stacks = PriceRuleStackList(price_rule_stacks=[price_rule_stack])
+        price_rule_stacks = PriceRuleStackList(
+            price_rule_stacks=[price_rule_stack])
 
         overstay_rule = OverstayRule(
             description="What a great description",
@@ -380,7 +383,8 @@ class SimEVSEController(EVSEControllerInterface):
             service_parameter_list = self.v20_service_id_parameter_mapping[service_id]
         else:
             logger.error(
-                f"No ServiceParameterList available for service ID {service_id}"
+                f"No ServiceParameterList available for service ID {
+                    service_id}"
             )
             return None
 
@@ -447,7 +451,7 @@ class SimEVSEController(EVSEControllerInterface):
         if id_token_type is AuthorizationTokenType.EXTERNAL:
 
             if EVEREST_CHARGER_STATE.auth_status == "Accepted":
-                return AuthorizationStatus.ACCEPTED 
+                return AuthorizationStatus.ACCEPTED
 
         elif id_token_type is AuthorizationTokenType.EMAID:
 
@@ -485,6 +489,7 @@ class SimEVSEController(EVSEControllerInterface):
     async def get_sa_schedule_list(
         self,
         ev_charge_params_limits: EVChargeParamsLimits,
+        is_free_charging_service: bool,
         max_schedule_entries: Optional[int],
         departure_time: int = 0,
     ) -> Optional[List[SAScheduleTuple]]:
@@ -496,27 +501,67 @@ class SimEVSEController(EVSEControllerInterface):
             # time intervals shall be greater than or equal to 24 hours.
             departure_time = 86400
 
-        # PMaxSchedule
-        p_max_1 = PVPMax(multiplier=0, value=11000, unit=UnitSymbol.WATT)
-        p_max_2 = PVPMax(multiplier=0, value=7000, unit=UnitSymbol.WATT)
-        p_max_schedule_entry_1 = PMaxScheduleEntry(
-            p_max=p_max_1, time_interval=RelativeTimeInterval(start=0)
-        )
-        p_max_schedule_entry_2 = PMaxScheduleEntry(
-            p_max=p_max_2,
-            time_interval=RelativeTimeInterval(
-                start=math.floor(departure_time / 2),
-                duration=math.ceil(departure_time / 2),
-            ),
-        )
-        p_max_schedule = PMaxSchedule(
-            schedule_entries=[p_max_schedule_entry_1, p_max_schedule_entry_2]
+        # PMaxSchedule entries
+        schedule_entries = []
+        # SalesTariff
+        sales_tariff_entries: List[SalesTariffEntry] = []
+        remaining_charge_duration = departure_time
+        counter = 1
+        start = 0
+        current_pmax_val = 7000
+        while remaining_charge_duration > 0:
+
+            if current_pmax_val == 7000:
+                p_max = PVPMax(multiplier=0, value=11000, unit=UnitSymbol.WATT)
+                current_pmax_val = 11000
+            else:
+                p_max = PVPMax(multiplier=0, value=7000, unit=UnitSymbol.WATT)
+                current_pmax_val = 7000
+
+            p_max_schedule_entry = PMaxScheduleEntry(
+                p_max=p_max, time_interval=RelativeTimeInterval(start=start)
+            )
+
+            sales_tariff_entry = SalesTariffEntry(
+                e_price_level=counter,
+                time_interval=RelativeTimeInterval(start=start),
+            )
+
+            if remaining_charge_duration <= 86400:
+                p_max_schedule_entry = PMaxScheduleEntry(
+                    p_max=p_max,
+                    time_interval=RelativeTimeInterval(
+                        start=start, duration=remaining_charge_duration
+                    ),
+                )
+
+                sales_tariff_entry = SalesTariffEntry(
+                    e_price_level=counter,
+                    time_interval=RelativeTimeInterval(
+                        start=start, duration=remaining_charge_duration
+                    ),
+                )
+
+            remaining_charge_duration -= 86400
+            start += 86400
+            counter += 1
+            schedule_entries.append(p_max_schedule_entry)
+            sales_tariff_entries.append(sales_tariff_entry)
+
+        p_max_schedule = PMaxSchedule(schedule_entries=schedule_entries)
+
+        sales_tariff = SalesTariff(
+            id="id1",
+            sales_tariff_id=10,  # a random id
+            sales_tariff_entry=sales_tariff_entries,
+            num_e_price_levels=len(sales_tariff_entries),
         )
 
         # Putting the list of SAScheduleTuple entries together
         sa_schedule_tuple = SAScheduleTuple(
             sa_schedule_tuple_id=1,
             p_max_schedule=p_max_schedule,
+            sales_tariff=None if is_free_charging_service else sales_tariff,
         )
 
         # TODO We could also implement an optional SalesTariff, but for the sake of
@@ -578,7 +623,7 @@ class SimEVSEController(EVSEControllerInterface):
         startTime_ns: int = time.time_ns()
         timeout: int = 0
         PERFORMANCE_TIMEOUT: int = 4500
-        
+
         while timeout < PERFORMANCE_TIMEOUT:
             if EVEREST_CHARGER_STATE.contactorClosed is True:
                 return True
@@ -592,7 +637,7 @@ class SimEVSEController(EVSEControllerInterface):
         startTime_ns: int = time.time_ns()
         timeout: int = 0
         PERFORMANCE_TIMEOUT: int = 4500
-        
+
         while timeout < PERFORMANCE_TIMEOUT:
             if EVEREST_CHARGER_STATE.contactorOpen is True:
                 return True
@@ -622,21 +667,21 @@ class SimEVSEController(EVSEControllerInterface):
         #        evse_notification=EVSENotificationV20.TERMINATE
         #    )
         return None
-    
+
     async def get_receipt_required(self) -> bool:
         return EVEREST_CHARGER_STATE.ReceiptRequired
 
     async def reset_evse_values(self):
         EVEREST_CHARGER_STATE.reset()
-    
+
     async def get_evse_payment_options(self) -> list:
         return EVEREST_CHARGER_STATE.PaymentOptions
 
     async def is_free(self) -> bool:
         return EVEREST_CHARGER_STATE.FreeService
 
-    async def set_present_protocol_state(self, state_name: str):
-        pass
+    async def set_present_protocol_state(self, state: State):
+        logger.info(f"iso15118 state: {str(state)}")
 
     async def send_charging_power_limits(
         self,
@@ -704,24 +749,26 @@ class SimEVSEController(EVSEControllerInterface):
     async def get_ac_evse_status(self) -> ACEVSEStatus:
         """Overrides EVSEControllerInterface.get_ac_evse_status()."""
 
-        notification : EVSENotificationV2 = EVSENotificationV2.NONE
+        notification: EVSENotificationV2 = EVSENotificationV2.NONE
         if EVEREST_CHARGER_STATE.stop_charging is True:
             notification = EVSENotificationV2.STOP_CHARGING
 
         return ACEVSEStatus(
             notification_max_delay=0,
             evse_notification=notification,
-            rcd = EVEREST_CHARGER_STATE.RCD_Error,
+            rcd=EVEREST_CHARGER_STATE.RCD_Error,
         )
 
     async def get_ac_charge_params_v2(self) -> ACEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_ac_evse_charge_parameter()."""
 
-        nominal_voltage_value, nominal_voltage_multiplier = float2Value_Multiplier(EVEREST_CHARGER_STATE.EVSENominalVoltage)
+        nominal_voltage_value, nominal_voltage_multiplier = float2Value_Multiplier(
+            EVEREST_CHARGER_STATE.EVSENominalVoltage)
         evse_nominal_voltage = PVEVSENominalVoltage(
             multiplier=nominal_voltage_multiplier, value=nominal_voltage_value, unit=UnitSymbol.VOLTAGE
         )
-        max_current_value, max_current_multiplier = float2Value_Multiplier(EVEREST_CHARGER_STATE.EVSEMaxCurrent)
+        max_current_value, max_current_multiplier = float2Value_Multiplier(
+            EVEREST_CHARGER_STATE.EVSEMaxCurrent)
         evse_max_current = PVEVSEMaxCurrent(
             multiplier=max_current_multiplier, value=max_current_value, unit=UnitSymbol.AMPERE
         )
@@ -756,12 +803,17 @@ class SimEVSEController(EVSEControllerInterface):
         elif selected_service == ServiceV20.AC_BPT:
             return BPTACChargeParameterDiscoveryResParams(
                 **(ac_charge_parameter_discovery_res_params.dict()),
-                evse_max_discharge_power=RationalNumber(exponent=0, value=3000),
-                evse_max_discharge_power_l2=RationalNumber(exponent=0, value=3000),
-                evse_max_discharge_power_l3=RationalNumber(exponent=0, value=3000),
+                evse_max_discharge_power=RationalNumber(
+                    exponent=0, value=3000),
+                evse_max_discharge_power_l2=RationalNumber(
+                    exponent=0, value=3000),
+                evse_max_discharge_power_l3=RationalNumber(
+                    exponent=0, value=3000),
                 evse_min_discharge_power=RationalNumber(exponent=0, value=300),
-                evse_min_discharge_power_l2=RationalNumber(exponent=0, value=300),
-                evse_min_discharge_power_l3=RationalNumber(exponent=0, value=300),
+                evse_min_discharge_power_l2=RationalNumber(
+                    exponent=0, value=300),
+                evse_min_discharge_power_l3=RationalNumber(
+                    exponent=0, value=300),
             )
 
     async def get_ac_charge_loop_params_v20(
@@ -776,8 +828,10 @@ class SimEVSEController(EVSEControllerInterface):
         if control_mode == ControlMode.SCHEDULED:
             scheduled_params = ScheduledACChargeLoopResParams(
                 evse_present_active_power=RationalNumber(exponent=3, value=3),
-                evse_present_active_power_l2=RationalNumber(exponent=3, value=3),
-                evse_present_active_power_l3=RationalNumber(exponent=3, value=3),
+                evse_present_active_power_l2=RationalNumber(
+                    exponent=3, value=3),
+                evse_present_active_power_l3=RationalNumber(
+                    exponent=3, value=3),
                 # Add more optional fields if wanted
             )
             if selected_service == ServiceV20.AC_BPT:
@@ -791,8 +845,10 @@ class SimEVSEController(EVSEControllerInterface):
             # Dynamic Mode
             dynamic_params = DynamicACChargeLoopResParams(
                 evse_target_active_power=RationalNumber(exponent=3, value=3),
-                evse_target_active_power_l2=RationalNumber(exponent=3, value=3),
-                evse_target_active_power_l3=RationalNumber(exponent=3, value=3),
+                evse_target_active_power_l2=RationalNumber(
+                    exponent=3, value=3),
+                evse_target_active_power_l3=RationalNumber(
+                    exponent=3, value=3),
                 # Add more optional fields if wanted
             )
             if selected_service == ServiceV20.AC_BPT:
@@ -804,12 +860,14 @@ class SimEVSEController(EVSEControllerInterface):
             return dynamic_params
 
     async def get_ac_evse_max_current(self) -> PVEVSEMaxCurrent:
-        max_current_value, max_current_multiplier = float2Value_Multiplier(EVEREST_CHARGER_STATE.EVSEMaxCurrent)
-        return PVEVSEMaxCurrent( multiplier=max_current_multiplier, value=max_current_value, unit=UnitSymbol.AMPERE)
+        max_current_value, max_current_multiplier = float2Value_Multiplier(
+            EVEREST_CHARGER_STATE.EVSEMaxCurrent)
+        return PVEVSEMaxCurrent(multiplier=max_current_multiplier, value=max_current_value, unit=UnitSymbol.AMPERE)
 
     async def get_ac_evse_max_current(self) -> PVEVSEMaxCurrent:
-        max_current_value, max_current_multiplier = float2Value_Multiplier(EVEREST_CHARGER_STATE.EVSEMaxCurrent)
-        return PVEVSEMaxCurrent( multiplier=max_current_multiplier, value=max_current_value, unit=UnitSymbol.AMPERE)
+        max_current_value, max_current_multiplier = float2Value_Multiplier(
+            EVEREST_CHARGER_STATE.EVSEMaxCurrent)
+        return PVEVSEMaxCurrent(multiplier=max_current_multiplier, value=max_current_value, unit=UnitSymbol.AMPERE)
 
     # ============================================================================
     # |                          DC-SPECIFIC FUNCTIONS                           |
@@ -818,12 +876,13 @@ class SimEVSEController(EVSEControllerInterface):
     async def get_dc_evse_status(self) -> DCEVSEStatus:
         """Overrides EVSEControllerInterface.get_dc_evse_status()."""
 
-        notification : EVSENotificationV2 = EVSENotificationV2.NONE
+        notification: EVSENotificationV2 = EVSENotificationV2.NONE
         if EVEREST_CHARGER_STATE.stop_charging is True:
             notification = EVSENotificationV2.STOP_CHARGING
-        
-        evse_isolation : IsolationLevel = IsolationLevel(EVEREST_CHARGER_STATE.EVSEIsolationStatus)
-        
+
+        evse_isolation: IsolationLevel = IsolationLevel(
+            EVEREST_CHARGER_STATE.EVSEIsolationStatus)
+
         evse_status_code: DCEVSEStatusCode = DCEVSEStatusCode.EVSE_READY
         if EVEREST_CHARGER_STATE.EVSE_UtilityInterruptEvent is True:
             evse_status_code = DCEVSEStatusCode.EVSE_UTILITY_INTERUPT_EVENT
@@ -842,7 +901,7 @@ class SimEVSEController(EVSEControllerInterface):
             evse_isolation_status=evse_isolation,
             evse_status_code=evse_status_code,
         )
-		
+
     async def get_dc_evse_charge_parameter(self) -> DCEVSEChargeParameter:
         """Overrides EVSEControllerInterface.get_dc_evse_charge_parameter()."""
 
@@ -866,7 +925,7 @@ class SimEVSEController(EVSEControllerInterface):
         )
 
         dcEVSEChargeParameter: DCEVSEChargeParameter = DCEVSEChargeParameter(
-            dc_evse_status= await self.get_dc_evse_status(),
+            dc_evse_status=await self.get_dc_evse_status(),
             evse_maximum_power_limit=PVEVSEMaxPowerLimit(
                 multiplier=p_max_limit_multiplier, value=p_max_limit_value, unit="W"
             ),
@@ -899,7 +958,7 @@ class SimEVSEController(EVSEControllerInterface):
                 EVEREST_CHARGER_STATE.EVSEEnergyToBeDelivered
             )
             dcEVSEChargeParameter.evse_energy_to_be_delivered = PVEVSEEnergyToBeDelivered(
-                multiplier = energy_deliver_multiplier, value = energy_deliver_value, unit="Wh"
+                multiplier=energy_deliver_multiplier, value=energy_deliver_value, unit="Wh"
             )
 
         return dcEVSEChargeParameter
@@ -908,7 +967,8 @@ class SimEVSEController(EVSEControllerInterface):
         self, protocol: Protocol
     ) -> Union[PVEVSEPresentVoltage, RationalNumber]:
         """Overrides EVSEControllerInterface.get_evse_present_voltage()."""
-        v_value, v_multiplier = float2Value_Multiplier(EVEREST_CHARGER_STATE.EVSEPresentVoltage)
+        v_value, v_multiplier = float2Value_Multiplier(
+            EVEREST_CHARGER_STATE.EVSEPresentVoltage)
         if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
             return PVEVSEPresentVoltage(multiplier=v_multiplier, value=v_value, unit="V")
         else:
@@ -918,7 +978,8 @@ class SimEVSEController(EVSEControllerInterface):
         self, protocol: Protocol
     ) -> Union[PVEVSEPresentCurrent, RationalNumber]:
         """Overrides EVSEControllerInterface.get_evse_present_current()."""
-        c_value, c_multiplier = float2Value_Multiplier(EVEREST_CHARGER_STATE.EVSEPresentCurrent)
+        c_value, c_multiplier = float2Value_Multiplier(
+            EVEREST_CHARGER_STATE.EVSEPresentCurrent)
         if protocol in [Protocol.DIN_SPEC_70121, Protocol.ISO_15118_2]:
             return PVEVSEPresentCurrent(multiplier=c_multiplier, value=c_value, unit="A")
         else:
@@ -953,7 +1014,8 @@ class SimEVSEController(EVSEControllerInterface):
         return False
 
     async def is_evse_power_limit_achieved(self) -> bool:
-        presentPower:float = EVEREST_CHARGER_STATE.EVSEPresentCurrent * EVEREST_CHARGER_STATE.EVSEPresentVoltage
+        presentPower: float = EVEREST_CHARGER_STATE.EVSEPresentCurrent * \
+            EVEREST_CHARGER_STATE.EVSEPresentVoltage
         if presentPower >= EVEREST_CHARGER_STATE.EVSEMaximumPowerLimit:
             return True
         return False
@@ -998,10 +1060,11 @@ class SimEVSEController(EVSEControllerInterface):
                 **(dc_charge_parameter_discovery_res.dict()),
                 evse_max_discharge_power=RationalNumber(exponent=1, value=700),
                 evse_min_discharge_power=RationalNumber(exponent=1, value=10),
-                evse_max_discharge_current=RationalNumber(exponent=0, value=11),
+                evse_max_discharge_current=RationalNumber(
+                    exponent=0, value=11),
                 evse_min_discharge_current=RationalNumber(exponent=0, value=0),
             )
-    
+
     async def get_dc_charge_loop_params_v20(
         self, control_mode: ControlMode, selected_service: ServiceV20
     ) -> Union[
@@ -1014,42 +1077,54 @@ class SimEVSEController(EVSEControllerInterface):
         if selected_service == ServiceV20.DC:
             if control_mode == ControlMode.SCHEDULED:
                 scheduled_params = ScheduledDCChargeLoopResParams(
-                    evse_maximum_charge_current=RationalNumber(exponent=0, value=11),
+                    evse_maximum_charge_current=RationalNumber(
+                        exponent=0, value=11),
                 )
                 return scheduled_params
             elif control_mode == ControlMode.DYNAMIC:
                 dynamic_params = DynamicDCChargeLoopRes(
-                    evse_maximum_charge_power=RationalNumber(exponent=1, value=1000),
-                    evse_minimum_charge_power=RationalNumber(exponent=1, value=50),
-                    evse_maximum_charge_current=RationalNumber(exponent=1, value=300),
+                    evse_maximum_charge_power=RationalNumber(
+                        exponent=1, value=1000),
+                    evse_minimum_charge_power=RationalNumber(
+                        exponent=1, value=50),
+                    evse_maximum_charge_current=RationalNumber(
+                        exponent=1, value=300),
                     evse_maximum_voltage=RationalNumber(exponent=1, value=600),
                 )
                 return dynamic_params
         elif selected_service == ServiceV20.DC_BPT:
             if control_mode == ControlMode.SCHEDULED:
                 bpt_scheduled_params = BPTScheduledDCChargeLoopResParams(
-                    evse_maximum_charge_current=RationalNumber(exponent=0, value=11),
+                    evse_maximum_charge_current=RationalNumber(
+                        exponent=0, value=11),
                 )
                 return bpt_scheduled_params
             else:
                 bpt_dynamic_params = BPTDynamicDCChargeLoopRes(
-                    evse_maximum_charge_power=RationalNumber(exponent=1, value=1000),
-                    evse_minimum_charge_power=RationalNumber(exponent=1, value=50),
-                    evse_maximum_charge_current=RationalNumber(exponent=1, value=300),
+                    evse_maximum_charge_power=RationalNumber(
+                        exponent=1, value=1000),
+                    evse_minimum_charge_power=RationalNumber(
+                        exponent=1, value=50),
+                    evse_maximum_charge_current=RationalNumber(
+                        exponent=1, value=300),
                     evse_maximum_voltage=RationalNumber(exponent=1, value=600),
-                    evse_max_discharge_power=RationalNumber(exponent=0, value=300),
-                    evse_min_discharge_power=RationalNumber(exponent=0, value=300),
-                    evse_max_discharge_current=RationalNumber(exponent=0, value=300),
+                    evse_max_discharge_power=RationalNumber(
+                        exponent=0, value=300),
+                    evse_min_discharge_power=RationalNumber(
+                        exponent=0, value=300),
+                    evse_max_discharge_current=RationalNumber(
+                        exponent=0, value=300),
                     evse_min_voltage=RationalNumber(exponent=0, value=300),
                 )
                 return bpt_dynamic_params
         else:
-            logger.error(f"Energy service {selected_service.service} not yet supported")
+            logger.error(f"Energy service {
+                         selected_service.service} not yet supported")
             return
 
     async def setIsolationMonitoringActive(self, value: bool):
         self.evseIsolationMonitoringActive = value
-    
+
     async def isCableCheckFinished(self) -> bool:
         return EVEREST_CHARGER_STATE.cableCheck_Finished
 
@@ -1067,7 +1142,7 @@ class SimEVSEController(EVSEControllerInterface):
         startTime_ns: int = time.time_ns()
         timeout: int = 0
         PERFORMANCE_TIMEOUT: int = 4500
-        
+
         while timeout < PERFORMANCE_TIMEOUT:
 
             Response: dict = EVEREST_CHARGER_STATE.existream_status
@@ -1077,18 +1152,27 @@ class SimEVSEController(EVSEControllerInterface):
                         exiResponse: str = str(Response["exiResponse"])
                         return exiResponse
                     elif Response["status"] == "Failed":
-                        raise Exception("The CSMS reported: Processing of the message was not successful")
+                        raise Exception(
+                            "The CSMS reported: Processing of the message was not successful")
                 elif Response["certificateAction"] == "Update":
                     action: str = str(Response["certificateAction"])
-                    raise Exception(f"The wrong message was generated by the backend: {action}")
-                
+                    raise Exception(
+                        f"The wrong message was generated by the backend: {action}")
+
             timeout = (time.time_ns() - startTime_ns) / pow(10, 6)
             await asyncio.sleep(0.001)
-        
-        raise Exception("Timeout - The backend takes too long to generate the CertificateInstallationRes")
+
+        raise Exception(
+            "Timeout - The backend takes too long to generate the CertificateInstallationRes")
 
     async def update_data_link(self, action: SessionStopAction) -> None:
         """
         Overrides EVSEControllerInterface.update_data_link().
         """
         pass
+
+    def ready_to_charge(self) -> bool:
+        """
+        Overrides EVSEControllerInterface.ready_to_charge().
+        """
+        return True

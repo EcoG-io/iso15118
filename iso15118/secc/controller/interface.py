@@ -72,6 +72,7 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DynamicDCChargeLoopRes,
     ScheduledDCChargeLoopResParams,
 )
+from iso15118.shared.states import State
 
 
 @dataclass
@@ -147,6 +148,22 @@ class EVSessionContext:
     auth_options: Optional[List[AuthEnum]] = None
     charge_service: Optional[ChargeService] = None
     sa_schedule_tuple_id: Optional[int] = None
+
+@dataclass
+class EVSessionContext15118:
+    # EVSessionContext15118 holds information required to resume a paused session.
+    # [V2G2-741] - In a resumed session, the following are reused:
+    # 1. SessionID (SessionSetup)
+    # 2. PaymentOption that was previously selected (ServiceDiscoveryRes)
+    # 3. ChargeService (ServiceDiscoveryRes)
+    # 4. SAScheduleTuple (ChargeParameterDiscoveryRes) -
+    # Previously selected id must remain the same.
+    # However, the entries could reflect the elapsed time
+    session_id: Optional[str] = None
+    auth_options: Optional[List[AuthEnum]] = None
+    charge_service: Optional[ChargeService] = None
+    sa_schedule_tuple_id: Optional[int] = None
+
 
 class EVSEControllerInterface(ABC):
     def __init__(self):
@@ -294,6 +311,7 @@ class EVSEControllerInterface(ABC):
     async def get_sa_schedule_list(
         self,
         ev_charge_params_limits: EVChargeParamsLimits,
+        is_free_charging_service: bool,
         max_schedule_entries: Optional[int],
         departure_time: int = 0,
     ) -> Optional[List[SAScheduleTuple]]:
@@ -307,6 +325,7 @@ class EVSEControllerInterface(ABC):
         Args:
             ev_charge_params_limits: Lists the maximum limits of the EV: max_voltage,
                             max_current and e_amount(AC)/energy_requested(DC)
+            is_free_charging_service: Indicates if free sa schedules are to be returned.
             max_schedule_entries: The maximum amount of schedule entries the EVCC
                                   can handle, or None if not provided
             departure_time: The departure time given in seconds from the time of
@@ -478,7 +497,7 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def set_present_protocol_state(self, state_name: str):
+    async def set_present_protocol_state(self, state: State):
         """
         This method sets the present state of the charging protocol.
 
@@ -824,5 +843,13 @@ class EVSEControllerInterface(ABC):
             action : SessionStopAction
         Relevant for:
         - ISO 15118-20 and ISO 15118-2
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def ready_to_charge(self) -> bool:
+        """
+        Used by Authorization state to indicate if we are
+        ready to start charging.
         """
         raise NotImplementedError
