@@ -804,7 +804,7 @@ class ChargeParameterDiscovery(StateEVCC):
             # EVerest code start #
             EVEREST_CTX.publish('AC_EVPowerReady', True)
             # EVerest code end #
-
+            await self.comm_session.ev_controller.enable_charging(True)
             if self.comm_session.selected_charging_type_is_ac:
                 power_delivery_req = PowerDeliveryReq(
                     charge_progress=charge_progress,
@@ -832,7 +832,7 @@ class ChargeParameterDiscovery(StateEVCC):
 
             self.comm_session.selected_schedule = schedule_id
 
-            # TODO Set CP state to C max. 250 ms after sending PowerDeliveryReq
+            await self.comm_session.ev_controller.enable_charging(True)
         else:
             logger.debug(
                 "SECC is still processing the proposed charging "
@@ -915,6 +915,7 @@ class PowerDelivery(StateEVCC):
                 Namespace.ISO_V2_MSG_DEF,
             )
         elif self.comm_session.charging_session_stop_v2:
+            await self.comm_session.ev_controller.enable_charging(False)
             welding_detection_req = WeldingDetectionReq(
                 dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status()
             )

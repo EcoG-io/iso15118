@@ -670,3 +670,14 @@ class EVControllerInterface(ABC):
         - DIN SPEC 70121
         """
         raise NotImplementedError
+
+    @abstractmethod
+    async def enable_charging(self, enabled: bool) -> None:
+        """
+        Enables charging for the EVCC.
+        Can be used as an indication to go to state C
+        Relevant for:
+        - DIN SPEC 70121
+        - ISO 15118-2
+        - ISO 15118-20
+        """

@@ -193,6 +193,9 @@ class CommunicationSessionHandler:
         # triggers (e.g. pause/terminate)
         self._rcv_queue: asyncio.Queue = asyncio.Queue()
 
+        # Store the ip of the peer
+        self._current_peer_ip: Optional[str] = None
+
         # The comm_sessions dict keys are of type str (the IPv6 address), the
         # values are a tuple containing the SECCCommunicationSession and the
         # associated ayncio.Task object (so we can cancel the task when needed)
@@ -304,8 +307,8 @@ class CommunicationSessionHandler:
                             Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT
                         )
                     )
-                    self.comm_sessions[notification.ip_address] = (
-                        comm_session, task)
+                    self.comm_sessions[notification.ip_address] = (comm_session, task)
+                    self._current_peer_ip = notification.ip_address
                 elif isinstance(notification, StopNotification):
                     try:
                         await self.end_current_session(
@@ -324,6 +327,21 @@ class CommunicationSessionHandler:
             finally:
                 queue.task_done()
 
+    def close_session(self):
+        """
+        Use this method to prevent the SECC from waiting until SECC timeout is hit to
+        terminate (For example when State A/E/F has been signalled).
+        The method feed_eof() would indicate to the tcp reader that the
+        peer has closed the connection. This would in turn cause a ConnectionResetError
+         and push StopNotification() which will eventually end the session.
+        """
+        if self._current_peer_ip is None:
+            return
+        try:
+            self.comm_sessions[self._current_peer_ip][0].reader.feed_eof()
+        except Exception as e:
+            logger.warning(f"Error while indicating EOF to transport reader: {e}")
+
     async def end_current_session(
             self, peer_ip_address: str, session_stop_action: SessionStopAction
     ):
@@ -340,6 +358,7 @@ class CommunicationSessionHandler:
                     f"Preserved session state: {self.comm_sessions[peer_ip_address][0].ev_session_context}"  # noqa
                 )
         self.tcp_server_handler = None
+        self._current_peer_ip = None
         if self.udp_server:
             self.udp_server.resume_udp_server()
 

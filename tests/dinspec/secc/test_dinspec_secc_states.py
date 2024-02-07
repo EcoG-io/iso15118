@@ -3,13 +3,13 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.ev_data import EVSessionContext15118
+from iso15118.secc.controller.ev_data import EVSessionContext
 from iso15118.secc.controller.evse_data import (
     EVSEDataContext,
     EVSEDCCLLimits,
     EVSEDCCPDLimits,
     EVSERatedLimits,
-    EVSESessionContext,
+    EVSESessionLimits,
 )
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.secc.states.din_spec_states import CurrentDemand, PowerDelivery
@@ -37,41 +37,41 @@ class TestEvseScenarios:
         self.comm_session.protocol = Protocol.UNKNOWN
         self.comm_session.evse_id = "UK123E1234"
         self.comm_session.writer = MockWriter()
-        self.comm_session.ev_session_context = EVSessionContext15118()
+        self.comm_session.ev_session_context = EVSessionContext()
         self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
 
     def get_evse_data(self) -> EVSEDataContext:
         dc_limits = EVSEDCCPDLimits(
-            evse_max_charge_power=10,
-            evse_min_charge_power=10,
-            evse_max_charge_current=10,
-            evse_min_charge_current=10,
-            evse_max_voltage=10,
-            evse_min_voltage=10,
-            evse_power_ramp_limit=10,
-            # 15118-2 DC, DINSPEC
-            evse_current_regulation_tolerance=10,
-            evse_peak_current_ripple=10,
-            evse_energy_to_be_delivered=10,
+            max_charge_power=10,
+            min_charge_power=10,
+            max_charge_current=10,
+            min_charge_current=10,
+            max_voltage=10,
+            min_voltage=10,
         )
         dc_cl_limits = EVSEDCCLLimits(
             # Optional in 15118-20 DC CL (Scheduled)
-            evse_max_charge_power=10,
-            evse_min_charge_power=10,
-            evse_max_charge_current=10,
-            evse_max_voltage=10,
+            max_charge_power=10,
+            min_charge_power=10,
+            max_charge_current=10,
+            max_voltage=10,
             # Optional and present in 15118-20 DC BPT CL (Scheduled)
-            evse_max_discharge_power=10,
-            evse_min_discharge_power=10,
-            evse_max_discharge_current=10,
-            evse_min_voltage=10,
+            max_discharge_power=10,
+            min_discharge_power=10,
+            max_discharge_current=10,
+            min_voltage=10,
         )
         rated_limits: EVSERatedLimits = EVSERatedLimits(dc_limits=dc_limits)
-        session_context: EVSESessionContext = EVSESessionContext(dc_limits=dc_cl_limits)
-
-        return EVSEDataContext(
-            rated_limits=rated_limits, session_context=session_context
+        session_limits: EVSESessionLimits = EVSESessionLimits(dc_limits=dc_cl_limits)
+        evse_data_context = EVSEDataContext(
+            rated_limits=rated_limits, session_limits=session_limits
         )
+        evse_data_context.power_ramp_limit = 10
+        evse_data_context.current_regulation_tolerance = 10
+        evse_data_context.peak_current_ripple = 10
+        evse_data_context.energy_to_be_delivered = 10
+
+        return evse_data_context
 
     async def test_sap_to_billing(self):
         pass

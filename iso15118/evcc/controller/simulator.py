@@ -862,6 +862,10 @@ class SimEVController(EVControllerInterface):
             EVEREST_EV_STATE.dc_target_voltage)
         return RationalNumber(exponent=exponent, value=value)
 
+    async def enable_charging(self, enabled: bool) -> None:
+        """Overrides EVControllerInterface.enable_charging()."""
+        pass
+
     # ============================================================================
     # |                          SAE J2847/2 FUNCTIONS                           |
     # ============================================================================

@@ -4,6 +4,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.25.1] - 2024-01-31
+* fixed type returned by get_evse_max_current_limit by @tropxy in https://github.com/SwitchEV/iso15118/pull/373
+* Fix for ChargeParameterDiscovery  get_evse_max_voltage by @tropxy in https://github.com/SwitchEV/iso15118/pull/376
+
+## [0.25.0] - 2024-01-23
+* JTT-529: Changed order of validation. Start with checking validity of availabl… by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/350
+* chore(deps-dev): bump black from 23.11.0 to 23.12.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/352
+* fix evse data context update in DIN CPD by @tropxy in https://github.com/SwitchEV/iso15118/pull/366
+* jtt-550_ignore_incorrect_mo_root_on_disk by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/358
+* Fix for connection reset error by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/365
+* New EVCC config isAliveAfterSession introduced by @touchlinux in https://github.com/SwitchEV/iso15118/pull/361
+* Added optional is_precharge flag to send_charging_command by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/364
+* fix: potential issue with divide by 0 and added interface tests by @tropxy in https://github.com/SwitchEV/iso15118/pull/369
+* EVCC enable charging and fix for DIN EVSE initiated stop by @heavyweight87 in https://github.com/SwitchEV/iso15118/pull/368
+* Add option to close tcp reader from SECC by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/370
+
+## [0.24.0] - 2023-12-13
+* Big refactoring of EVSE/EVData by @tropxy in https://github.com/SwitchEV/iso15118/pull/337
+
+## [0.23.12] - 2023-12-12
+* value and exponent tuple order is fixed by @ikaratass in https://github.com/SwitchEV/iso15118/pull/347
+
+## [0.23.11] - 2023-12-08
+* Update cryptography version by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/344
+
+## [0.23.10] - 2023-12-08
+* Minor refactor exponent_value_conversion by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/342
+
+## [0.23.9] - 2023-12-07
+* chore(deps): bump actions/setup-python from 4 to 5 by @dependabot in https://github.com/SwitchEV/iso15118/pull/338
+* Removed reading of v20 service config from file by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/339
+
 ## [0.23.8] - 2023-12-06
 * chore(deps-dev): bump pytest-asyncio from 0.21.1 to 0.23.2 by @dependabot in https://github.com/SwitchEV/iso15118/pull/332
 * Precharge EVSE voltage-current by @ikaratass in https://github.com/SwitchEV/iso15118/pull/333

@@ -140,10 +140,12 @@ def get_dummy_v2g_message_authorization_req(
     )
 
 
-def get_dummy_v2g_message_payment_details_req() -> V2GMessage:
+def get_dummy_v2g_message_payment_details_req(
+    contract: Optional[str] = None,
+) -> V2GMessage:
     payment_details_req = PaymentDetailsReq(
         emaid="1234567890abcd",
-        cert_chain=load_certificate_chain(),
+        cert_chain=load_certificate_chain(contract),
     )
     return V2GMessage(
         header=MessageHeader(session_id=MOCK_SESSION_ID),

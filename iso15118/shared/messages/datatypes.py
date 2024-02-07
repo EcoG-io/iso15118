@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Literal, Tuple, cast
+from typing import List, Literal, Tuple, Union
 
 from pydantic import Field, root_validator
 
@@ -68,22 +68,13 @@ class PhysicalValue(BaseModel):
         return self.value * 10**self.multiplier
 
     @classmethod
-    def get_exponent_value_repr(cls, value: int) -> Tuple[int, int]:
-        exponent = 0
-        calculated_value = cast(float, value)
-        if value == 0:
-            return 0, 0
-        while abs(calculated_value) >= 10:
-            calculated_value /= 10
-            exponent += 1
-        while abs(calculated_value) < 1:
-            calculated_value *= 10
-            exponent -= 1
-        while exponent > 3:
-            exponent -= 1
-            calculated_value *= 10
-
-        return cast(int, calculated_value), exponent
+    def get_exponent_value_repr(
+        cls,
+        value: Union[int, float],
+        min_limit: int = INT_16_MIN,
+        max_limit: int = INT_16_MAX,
+    ) -> Tuple[int, int]:
+        return get_exponent_value_repr(value, min_limit, max_limit)
 
 
 class PVChargingProfileEntryMaxPower(PhysicalValue):
@@ -655,3 +646,71 @@ class SelectedServiceList(BaseModel):
     selected_service: List[SelectedService] = Field(
         ..., max_items=16, alias="SelectedService"
     )
+
+
+def get_exponent_value_repr(
+    value: Union[int, float],
+    min_limit: int = INT_16_MIN,
+    max_limit: int = INT_16_MAX,
+) -> Tuple[int, int]:
+    """Convert to exponent number, by finding the best fit exponent.
+    taking into consideration the min -32768 and max 32767 limits.
+    Examples:
+    value = 0.0000234 => exponent = -7, return value = 234
+    value = 0.000234 => exponent = -6, return value = 234
+    value = 0.00234 => exponent = -5, return value = 234
+    value = 0.0234 => exponent = -4, return value = 234
+    value = 0.234 => exponent = -3, return value = 234
+    value = 2.34 => exponent = -2, return value = 234
+    value = 23.4 => exponent = -1, return value = 234
+    value = 234 => exponent = 0, return value = 234
+    value = 2340 => exponent = 0, return value = 2340
+    value = 23400 => exponent = 0, return value = 23400
+    value = 234000 => exponent = 1, return value = 23400
+    value = 2340000 => exponent = 2, return value = 23400
+
+    value = 2340000 => exponent = 2, return value = 23400
+    value = 23400000 => exponent = 3, return value = 23400
+
+    value = 0.4 => exponent = -1, return value = 4
+    value = 0.356 => exponent = -3, return value = 356
+    value = 0.157 => exponent = -3, return value = 157
+    value = 0.00356 => exponent = -5, return value = 356
+    value = 0.634 => exponent = -3, return value = 634
+
+    Note:
+        In ISO 15118-2, the min limit is 0 and the max is
+        dependent on the field.
+        In ISO 15118-20, the limits are defined by the
+        RationalNumber type which are the limits of the
+        int16 range: [-32768, 32767].
+        Also, in ISO 15118-20, the exponent assumes the range
+        of [-128, 127], but currently that is not being
+        taken into consideration.
+    Args:
+        value (int, float): parameter value
+
+    Returns:
+        a tuple where the first item is the exponent and other is the
+        int value with the applied exponent
+    """
+    exponent = 0
+    # In theory in -20 we can have exponents in the range [-128, 127]
+    # but up to 3 decimal cases is a good enough approximation
+    # and avoids any overflow issues due to python float precision/representation
+    while value != int(value):
+        value *= 10
+        exponent -= 1
+        if exponent == -3:
+            if int(value) == 0:
+                exponent = 0
+            break
+    while not (min_limit <= value <= max_limit):
+        if abs(value) >= 10:
+            value /= 10
+            exponent += 1
+        elif abs(value) < 1 and value != 0:
+            value *= 10
+            exponent -= 1
+
+    return exponent, int(value)

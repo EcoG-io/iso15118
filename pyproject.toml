@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "iso15118"
-version = "0.23.8"
+version = "0.25.1"
 description = "Implementation of DIN SPEC 70121, ISO 15118-2 and -20 specs for SECC"
 authors = ["André Duarte <andre@switch-ev.com>",
            "Dr. Marc Mültin <marc@switch-ev.com>",
@@ -27,7 +27,7 @@ pytest = "^7.1.1"
 pytest-asyncio = ">=0.18.3,<0.24.0"
 asynctest = "^0.13.0"
 freezegun = "^1.2.1"
-black = "23.11.0"
+black = "23.12.0"
 isort = "^5.10.1"
 flake8 = ">=4.0.1,<7.0.0"
 pytest-cov = ">=3,<5"

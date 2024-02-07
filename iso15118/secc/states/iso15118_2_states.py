@@ -12,7 +12,7 @@ from typing import List, Optional, Tuple, Type, Union
 import os
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.ev_data import EVChargeParamsLimits, EVSessionContext
+from iso15118.secc.controller.ev_data import EVSessionContext
 from iso15118.secc.controller.interface import AuthorizationResponse
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
@@ -1085,7 +1085,7 @@ class PaymentDetails(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
 
-    def _mobility_operator_root_cert_path(self) -> str:
+    def _mobility_operator_root_cert_path(self) -> Optional[str]:
         """Return the path to the MO root.  Included to be patched in tests."""
         return os.path.join(get_PKI_PATH(), CertPath.MO_ROOT_DER)
 
@@ -1124,17 +1124,35 @@ class PaymentDetails(StateSECC):
             pem_certificate_chain = None
 
             try:
-                root_cert = load_cert(root_cert_path)
+                if root_cert_path:
+                    root_cert = load_cert(root_cert_path)
+                    logger.info(f"Using MO root at {root_cert_path}")
+                else:
+                    root_cert = None
+                    pem_certificate_chain = build_pem_certificate_chain(
+                        payment_details_req.cert_chain, root_cert)
+                    logger.info("No suitable MO root found.")
                 # verify contract certificate against MO root if this is enabled
                 if (self.comm_session.config.verify_contract_cert_chain):
-                    verify_certs(leaf_cert, sub_ca_certs, root_cert)
+                    try:
+                        verify_certs(leaf_cert, sub_ca_certs, root_cert)
+                    except CertSignatureError:
+                        # This error means there was an error while validating the parent-child
+                        # relationship in the cert chain. This could also very well be
+                        # a limitation on the SECC that the root certificate present
+                        # doesn't match the chain passed through.
+                        # So set root_cert to None and pass the incoming chain to the backend
+                        # for further checks.
+                        logger.info(
+                            "Local chain verification failed. "
+                            "Passing verification to backend."
+                        )
                 else:
                     root_cert = None
                     pem_certificate_chain = build_pem_certificate_chain(
                         payment_details_req.cert_chain, root_cert)
             except FileNotFoundError:
-                logger.warning(f"MO Root Cert cannot be found {
-                               root_cert_path}")
+                logger.warning("MO Root Cert not available.")
                 root_cert = None
                 pem_certificate_chain = build_pem_certificate_chain(
                     payment_details_req.cert_chain, root_cert)
@@ -1553,6 +1571,9 @@ class ChargeParameterDiscovery(StateSECC):
             )
             return
 
+        evse_data_context = self.comm_session.evse_controller.evse_data_context
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+
         self.comm_session.selected_energy_mode = charge_params_req.requested_energy_mode
         self.comm_session.selected_charging_type_is_ac = (
             self.comm_session.selected_energy_mode.value.startswith("AC")
@@ -1568,6 +1589,13 @@ class ChargeParameterDiscovery(StateSECC):
             ac_evse_charge_params = (
                 await self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
+            evse_data_context.update_ac_charge_parameters_v2(
+                ac_evse_charge_params)
+            ev_data_context.update_ac_charge_parameters_v2(
+                charge_params_req.ac_ev_charge_parameter
+            )
+
+            # EVerest code start #
             ev_max_voltage: Union[
                 PVEVMaxVoltageLimit, PVEVMaxVoltage
             ] = charge_params_req.ac_ev_charge_parameter.ev_max_voltage
@@ -1576,14 +1604,7 @@ class ChargeParameterDiscovery(StateSECC):
             ] = charge_params_req.ac_ev_charge_parameter.ev_max_current
             e_amount = charge_params_req.ac_ev_charge_parameter.e_amount
             ev_min_current = charge_params_req.ac_ev_charge_parameter.ev_min_current
-            ev_charge_params_limits = EVChargeParamsLimits(
-                ev_max_voltage=ev_max_voltage,
-                ev_max_current=ev_max_current,
-                e_amount=e_amount,
-            )
-            departure_time = charge_params_req.ac_ev_charge_parameter.departure_time
 
-            # EVerest code start #
             p_e_amount: float = e_amount.value * pow(10, e_amount.multiplier)
             EVEREST_CTX.publish('AC_EAmount', p_e_amount)
             p_ev_max_voltage: float = ev_max_voltage.value * \
@@ -1602,8 +1623,15 @@ class ChargeParameterDiscovery(StateSECC):
 
         else:
             dc_evse_charge_params = (
-                await self.comm_session.evse_controller.get_dc_evse_charge_parameter()
+                await self.comm_session.evse_controller.get_dc_charge_parameters_v2()
             )
+            evse_data_context.update_dc_charge_parameters(
+                dc_evse_charge_params)
+            ev_data_context.update_dc_charge_parameters(
+                charge_params_req.dc_ev_charge_parameter
+            )
+
+            # EVerest code start #
             ev_max_voltage = (
                 charge_params_req.dc_ev_charge_parameter.ev_maximum_voltage_limit
             )
@@ -1616,15 +1644,6 @@ class ChargeParameterDiscovery(StateSECC):
             ev_max_power = (
                 charge_params_req.dc_ev_charge_parameter.ev_maximum_power_limit
             )
-            ev_charge_params_limits = EVChargeParamsLimits(
-                ev_max_voltage=ev_max_voltage,
-                ev_max_current=ev_max_current,
-                ev_max_power=ev_max_power,
-                ev_energy_request=ev_energy_request,
-            )
-            departure_time = charge_params_req.dc_ev_charge_parameter.departure_time
-
-            # EVerest code start #
             dc_ev_charge_params: DCEVChargeParameter = charge_params_req.dc_ev_charge_parameter
             ev_max_current_limit: float = dc_ev_charge_params.ev_maximum_current_limit.value * pow(
                 10, dc_ev_charge_params.ev_maximum_current_limit.multiplier
@@ -1673,6 +1692,10 @@ class ChargeParameterDiscovery(StateSECC):
             EVEREST_CTX.publish('DC_EVStatus', ev_status)
             # EVerest code end #
 
+        departure_time = (
+            ev_data_context.departure_time if ev_data_context.departure_time else 0
+        )
+
         if not departure_time:
             departure_time = 0
         else:
@@ -1683,7 +1706,7 @@ class ChargeParameterDiscovery(StateSECC):
             # EVerest code end #
 
         sa_schedule_list = await self.comm_session.evse_controller.get_sa_schedule_list(
-            ev_charge_params_limits,
+            ev_data_context,
             self.comm_session.config.free_charging_service,
             max_schedule_entries,
             departure_time,
@@ -1946,6 +1969,11 @@ class PowerDelivery(StateSECC):
                 ResponseCode.FAILED_TARIFF_SELECTION_INVALID,
             )
             return
+
+        if power_delivery_req.dc_ev_power_delivery_parameter:
+            self.comm_session.evse_controller.ev_data_context.present_soc = (
+                power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ress_soc  # noqa
+            )
 
         # TODO: Investigate this and reassess
         # if (
@@ -2594,23 +2622,7 @@ class CableCheck(StateSECC):
             await self.comm_session.evse_controller.setIsolationMonitoringActive(True)
         # EVerest code end #
 
-        # TODO_SL: Überlegen wie es weiter geht
-        # if not self.cable_check_req_was_received:
-        #     # Requirement in 6.4.3.106 of the IEC 61851-23
-        #     # Any relays in the DC output circuit of the DC station shall
-        #     # be closed during the insulation test
-        #     contactor_state = await self.comm_session.evse_controller.close_contactor()
-        #     if contactor_state != Contactor.CLOSED:
-        #         self.stop_state_machine(
-        #             "Contactor didnt close for Cable Check",
-        #             message,
-        #             ResponseCode.FAILED,
-        #         )
-        #         return
-        #     await self.comm_session.evse_controller.start_cable_check()
-        #     self.cable_check_req_was_received = True
-
-        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
+        self.comm_session.evse_controller.ev_data_context.present_soc = (
             cable_check_req.dc_ev_status.ev_ress_soc
         )
 
@@ -2729,11 +2741,8 @@ class PreCharge(StateSECC):
                 ResponseCode.FAILED,
             )
             return
-
-        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
-            precharge_req.dc_ev_status.ev_ress_soc
-        )
-
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+        ev_data_context.update_pre_charge_parameters(precharge_req)
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
         present_current = (
@@ -2742,15 +2751,16 @@ class PreCharge(StateSECC):
             )
         )
         if isinstance(present_current, PVEVSEPresentCurrent):
-            present_current_in_a = (
-                present_current.value * 10**present_current.multiplier
-            )
-            target_current = precharge_req.ev_target_current
-            target_current_in_a = target_current.value * 10**target_current.multiplier
+            present_current_in_a = present_current.get_decimal_value()
+            target_current_in_a = ev_data_context.target_current
         else:
-            present_current_in_a = present_current.value
-            target_current = precharge_req.ev_target_current
-            target_current_in_a = target_current.value
+            self.stop_state_machine(
+                "Error reading EVSE Present Current."
+                f"Wrong type: {type(present_current)}",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         if present_current_in_a > 2 or target_current_in_a > 2:
             self.stop_state_machine(
@@ -2763,9 +2773,19 @@ class PreCharge(StateSECC):
         # Set precharge voltage in every loop.
         # Because there are EVs that send a wrong Precharge-Voltage
         # in the first message (example: BMW i3 Rex 2018)
-        await self.comm_session.evse_controller.set_precharge(
-            precharge_req.ev_target_voltage, precharge_req.ev_target_current
-        )
+        try:
+            await self.comm_session.evse_controller.send_charging_command(
+                ev_data_context.target_voltage,
+                ev_data_context.target_current,
+                is_precharge=True,
+            )
+        except asyncio.TimeoutError:
+            self.stop_state_machine(
+                "Error sending targets to charging station in charging loop.",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
         evse_present_voltage = (
@@ -3001,29 +3021,22 @@ class CurrentDemand(StateSECC):
             EVEREST_CTX.publish('DC_EVRemainingTime', ev_reamingTime)
         # EVerest code end #
 
-        self.comm_session.evse_controller.ev_data_context.ev_session_context.soc = (
-            current_demand_req.dc_ev_status.ev_ress_soc
-        )
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+        ev_data_context.update_charge_loop_parameters(current_demand_req)
 
-        self.comm_session.evse_controller.ev_data_context.ev_session_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
-            None
-            if current_demand_req.remaining_time_to_bulk_soc is None
-            else current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
-        )
-
-        self.comm_session.evse_controller.ev_data_context.ev_session_context.remaining_time_to_full_soc_s = (  # noqa: E501
-            None
-            if current_demand_req.remaining_time_to_full_soc is None
-            else current_demand_req.remaining_time_to_full_soc.get_decimal_value()
-        )
-
-        self.comm_session.evse_controller.ev_charge_params_limits.ev_max_current = (
-            current_demand_req.ev_max_current_limit
-        )
-
-        await self.comm_session.evse_controller.send_charging_command(
-            current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
-        )
+        # Updates the power electronics targets based on EV requests
+        try:
+            await self.comm_session.evse_controller.send_charging_command(
+                ev_data_context.target_voltage,
+                ev_data_context.target_current,
+            )
+        except asyncio.TimeoutError:
+            self.stop_state_machine(
+                "Error sending targets to charging station in charging loop.",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         # EVerest code start #
         receipt_required: bool = None
