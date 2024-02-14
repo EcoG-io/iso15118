@@ -230,8 +230,7 @@ class SimEVController(EVControllerInterface):
             # The check digit (last character) is not a correctly computed one
             return "WMIV1234567890ABCDEX"
         else:
-            logger.error(f"Invalid protocol '{
-                         protocol}', can't determine EVCCID")
+            logger.error(f"Invalid protocol '{protocol}', can't determine EVCCID")
             raise InvalidProtocolError
 
     async def get_energy_transfer_mode(
@@ -373,8 +372,7 @@ class SimEVController(EVControllerInterface):
         else:
             # TODO Implement the remaining energy transer services
             logger.error(
-                f"Energy transfer service {
-                    selected_service.service} not supported"
+                f"Energy transfer service {selected_service.service} not supported"
             )
             raise NotImplementedError
 

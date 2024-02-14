@@ -242,8 +242,7 @@ class SessionStateMachine(ABC):
             await self.current_state.process_message(decoded_message, v2gtp_msg.payload)
         except MessageProcessingError as exc:
             logger.exception(
-                f"{exc.__class__.__name__} while processing " f"{
-                    exc.message_name}"
+                f"{exc.__class__.__name__} while processing " f"{exc.message_name}"
             )
             raise exc
         except FaultyStateImplementationError as exc:
@@ -421,8 +420,7 @@ class V2GCommunicationSession(SessionStateMachine):
             await self.writer.wait_closed()
         except (asyncio.TimeoutError, ConnectionResetError) as exc:
             logger.info(str(exc))
-        logger.info("TCP connection closed to peer with address " f"{
-                    self.peer_name}")
+        logger.info("TCP connection closed to peer with address " f"{self.peer_name}")
 
     async def send(self, message: V2GTPMessage):
         """
@@ -486,8 +484,7 @@ class V2GCommunicationSession(SessionStateMachine):
                             f"while waiting for SupportedAppProtocolReq"
                         )
                 else:
-                    error_msg = f"{
-                        exc.__class__.__name__} occurred. {str(exc)}"
+                    error_msg = f"{exc.__class__.__name__} occurred. {str(exc)}"
 
                 self.stop_reason = StopNotification(
                     False, error_msg, self.peer_name)
