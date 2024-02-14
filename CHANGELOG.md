@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.2] - 2024-02-14
+* Fix for choosing PnC and DIN removal when the connection is non-TLS by @anudeep-20 in https://github.com/SwitchEV/iso15118/pull/367
+* Fix SessionID length in SessionSetupReq for ISO15118-20 by @adoebber in https://github.com/SwitchEV/iso15118/pull/378
+* fixed the issue when parameters are none in currentdemandReq by @ikaratass in https://github.com/SwitchEV/iso15118/pull/381
+* evcc charging loop time added to config by @ikaratass in https://github.com/SwitchEV/iso15118/pull/262
+* @anudeep-20 made their first contribution in https://github.com/SwitchEV/iso15118/pull/367
+
 ## [0.25.1] - 2024-01-31
 * fixed type returned by get_evse_max_current_limit by @tropxy in https://github.com/SwitchEV/iso15118/pull/373
 * Fix for ChargeParameterDiscovery  get_evse_max_voltage by @tropxy in https://github.com/SwitchEV/iso15118/pull/376
