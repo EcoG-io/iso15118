@@ -12,11 +12,13 @@ element names by using the 'alias' attribute.
 """
 from abc import ABC
 from enum import Enum
-from typing import List
+from typing import List, Optional, Union
 
 from pydantic import Field, conbytes, conint, constr, validator
+from typing_extensions import TypeAlias
 
 from iso15118.shared.messages import BaseModel
+from iso15118.shared.messages.datatypes import get_exponent_value_repr
 from iso15118.shared.messages.enums import (
     INT_8_MAX,
     INT_8_MIN,
@@ -29,15 +31,15 @@ from iso15118.shared.messages.xmldsig import Signature, X509IssuerSerial
 # https://pydantic-docs.helpmanual.io/usage/types/#constrained-types
 # Check Annex C.1 or V2G_CI_CommonTypes.xsd
 # certificateType (a DER encoded X.509 certificate)
-Certificate = conbytes(max_length=1600)
+Certificate: TypeAlias = conbytes(max_length=1600)  # type: ignore
 # identifierType
-Identifier = constr(max_length=255)
+Identifier: TypeAlias = constr(max_length=255)  # type: ignore
 # numericIDType
-NumericID = conint(ge=1, le=UINT_32_MAX)
+NumericID: TypeAlias = conint(ge=1, le=UINT_32_MAX)  # type: ignore
 # nameType
-Name = constr(max_length=80)
+Name: TypeAlias = constr(max_length=80)  # type: ignore
 # descriptionType
-Description = constr(max_length=160)
+Description: TypeAlias = constr(max_length=160)  # type: ignore
 
 
 class MessageHeader(BaseModel):
@@ -172,6 +174,13 @@ class RationalNumber(BaseModel):
 
     def get_decimal_value(self) -> float:
         return self.value * 10**self.exponent
+
+    @classmethod
+    def get_rational_repr(cls, float_value: Optional[Union[float, int]]):
+        if float_value is None:
+            return None
+        exponent, value = get_exponent_value_repr(float_value)
+        return RationalNumber(exponent=exponent, value=value)
 
 
 class EVSENotification(str, Enum):

@@ -6,7 +6,7 @@ from iso15118.evcc import EVCCConfig
 from iso15118.evcc.comm_session_handler import EVCCCommunicationSession
 from iso15118.evcc.controller.simulator import SimEVController
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.interface import EVSessionContext15118
+from iso15118.secc.controller.ev_data import EVSessionContext15118
 from iso15118.secc.controller.simulator import SimEVSEController
 from iso15118.secc.failed_responses import init_failed_responses_iso_v2
 from iso15118.shared.messages.enums import Protocol
@@ -42,4 +42,5 @@ def comm_secc_session_mock():
     comm_session_mock.protocol = Protocol.UNKNOWN
     comm_session_mock.evse_id = "UK123E1234"
     comm_session_mock.ev_session_context = EVSessionContext15118()
+    comm_session_mock.selected_schedule = 1
     return comm_session_mock

@@ -24,7 +24,7 @@ help:
 	@echo "  reformat                         reformats the code with isort and black"
 	@echo "  mypy                             installs the dependencies in the env"
 	@echo "  code-quality                     runs mypy, flake8, black and reformats the code"
-	@echo "  tests                            run all the tests, locally"
+	@echo "  test                             run all the tests, locally"
 	@echo "  release version=<mj.mn.p>        bumps the project version to <mj.mn.p>, using poetry;"
 	@echo "                                   If no version is provided, poetry outputs the current project version"
 	@echo ""
@@ -83,11 +83,11 @@ poetry-shell:
 
 # Run evcc with python
 run-evcc:
-	$(shell which python) iso15118/evcc/main.py $(config)
+	poetry run python iso15118/evcc/main.py $(config)
 
 # Run secc with python
 run-secc:
-	$(shell which python) iso15118/secc/main.py
+	poetry run python iso15118/secc/main.py
 
 # Run pytest on evcc
 test-evcc:

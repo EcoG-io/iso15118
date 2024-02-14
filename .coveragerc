@@ -1,5 +1,7 @@
 [run]
 omit =
-     tests*
-     examples*
+     tests/*
+     iso15118/shared/examples/*
+     iso15118/shared/pki/*
+     iso15118/shared/schemas/*
      setup.py

@@ -4,6 +4,7 @@ V2GMessage objects of the DIN SPEC 70121 protocol, from SessionSetupReq to
 SessionStopReq.
 """
 
+import asyncio
 import logging
 import time
 from typing import Optional, Type, Union
@@ -14,6 +15,7 @@ from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
     SupportedAppProtocolRes,
 )
+from iso15118.shared.messages.datatypes import PVEVSEPresentCurrent
 from iso15118.shared.messages.din_spec.body import (
     CableCheckReq,
     CableCheckRes,
@@ -127,6 +129,9 @@ class SessionSetup(StateSECC):
         )
 
         self.comm_session.evcc_id = session_setup_req.evcc_id
+        self.comm_session.evse_controller.ev_data_context.evcc_id = (
+            session_setup_req.evcc_id
+        )
         self.comm_session.session_id = session_id
 
         self.create_next_message(
@@ -381,9 +386,16 @@ class ChargeParameterDiscovery(StateSECC):
             charge_parameter_discovery_req.requested_energy_mode
         )
 
-        dc_evse_charge_params = (
-            await self.comm_session.evse_controller.get_dc_evse_charge_parameter()  # noqa
+        evse_data_context = self.comm_session.evse_controller.evse_data_context
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+        ev_data_context.update_dc_charge_parameters(
+            charge_parameter_discovery_req.dc_ev_charge_parameter
         )
+
+        dc_evse_charge_params = (
+            await self.comm_session.evse_controller.get_dc_charge_parameters_dinspec()  # noqa
+        )
+        evse_data_context.update_dc_charge_parameters(dc_evse_charge_params)
 
         sa_schedule_list = (
             await self.comm_session.evse_controller.get_sa_schedule_list_dinspec(
@@ -470,7 +482,8 @@ class CableCheck(StateSECC):
                 return
 
             self.cable_check_req_was_received = True
-        self.comm_session.evse_controller.ev_data_context.soc = (
+
+        self.comm_session.evse_controller.ev_data_context.present_soc = (
             cable_check_req.dc_ev_status.ev_ress_soc
         )
 
@@ -559,9 +572,8 @@ class PreCharge(StateSECC):
             )
             return
 
-        self.comm_session.evse_controller.ev_data_context.soc = (
-            precharge_req.dc_ev_status.ev_ress_soc
-        )
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+        ev_data_context.update_pre_charge_parameters(precharge_req)
 
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
@@ -570,9 +582,18 @@ class PreCharge(StateSECC):
                 Protocol.DIN_SPEC_70121
             )
         )
-        present_current_in_a = present_current.value * 10**present_current.multiplier
-        target_current = precharge_req.ev_target_current
-        target_current_in_a = target_current.value * 10**target_current.multiplier
+
+        if isinstance(present_current, PVEVSEPresentCurrent):
+            present_current_in_a = present_current.get_decimal_value()
+            target_current_in_a = ev_data_context.target_current
+        else:
+            self.stop_state_machine(
+                "Error reading EVSE Present Current."
+                f"Wrong type: {type(present_current)}",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         if present_current_in_a > 2 or target_current_in_a > 2:
             self.stop_state_machine(
@@ -585,9 +606,19 @@ class PreCharge(StateSECC):
         # Set precharge voltage in every loop.
         # Because there are EVs that send a wrong Precharge-Voltage
         # in the first message (example: BMW i3 Rex 2018)
-        await self.comm_session.evse_controller.set_precharge(
-            precharge_req.ev_target_voltage, precharge_req.ev_target_current
-        )
+        try:
+            await self.comm_session.evse_controller.send_charging_command(
+                ev_data_context.target_voltage,
+                ev_data_context.target_current,
+                is_precharge=True,
+            )
+        except asyncio.TimeoutError:
+            self.stop_state_machine(
+                "Error sending targets to charging station in charging loop.",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
         evse_present_voltage = (
@@ -663,6 +694,10 @@ class PowerDelivery(StateSECC):
             return
 
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
+
+        self.comm_session.evse_controller.ev_data_context.present_soc = (
+            power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ress_soc
+        )
 
         logger.debug(
             f"ChargeProgress set to "
@@ -759,12 +794,21 @@ class CurrentDemand(StateSECC):
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
 
-        self.comm_session.evse_controller.ev_data_context.soc = (
-            current_demand_req.dc_ev_status.ev_ress_soc
-        )
-        await self.comm_session.evse_controller.send_charging_command(
-            current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
-        )
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+        ev_data_context.update_charge_loop_parameters(current_demand_req)
+
+        try:
+            await self.comm_session.evse_controller.send_charging_command(
+                ev_data_context.target_voltage,
+                ev_data_context.target_current,
+            )
+        except asyncio.TimeoutError:
+            self.stop_state_machine(
+                "Error sending targets to charging station in charging loop.",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         current_demand_res: CurrentDemandRes = CurrentDemandRes(
             response_code=ResponseCode.OK,

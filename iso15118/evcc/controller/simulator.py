@@ -116,6 +116,7 @@ class SimEVController(EVControllerInterface):
         self.config = evcc_config
         self.charging_loop_cycles: int = evcc_config.charge_loop_cycle
         self.precharge_loop_cycles: int = 0
+        self.welding_detection_cycles: int = 0
         self._charging_is_completed = False
         self._soc = 10
         self.dc_ev_charge_params: DCEVChargeParams = DCEVChargeParams(
@@ -126,7 +127,7 @@ class SimEVController(EVControllerInterface):
                 multiplier=1, value=8000, unit=UnitSymbol.WATT
             ),
             dc_max_voltage_limit=PVEVMaxVoltageLimit(
-                multiplier=1, value=40, unit=UnitSymbol.VOLTAGE
+                multiplier=3, value=20, unit=UnitSymbol.VOLTAGE
             ),
             dc_energy_capacity=PVEVEnergyCapacity(
                 multiplier=1, value=7000, unit=UnitSymbol.WATT_HOURS
@@ -135,7 +136,7 @@ class SimEVController(EVControllerInterface):
                 multiplier=0, value=1, unit=UnitSymbol.AMPERE
             ),
             dc_target_voltage=PVEVTargetVoltage(
-                multiplier=0, value=400, unit=UnitSymbol.VOLTAGE
+                multiplier=3, value=20, unit=UnitSymbol.VOLTAGE
             ),
         )
 
@@ -193,13 +194,13 @@ class SimEVController(EVControllerInterface):
         matched_vas_services = [
             service for service in services if not service.is_energy_service
         ]
-        selected_vas_services: List[MatchedService] = []
+        selected_vas_services: List[SelectedVAS] = []
         for vas_service in matched_vas_services:
             selected_vas_services.append(
                 SelectedVAS(
-                    service=vas_service,
+                    service=vas_service.service,
                     is_free=vas_service.is_free,
-                    parameter_set=selected_vas_services.parameter_sets[0],
+                    parameter_set=vas_service.parameter_sets[0],
                 )
             )
         return selected_vas_services
@@ -552,7 +553,15 @@ class SimEVController(EVControllerInterface):
     async def is_precharged(
         self, present_voltage_evse: Union[PVEVSEPresentVoltage, RationalNumber]
     ) -> bool:
-        return True
+        if (
+            self.precharge_loop_cycles == 5
+            or present_voltage_evse.get_decimal_value()
+            == (await self.get_present_voltage()).get_decimal_value()
+        ):
+            logger.info("Precharge complete.")
+            return True
+        self.precharge_loop_cycles += 1
+        return False
 
     async def get_dc_ev_power_delivery_parameter_dinspec(
         self,
@@ -586,7 +595,10 @@ class SimEVController(EVControllerInterface):
         return PVRemainingTimeToBulkSOC(multiplier=0, value=80, unit="s")
 
     async def welding_detection_has_finished(self):
-        return True
+        if self.welding_detection_cycles == 3:
+            return True
+        self.welding_detection_cycles += 1
+        return False
 
     async def stop_charging(self) -> None:
         self._charging_is_completed = True
@@ -711,3 +723,7 @@ class SimEVController(EVControllerInterface):
     async def get_target_voltage(self) -> RationalNumber:
         """Overrides EVControllerInterface.get_target_voltage()."""
         return RationalNumber(exponent=3, value=20)
+
+    async def enable_charging(self, enabled: bool) -> None:
+        """Overrides EVControllerInterface.enable_charging()."""
+        pass

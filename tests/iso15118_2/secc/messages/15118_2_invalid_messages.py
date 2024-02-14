@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 
 from iso15118.shared.exceptions import V2GMessageValidationError
-from iso15118.shared.messages.iso15118_2.body import Body, ChargeParameterDiscoveryReq
+from iso15118.shared.messages.iso15118_2.body import Body
 from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage
 
@@ -32,7 +32,7 @@ invalid_v2g_2_messages = [
                 '"Wh","Value":200},"EVEnergyRequest":{"Multiplier":3,"Unit":"Wh",'
                 '"Value":160},"FullSOC":99,"BulkSOC":80}}}}}'
             ),
-            ChargeParameterDiscoveryReq,
+            Body(),
             ResponseCode.FAILED_WRONG_CHARGE_PARAMETER,
         )
     ),

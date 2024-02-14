@@ -1,14 +1,19 @@
 from pathlib import Path
-from typing import List
+from typing import List, cast
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
 from iso15118.secc import Config
-from iso15118.secc.controller.interface import (
-    AuthorizationResponse,
-    EVSessionContext15118,
+from iso15118.secc.controller.ev_data import EVSessionContext15118
+from iso15118.secc.controller.evse_data import (
+    EVSEDataContext,
+    EVSEDCCLLimits,
+    EVSEDCCPDLimits,
+    EVSERatedLimits,
+    EVSESessionLimits,
 )
+from iso15118.secc.controller.interface import AuthorizationResponse
 from iso15118.secc.states.iso15118_2_states import (
     Authorization,
     ChargeParameterDiscovery,
@@ -45,7 +50,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
     ServiceID,
     ServiceName,
 )
+from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.security import get_random_bytes
+from iso15118.shared.settings import load_shared_settings
 from iso15118.shared.states import Pause
 from tests.iso15118_2.secc.states.test_messages import (
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
@@ -84,6 +91,50 @@ class TestV2GSessionScenarios:
         self.comm_session.is_tls = False
         self.comm_session.writer = Mock()
         self.comm_session.writer.get_extra_info = Mock()
+        self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
+        load_shared_settings()
+
+    def get_evse_data(self) -> EVSEDataContext:
+        dc_limits = EVSEDCCPDLimits(
+            max_charge_power=10,
+            min_charge_power=10,
+            max_charge_current=10,
+            min_charge_current=10,
+            max_voltage=10,
+            min_voltage=10,
+            # 15118-20 DC BPT
+            max_discharge_power=10,
+            min_discharge_power=10,
+            max_discharge_current=10,
+            min_discharge_current=10,
+        )
+        dc_cl_limits = EVSEDCCLLimits(
+            # Optional in 15118-20 DC CL (Scheduled)
+            max_charge_power=10,
+            min_charge_power=10,
+            max_charge_current=10,
+            max_voltage=10,
+            # Optional and present in 15118-20 DC BPT CL (Scheduled)
+            max_discharge_power=10,
+            min_discharge_power=10,
+            max_discharge_current=10,
+            min_voltage=10,
+        )
+        rated_limits: EVSERatedLimits = EVSERatedLimits(
+            ac_limits=None,
+            dc_limits=dc_limits,
+        )
+        session_limits: EVSESessionLimits = EVSESessionLimits(
+            ac_limits=None, dc_limits=dc_cl_limits
+        )
+        evse_data_context = EVSEDataContext(
+            rated_limits=rated_limits, session_limits=session_limits
+        )
+        evse_data_context.power_ramp_limit = 10
+        evse_data_context.current_regulation_tolerance = 10
+        evse_data_context.peak_current_ripple = 10
+        evse_data_context.energy_to_be_delivered = 10
+        return evse_data_context
 
     async def test_current_demand_to_power_delivery_when_power_delivery_received(
         self,
@@ -161,6 +212,166 @@ class TestV2GSessionScenarios:
         assert mock_is_authorized.call_args[1]["id_token_type"] == (
             AuthorizationTokenType.EMAID
         )
+
+    @patch(
+        "iso15118.secc.states.iso15118_2_states.PaymentDetails._mobility_operator_root_cert_path"  # noqa
+    )
+    @pytest.mark.parametrize(
+        "mo_root, "
+        "contract_cert, "
+        "is_authorized_return_value, "
+        "expected_response_code, "
+        "expected_next_state",
+        [
+            (
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "moRootCACert.der",
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "contractLeafCert.der",
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
+                ResponseCode.OK,
+                Authorization,
+            ),
+            (
+                None,
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "contractLeafCert.der",
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
+                ResponseCode.OK,
+                Authorization,
+            ),
+            (
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "moRootCACert.der",
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "contractLeafCert_Expired.der",
+                None,
+                ResponseCode.FAILED_CERTIFICATE_EXPIRED,
+                Terminate,
+            ),
+            (
+                None,
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "contractLeafCert_Expired.der",
+                None,
+                ResponseCode.FAILED_CERTIFICATE_EXPIRED,
+                Terminate,
+            ),
+            (
+                None,
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "contractLeafCert.der",
+                AuthorizationResponse(
+                    AuthorizationStatus.REJECTED,
+                    ResponseCode.FAILED_CERTIFICATE_REVOKED,
+                ),
+                ResponseCode.FAILED_CERTIFICATE_REVOKED,
+                Terminate,
+            ),
+        ],
+    )
+    async def test_payment_details_next_state_on_payment_details_contract_variants(
+        self,
+        mock_mo_root_path,
+        mo_root,
+        contract_cert,
+        is_authorized_return_value,
+        expected_response_code,
+        expected_next_state: StateSECC,
+    ):
+        self.comm_session.selected_auth_option = AuthEnum.PNC_V2
+        mock_mo_root_path.return_value = mo_root
+        mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
+        self.comm_session.evse_controller.is_authorized = mock_is_authorized
+        payment_details = PaymentDetails(self.comm_session)
+        payment_details_req = get_dummy_v2g_message_payment_details_req(contract_cert)
+        await payment_details.process_message(payment_details_req)
+
+        assert (
+            payment_details.next_state == expected_next_state
+        ), "State did not progress after PaymentDetailsReq"
+
+        if isinstance(payment_details.message, V2GMessageV2):
+            assert (
+                payment_details.message.body.payment_details_res.response_code
+                == expected_response_code
+            )
+        # if is_authorized_return_value is not None:
+        #     mock_is_authorized.assert_called_once()
+        # else:
+        #     mock_is_authorized.assert_not_called()
+
+    @patch(
+        "iso15118.secc.states.iso15118_2_states.PaymentDetails._mobility_operator_root_cert_path"  # noqa
+    )
+    @pytest.mark.parametrize(
+        "mo_root, "
+        "contract_cert, "
+        "is_authorized_return_value, "
+        "expected_response_code, "
+        "expected_next_state",
+        [
+            (
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "moSubCA2Cert.der",
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "contractLeafCert.der",
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
+                ResponseCode.OK,
+                Authorization,
+            ),
+            (
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "moSubCA2Cert.der",
+                Path(__file__).parent.parent.parent
+                / "sample_certs"
+                / "contractLeafCert_Expired.der",
+                None,
+                ResponseCode.FAILED_CERTIFICATE_EXPIRED,
+                Terminate,
+            ),
+        ],
+    )
+    async def test_payment_details_next_state_on_payment_details_contract_variants_incorrect_mo_root(  # noqa
+        self,
+        mock_mo_root_path,
+        mo_root,
+        contract_cert,
+        is_authorized_return_value,
+        expected_response_code,
+        expected_next_state: StateSECC,
+    ):
+        self.comm_session.selected_auth_option = AuthEnum.PNC_V2
+        mock_mo_root_path.return_value = mo_root
+        mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
+        self.comm_session.evse_controller.is_authorized = mock_is_authorized
+        payment_details = PaymentDetails(self.comm_session)
+        payment_details_req = get_dummy_v2g_message_payment_details_req(contract_cert)
+        await payment_details.process_message(payment_details_req)
+
+        assert (
+            payment_details.next_state == expected_next_state
+        ), "State did not progress after PaymentDetailsReq"
+
+        if isinstance(payment_details.message, V2GMessageV2):
+            assert (
+                payment_details.message.body.payment_details_res.response_code
+                == expected_response_code
+            )
+        if is_authorized_return_value is not None:
+            mock_is_authorized.assert_called_once()
+        else:
+            mock_is_authorized.assert_not_called()
 
     @pytest.mark.parametrize(
         "auth_type, is_authorized_return_value, expected_next_state,"
@@ -241,7 +452,7 @@ class TestV2GSessionScenarios:
                     ResponseCode.FAILED_CERTIFICATE_REVOKED,
                 ),
                 Terminate,
-                ResponseCode.FAILED_CERTIFICATE_REVOKED,
+                ResponseCode.FAILED,
                 EVSEProcessing.FINISHED,
                 True,
             ),
@@ -252,7 +463,7 @@ class TestV2GSessionScenarios:
                     ResponseCode.FAILED_CERTIFICATE_NOT_ALLOWED_AT_THIS_EVSE,
                 ),
                 Terminate,
-                ResponseCode.FAILED_CERTIFICATE_NOT_ALLOWED_AT_THIS_EVSE,
+                ResponseCode.FAILED,
                 EVSEProcessing.FINISHED,
                 True,
             ),
@@ -263,7 +474,7 @@ class TestV2GSessionScenarios:
                     ResponseCode.FAILED_CERTIFICATE_EXPIRED,
                 ),
                 Terminate,
-                ResponseCode.FAILED_CERTIFICATE_EXPIRED,
+                ResponseCode.FAILED,
                 EVSEProcessing.FINISHED,
                 True,
             ),
@@ -274,7 +485,7 @@ class TestV2GSessionScenarios:
                     ResponseCode.OK_CERTIFICATE_EXPIRES_SOON,
                 ),
                 ChargeParameterDiscovery,
-                ResponseCode.OK_CERTIFICATE_EXPIRES_SOON,
+                ResponseCode.FAILED,
                 EVSEProcessing.FINISHED,
                 True,
             ),
@@ -306,6 +517,8 @@ class TestV2GSessionScenarios:
             message=get_dummy_v2g_message_authorization_req()
         )
         assert authorization.next_state == expected_next_state
+        authorization.message = cast(V2GMessageV2, authorization.message)
+
         assert (
             authorization.message.body.authorization_res.response_code
             == expected_response_code
@@ -314,6 +527,78 @@ class TestV2GSessionScenarios:
             authorization.message.body.authorization_res.evse_processing
             == expected_evse_processing
         )
+
+    @pytest.mark.parametrize(
+        "auth_type, is_authorized_return_value, expected_next_state,"
+        "expected_response_code, expected_evse_processing, is_ready_to_charge",
+        [
+            (
+                AuthEnum.EIM,
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
+                None,
+                ResponseCode.OK,
+                EVSEProcessing.ONGOING,
+                False,
+            ),
+            (
+                AuthEnum.PNC_V2,
+                AuthorizationResponse(AuthorizationStatus.ACCEPTED, ResponseCode.OK),
+                None,
+                ResponseCode.OK,
+                EVSEProcessing.ONGOING,
+                False,
+            ),
+        ],
+    )
+    async def test_repeat_authorization_req_on_accepted(
+        self,
+        auth_type: AuthEnum,
+        is_authorized_return_value: AuthorizationStatus,
+        expected_next_state: StateSECC,
+        expected_response_code: ResponseCode,
+        expected_evse_processing: EVSEProcessing,
+        is_ready_to_charge: bool,
+    ):
+        mock_is_ready_to_charge = Mock(return_value=is_ready_to_charge)
+        self.comm_session.evse_controller.ready_to_charge = mock_is_ready_to_charge
+        self.comm_session.selected_auth_option = auth_type
+        mock_is_authorized = AsyncMock(return_value=is_authorized_return_value)
+        self.comm_session.evse_controller.is_authorized = mock_is_authorized
+        # TODO: Include a real CertificateChain object and a message header
+        #       with a signature that must be return by
+        #      `get_dummy_v2g_message_authorization_req`
+        self.comm_session.contract_cert_chain = Mock()
+        self.comm_session.emaid = "dummy"
+        self.comm_session.gen_challenge = None
+        authorization = Authorization(self.comm_session)
+        authorization.signature_verified_once = True
+        await authorization.process_message(
+            message=get_dummy_v2g_message_authorization_req()
+        )
+        assert authorization.next_state == expected_next_state
+        authorization.message = cast(V2GMessageV2, authorization.message)
+
+        assert (
+            authorization.message.body.authorization_res.response_code
+            == expected_response_code
+        )
+        assert (
+            authorization.message.body.authorization_res.evse_processing
+            == expected_evse_processing
+        )
+        await authorization.process_message(
+            message=get_dummy_v2g_message_authorization_req()
+        )
+        await authorization.process_message(
+            message=get_dummy_v2g_message_authorization_req()
+        )
+        assert self.comm_session.evse_controller.is_authorized.call_count == 1
+
+        self.comm_session.evse_controller.ready_to_charge = Mock(return_value=True)
+        await authorization.process_message(
+            message=get_dummy_v2g_message_authorization_req()
+        )
+        assert authorization.next_state == ChargeParameterDiscovery
 
     async def test_authorization_req_gen_challenge_invalid(self):
         self.comm_session.selected_auth_option = AuthEnum.PNC_V2
@@ -327,6 +612,7 @@ class TestV2GSessionScenarios:
             message=get_dummy_v2g_message_authorization_req(id, gen_challenge)
         )
         assert authorization.next_state == Terminate
+        assert isinstance(authorization.message, V2GMessageV2)
         assert (
             authorization.message.body.authorization_res.response_code
             == ResponseCode.FAILED_CHALLENGE_INVALID
@@ -361,6 +647,7 @@ class TestV2GSessionScenarios:
         charging_duration = (
             charge_parameter_discovery_req_departure_time_set.body.charge_parameter_discovery_req.ac_ev_charge_parameter.departure_time  # noqa
         )
+        assert isinstance(charge_parameter_discovery.message, V2GMessageV2)
 
         assert (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res
@@ -404,6 +691,8 @@ class TestV2GSessionScenarios:
         await charge_parameter_discovery.process_message(
             message=get_charge_parameter_discovery_req_message_no_departure_time()
         )
+        assert isinstance(charge_parameter_discovery.message, V2GMessageV2)
+
         assert (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res
             is not None
@@ -444,10 +733,12 @@ class TestV2GSessionScenarios:
         await charge_parameter_discovery.process_message(
             message=get_charge_parameter_discovery_req_message_no_departure_time()
         )
+        assert isinstance(charge_parameter_discovery.message, V2GMessageV2)
         assert (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res
             is not None
         )
+
         charge_parameter_discovery_res = (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res
         )
@@ -514,6 +805,8 @@ class TestV2GSessionScenarios:
 
         await power_delivery.process_message(message=power_delivery_message)
         assert power_delivery.next_state is expected_state
+        assert isinstance(power_delivery.message, V2GMessageV2)
+
         assert (
             power_delivery.message.body.power_delivery_res.response_code
             is expected_response_code
@@ -550,6 +843,7 @@ class TestV2GSessionScenarios:
             message=get_dummy_v2g_message_service_discovery_req()
         )
         assert service_discovery.next_state is Terminate
+        assert isinstance(service_discovery.message, V2GMessageV2)
         assert (
             service_discovery.message.body.service_discovery_res.response_code
             is ResponseCode.FAILED_SEQUENCE_ERROR
@@ -559,6 +853,7 @@ class TestV2GSessionScenarios:
         charging_status = ChargingStatus(self.comm_session)
         self.comm_session.selected_schedule = 1
         await charging_status.process_message(message=get_dummy_charging_status_req())
+        assert isinstance(charging_status.message, V2GMessageV2)
 
         charging_status_res = charging_status.message.body.charging_status_res
         assert charging_status_res.ac_evse_status == ACEVSEStatus(
@@ -580,6 +875,7 @@ class TestV2GSessionScenarios:
 
         self.comm_session.evse_controller.get_ac_evse_status = get_ac_evse_status_patch
         await charging_status.process_message(message=get_dummy_charging_status_req())
+        assert isinstance(charging_status.message, V2GMessageV2)
         charging_status_res = charging_status.message.body.charging_status_res
         assert charging_status_res.ac_evse_status == await get_ac_evse_status_patch()
 
@@ -612,6 +908,7 @@ class TestV2GSessionScenarios:
             message=get_v2g_message_service_detail_req(service_id=service_id)
         )
         assert isinstance(self.comm_session.current_state, ServiceDetail)
+        assert isinstance(service_details.message, V2GMessageV2)
         assert (
             service_details.message.body.service_detail_res.response_code
             is response_code
@@ -705,6 +1002,8 @@ class TestV2GSessionScenarios:
         await service_discovery.process_message(
             message=get_v2g_message_service_discovery_req()
         )
+        service_discovery.message = cast(V2GMessageV2, service_discovery.message)
+
         assert (
             service_discovery.message.body.service_discovery_res.charge_service
             == charge_service
@@ -752,6 +1051,10 @@ class TestV2GSessionScenarios:
                 energy_transfer_modes[0]
             )
         )
+
+        charge_parameter_discovery.message = cast(
+            V2GMessageV2, charge_parameter_discovery.message
+        )
         sa_schedule_list = (
             charge_parameter_discovery.message.body.charge_parameter_discovery_res.sa_schedule_list.schedule_tuples  # noqa
         )
@@ -789,6 +1092,7 @@ class TestV2GSessionScenarios:
                 energy_transfer_modes[0]
             )
         )
+        assert isinstance(charge_parameter_discovery.message, V2GMessageV2)
         for (
             schedule_tuple
         ) in (

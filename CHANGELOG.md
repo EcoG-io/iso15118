@@ -5,6 +5,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.1] - 2024-01-31
+* fixed type returned by get_evse_max_current_limit by @tropxy in https://github.com/SwitchEV/iso15118/pull/373
+* Fix for ChargeParameterDiscovery  get_evse_max_voltage by @tropxy in https://github.com/SwitchEV/iso15118/pull/376
+
+## [0.25.0] - 2024-01-23
+* JTT-529: Changed order of validation. Start with checking validity of availabl… by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/350
+* chore(deps-dev): bump black from 23.11.0 to 23.12.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/352
+* fix evse data context update in DIN CPD by @tropxy in https://github.com/SwitchEV/iso15118/pull/366
+* jtt-550_ignore_incorrect_mo_root_on_disk by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/358
+* Fix for connection reset error by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/365
+* New EVCC config isAliveAfterSession introduced by @touchlinux in https://github.com/SwitchEV/iso15118/pull/361
+* Added optional is_precharge flag to send_charging_command by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/364
+* fix: potential issue with divide by 0 and added interface tests by @tropxy in https://github.com/SwitchEV/iso15118/pull/369
+* EVCC enable charging and fix for DIN EVSE initiated stop by @heavyweight87 in https://github.com/SwitchEV/iso15118/pull/368
+* Add option to close tcp reader from SECC by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/370
+
+## [0.24.0] - 2023-12-13
+* Big refactoring of EVSE/EVData by @tropxy in https://github.com/SwitchEV/iso15118/pull/337
+
+## [0.23.12] - 2023-12-12
+* value and exponent tuple order is fixed by @ikaratass in https://github.com/SwitchEV/iso15118/pull/347
+
+## [0.23.11] - 2023-12-08
+* Update cryptography version by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/344
+
+## [0.23.10] - 2023-12-08
+* Minor refactor exponent_value_conversion by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/342
+
+## [0.23.9] - 2023-12-07
+* chore(deps): bump actions/setup-python from 4 to 5 by @dependabot in https://github.com/SwitchEV/iso15118/pull/338
+* Removed reading of v20 service config from file by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/339
+
+## [0.23.8] - 2023-12-06
+* chore(deps-dev): bump pytest-asyncio from 0.21.1 to 0.23.2 by @dependabot in https://github.com/SwitchEV/iso15118/pull/332
+* Precharge EVSE voltage-current by @ikaratass in https://github.com/SwitchEV/iso15118/pull/333
+* JTT-458 Fix json logging in iso15118 by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/335
+
+## [0.23.7] - 2023-11-22
+* log namespace value by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/328
+
+## [0.23.6] - 2023-11-21
+* Report session stop reason by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/315
+* chore(deps-dev): bump pytest-asyncio from 0.21.1 to 0.22.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/318
+* [JTT-291] - Relaxation of the PV limits by @tropxy in https://github.com/SwitchEV/iso15118/pull/319
+* Updates to store EV and EVSE limits shared in CPD and CL (-20 AC and DC). by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/279
+* chore(deps-dev): bump black from 23.10.0 to 23.11.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/321
+* chore(deps-dev): bump mypy from 1.6.1 to 1.7.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/322
+* Imp/jtt 113 update env attributes on run time by @ikaratass in https://github.com/SwitchEV/iso15118/pull/304
+
+**Full Changelog**: https://github.com/SwitchEV/iso15118/compare/0.23.5...0.23.6
+## [0.23.5] - 2023-10-26
+* JTT-206 Skip requesting authorization status once response is received by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/310
+
+## [0.23.4] - 2023-10-20
+* chore(deps-dev): bump black from 23.7.0 to 23.9.1 by @dependabot in https://github.com/SwitchEV/iso15118/pull/296
+* Simplify instructions to run locally by @OrangeTux in https://github.com/SwitchEV/iso15118/pull/302
+* chore(deps): bump pydantic from 1.10.5 to 2.0.2 by @dependabot in https://github.com/SwitchEV/iso15118/pull/273
+* Catch uncaught timeout exception while trying to close writer. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/308
+* JTT-193: Add evse_max_current to ChargingStatusRes in 15118-2 by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/305
+
+## [0.23.3] - 2023-09-14
+* JTT-138 Feat: update iso15118 interfaces by @santiagosalamandri in https://github.com/SwitchEV/iso15118/pull/298
+## [0.23.2] - 2023-09-13
+* chore(deps-dev): bump mypy from 1.4.0 to 1.5.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/288
+* JTT-81 Feat: Check response code by @santiagosalamandri in https://github.com/SwitchEV/iso15118/pull/289
+* ScheduleExchange(StateEVCC_bug) by @GUANMINLIAO in https://github.com/SwitchEV/iso15118/pull/292
+* JTT-112 Feat: Enable mypy support by @santiagosalamandri in https://github.com/SwitchEV/iso15118/pull/294
+* Add bpt channel info only if evpowerprofile is available by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/297
+
+## [0.23.1] - 2023-08-02
+* Updated readme. Removed dc underdevelopment comment by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/272
+* chore(deps-dev): bump black from 23.3.0 to 23.7.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/275
+* Make running of udp server optional by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/274
+* Feature/test data and fixes by @martinbachmanndesignwerk in https://github.com/SwitchEV/iso15118/pull/276
+* JTT-52: Stop charging if state C not detected in PowerDelivery state. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/282
+* chore(deps-dev): bump flake8 from 6.0.0 to 6.1.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/283
+* Simulate precharge ongoing before finished by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/284
+* Simulate welding detection ongoing before finished by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/285
+* Return FAILED_CertificateExpired is certificate is not yet valid by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/286
+
+## [0.23.0] - 2023-06-30
+* chore(deps-dev): bump mypy from 1.2.0 to 1.3.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/250
+* chore(deps): bump cryptography from 40.0.1 to 41.0.1 by @dependabot in https://github.com/SwitchEV/iso15118/pull/251
+* chore(deps-dev): bump pytest-cov from 3.0.0 to 4.1.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/253
+* chore(deps-dev): bump pytest from 7.2.2 to 7.3.2 by @dependabot in https://github.com/SwitchEV/iso15118/pull/254
+* chore(deps-dev): bump black from 22.3.0 to 23.3.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/260
+* chore(deps-dev): bump mypy from 1.3.0 to 1.4.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/261
+* Add missing optional fileds in CurrentDemandRes DIN70121 by @sdrabb in https://github.com/SwitchEV/iso15118/pull/259
+* Fix min_length of EVSE ID for DIN protocol by @adoebber in https://github.com/SwitchEV/iso15118/pull/257
+* chore(deps-dev): bump pytest from 7.3.2 to 7.4.0 by @dependabot in https://github.com/SwitchEV/iso15118/pull/263
+* AB#5144:support to return certificate validation status. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/265
+* Python gc by @ikaratass in https://github.com/SwitchEV/iso15118/pull/266
+
 ## [0.22.0] - 2023-06-16
 * feat: add dependabot GHA by @mdwcrft in https://github.com/SwitchEV/iso15118/pull/224
 * chore(deps): bump actions/setup-python from 2 to 4 by @dependabot in https://github.com/SwitchEV/iso15118/pull/246
