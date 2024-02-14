@@ -69,6 +69,9 @@ class EVCCConfig(BaseModel):
     # The SECC must not transmit more entries than defined in this parameter.
     max_supporting_points: Optional[int] = Field(1024, alias="maxSupportingPoints")
 
+    # charge cycle count
+    charge_loop_cycle: Optional[int] = Field(10, alias="chargeLoopCycle")
+
     def load_raw_values(self):
         # conversion of list of strings to enum types.
         self.supported_energy_services = load_requested_energy_services(
