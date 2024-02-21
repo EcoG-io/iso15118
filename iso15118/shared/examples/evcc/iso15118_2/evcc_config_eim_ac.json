@@ -6,5 +6,6 @@
 		"AC"
 	],
 	"isCertInstallNeeded": false,
-	"useTls": false
+	"useTls": false,
+	"chargeLoopCycle": 10
 }

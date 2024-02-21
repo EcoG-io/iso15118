@@ -333,31 +333,30 @@ class EVDataContext:
         self.present_soc = current_demand_req.dc_ev_status.ev_ress_soc
         self.target_current = current_demand_req.ev_target_current.get_decimal_value()
         self.target_voltage = current_demand_req.ev_target_voltage.get_decimal_value()
-        self.remaining_time_to_max_soc = (  # noqa: E501
-            None
-            if current_demand_req.remaining_time_to_full_soc is None
-            else current_demand_req.remaining_time_to_full_soc.get_decimal_value()
-        )
-        self.remaining_time_to_bulk_soc = (  # noqa: E501
-            None
-            if current_demand_req.remaining_time_to_bulk_soc is None
-            else current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
-        )
-        self.session_limits.dc_limits.max_charge_current = (  # noqa: E501
-            None
-            if current_demand_req.ev_max_current_limit is None
-            else current_demand_req.ev_max_current_limit.get_decimal_value()
-        )
-        self.session_limits.dc_limits.max_charge_power = (  # noqa: E501
-            None
-            if current_demand_req.ev_max_power_limit is None
-            else current_demand_req.ev_max_power_limit.get_decimal_value()
-        )
-        self.session_limits.dc_limits.max_voltage = (  # noqa: E501
-            None
-            if current_demand_req.ev_max_voltage_limit is None
-            else current_demand_req.ev_max_voltage_limit.get_decimal_value()
-        )
+        if current_demand_req.remaining_time_to_full_soc is not None:
+            self.remaining_time_to_max_soc = (
+                current_demand_req.remaining_time_to_full_soc.get_decimal_value()
+            )
+
+        if current_demand_req.remaining_time_to_bulk_soc is not None:
+            self.remaining_time_to_bulk_soc = (
+                current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
+            )
+
+        if current_demand_req.ev_max_current_limit is not None:
+            self.session_limits.dc_limits.max_charge_current = (
+                current_demand_req.ev_max_current_limit.get_decimal_value()
+            )
+
+        if current_demand_req.ev_max_power_limit is not None:
+            self.session_limits.dc_limits.max_charge_power = (
+                current_demand_req.ev_max_power_limit.get_decimal_value()
+            )
+
+        if current_demand_req.ev_max_voltage_limit is not None:
+            self.session_limits.dc_limits.max_voltage = (
+                current_demand_req.ev_max_voltage_limit.get_decimal_value()
+            )
 
     def update_schedule_exchange_parameters(
         self, control_mode: ControlMode, schedule_exchange_req: ScheduleExchangeReq
