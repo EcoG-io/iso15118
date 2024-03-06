@@ -283,6 +283,7 @@ class CommunicationSessionHandler:
                     )
 
                     try:
+                        logger.info(f"IP: {notification.ip_address}")
                         comm_session, task = self.comm_sessions[notification.ip_address]
                         comm_session.resume()
                     except (KeyError, ConnectionResetError) as e:

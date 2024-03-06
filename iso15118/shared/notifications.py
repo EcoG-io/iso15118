@@ -13,7 +13,7 @@ class Notification:
 class TCPClientNotification(Notification):
     def __init__(self, reader: StreamReader, writer: StreamWriter):
         self.transport = (reader, writer)
-        self.ip_address = writer.get_extra_info("peername")
+        self.ip_address = writer.get_extra_info("peername")[0]
 
 
 class UDPPacketNotification(Notification):

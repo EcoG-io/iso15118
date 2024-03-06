@@ -1255,7 +1255,7 @@ class SessionStop(StateSECC):
             True,
             f"Communication session {session_stop_state.value}d. "
             f"EV Info: {termination_info}",
-            self.comm_session.writer.get_extra_info("peername"),
+            self.comm_session.writer.get_extra_info("peername")[0],
             session_stop_state,
         )
 

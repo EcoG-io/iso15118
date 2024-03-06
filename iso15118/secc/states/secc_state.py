@@ -316,7 +316,7 @@ class StateSECC(State, ABC):
         FAILED_SequenceError.
         """
         self.comm_session.stop_reason = StopNotification(
-            False, reason, self.comm_session.writer.get_extra_info("peername")
+            False, reason, self.comm_session.writer.get_extra_info("peername")[0]
         )
         msg_type: Optional[
             Union[

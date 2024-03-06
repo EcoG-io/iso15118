@@ -314,7 +314,7 @@ class V2GCommunicationSession(SessionStateMachine):
         self.reader, self.writer = transport
         # For timeout, termination, and pausing notifications
         self.session_handler_queue = session_handler_queue
-        self.peer_name = self.writer.get_extra_info("peername")
+        self.peer_name = self.writer.get_extra_info("peername")[0]
         self.session_id: str = ""
         # Mutually agreed-upon ISO 15118 application protocol as result of SAP
         self.chosen_protocol: str = ""

@@ -932,7 +932,7 @@ class SessionStop(StateSECC):
         self.comm_session.stop_reason = StopNotification(
             True,
             "Communication session stopped successfully",
-            self.comm_session.writer.get_extra_info("peername"),
+            self.comm_session.writer.get_extra_info("peername")[0],
         )
 
         self.create_next_message(

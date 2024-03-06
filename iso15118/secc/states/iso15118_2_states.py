@@ -2053,7 +2053,7 @@ class SessionStop(StateSECC):
         self.comm_session.stop_reason = StopNotification(
             True,
             f"EV requested to {session_stop_state.value} the communication session",
-            self.comm_session.writer.get_extra_info("peername"),
+            self.comm_session.writer.get_extra_info("peername")[0],
             session_stop_state,
         )
         self.create_next_message(
