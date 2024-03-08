@@ -931,25 +931,29 @@ class ScheduleExchange(StateSECC):
         ev_data_context.update_schedule_exchange_parameters(
             control_mode, schedule_exchange_req
         )
-        evse_processing = Processing.ONGOING
+
         params = await self.comm_session.evse_controller.get_schedule_exchange_params(
             self.comm_session.selected_energy_service,
             control_mode,
             schedule_exchange_req,
         )
-        if params:
+
+        if params and control_mode == ControlMode.SCHEDULED:
+            if type(params) is ScheduledScheduleExchangeResParams:
+                self.comm_session.offered_schedules_V20 = params.schedule_tuples
+            else:
+                self.stop_state_machine(
+                    f"Unexpected control_mode {control_mode},"
+                    f" for params type {type(params)}",
+                    message,
+                    ResponseCode.FAILED,
+                )
+                return
+
+        if self.comm_session.evse_controller.ready_to_charge():
             evse_processing = Processing.FINISHED
-            if control_mode == ControlMode.SCHEDULED:
-                if type(params) is ScheduledScheduleExchangeResParams:
-                    self.comm_session.offered_schedules_V20 = params.schedule_tuples
-                else:
-                    self.stop_state_machine(
-                        f"Unexpected control_mode {control_mode},"
-                        f" for params type {type(params)}",
-                        message,
-                        ResponseCode.FAILED,
-                    )
-                    return
+        else:
+            evse_processing = Processing.ONGOING
 
         schedule_exchange_res = ScheduleExchangeRes(
             header=MessageHeader(
@@ -960,10 +964,12 @@ class ScheduleExchange(StateSECC):
             scheduled_params=params if control_mode == ControlMode.SCHEDULED else None,
             dynamic_params=params if control_mode == ControlMode.DYNAMIC else None,
         )
-        evse_data_context = self.comm_session.evse_controller.evse_data_context
-        evse_data_context.update_schedule_exchange_parameters(
-            control_mode, schedule_exchange_res
-        )
+
+        if evse_processing == Processing.FINISHED:
+            evse_data_context = self.comm_session.evse_controller.evse_data_context
+            evse_data_context.update_schedule_exchange_parameters(
+                control_mode, schedule_exchange_res
+            )
 
         # We don't know what request will come next (which state to transition to),
         # unless the schedule parameters are ready and we're in AC charging.
