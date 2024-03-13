@@ -457,7 +457,6 @@ class Authorization(StateSECC):
         if (
             current_authorization_status.authorization_status
             == AuthorizationStatus.ACCEPTED
-            and self.comm_session.evse_controller.ready_to_charge()
         ):
             evse_processing = Processing.FINISHED
         elif (
