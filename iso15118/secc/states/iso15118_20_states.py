@@ -942,20 +942,25 @@ class ScheduleExchange(StateSECC):
             schedule_exchange_req,
         )
 
-        if control_mode == ControlMode.SCHEDULED:
-            if type(params) is ScheduledScheduleExchangeResParams:
-                self.comm_session.offered_schedules_V20 = params.schedule_tuples
-            else:
-                self.stop_state_machine(
-                    f"Unexpected control_mode {control_mode},"
-                    f" for params type {type(params)}",
-                    message,
-                    ResponseCode.FAILED,
-                )
-                return
+        if (
+            control_mode == ControlMode.SCHEDULED
+            and type(params) is not ScheduledScheduleExchangeResParams
+        ) or (
+            control_mode == ControlMode.DYNAMIC
+            and type(params) is not DynamicScheduleExchangeResParams
+        ):
+            self.stop_state_machine(
+                f"Unexpected control_mode {control_mode},"
+                f" for params type {type(params)}",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         if self.comm_session.evse_controller.ready_to_charge():
             evse_processing = Processing.FINISHED
+            if type(params) is ScheduledScheduleExchangeResParams:
+                self.comm_session.offered_schedules_V20 = params.schedule_tuples
         else:
             evse_processing = Processing.ONGOING
 
