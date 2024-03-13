@@ -298,9 +298,7 @@ class SimEVSEController(EVSEControllerInterface):
         selected_energy_service: SelectedEnergyService,
         control_mode: ControlMode,
         schedule_exchange_req: ScheduleExchangeReq,
-    ) -> Optional[
-        Union[ScheduledScheduleExchangeResParams, DynamicScheduleExchangeResParams]
-    ]:
+    ) -> Union[ScheduledScheduleExchangeResParams, DynamicScheduleExchangeResParams]:
         if control_mode == ControlMode.SCHEDULED:
             return await self.get_scheduled_se_params(
                 selected_energy_service, schedule_exchange_req
@@ -314,7 +312,7 @@ class SimEVSEController(EVSEControllerInterface):
         self,
         selected_energy_service: SelectedEnergyService,
         schedule_exchange_req: ScheduleExchangeReq,
-    ) -> Optional[ScheduledScheduleExchangeResParams]:
+    ) -> ScheduledScheduleExchangeResParams:
         """Overrides EVSEControllerInterface.get_scheduled_se_params()."""
         charging_power_schedule_entry = PowerScheduleEntry(
             duration=3600,
@@ -510,7 +508,7 @@ class SimEVSEController(EVSEControllerInterface):
         self,
         selected_energy_service: SelectedEnergyService,
         schedule_exchange_req: ScheduleExchangeReq,
-    ) -> Optional[DynamicScheduleExchangeResParams]:
+    ) -> DynamicScheduleExchangeResParams:
         """Overrides EVSEControllerInterface.get_dynamic_se_params()."""
         price_level_schedule_entry = PriceLevelScheduleEntry(
             duration=3600, price_level=1
