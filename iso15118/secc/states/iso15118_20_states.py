@@ -53,6 +53,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     CertificateInstallationReq,
     ChargeProgress,
     ChargingSession,
+    DynamicScheduleExchangeResParams,
     EIMAuthSetupResParams,
     EVPowerProfile,
     MatchedService,
