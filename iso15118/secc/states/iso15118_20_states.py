@@ -932,6 +932,11 @@ class ScheduleExchange(StateSECC):
             control_mode, schedule_exchange_req
         )
 
+        # As per Table 49 of ISO15118-20 spec: one of scheduled_params/dynamic_params is
+        # required even if EVSEProcessing is ongoing. The SECC shall only omit the
+        # parameter 'ScheduleList' in case EVSEProcessing is set to 'Ongoing'.
+        # However, the schema file doesn't permit this as minOccurs = 0 is not set in
+        # schema here: https://github.com/SwitchEV/iso15118/blob/769eddb0cb780db629b4c736de270d381516abd1/iso15118/shared/schemas/iso15118_20/V2G_CI_CommonMessages.xsd#L467-L466  # noqa
         params = await self.comm_session.evse_controller.get_schedule_exchange_params(
             self.comm_session.selected_energy_service,
             control_mode,
