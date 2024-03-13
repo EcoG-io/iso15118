@@ -938,7 +938,7 @@ class ScheduleExchange(StateSECC):
             schedule_exchange_req,
         )
 
-        if params and control_mode == ControlMode.SCHEDULED:
+        if control_mode == ControlMode.SCHEDULED:
             if type(params) is ScheduledScheduleExchangeResParams:
                 self.comm_session.offered_schedules_V20 = params.schedule_tuples
             else:

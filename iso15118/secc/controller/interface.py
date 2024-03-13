@@ -160,9 +160,7 @@ class EVSEControllerInterface(ABC):
         selected_energy_service: SelectedEnergyService,
         control_mode: ControlMode,
         schedule_exchange_req: ScheduleExchangeReq,
-    ) -> Optional[
-        Union[ScheduledScheduleExchangeResParams, DynamicScheduleExchangeResParams]
-    ]:
+    ) -> Union[ScheduledScheduleExchangeResParams, DynamicScheduleExchangeResParams]:
         """
         Gets the parameters for a ScheduleExchangeResponse.
         If the parameters are not yet ready when requested,
