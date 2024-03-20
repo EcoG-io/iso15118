@@ -189,7 +189,7 @@ class SessionSetup(StateSECC):
             and msg.header.session_id == self.comm_session.ev_session_context.session_id
         ):
             # The EV wants to resume the previously paused charging session
-            session_id = self.comm_session.session_id
+            session_id = self.comm_session.ev_session_context.session_id
             self.response_code = ResponseCode.OK_OLD_SESSION_JOINED
         else:
             # False session ID from EV, gracefully assigning new session ID
