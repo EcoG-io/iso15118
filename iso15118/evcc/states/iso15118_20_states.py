@@ -455,9 +455,9 @@ class ServiceDiscovery(StateEVCC):
             service_discovery_res.service_renegotiation_supported
         )
 
-        req_energy_services: List[
-            ServiceV20
-        ] = await self.comm_session.ev_controller.get_supported_energy_services()
+        req_energy_services: List[ServiceV20] = (
+            await self.comm_session.ev_controller.get_supported_energy_services()
+        )
 
         for energy_service in service_discovery_res.energy_service_list.services:
             for requested_energy_service in req_energy_services:
@@ -854,8 +854,8 @@ class ScheduleExchange(StateEVCC):
                     else:
                         bpt_channel_selection = ChannelSelection.CHARGE
 
+            await self.comm_session.ev_controller.enable_charging(True)
             if self.comm_session.selected_charging_type_is_ac:
-                await self.comm_session.ev_controller.enable_charging(True)
                 power_delivery_req = PowerDeliveryReq(
                     header=MessageHeader(
                         session_id=self.comm_session.session_id,
@@ -1576,7 +1576,7 @@ class DCPreCharge(StateEVCC):
                 bpt_channel_selection = ChannelSelection.DISCHARGE
             else:
                 bpt_channel_selection = ChannelSelection.CHARGE
-        await self.comm_session.ev_controller.enable_charging(True)
+
         power_delivery_req = PowerDeliveryReq(
             header=MessageHeader(
                 session_id=self.comm_session.session_id,
