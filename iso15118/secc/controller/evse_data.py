@@ -103,6 +103,12 @@ class EVSEDCCLLimits(Limits):
     min_discharge_power: Optional[float] = None  # Req in 15118-20 Dynamic BPT CL
     max_discharge_current: Optional[float] = None  # Req in 15118-20 Dynamic BPT CL
 
+    current_reg_tolerance: Optional[float] = None
+    isolation_status: Optional[EVSEIsolationStatus] = None
+    energy_to_be_delivered: Optional[float] = None
+    current_reg_tolerance: Optional[float] = None
+    evse_power_ramp_limit: Optional[float] = None
+    dc_bpt: Optional[DCBPTStatusAndLimits] = None
 
 @dataclass
 class EVSERatedLimits(Limits):
@@ -238,8 +244,7 @@ class EVSEDataContext:
     ) -> None:
         """Update the EVSE data context with the DC charge parameters."""
         self.current_type = CurrentType.DC
-        rated_limits = self.rated_limits.dc_limits = EVSEDCCPDLimits()
-        self.session_limits.dc_limits = EVSEDCCLLimits()
+        rated_limits = self.rated_limits.dc_limits
         rated_limits.max_charge_power = (
             dc_charge_parameter.evse_maximum_power_limit.get_decimal_value()
         )
@@ -265,7 +270,7 @@ class EVSEDataContext:
                 dc_charge_parameter.evse_energy_to_be_delivered.get_decimal_value()
             )
         # Create the session limits based on the rated limits
-        self.session_limits.dc_limits.update(rated_limits.as_dict())
+        # self.session_limits.dc_limits.update(rated_limits.as_dict())
 
     def update_ac_charge_parameters_v20(
         self,

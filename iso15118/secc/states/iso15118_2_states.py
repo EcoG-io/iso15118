@@ -1374,7 +1374,7 @@ class ChargeParameterDiscovery(StateSECC):
             dc_evse_charge_params = (
                 await self.comm_session.evse_controller.get_dc_charge_parameters_v2()
             )
-            evse_data_context.update_dc_charge_parameters(dc_evse_charge_params)
+            # evse_data_context.update_dc_charge_parameters(dc_evse_charge_params)
             ev_data_context.update_dc_charge_parameters(
                 charge_params_req.dc_ev_charge_parameter
             )
