@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple, Type, Union, cast
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.common import UnknownEnergyService
-from iso15118.secc.controller.evse_data import CurrentType, EVSEDataContext
+from iso15118.secc.controller.evse_data import CurrentType
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
