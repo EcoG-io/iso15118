@@ -10,6 +10,7 @@ import time
 from typing import Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
+from iso15118.secc.controller.evse_data import CurrentType
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
@@ -395,7 +396,7 @@ class ChargeParameterDiscovery(StateSECC):
         dc_evse_charge_params = (
             await self.comm_session.evse_controller.get_dc_charge_parameters_dinspec()  # noqa
         )
-        evse_data_context.update_dc_charge_parameters(dc_evse_charge_params)
+        evse_data_context.current_type = CurrentType.DC
 
         sa_schedule_list = (
             await self.comm_session.evse_controller.get_sa_schedule_list_dinspec(

@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple, Type, Union, cast
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.common import UnknownEnergyService
-from iso15118.secc.controller.evse_data import EVSEDataContext
+from iso15118.secc.controller.evse_data import EVSEDataContext, CurrentType
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
@@ -1350,10 +1350,8 @@ class ACChargeParameterDiscovery(StateSECC):
             ev_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_req)
             evse_data_context = (
                 self.comm_session.evse_controller.evse_data_context
-            ) = EVSEDataContext()
-            evse_data_context.update_ac_charge_parameters_v20(
-                energy_service, ac_cpd_res
             )
+            evse_data_context.current_type = CurrentType.AC
         except UnknownEnergyService:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
@@ -1548,9 +1546,7 @@ class DCChargeParameterDiscovery(StateSECC):
             ev_data_context = self.comm_session.evse_controller.ev_data_context
             ev_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_req)
             evse_data_context = self.comm_session.evse_controller.evse_data_context
-            evse_data_context.update_dc_charge_parameters_v20(
-                energy_service, dc_cpd_res
-            )
+            evse_data_context.current_type = CurrentType.DC
         except UnknownEnergyService:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
