@@ -12,6 +12,7 @@ from typing import List, Optional, Tuple, Type, Union
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.ev_data import EVSessionContext15118
 from iso15118.secc.controller.interface import AuthorizationResponse
+from iso15118.secc.controller.evse_data import CurrentType
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
     CertAttributeError,
@@ -1366,7 +1367,7 @@ class ChargeParameterDiscovery(StateSECC):
             ac_evse_charge_params = (
                 await self.comm_session.evse_controller.get_ac_charge_params_v2()
             )
-            evse_data_context.update_ac_charge_parameters_v2(ac_evse_charge_params)
+            evse_data_context.current_type = CurrentType.AC
             ev_data_context.update_ac_charge_parameters_v2(
                 charge_params_req.ac_ev_charge_parameter
             )
@@ -1374,7 +1375,7 @@ class ChargeParameterDiscovery(StateSECC):
             dc_evse_charge_params = (
                 await self.comm_session.evse_controller.get_dc_charge_parameters_v2()
             )
-            evse_data_context.update_dc_charge_parameters(dc_evse_charge_params)
+            evse_data_context.current_type = CurrentType.DC
             ev_data_context.update_dc_charge_parameters(
                 charge_params_req.dc_ev_charge_parameter
             )
