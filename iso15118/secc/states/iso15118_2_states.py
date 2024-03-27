@@ -11,8 +11,8 @@ from typing import List, Optional, Tuple, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.ev_data import EVSessionContext15118
-from iso15118.secc.controller.interface import AuthorizationResponse
 from iso15118.secc.controller.evse_data import CurrentType
+from iso15118.secc.controller.interface import AuthorizationResponse
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exceptions import (
     CertAttributeError,
