@@ -1090,11 +1090,11 @@ class PowerDelivery(StateEVCC):
             ServiceV20.AC_BPT,
             ServiceV20.DC_BPT,
         ):
-            power_value = ev_power_profile.entry_list.entries.pop().power.value
-            if power_value < 0:
-                bpt_channel_selection = ChannelSelection.DISCHARGE
-            else:
-                bpt_channel_selection = ChannelSelection.CHARGE
+            bpt_channel_selection = ChannelSelection.CHARGE
+            if ev_power_profile is not None:
+                power_value = ev_power_profile.entry_list.entries[-1].power.value
+                if power_value < 0:
+                    bpt_channel_selection = ChannelSelection.DISCHARGE
 
         power_delivery_req = PowerDeliveryReq(
             header=MessageHeader(
@@ -1571,12 +1571,11 @@ class DCPreCharge(StateEVCC):
             ServiceV20.AC_BPT,
             ServiceV20.DC_BPT,
         ):
-            power_value = ev_power_profile.entry_list.entries.pop().power.value
-            if power_value < 0:
-                bpt_channel_selection = ChannelSelection.DISCHARGE
-            else:
-                bpt_channel_selection = ChannelSelection.CHARGE
-
+            bpt_channel_selection = ChannelSelection.CHARGE
+            if ev_power_profile is not None:
+                power_value = ev_power_profile.entry_list.entries[-1].power.value
+                if power_value < 0:
+                    bpt_channel_selection = ChannelSelection.DISCHARGE
         power_delivery_req = PowerDeliveryReq(
             header=MessageHeader(
                 session_id=self.comm_session.session_id,
