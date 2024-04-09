@@ -854,8 +854,8 @@ class ScheduleExchange(StateEVCC):
                     else:
                         bpt_channel_selection = ChannelSelection.CHARGE
 
+            await self.comm_session.ev_controller.enable_charging(True)
             if self.comm_session.selected_charging_type_is_ac:
-                await self.comm_session.ev_controller.enable_charging(True)
                 power_delivery_req = PowerDeliveryReq(
                     header=MessageHeader(
                         session_id=self.comm_session.session_id,
@@ -1086,15 +1086,15 @@ class PowerDelivery(StateEVCC):
 
         # Information from EV to show if charging or discharging is planned
         bpt_channel_selection = None
-        if self.comm_session.selected_energy_service in (
+        if self.comm_session.selected_energy_service.service in (
             ServiceV20.AC_BPT,
             ServiceV20.DC_BPT,
         ):
-            power_value = ev_power_profile.entry_list.entries.pop().power.value
-            if power_value < 0:
-                bpt_channel_selection = ChannelSelection.DISCHARGE
-            else:
-                bpt_channel_selection = ChannelSelection.CHARGE
+            bpt_channel_selection = ChannelSelection.CHARGE
+            if ev_power_profile is not None:
+                power_value = ev_power_profile.entry_list.entries[-1].power.value
+                if power_value < 0:
+                    bpt_channel_selection = ChannelSelection.DISCHARGE
 
         power_delivery_req = PowerDeliveryReq(
             header=MessageHeader(
@@ -1567,16 +1567,15 @@ class DCPreCharge(StateEVCC):
 
         # Information from EV to show if charging or discharging is planned
         bpt_channel_selection = None
-        if self.comm_session.selected_energy_service in (
+        if self.comm_session.selected_energy_service.service in (
             ServiceV20.AC_BPT,
             ServiceV20.DC_BPT,
         ):
-            power_value = ev_power_profile.entry_list.entries.pop().power.value
-            if power_value < 0:
-                bpt_channel_selection = ChannelSelection.DISCHARGE
-            else:
-                bpt_channel_selection = ChannelSelection.CHARGE
-        await self.comm_session.ev_controller.enable_charging(True)
+            bpt_channel_selection = ChannelSelection.CHARGE
+            if ev_power_profile is not None:
+                power_value = ev_power_profile.entry_list.entries[-1].power.value
+                if power_value < 0:
+                    bpt_channel_selection = ChannelSelection.DISCHARGE
         power_delivery_req = PowerDeliveryReq(
             header=MessageHeader(
                 session_id=self.comm_session.session_id,
