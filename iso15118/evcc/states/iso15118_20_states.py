@@ -968,6 +968,9 @@ class PowerDelivery(StateEVCC):
         selected_energy_service = self.comm_session.selected_energy_service
         control_mode = self.comm_session.control_mode
         ev_controller = self.comm_session.ev_controller
+        display_parameters = (
+            await self.comm_session.ev_controller.get_display_parameters()
+        )
 
         if selected_energy_service.service in [ServiceV20.AC, ServiceV20.AC_BPT]:
             charging_loop_params = await ev_controller.get_ac_charge_loop_params_v20(
@@ -1005,6 +1008,7 @@ class PowerDelivery(StateEVCC):
                 bpt_scheduled_params=bpt_scheduled_params,
                 bpt_dynamic_params=bpt_dynamic_params,
                 meter_info_requested=False,
+                display_parameters=display_parameters,
             )
 
             self.create_next_message(
@@ -1046,6 +1050,7 @@ class PowerDelivery(StateEVCC):
                 bpt_scheduled_params=bpt_scheduled_params,
                 bpt_dynamic_params=bpt_dynamic_params,
                 meter_info_requested=False,
+                display_parameters=display_parameters,
             )
 
             self.create_next_message(
@@ -1287,6 +1292,9 @@ class ACChargeLoop(StateEVCC):
             selected_energy_service = self.comm_session.selected_energy_service
             control_mode = self.comm_session.control_mode
             ev_controller = self.comm_session.ev_controller
+            display_parameters = (
+                await self.comm_session.ev_controller.get_display_parameters()
+            )
 
             # TODO You might want to change certain request params based on the values
             #      in the response
@@ -1327,6 +1335,7 @@ class ACChargeLoop(StateEVCC):
                 bpt_scheduled_params=bpt_scheduled_params,
                 bpt_dynamic_params=bpt_dynamic_params,
                 meter_info_requested=False,
+                display_parameters=display_parameters,
             )
 
             self.create_next_message(
@@ -1672,6 +1681,9 @@ class DCChargeLoop(StateEVCC):
     async def build_current_demand_data(self):
         scheduled_params, dynamic_params = None, None
         bpt_scheduled_params, bpt_dynamic_params = None, None
+        display_parameters = (
+            await self.comm_session.ev_controller.get_display_parameters()
+        )
         if self.comm_session.selected_energy_service.service == ServiceV20.DC:
             if self.comm_session.control_mode == ControlMode.SCHEDULED:
                 scheduled_params = (
@@ -1702,6 +1714,7 @@ class DCChargeLoop(StateEVCC):
             bpt_scheduled_params=bpt_scheduled_params,
             bpt_dynamic_params=bpt_dynamic_params,
             meter_info_requested=False,
+            display_parameters=display_parameters,
         )
         return dc_charge_loop_req
 

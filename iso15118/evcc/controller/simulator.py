@@ -93,7 +93,10 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SelectedEnergyService,
     SelectedVAS,
 )
-from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import (
+    DisplayParameters,
+    RationalNumber,
+)
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
     BPTDynamicDCChargeLoopReqParams,
@@ -727,3 +730,10 @@ class SimEVController(EVControllerInterface):
     async def enable_charging(self, enabled: bool) -> None:
         """Overrides EVControllerInterface.enable_charging()."""
         pass
+
+    async def get_display_parameters(self) -> DisplayParameters:
+        """Overrides EVControllerInterface.get_display_parameters()"""
+        dc_ev_status = await self.get_dc_ev_status()
+        return DisplayParameters(
+            present_soc=dc_ev_status.ev_ress_soc, charging_complete=False
+        )

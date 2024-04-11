@@ -52,7 +52,10 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SelectedEnergyService,
     SelectedVAS,
 )
-from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import (
+    DisplayParameters,
+    RationalNumber,
+)
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
     BPTDynamicDCChargeLoopReqParams,
@@ -581,6 +584,14 @@ class EVControllerInterface(ABC):
         """
         Gets current voltage required for DCChargeLoop for
         DC charging.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_display_parameters(self) -> DisplayParameters:
+        """
+        Gets display parmeters
+        Relevent for ISO 15118-20 only
         """
         raise NotImplementedError
 
