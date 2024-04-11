@@ -10,6 +10,7 @@ Pydantic's Field class is used to be able to create a json schema of each model
 (or class) that matches the definitions in the XSD schema, including the XSD
 element names by using the 'alias' attribute.
 """
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Tuple
@@ -820,30 +821,6 @@ class DynamicScheduleExchangeResParams(BaseModel):
             )
 
         return values
-
-    @root_validator(pre=True)
-    def either_price_levels_or_absolute_prices(cls, values):
-        """
-        Either price_level_schedule or absolute_price_schedule must be set,
-        depending on abstract price levels or absolute prices are used to
-        indicate costs for the charging session.
-
-        Pydantic validators are "class methods",
-        see https://pydantic-docs.helpmanual.io/usage/validators/
-        """
-        # pylint: disable=no-self-argument
-        # pylint: disable=no-self-use
-        if one_field_must_be_set(
-            [
-                "price_level_schedule",
-                "PriceLevelSchedule",
-                "absolute_price_schedule",
-                "AbsolutePriceSchedule",
-            ],
-            values,
-            True,
-        ):
-            return values
 
 
 class ScheduleExchangeRes(V2GResponse):

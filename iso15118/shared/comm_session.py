@@ -408,6 +408,8 @@ class V2GCommunicationSession(SessionStateMachine):
             evse_controller = self.comm_session.evse_controller
             await evse_controller.update_data_link(terminate_or_pause)
             await evse_controller.session_ended(str(self.current_state), reason)
+        elif hasattr(self.comm_session, "ev_controller"):
+            await self.comm_session.ev_controller.enable_charging(False)
         logger.info(f"{terminate_or_pause}d the data link")
         await asyncio.sleep(3)
         try:
