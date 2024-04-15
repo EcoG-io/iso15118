@@ -60,6 +60,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SessionStopRes,
 )
 from iso15118.shared.messages.iso15118_20.common_types import (
+    DisplayParameters,
     EVSENotification,
     MessageHeader,
     Processing,
@@ -1000,6 +1001,7 @@ class PowerDelivery(StateEVCC):
                     session_id=self.comm_session.session_id,
                     timestamp=time.time(),
                 ),
+                display_parameters=await self.comm_session.ev_controller.get_display_params(),
                 scheduled_params=scheduled_params,
                 dynamic_params=dynamic_params,
                 bpt_scheduled_params=bpt_scheduled_params,
@@ -1040,6 +1042,7 @@ class PowerDelivery(StateEVCC):
                     session_id=self.comm_session.session_id,
                     timestamp=time.time(),
                 ),
+                display_parameters=await ev_controller.get_display_params(),
                 ev_present_voltage=await ev_controller.get_present_voltage(),
                 scheduled_params=scheduled_params,
                 dynamic_params=dynamic_params,
@@ -1322,6 +1325,7 @@ class ACChargeLoop(StateEVCC):
                     session_id=self.comm_session.session_id,
                     timestamp=time.time(),
                 ),
+                display_parameters=await self.comm_session.ev_controller.get_display_params(),
                 scheduled_params=scheduled_params,
                 dynamic_params=dynamic_params,
                 bpt_scheduled_params=bpt_scheduled_params,
@@ -1695,6 +1699,7 @@ class DCChargeLoop(StateEVCC):
                 session_id=self.comm_session.session_id,
                 timestamp=time.time(),
             ),
+            display_parameters=await self.comm_session.ev_controller.get_display_params(),
             ev_present_voltage=await self.comm_session.ev_controller.get_present_voltage(),  # noqa
             scheduled_params=scheduled_params,
             dynamic_params=dynamic_params,

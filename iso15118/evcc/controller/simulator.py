@@ -93,7 +93,10 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SelectedEnergyService,
     SelectedVAS,
 )
-from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import (
+    DisplayParameters,
+    RationalNumber,
+)
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
     BPTDynamicDCChargeLoopReqParams,
@@ -532,6 +535,7 @@ class SimEVController(EVControllerInterface):
             return False
         else:
             self.charging_loop_cycles -= 1
+            self._soc = min(self._soc + 10, 100)
             # The line below can just be called once process_message in all states
             # are converted to async calls
             # await asyncio.sleep(0.5)
@@ -727,3 +731,10 @@ class SimEVController(EVControllerInterface):
     async def enable_charging(self, enabled: bool) -> None:
         """Overrides EVControllerInterface.enable_charging()."""
         pass
+
+    async def get_display_params(self) -> DisplayParameters:
+        """Overrides EVControllerInterface.get_display_params()."""
+        return DisplayParameters(
+            present_soc=self._soc,
+            charging_complete=await self.is_charging_complete(),
+        )
