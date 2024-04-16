@@ -502,6 +502,17 @@ class CableCheck(StateSECC):
             IsolationLevel.VALID,
             IsolationLevel.WARNING,
         ]:
+            # Requirement in 6.4.3.106 of the IEC 61851-23
+            # Any relays in the DC output circuit of the DC station shall
+            # be closed during the insulation test
+            if not await self.comm_session.evse_controller.is_contactor_closed():
+                self.stop_state_machine(
+                    "Contactor didnt close for Cable Check",
+                    message,
+                    ResponseCode.FAILED,
+                )
+                return
+
             if isolation_level == IsolationLevel.WARNING:
                 logger.warning(
                     "Isolation resistance measured by EVSE is in Warning-Range"
