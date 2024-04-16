@@ -212,7 +212,7 @@ class TestEvScenarios:
         "cable_check_status, "
         "expected_state",
         [
-            (False, False, IsolationLevel.VALID, Terminate),
+            (False, False, None, Terminate),
             (False, True, None, None),
             (False, True, IsolationLevel.VALID, DCPreCharge),
             (True, True, None, None),
