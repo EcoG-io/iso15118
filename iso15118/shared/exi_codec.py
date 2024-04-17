@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from base64 import b64decode, b64encode
 from typing import Optional, Type, Union
 
@@ -248,7 +249,10 @@ class EXI:
             logger.info(f"Message to encode (ns={protocol_ns}): {msg_content}")
 
         try:
+            start_time = time.perf_counter()
             exi_stream = self.exi_codec.encode(msg_content, protocol_ns)
+            stop_time = time.perf_counter()
+            logger.debug(f"Encode time: {stop_time - start_time}")
         except Exception as exc:
             logger.error(
                 f"EXIEncodingError in {protocol_ns} with {str(msg_content)}: {exc}"
@@ -287,7 +291,10 @@ class EXI:
             logger.debug(f"EXI-encoded message (ns={namespace}): {exi_message.hex()}")
 
         try:
+            start_time = time.perf_counter()
             exi_decoded = self.exi_codec.decode(exi_message, namespace)
+            stop_time = time.perf_counter()
+            logger.debug(f"Decode time: {stop_time - start_time}")
         except Exception as exc:
             raise EXIDecodingError(
                 f"EXIDecodingError ({exc.__class__.__name__}): " f"{exc}"
