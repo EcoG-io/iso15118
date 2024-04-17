@@ -536,7 +536,7 @@ class SimEVController(EVControllerInterface):
             return False
         else:
             self.charging_loop_cycles -= 1
-            self._soc = min(self._soc + self.increment, 100)
+            self._soc = min(int(self._soc + self.increment), 100)
             # The line below can just be called once process_message in all states
             # are converted to async calls
             # await asyncio.sleep(0.5)
