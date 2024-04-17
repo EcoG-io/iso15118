@@ -118,6 +118,7 @@ class SimEVController(EVControllerInterface):
     def __init__(self, evcc_config: EVCCConfig):
         self.config = evcc_config
         self.charging_loop_cycles: int = evcc_config.charge_loop_cycle
+        self.increment = (1 / self.charging_loop_cycles) * 100
         self.precharge_loop_cycles: int = 0
         self.welding_detection_cycles: int = 0
         self._charging_is_completed = False
@@ -535,7 +536,7 @@ class SimEVController(EVControllerInterface):
             return False
         else:
             self.charging_loop_cycles -= 1
-            self._soc = min(self._soc + 10, 100)
+            self._soc = min(self._soc + self.increment, 100)
             # The line below can just be called once process_message in all states
             # are converted to async calls
             # await asyncio.sleep(0.5)
