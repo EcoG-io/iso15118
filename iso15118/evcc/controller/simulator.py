@@ -117,7 +117,7 @@ class SimEVController(EVControllerInterface):
 
     def __init__(self, evcc_config: EVCCConfig):
         self.config = evcc_config
-        self.charging_loop_cycles: int = evcc_config.charge_loop_cycle
+        self.charging_loop_cycles: int = max(evcc_config.charge_loop_cycle, 1)
         self.increment = (1 / self.charging_loop_cycles) * 100
         self.precharge_loop_cycles: int = 0
         self.welding_detection_cycles: int = 0
