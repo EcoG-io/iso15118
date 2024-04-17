@@ -663,14 +663,14 @@ class SimEVController(EVControllerInterface):
         return DCEVStatusDINSPEC(
             ev_ready=True,
             ev_error_code=DCEVErrorCode.NO_ERROR,
-            ev_ress_soc=60,
+            ev_ress_soc=self._soc,
         )
 
     async def get_dc_ev_status(self) -> DCEVStatus:
         return DCEVStatus(
             ev_ready=True,
             ev_error_code=DCEVErrorCode.NO_ERROR,
-            ev_ress_soc=60,
+            ev_ress_soc=self._soc,
         )
 
     async def get_scheduled_dc_charge_loop_params(
