@@ -680,7 +680,7 @@ class EVSEControllerInterface(ABC):
         self, protocol: Protocol
     ) -> Union[PVEVSEPresentCurrent, RationalNumber]:
         """
-        Gets the presently available voltage at the EVSE
+        Gets the presently available current at the EVSE
 
         Relevant for:
         - ISO 15118-2
