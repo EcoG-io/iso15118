@@ -1090,3 +1090,9 @@ class SimEVSEController(EVSEControllerInterface):
         @param last_message: The last message that was either sent/received.
         """
         logger.info(f"Session ended in {current_state} ({reason}).")
+
+    async def send_rated_limits(self):
+        """
+        Overrides EVSEControllerInterface.send_rated_limits
+        """
+        pass

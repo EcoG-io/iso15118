@@ -1056,3 +1056,18 @@ class EVSEControllerInterface(ABC):
         Indicate the reason for stopping charging.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    async def send_rated_limits(self):
+        """
+        This method is called in the state ChargeParameterDiscovery state for all
+        protocols.
+        The message is used to share the physical limitations of the EV (perhaps
+        for this session alone) with the charging station.
+
+        Relevant for:
+        - DIN SPEC 70121
+        - ISO 15118-2
+        - ISO 15118-20
+        """
+        raise NotImplementedError
