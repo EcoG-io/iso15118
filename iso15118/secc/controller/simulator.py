@@ -1090,3 +1090,9 @@ class SimEVSEController(EVSEControllerInterface):
         @param last_message: The last message that was either sent/received.
         """
         logger.info(f"Session ended in {current_state} ({reason}).")
+
+    async def send_display_params(self):
+        """
+        Share display params with CS.
+        """
+        pass

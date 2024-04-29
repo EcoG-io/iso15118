@@ -1056,3 +1056,10 @@ class EVSEControllerInterface(ABC):
         Indicate the reason for stopping charging.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    async def send_display_params(self):
+        """
+        Share display params with CS.
+        """
+        raise NotImplementedError

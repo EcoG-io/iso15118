@@ -840,7 +840,7 @@ class CurrentDemand(StateSECC):
                 await self.comm_session.evse_controller.get_evse_max_power_limit()
             ),
         )
-
+        await self.comm_session.evse_controller.send_display_params()
         self.create_next_message(
             None,
             current_demand_res,
