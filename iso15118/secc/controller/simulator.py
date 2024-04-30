@@ -1095,4 +1095,4 @@ class SimEVSEController(EVSEControllerInterface):
         """
         Overrides EVSEControllerInterface.send_rated_limits
         """
-        pass
+        logger.info("Send rated limits to CS.")
