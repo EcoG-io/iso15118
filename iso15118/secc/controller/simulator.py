@@ -1095,4 +1095,4 @@ class SimEVSEController(EVSEControllerInterface):
         """
         Share display params with CS.
         """
-        pass
+        logger.info("Send display params to CS.")
