@@ -1096,3 +1096,9 @@ class SimEVSEController(EVSEControllerInterface):
         Share display params with CS.
         """
         logger.info("Send display params to CS.")
+
+    async def send_rated_limits(self):
+        """
+        Overrides EVSEControllerInterface.send_rated_limits
+        """
+        logger.info("Send rated limits to CS.")

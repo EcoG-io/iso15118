@@ -392,7 +392,7 @@ class ChargeParameterDiscovery(StateSECC):
         ev_data_context.update_dc_charge_parameters(
             charge_parameter_discovery_req.dc_ev_charge_parameter
         )
-
+        await self.comm_session.evse_controller.send_rated_limits()
         dc_evse_charge_params = (
             await self.comm_session.evse_controller.get_dc_charge_parameters_dinspec()  # noqa
         )

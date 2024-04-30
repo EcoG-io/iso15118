@@ -1379,6 +1379,7 @@ class ChargeParameterDiscovery(StateSECC):
             ev_data_context.update_dc_charge_parameters(
                 charge_params_req.dc_ev_charge_parameter
             )
+        await self.comm_session.evse_controller.send_rated_limits()
 
         departure_time = (
             ev_data_context.departure_time if ev_data_context.departure_time else 0
