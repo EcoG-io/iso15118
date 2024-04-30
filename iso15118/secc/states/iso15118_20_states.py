@@ -1631,28 +1631,28 @@ class DCCableCheck(StateSECC):
                 )
                 return
 
-            await self.comm_session.evse_controller.start_cable_check()
-            self.cable_check_started = True
-
-        if self.cable_check_started:
-            isolation_level = (
-                await self.comm_session.evse_controller.get_cable_check_status()
-            )
-
-            if isolation_level in [IsolationLevel.VALID, IsolationLevel.WARNING]:
-                if isolation_level == IsolationLevel.WARNING:
-                    logger.warning(
-                        "Isolation resistance measured by EVSE is in Warning range"
-                    )
-                next_state = DCPreCharge
-                processing = EVSEProcessing.FINISHED
-            elif isolation_level in [IsolationLevel.INVALID, IsolationLevel.FAULT]:
-                self.stop_state_machine(
-                    f"Isolation Failure: {isolation_level}",
-                    message,
-                    ResponseCode.FAILED,
+            if self.cable_check_started:
+                isolation_level = (
+                    await self.comm_session.evse_controller.get_cable_check_status()
                 )
-                return
+
+                if isolation_level in [IsolationLevel.VALID, IsolationLevel.WARNING]:
+                    if isolation_level == IsolationLevel.WARNING:
+                        logger.warning(
+                            "Isolation resistance measured by EVSE is in Warning range"
+                        )
+                    next_state = DCPreCharge
+                    processing = EVSEProcessing.FINISHED
+                elif isolation_level in [IsolationLevel.INVALID, IsolationLevel.FAULT]:
+                    self.stop_state_machine(
+                        f"Isolation Failure: {isolation_level}",
+                        message,
+                        ResponseCode.FAILED,
+                    )
+                    return
+            else:
+                await self.comm_session.evse_controller.start_cable_check()
+                self.cable_check_started = True
 
         dc_cable_check_res = DCCableCheckRes(
             header=MessageHeader(
