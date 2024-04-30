@@ -1474,7 +1474,7 @@ class ACChargeLoop(StateSECC):
             ),
             meter_info=meter_info,
         )
-
+        await self.comm_session.evse_controller.send_display_params()
         self.create_next_message(
             None,
             ac_charge_loop_res,
@@ -1800,7 +1800,7 @@ class DCChargeLoop(StateSECC):
                 ResponseCode.FAILED,
             )
             return
-
+        await self.comm_session.evse_controller.send_display_params()
         dc_charge_loop_res = await self._build_dc_charge_loop_res(
             dc_charge_loop_req.meter_info_requested
         )

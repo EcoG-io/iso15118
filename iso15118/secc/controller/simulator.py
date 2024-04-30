@@ -1091,6 +1091,12 @@ class SimEVSEController(EVSEControllerInterface):
         """
         logger.info(f"Session ended in {current_state} ({reason}).")
 
+    async def send_display_params(self):
+        """
+        Share display params with CS.
+        """
+        logger.info("Send display params to CS.")
+
     async def send_rated_limits(self):
         """
         Overrides EVSEControllerInterface.send_rated_limits

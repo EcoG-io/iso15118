@@ -1058,6 +1058,13 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def send_display_params(self):
+        """
+        Share display params with CS.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     async def send_rated_limits(self):
         """
         This method is called in the state ChargeParameterDiscovery state for all
