@@ -214,7 +214,13 @@ class TestEvScenarios:
         "expected_state",
         [
             (False, None, False, None, None),  # First request.
-            (True, None, False, None, None),  # Not first request. Contactor status unknown.
+            (
+                True,
+                None,
+                False,
+                None,
+                None,
+            ),  # Not first request. Contactor status unknown.
             (True, True, False, None, None),  # Not first request. Contactor closed.
             (True, False, False, None, Terminate),  # Contactor close failed.
             (
