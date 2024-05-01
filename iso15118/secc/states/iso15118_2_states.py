@@ -2187,6 +2187,8 @@ class CableCheck(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
         self.cable_check_req_was_received = False
+        self.cable_check_started = False
+        self.contactors_closed_for_cable_check: Optional[bool] = None
 
     async def process_message(
         self,
@@ -2214,11 +2216,20 @@ class CableCheck(StateSECC):
             )
             return
 
+        next_state = None
+        evse_processing = EVSEProcessing.ONGOING
+
         if not self.cable_check_req_was_received:
             # Requirement in 6.4.3.106 of the IEC 61851-23
             # Any relays in the DC output circuit of the DC station shall
             # be closed during the insulation test
-            if not await self.comm_session.evse_controller.is_contactor_closed():
+            self.contactors_closed_for_cable_check = (
+                await self.comm_session.evse_controller.is_contactor_closed()
+            )
+            self.cable_check_req_was_received = True
+
+        if self.contactors_closed_for_cable_check is not None:
+            if not self.contactors_closed_for_cable_check:
                 self.stop_state_machine(
                     "Contactor didnt close for Cable Check",
                     message,
@@ -2226,40 +2237,41 @@ class CableCheck(StateSECC):
                 )
                 return
 
-            # First CableCheckReq received. Start cable check.
-            await self.comm_session.evse_controller.start_cable_check()
-            self.cable_check_req_was_received = True
+            if self.cable_check_started:
+                isolation_level = (
+                    await self.comm_session.evse_controller.get_cable_check_status()
+                )  # noqa
+
+                evse_processing = EVSEProcessing.ONGOING
+                next_state = None
+                if isolation_level in [
+                    IsolationLevel.VALID,
+                    IsolationLevel.WARNING,
+                ]:
+                    if isolation_level == IsolationLevel.WARNING:
+                        logger.warning(
+                            "Isolation resistance measured by EVSE is in Warning-Range"
+                        )
+                    evse_processing = EVSEProcessing.FINISHED
+                    next_state = PreCharge
+                elif isolation_level in [
+                    IsolationLevel.FAULT,
+                    IsolationLevel.NO_IMD,
+                    IsolationLevel.INVALID,
+                ]:
+                    self.stop_state_machine(
+                        f"Isolation Failure: {isolation_level}",
+                        message,
+                        ResponseCode.FAILED,
+                    )
+                    return
+            else:
+                await self.comm_session.evse_controller.start_cable_check()
+                self.cable_check_started = True
 
         self.comm_session.evse_controller.ev_data_context.present_soc = (
             cable_check_req.dc_ev_status.ev_ress_soc
         )
-
-        isolation_level = (
-            await self.comm_session.evse_controller.get_cable_check_status()
-        )  # noqa
-
-        evse_processing = EVSEProcessing.ONGOING
-        next_state = None
-        if isolation_level in [
-            IsolationLevel.VALID,
-            IsolationLevel.WARNING,
-        ]:
-            if isolation_level == IsolationLevel.WARNING:
-                logger.warning(
-                    "Isolation resistance measured by EVSE is in Warning-Range"
-                )
-            evse_processing = EVSEProcessing.FINISHED
-            next_state = PreCharge
-        elif isolation_level in [
-            IsolationLevel.FAULT,
-            IsolationLevel.NO_IMD,
-        ]:
-            self.stop_state_machine(
-                f"Isolation Failure: {isolation_level}",
-                message,
-                ResponseCode.FAILED,
-            )
-            return
 
         cable_check_res = CableCheckRes(
             response_code=ResponseCode.OK,

@@ -727,7 +727,7 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.service_renegotiation_supported()."""
         return False
 
-    async def is_contactor_closed(self) -> bool:
+    async def is_contactor_closed(self) -> Optional[bool]:
         """Overrides EVSEControllerInterface.is_contactor_closed()."""
         return True
 
