@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.0] - 2024-05-02
+* fix typo in SECC interface.py by @M4GNV5 in https://github.com/SwitchEV/iso15118/pull/398
+* Update .env.dev.local, ISO_15118_20_DC is not implemented for use by @lwollinger in https://github.com/SwitchEV/iso15118/pull/395
+* Share cpd params with CS. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/400
+* Share display params with CS. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/401
+* Relaxed contactor status check for DC. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/402
+
 ## [0.27.0] - 2024-04-17
 * ScheduleExchangeRes parsing fix by @heavyweight87 in https://github.com/SwitchEV/iso15118/pull/391
 * Moved contactor status check for dc to be after cable check by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/396
