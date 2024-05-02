@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, cast
+from typing import List, Type, cast
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -16,11 +16,13 @@ from iso15118.secc.controller.evse_data import (
 from iso15118.secc.controller.interface import AuthorizationResponse
 from iso15118.secc.states.iso15118_2_states import (
     Authorization,
+    CableCheck,
     ChargeParameterDiscovery,
     ChargingStatus,
     CurrentDemand,
     PaymentDetails,
     PowerDelivery,
+    PreCharge,
     ServiceDetail,
     ServiceDiscovery,
     SessionSetup,
@@ -36,6 +38,7 @@ from iso15118.shared.messages.enums import (
     AuthorizationTokenType,
     EnergyTransferModeEnum,
     EVSEProcessing,
+    IsolationLevel,
     Protocol,
 )
 from iso15118.shared.messages.iso15118_2.body import ResponseCode
@@ -53,8 +56,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.security import get_random_bytes
 from iso15118.shared.settings import load_shared_settings
-from iso15118.shared.states import Pause
+from iso15118.shared.states import Pause, State
 from tests.iso15118_2.secc.states.test_messages import (
+    get_cable_check_req,
     get_charge_parameter_discovery_req_message_departure_time_one_hour,
     get_charge_parameter_discovery_req_message_no_departure_time,
     get_dummy_charging_status_req,
@@ -1103,3 +1107,77 @@ class TestV2GSessionScenarios:
                 if free_charging_service
                 else not None
             )
+
+    @pytest.mark.parametrize(
+        "cable_check_req_received, "
+        "is_contactor_closed, "
+        "cable_check_started, "
+        "cable_check_status, "
+        "expected_state",
+        [
+            (False, None, False, None, None),  # First request.
+            (
+                True,
+                None,
+                False,
+                None,
+                None,
+            ),  # Not first request. Contactor status unknown.
+            (True, True, False, None, None),  # Not first request. Contactor closed.
+            (True, False, False, None, Terminate),  # Contactor close failed.
+            (
+                True,
+                True,
+                True,
+                IsolationLevel.VALID,
+                PreCharge,
+            ),  # noqa Contactor closed. Isolation response received - Valid. Next stage Precharge.
+            (
+                True,
+                True,
+                True,
+                IsolationLevel.INVALID,
+                Terminate,
+            ),  # noqa Contactor closed. Isolation response received - Invalid. Terminate.
+            (
+                True,
+                True,
+                True,
+                IsolationLevel.WARNING,
+                PreCharge,
+            ),  # noqa Contactor closed. Isolation response received - Warning. Next stage Precharge.
+            (
+                True,
+                True,
+                True,
+                IsolationLevel.FAULT,
+                Terminate,
+            ),  # noqa Contactor closed. Isolation response received - Fault. Terminate session.
+            (
+                True,
+                True,
+                True,
+                IsolationLevel.NO_IMD,
+                Terminate,
+            ),
+            # noqa Contactor closed. Isolation response received - Fault. Terminate session.
+        ],
+    )
+    async def test_15118_2_dc_cable_check(
+        self,
+        cable_check_req_received: bool,
+        is_contactor_closed: bool,
+        cable_check_started: bool,
+        cable_check_status: IsolationLevel,
+        expected_state: Type[State],
+    ):
+        dc_cable_check = CableCheck(self.comm_session)
+        dc_cable_check.cable_check_req_was_received = cable_check_req_received
+        dc_cable_check.contactors_closed_for_cable_check = is_contactor_closed
+        dc_cable_check.cable_check_started = cable_check_started
+        contactor_status = AsyncMock(return_value=is_contactor_closed)
+        self.comm_session.evse_controller.is_contactor_closed = contactor_status
+        cable_check_status = AsyncMock(return_value=cable_check_status)
+        self.comm_session.evse_controller.get_cable_check_status = cable_check_status
+        await dc_cable_check.process_message(message=get_cable_check_req())
+        assert dc_cable_check.next_state is expected_state

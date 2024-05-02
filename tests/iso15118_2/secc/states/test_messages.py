@@ -12,6 +12,7 @@ from iso15118.shared.messages.enums import EnergyTransferModeEnum, UnitSymbol
 from iso15118.shared.messages.iso15118_2.body import (
     AuthorizationReq,
     Body,
+    CableCheckReq,
     ChargeParameterDiscoveryReq,
     ChargingStatusReq,
     PaymentDetailsReq,
@@ -587,6 +588,19 @@ def get_v2g_message_charge_parameter_discovery_req(
                 requested_energy_mode=energy_transfer_mode,
                 ac_ev_charge_parameter=ac_cp,
                 dc_ev_charge_parameter=dc_cp,
+            )
+        ),
+    )
+
+
+def get_cable_check_req() -> V2GMessage:
+    return V2GMessage(
+        header=MessageHeader(session_id=MOCK_SESSION_ID),
+        body=Body(
+            cable_check_req=CableCheckReq(
+                dc_ev_status=DCEVStatus(
+                    ev_ready=True, ev_error_code=DCEVErrorCode.NO_ERROR, ev_ress_soc=35
+                )
             )
         ),
     )
