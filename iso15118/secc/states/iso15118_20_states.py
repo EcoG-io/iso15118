@@ -1613,14 +1613,15 @@ class DCCableCheck(StateSECC):
         next_state = None
         processing = EVSEProcessing.ONGOING
 
-        if not self.cable_check_req_was_received:
-            # Requirement in 6.4.3.106 of the IEC 61851-23
-            # Any relays in the DC output circuit of the DC station shall
-            # be closed during the insulation test
+        #if not self.cable_check_req_was_received:
+        # Requirement in 6.4.3.106 of the IEC 61851-23
+        # Any relays in the DC output circuit of the DC station shall
+        # be closed during the insulation test
+        if not self.cable_check_started:
             self.contactors_closed_for_cable_check = (
                 await self.comm_session.evse_controller.is_contactor_closed()
             )
-            self.cable_check_req_was_received = True
+            # self.cable_check_req_was_received = True
 
         if self.contactors_closed_for_cable_check is not None:
             if not self.contactors_closed_for_cable_check:
