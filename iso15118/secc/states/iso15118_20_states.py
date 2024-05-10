@@ -1585,7 +1585,6 @@ class DCCableCheck(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
-        self.cable_check_req_was_received = False
         self.cable_check_started = False
         self.contactors_closed_for_cable_check: Optional[bool] = None
 
@@ -1613,7 +1612,6 @@ class DCCableCheck(StateSECC):
         next_state = None
         processing = EVSEProcessing.ONGOING
 
-        #if not self.cable_check_req_was_received:
         # Requirement in 6.4.3.106 of the IEC 61851-23
         # Any relays in the DC output circuit of the DC station shall
         # be closed during the insulation test
@@ -1621,7 +1619,6 @@ class DCCableCheck(StateSECC):
             self.contactors_closed_for_cable_check = (
                 await self.comm_session.evse_controller.is_contactor_closed()
             )
-            # self.cable_check_req_was_received = True
 
         if self.contactors_closed_for_cable_check is not None:
             if not self.contactors_closed_for_cable_check:
