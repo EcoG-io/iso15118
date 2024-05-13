@@ -621,7 +621,7 @@ class PriceRule(BaseModel):
     """See section 8.3.5.3.54 in ISO 15118-20"""
 
     energy_fee: RationalNumber = Field(..., alias="EnergyFee")
-    parking_fee: RationalNumber = Field(None, alias="EnergyFee")
+    parking_fee: RationalNumber = Field(None, alias="ParkingFee")
     parking_fee_period: int = Field(None, le=UINT_32_MAX, alias="ParkingFeePeriod")
     carbon_dioxide_emission: int = Field(
         None, le=UINT_16_MAX, alias="CarbonDioxideEmission"
@@ -685,6 +685,9 @@ class AdditionalServiceList(BaseModel):
 class AbsolutePriceSchedule(PriceSchedule):
     """See section 8.3.5.3.45 in ISO 15118-20"""
 
+    # 'Id' is actually an XML attribute, but JSON (our serialisation method)
+    # doesn't have attributes. The EXI codec has to en-/decode accordingly.
+    id: str = Field(None, alias="Id")
     currency: str = Field(..., max_length=3, alias="Currency")
     language: str = Field(..., max_length=3, alias="Language")
     price_algorithm: str = Field(..., max_length=255, alias="PriceAlgorithm")
