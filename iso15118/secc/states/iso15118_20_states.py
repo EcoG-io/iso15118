@@ -1586,7 +1586,6 @@ class DCCableCheck(StateSECC):
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
         self.cable_check_started = False
-        self.contactors_closed_for_cable_check: Optional[bool] = None
 
     async def process_message(
         self,
@@ -1612,45 +1611,45 @@ class DCCableCheck(StateSECC):
         next_state = None
         processing = EVSEProcessing.ONGOING
 
-        # Requirement in 6.4.3.106 of the IEC 61851-23
-        # Any relays in the DC output circuit of the DC station shall
-        # be closed during the insulation test
         if not self.cable_check_started:
-            self.contactors_closed_for_cable_check = (
-                await self.comm_session.evse_controller.is_contactor_closed()
-            )
+            # Requirement in 6.4.3.106 of the IEC 61851-23
+            # Any relays in the DC output circuit of the DC station shall
+            # be closed during the insulation test
+            contactors_closed_for_cable_check: Optional[
+                bool
+            ] = await self.comm_session.evse_controller.is_contactor_closed()
 
-        if self.contactors_closed_for_cable_check is not None:
-            if not self.contactors_closed_for_cable_check:
-                self.stop_state_machine(
-                    "Contactor didnt close for Cable Check",
-                    message,
-                    ResponseCode.FAILED,
-                )
-                return
-
-            if self.cable_check_started:
-                isolation_level = (
-                    await self.comm_session.evse_controller.get_cable_check_status()
-                )
-
-                if isolation_level in [IsolationLevel.VALID, IsolationLevel.WARNING]:
-                    if isolation_level == IsolationLevel.WARNING:
-                        logger.warning(
-                            "Isolation resistance measured by EVSE is in Warning range"
-                        )
-                    next_state = DCPreCharge
-                    processing = EVSEProcessing.FINISHED
-                elif isolation_level in [IsolationLevel.INVALID, IsolationLevel.FAULT]:
+            if contactors_closed_for_cable_check is not None:
+                if not contactors_closed_for_cable_check:
                     self.stop_state_machine(
-                        f"Isolation Failure: {isolation_level}",
+                        "Contactor didnt close for Cable Check",
                         message,
                         ResponseCode.FAILED,
                     )
                     return
-            else:
+
+                # Start cable check as contactors are now closed.
                 await self.comm_session.evse_controller.start_cable_check()
                 self.cable_check_started = True
+        else:
+            isolation_level = (
+                await self.comm_session.evse_controller.get_cable_check_status()
+            )
+
+            if isolation_level in [IsolationLevel.VALID, IsolationLevel.WARNING]:
+                if isolation_level == IsolationLevel.WARNING:
+                    logger.warning(
+                        "Isolation resistance measured by EVSE is in Warning range"
+                    )
+                next_state = DCPreCharge
+                processing = EVSEProcessing.FINISHED
+            elif isolation_level in [IsolationLevel.INVALID, IsolationLevel.FAULT]:
+                self.stop_state_machine(
+                    f"Isolation Failure: {isolation_level}",
+                    message,
+                    ResponseCode.FAILED,
+                )
+                return
 
         dc_cable_check_res = DCCableCheckRes(
             header=MessageHeader(

@@ -255,7 +255,6 @@ class TestEvScenarios:
         expected_state: Type[State],
     ):
         dc_cable_check = DCCableCheck(self.comm_session)
-        dc_cable_check.contactors_closed_for_cable_check = is_contactor_closed
         dc_cable_check.cable_check_started = cable_check_started
         contactor_status = AsyncMock(return_value=is_contactor_closed)
         self.comm_session.evse_controller.is_contactor_closed = contactor_status
