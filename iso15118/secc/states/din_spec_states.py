@@ -474,9 +474,9 @@ class CableCheck(StateSECC):
             # Requirement in 6.4.3.106 of the IEC 61851-23
             # Any relays in the DC output circuit of the DC station shall
             # be closed during the insulation test
-            contactors_closed_for_cable_check: Optional[bool] = (
-                await self.comm_session.evse_controller.is_contactor_closed()
-            )
+            contactors_closed_for_cable_check: Optional[
+                bool
+            ] = await self.comm_session.evse_controller.is_contactor_closed()
 
             if contactors_closed_for_cable_check is not None:
                 if not contactors_closed_for_cable_check:
