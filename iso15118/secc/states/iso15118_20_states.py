@@ -1585,6 +1585,7 @@ class DCCableCheck(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
+        self.contactors_closed = False
         self.cable_check_started = False
 
     async def process_message(
@@ -1612,26 +1613,11 @@ class DCCableCheck(StateSECC):
         processing = EVSEProcessing.ONGOING
 
         if not self.cable_check_started:
-            # Requirement in 6.4.3.106 of the IEC 61851-23
-            # Any relays in the DC output circuit of the DC station shall
-            # be closed during the insulation test
-            contactors_closed_for_cable_check: Optional[
-                bool
-            ] = await self.comm_session.evse_controller.is_contactor_closed()
+            # Start cable check as contactors are now closed.
+            await self.comm_session.evse_controller.start_cable_check()
+            self.cable_check_started = True
 
-            if contactors_closed_for_cable_check is not None:
-                if not contactors_closed_for_cable_check:
-                    self.stop_state_machine(
-                        "Contactor didnt close for Cable Check",
-                        message,
-                        ResponseCode.FAILED,
-                    )
-                    return
-
-                # Start cable check as contactors are now closed.
-                await self.comm_session.evse_controller.start_cable_check()
-                self.cable_check_started = True
-        else:
+        if self.contactors_closed:
             isolation_level = (
                 await self.comm_session.evse_controller.get_cable_check_status()
             )
@@ -1650,6 +1636,25 @@ class DCCableCheck(StateSECC):
                     ResponseCode.FAILED,
                 )
                 return
+        else:
+            if not self.contactors_closed:
+                # Requirement in 6.4.3.106 of the IEC 61851-23
+                # Any relays in the DC output circuit of the DC station shall
+                # be closed during the insulation test
+                contactors_closed_for_cable_check: Optional[
+                    bool
+                ] = await self.comm_session.evse_controller.is_contactor_closed()
+
+                if contactors_closed_for_cable_check is not None:
+                    if not contactors_closed_for_cable_check:
+                        self.stop_state_machine(
+                            "Contactor didnt close for Cable Check",
+                            message,
+                            ResponseCode.FAILED,
+                        )
+                        return
+                    else:
+                        self.contactors_closed = True
 
         dc_cable_check_res = DCCableCheckRes(
             header=MessageHeader(
