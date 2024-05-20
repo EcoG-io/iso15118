@@ -679,21 +679,21 @@ class SimEVController(EVControllerInterface):
     ) -> ScheduledDCChargeLoopReqParams:
         """Overrides EVControllerInterface.get_scheduled_dc_charge_loop_params()."""
         return ScheduledDCChargeLoopReqParams(
-            ev_target_current=RationalNumber(exponent=3, value=40),
-            ev_target_voltage=RationalNumber(exponent=3, value=60),
+            ev_target_current=RationalNumber(exponent=1, value=20),
+            ev_target_voltage=RationalNumber(exponent=1, value=20),
         )
 
     async def get_dynamic_dc_charge_loop_params(self) -> DynamicDCChargeLoopReqParams:
         """Overrides EVControllerInterface.get_dynamic_dc_charge_loop_params()."""
         return DynamicDCChargeLoopReqParams(
-            ev_target_energy_request=RationalNumber(exponent=3, value=40),
-            ev_max_energy_request=RationalNumber(exponent=3, value=60),
-            ev_min_energy_request=RationalNumber(exponent=-2, value=20),
-            ev_max_charge_power=RationalNumber(exponent=3, value=40),
-            ev_min_charge_power=RationalNumber(exponent=3, value=300),
-            ev_max_charge_current=RationalNumber(exponent=3, value=40),
-            ev_max_voltage=RationalNumber(exponent=3, value=300),
-            ev_min_voltage=RationalNumber(exponent=3, value=300),
+            ev_target_energy_request=RationalNumber(exponent=1, value=20),
+            ev_max_energy_request=RationalNumber(exponent=1, value=20),
+            ev_min_energy_request=RationalNumber(exponent=0, value=20),
+            ev_max_charge_power=RationalNumber(exponent=2, value=40),
+            ev_min_charge_power=RationalNumber(exponent=1, value=40),
+            ev_max_charge_current=RationalNumber(exponent=0, value=40),
+            ev_max_voltage=RationalNumber(exponent=1, value=40),
+            ev_min_voltage=RationalNumber(exponent=0, value=40),
         )
 
     async def get_bpt_scheduled_dc_charge_loop_params(
