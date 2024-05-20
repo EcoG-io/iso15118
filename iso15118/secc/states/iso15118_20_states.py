@@ -1350,6 +1350,9 @@ class ACChargeParameterDiscovery(StateSECC):
             ev_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_req)
             evse_data_context = self.comm_session.evse_controller.evse_data_context
             evse_data_context.current_type = CurrentType.AC
+            ev_data_context.selected_energy_mode = (
+                self.comm_session.selected_energy_mode
+            )
             await self.comm_session.evse_controller.send_rated_limits()
         except UnknownEnergyService:
             self.stop_state_machine(
@@ -1546,6 +1549,9 @@ class DCChargeParameterDiscovery(StateSECC):
             ev_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_req)
             evse_data_context = self.comm_session.evse_controller.evse_data_context
             evse_data_context.current_type = CurrentType.DC
+            ev_data_context.selected_energy_mode = (
+                self.comm_session.selected_energy_mode
+            )
             await self.comm_session.evse_controller.send_rated_limits()
         except UnknownEnergyService:
             self.stop_state_machine(

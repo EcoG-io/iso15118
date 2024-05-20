@@ -10,7 +10,12 @@ from iso15118.shared.messages.din_spec.body import (
     DCEVChargeParameter as DIN_DCEVChargeParameter,
 )
 from iso15118.shared.messages.din_spec.body import PreChargeReq as DIN_PreChargeReq
-from iso15118.shared.messages.enums import AuthEnum, ControlMode, ServiceV20
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    ControlMode,
+    EnergyTransferModeEnum,
+    ServiceV20,
+)
 from iso15118.shared.messages.iso15118_2.body import (
     ACEVChargeParameter,
     CurrentDemandReq,
@@ -243,6 +248,8 @@ class EVDataContext:
         # Sent in -2,-20 PreChargeReq
         # and same as above
         self.target_voltage: float = target_voltage
+        # The energy mode the EVCC selected.
+        self.selected_energy_mode: Optional[EnergyTransferModeEnum] = None
 
     def update_ac_charge_parameters_v2(
         self, ac_ev_charge_parameter: ACEVChargeParameter

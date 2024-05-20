@@ -1353,6 +1353,7 @@ class ChargeParameterDiscovery(StateSECC):
         ev_data_context = self.comm_session.evse_controller.ev_data_context
 
         self.comm_session.selected_energy_mode = charge_params_req.requested_energy_mode
+        ev_data_context.selected_energy_mode = self.comm_session.selected_energy_mode
         self.comm_session.selected_charging_type_is_ac = (
             self.comm_session.selected_energy_mode.value.startswith("AC")
         )
