@@ -46,7 +46,6 @@ class TestEvseScenarios:
         self.comm_session = Mock(spec=SECCCommunicationSession)
         self.comm_session.session_id = "F9F9EE8505F55838"
         # comm_session.offered_schedules = get_sa_schedule_list()
-        self.comm_session.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
         self.comm_session.selected_charging_type_is_ac = False
         self.comm_session.stop_reason = StopNotification(False, "pytest")
         self.comm_session.evse_controller = SimEVSEController()
@@ -57,6 +56,9 @@ class TestEvseScenarios:
         self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
         self.comm_session.failed_responses_din_spec = (
             init_failed_responses_din_spec_70121()
+        )
+        self.comm_session.evse_controller.ev_data_context.selected_energy_mode = (
+            EnergyTransferModeEnum.DC_EXTENDED
         )
 
     def get_evse_data(self) -> EVSEDataContext:

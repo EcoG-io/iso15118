@@ -80,7 +80,6 @@ class TestEvScenarios:
     def _comm_session(self):
         self.comm_session = Mock(spec=SECCCommunicationSession)
         self.comm_session.session_id = "F9F9EE8505F55838"
-        self.comm_session.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
         self.comm_session.selected_charging_type_is_ac = False
         self.comm_session.stop_reason = StopNotification(False, "pytest")
         self.comm_session.protocol = Protocol.ISO_15118_20_DC
@@ -90,6 +89,9 @@ class TestEvScenarios:
         self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
         self.comm_session.evse_controller.ev_data_context = EVDataContext(
             rated_limits=EVRatedLimits(dc_limits=EVDCCPDLimits())
+        )
+        self.comm_session.evse_controller.ev_data_context.selected_energy_mode = (
+            EnergyTransferModeEnum.DC_EXTENDED
         )
         load_shared_settings()
 

@@ -38,7 +38,6 @@ from iso15118.shared.messages.enums import (
     Protocol,
     SessionStopAction,
 )
-from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_messages import (
     MatchedService as OfferedServiceV20,
@@ -328,8 +327,6 @@ class V2GCommunicationSession(SessionStateMachine):
         self.selected_services: List[SelectedServiceV2_DIN] = []
         # The energy service the EVCC selected (ISO 15118-20)
         self.selected_energy_service: Optional[SelectedEnergyService] = None
-        # The energy mode the EVCC selected (ISO 15118-2)
-        self.selected_energy_mode: Optional[EnergyTransferModeEnum] = None
         # Variable selected_charging_type_is_ac set if one of the AC modes is selected
         self.selected_charging_type_is_ac: bool = True
         # The SAScheduleTuple element the EVCC chose (referenced by ID)

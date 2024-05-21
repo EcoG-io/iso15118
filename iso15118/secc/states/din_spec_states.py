@@ -382,8 +382,7 @@ class ChargeParameterDiscovery(StateSECC):
                 ResponseCode.FAILED_WRONG_ENERGY_TRANSFER_MODE,
             )
             return
-
-        self.comm_session.selected_energy_mode = (
+        self.comm_session.evse_controller.ev_data_context.selected_energy_mode = (
             charge_parameter_discovery_req.requested_energy_mode
         )
 
