@@ -38,7 +38,6 @@ from iso15118.shared.messages.enums import (
     Protocol,
     SessionStopAction,
 )
-from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_messages import (
     MatchedService as OfferedServiceV20,
