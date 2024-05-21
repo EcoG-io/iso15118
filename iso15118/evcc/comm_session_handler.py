@@ -33,6 +33,7 @@ from iso15118.shared.messages.app_protocol import AppProtocol, SupportedAppProto
 from iso15118.shared.messages.enums import (
     AuthEnum,
     DINPayloadTypes,
+    EnergyTransferModeEnum,
     ISOV2PayloadTypes,
     ISOV20PayloadTypes,
     Namespace,
@@ -137,7 +138,8 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         # "Caching" authorization_req. (Required in ISO15118-20)
         # Avoids recomputing the signature, eim, pnc params during authorization loop.
         self.authorization_req_message: Optional[AuthorizationReq] = None
-
+        # The energy mode the EVCC selected (ISO 15118-2)
+        self.selected_energy_mode: Optional[EnergyTransferModeEnum] = None
         self.is_tls = False
 
     def create_sap(self) -> Union[SupportedAppProtocolReq, None]:

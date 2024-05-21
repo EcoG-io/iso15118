@@ -1352,10 +1352,9 @@ class ChargeParameterDiscovery(StateSECC):
         evse_data_context = self.comm_session.evse_controller.evse_data_context
         ev_data_context = self.comm_session.evse_controller.ev_data_context
 
-        self.comm_session.selected_energy_mode = charge_params_req.requested_energy_mode
-        ev_data_context.selected_energy_mode = self.comm_session.selected_energy_mode
+        ev_data_context.selected_energy_mode = charge_params_req.requested_energy_mode
         self.comm_session.selected_charging_type_is_ac = (
-            self.comm_session.selected_energy_mode.value.startswith("AC")
+            ev_data_context.selected_energy_mode.value.startswith("AC")
         )
 
         max_schedule_entries: Optional[
@@ -1996,7 +1995,7 @@ class MeteringReceipt(StateSECC):
 
         evse_controller = self.comm_session.evse_controller
         if (
-            self.comm_session.selected_energy_mode
+            evse_controller.ev_data_context.selected_energy_mode
             and self.comm_session.selected_charging_type_is_ac
         ):
             metering_receipt_res = MeteringReceiptRes(

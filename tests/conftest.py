@@ -35,7 +35,6 @@ def comm_secc_session_mock():
     comm_session_mock.failed_responses_isov2 = init_failed_responses_iso_v2()
     comm_session_mock.session_id = MOCK_SESSION_ID
     comm_session_mock.offered_schedules = get_sa_schedule_list()
-    comm_session_mock.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
     comm_session_mock.selected_charging_type_is_ac = False
     comm_session_mock.stop_reason = StopNotification(False, "pytest")
     comm_session_mock.evse_controller = SimEVSEController()
@@ -43,4 +42,7 @@ def comm_secc_session_mock():
     comm_session_mock.evse_id = "UK123E1234"
     comm_session_mock.ev_session_context = EVSessionContext15118()
     comm_session_mock.selected_schedule = 1
+    comm_session_mock.evse_controller.ev_data_context.selected_energy_mode = (
+        EnergyTransferModeEnum.DC_EXTENDED
+    )
     return comm_session_mock
