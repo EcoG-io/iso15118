@@ -4,6 +4,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.28.1] - 2024-05-21
+* Fixed pydantic issues. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/405
+* Modify cable check contactor status check by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/404
+* Fixed comment. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/407
+* selected_energy_mode is a part of evdata by @ikaratass in https://github.com/SwitchEV/iso15118/pull/408
 
 ## [0.28.0] - 2024-05-02
 * fix typo in SECC interface.py by @M4GNV5 in https://github.com/SwitchEV/iso15118/pull/398
