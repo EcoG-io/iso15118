@@ -696,6 +696,9 @@ class EVDataContext:
         dc_rated_limits.max_charge_current = (
             params.ev_max_charge_current.get_decimal_value()
         )  # noqa: E501
+        dc_rated_limits.min_charge_current = (
+            params.ev_min_charge_current.get_decimal_value()
+        )  # noqa: E501
         dc_rated_limits.max_voltage = (
             params.ev_max_voltage.get_decimal_value()
         )  # noqa: E501
