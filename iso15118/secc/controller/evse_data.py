@@ -274,7 +274,7 @@ class EVSEDataContext:
         )
         if dc_charge_parameter.evse_current_regulation_tolerance:
             self.current_regulation_tolerance = (
-                dc_charge_parameter.evse_current_regulation_tolerance.get_decimal_value() # noqa: E501
+                dc_charge_parameter.evse_current_regulation_tolerance.get_decimal_value()  # noqa: E501
             )
         if dc_charge_parameter.evse_energy_to_be_delivered:
             self.energy_to_be_delivered = (
