@@ -2,6 +2,7 @@
 This module contains the code to retrieve (hardware-related) data from the EVSE
 (Electric Vehicle Supply Equipment).
 """
+
 import base64
 import logging
 import time
@@ -316,7 +317,7 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_scheduled_se_params()."""
         charging_power_schedule_entry = PowerScheduleEntry(
             duration=3600,
-            power=RationalNumber(exponent=3, value=10)
+            power=RationalNumber(exponent=3, value=10),
             # Check if AC ThreePhase applies (Connector parameter within parameter set
             # of SelectedEnergyService) if you want to add power_l2 and power_l3 values
         )
@@ -394,7 +395,7 @@ class SimEVSEController(EVSEControllerInterface):
 
         discharging_power_schedule_entry = PowerScheduleEntry(
             duration=3600,
-            power=RationalNumber(exponent=3, value=10)
+            power=RationalNumber(exponent=3, value=10),
             # Check if AC ThreePhase applies (Connector parameter within parameter set
             # of SelectedEnergyService) if you want to add power_l2 and power_l3 values
         )

@@ -3,6 +3,7 @@ This module contains a dummy implementation of the abstract class for an EVCC to
 retrieve data from the EV. The DummyEVController overrides all abstract methods from
 EVControllerInterface.
 """
+
 import logging
 import random
 from typing import List, Optional, Tuple, Union

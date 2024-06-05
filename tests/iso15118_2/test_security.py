@@ -1,4 +1,5 @@
 """Tests for the iso15118 security module."""
+
 import pytest
 from cryptography.x509 import ExtensionNotFound
 

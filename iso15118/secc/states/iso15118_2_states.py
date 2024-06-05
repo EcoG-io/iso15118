@@ -3,6 +3,7 @@ This module contains the SECC's States used to process the EVCC's incoming
 V2GMessage objects of the ISO 15118-2 protocol, from SessionSetupReq to
 SessionStopReq.
 """
+
 import asyncio
 import base64
 import logging
@@ -1471,9 +1472,9 @@ class ChargeParameterDiscovery(StateSECC):
 
         charge_params_res = ChargeParameterDiscoveryRes(
             response_code=ResponseCode.OK,
-            evse_processing=EVSEProcessing.FINISHED
-            if sa_schedule_list
-            else EVSEProcessing.ONGOING,
+            evse_processing=(
+                EVSEProcessing.FINISHED if sa_schedule_list else EVSEProcessing.ONGOING
+            ),
             sa_schedule_list=SAScheduleList(schedule_tuples=sa_schedule_list),
             ac_charge_parameter=ac_evse_charge_params,
             dc_charge_parameter=dc_evse_charge_params,
