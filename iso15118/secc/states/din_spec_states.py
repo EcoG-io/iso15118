@@ -507,9 +507,9 @@ class CableCheck(StateSECC):
             # Any relays in the DC output circuit of the DC station shall
             # be closed during the insulation test
             # If None is returned, then contactor close operation is ongoing.
-            contactors_closed_for_cable_check: Optional[
-                bool
-            ] = await self.comm_session.evse_controller.is_contactor_closed()
+            contactors_closed_for_cable_check: Optional[bool] = (
+                await self.comm_session.evse_controller.is_contactor_closed()
+            )
 
             if contactors_closed_for_cable_check is not None:
                 if contactors_closed_for_cable_check:

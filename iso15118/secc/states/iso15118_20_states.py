@@ -3,6 +3,7 @@ This module contains the SECC's States used to process the EVCC's incoming
 V2GMessage objects of the ISO 15118-20 protocol, from SessionSetupReq to
 SessionStopReq.
 """
+
 import asyncio
 import logging
 import time
@@ -1427,9 +1428,9 @@ class ACChargeLoop(StateSECC):
         if ac_charge_loop_req.meter_info_requested:
             meter_info = await self.comm_session.evse_controller.get_meter_info_v20()
 
-        evse_status: Optional[
-            EVSEStatus
-        ] = await self.comm_session.evse_controller.get_evse_status()
+        evse_status: Optional[EVSEStatus] = (
+            await self.comm_session.evse_controller.get_evse_status()
+        )
 
         response_code = ResponseCode.OK
         params = None
@@ -1642,9 +1643,9 @@ class DCCableCheck(StateSECC):
                 # Any relays in the DC output circuit of the DC station shall
                 # be closed during the insulation test
                 # If None is returned, then contactor close operation is ongoing.
-                contactors_closed_for_cable_check: Optional[
-                    bool
-                ] = await self.comm_session.evse_controller.is_contactor_closed()
+                contactors_closed_for_cable_check: Optional[bool] = (
+                    await self.comm_session.evse_controller.is_contactor_closed()
+                )
 
                 if contactors_closed_for_cable_check is not None:
                     if contactors_closed_for_cable_check:
@@ -1842,9 +1843,9 @@ class DCChargeLoop(StateSECC):
                 )
             )  # noqa
 
-        evse_status: Optional[
-            EVSEStatus
-        ] = await self.comm_session.evse_controller.get_evse_status()
+        evse_status: Optional[EVSEStatus] = (
+            await self.comm_session.evse_controller.get_evse_status()
+        )
 
         meter_info: Optional[MeterInfo] = None
         if meter_info_requested:

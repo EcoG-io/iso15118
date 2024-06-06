@@ -455,9 +455,9 @@ class ServiceDiscovery(StateEVCC):
             service_discovery_res.service_renegotiation_supported
         )
 
-        req_energy_services: List[
-            ServiceV20
-        ] = await self.comm_session.ev_controller.get_supported_energy_services()
+        req_energy_services: List[ServiceV20] = (
+            await self.comm_session.ev_controller.get_supported_energy_services()
+        )
 
         for energy_service in service_discovery_res.energy_service_list.services:
             for requested_energy_service in req_energy_services:

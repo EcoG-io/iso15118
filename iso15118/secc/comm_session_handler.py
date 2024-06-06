@@ -201,9 +201,9 @@ class CommunicationSessionHandler:
         # The comm_sessions dict keys are of type str (the IPv6 address), the
         # values are a tuple containing the SECCCommunicationSession and the
         # associated ayncio.Task object (so we can cancel the task when needed)
-        self.comm_sessions: Dict[
-            str, Tuple[SECCCommunicationSession, asyncio.Task]
-        ] = {}
+        self.comm_sessions: Dict[str, Tuple[SECCCommunicationSession, asyncio.Task]] = (
+            {}
+        )
 
     async def start_session_handler(
         self, iface: str, start_udp_server: Optional[bool] = True

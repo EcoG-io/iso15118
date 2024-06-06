@@ -190,9 +190,11 @@ class EVCCCommunicationSession(V2GCommunicationSession):
             priority += 1
             app_protocol_entry = AppProtocol(
                 protocol_ns=protocol.ns.value,
-                major_version=2
-                if protocol in [Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121]
-                else 1,
+                major_version=(
+                    2
+                    if protocol in [Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121]
+                    else 1
+                ),
                 minor_version=0,
                 schema_id=schema_id,
                 priority=priority,

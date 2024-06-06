@@ -173,21 +173,21 @@ class EVSEDataContext:
         self.max_power_asymmetry: Optional[float] = max_power_asymmetry
 
         #  Optional in 15118-2 CPD
-        self.current_regulation_tolerance: Optional[
-            float
-        ] = current_regulation_tolerance
+        self.current_regulation_tolerance: Optional[float] = (
+            current_regulation_tolerance
+        )
         self.peak_current_ripple: Optional[float] = peak_current_ripple
         self.energy_to_be_delivered: Optional[float] = energy_to_be_delivered
         # Metering
-        self.present_active_power: Optional[
-            float
-        ] = present_active_power  # Optional in AC Scheduled CL
-        self.present_active_power_l2: Optional[
-            float
-        ] = present_active_power_l2  # Optional in AC Scheduled CL
-        self.present_active_power_l3: Optional[
-            float
-        ] = present_active_power_l3  # Optional in AC Scheduled CL
+        self.present_active_power: Optional[float] = (
+            present_active_power  # Optional in AC Scheduled CL
+        )
+        self.present_active_power_l2: Optional[float] = (
+            present_active_power_l2  # Optional in AC Scheduled CL
+        )
+        self.present_active_power_l3: Optional[float] = (
+            present_active_power_l3  # Optional in AC Scheduled CL
+        )
 
         # Required for -2 DC CurrentDemand, -20 DC CL
         self.present_current: Union[float, int] = present_current
@@ -218,28 +218,44 @@ class EVSEDataContext:
     ) -> None:
         """Update the EVSE data context with the AC charge parameters."""
         self.current_type = CurrentType.AC
-        rated_limits = self.rated_limits.ac_limits = EVSEACCPDLimits()
-        self.session_limits.ac_limits = EVSEACCLLimits()
+        if self.rated_limits.ac_limits is None:
+            self.rated_limits.ac_limits = EVSEACCPDLimits()
+        rated_limits = self.rated_limits.ac_limits
+        if self.session_limits.ac_limits is None:
+            self.session_limits.ac_limits = EVSEACCLLimits()
+        session_limits = self.session_limits.ac_limits
         self.nominal_voltage = (
             ac_charge_parameter.evse_nominal_voltage.get_decimal_value()
         )  # noqa: E501
         rated_limits.max_current = (
             ac_charge_parameter.evse_max_current.get_decimal_value()
         )
+
         rated_limits.max_charge_power = rated_limits.max_current * self.nominal_voltage
+        rated_limits.max_charge_power_l2 = rated_limits.max_charge_power
+        rated_limits.max_charge_power_l3 = rated_limits.max_charge_power
         rated_limits.max_discharge_power = 0
         rated_limits.min_charge_power = 0
         rated_limits.min_discharge_power = 0
         # Create the session limits based on the rated limits
-        self.session_limits.ac_limits.update(rated_limits.as_dict())
+        # without exceeding the rated limits
+        for value in vars(rated_limits):
+            if hasattr(session_limits, value):
+                rated_value = getattr(rated_limits, value)
+                session_value = getattr(session_limits, value)
+                if not session_value or (session_value > rated_value):
+                    setattr(session_limits, value, rated_value)
 
     def update_dc_charge_parameters(
         self, dc_charge_parameter: DCEVSEChargeParameter
     ) -> None:
         """Update the EVSE data context with the DC charge parameters."""
         self.current_type = CurrentType.DC
-        rated_limits = self.rated_limits.dc_limits = EVSEDCCPDLimits()
-        self.session_limits.dc_limits = EVSEDCCLLimits()
+        if not self.rated_limits.dc_limits:
+            self.rated_limits.dc_limits = EVSEDCCPDLimits()
+        rated_limits = self.rated_limits.dc_limits
+        if not self.session_limits.dc_limits:
+            self.session_limits.dc_limits = EVSEDCCLLimits()
         rated_limits.max_charge_power = (
             dc_charge_parameter.evse_maximum_power_limit.get_decimal_value()
         )
@@ -264,8 +280,14 @@ class EVSEDataContext:
             self.energy_to_be_delivered = (
                 dc_charge_parameter.evse_energy_to_be_delivered.get_decimal_value()
             )
-        # Create the session limits based on the rated limits
-        self.session_limits.dc_limits.update(rated_limits.as_dict())
+            # Create the session limits based on the rated limits
+            # without exceeding the rated limits
+            for value in vars(rated_limits):
+                if hasattr(self.session_limits.dc_limits, value):
+                    rated_value = getattr(rated_limits, value)
+                    session_value = getattr(self.session_limits.dc_limits, value)
+                    if not session_value or (session_value > rated_value):
+                        setattr(self.session_limits.dc_limits, value, rated_value)
 
     def update_ac_charge_parameters_v20(
         self,
