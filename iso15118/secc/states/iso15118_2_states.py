@@ -1358,9 +1358,9 @@ class ChargeParameterDiscovery(StateSECC):
             ev_data_context.selected_energy_mode.value.startswith("AC")
         )
 
-        max_schedule_entries: Optional[
-            int
-        ] = charge_params_req.max_entries_sa_schedule_tuple
+        max_schedule_entries: Optional[int] = (
+            charge_params_req.max_entries_sa_schedule_tuple
+        )
 
         ac_evse_charge_params: Optional[ACEVSEChargeParameter] = None
         dc_evse_charge_params: Optional[DCEVSEChargeParameter] = None

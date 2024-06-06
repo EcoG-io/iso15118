@@ -68,9 +68,9 @@ class StateSECC(State, ABC):
     # The response code can be set by various methods on which a State's
     # process_message() method might rely on, such as is_message_valid().
     # The default response code 'OK' can be overwritten as needed.
-    response_code: Union[
-        ResponseCodeDINSPEC, ResponseCodeV2, ResponseCodeV20
-    ] = ResponseCodeV2.OK
+    response_code: Union[ResponseCodeDINSPEC, ResponseCodeV2, ResponseCodeV20] = (
+        ResponseCodeV2.OK
+    )
 
     def __init__(
         self, comm_session: "SECCCommunicationSession", timeout: Union[float, int] = 0

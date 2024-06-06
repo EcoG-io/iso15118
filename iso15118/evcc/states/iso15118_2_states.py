@@ -186,9 +186,9 @@ class ServiceDiscovery(StateEVCC):
         await self.select_energy_transfer_mode()
 
         charge_service: ChargeService = service_discovery_res.charge_service
-        offered_energy_modes: List[
-            EnergyTransferModeEnum
-        ] = charge_service.supported_energy_transfer_mode.energy_modes
+        offered_energy_modes: List[EnergyTransferModeEnum] = (
+            charge_service.supported_energy_transfer_mode.energy_modes
+        )
 
         if self.comm_session.selected_energy_mode not in offered_energy_modes:
             self.stop_state_machine(

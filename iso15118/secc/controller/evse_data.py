@@ -173,21 +173,21 @@ class EVSEDataContext:
         self.max_power_asymmetry: Optional[float] = max_power_asymmetry
 
         #  Optional in 15118-2 CPD
-        self.current_regulation_tolerance: Optional[
-            float
-        ] = current_regulation_tolerance
+        self.current_regulation_tolerance: Optional[float] = (
+            current_regulation_tolerance
+        )
         self.peak_current_ripple: Optional[float] = peak_current_ripple
         self.energy_to_be_delivered: Optional[float] = energy_to_be_delivered
         # Metering
-        self.present_active_power: Optional[
-            float
-        ] = present_active_power  # Optional in AC Scheduled CL
-        self.present_active_power_l2: Optional[
-            float
-        ] = present_active_power_l2  # Optional in AC Scheduled CL
-        self.present_active_power_l3: Optional[
-            float
-        ] = present_active_power_l3  # Optional in AC Scheduled CL
+        self.present_active_power: Optional[float] = (
+            present_active_power  # Optional in AC Scheduled CL
+        )
+        self.present_active_power_l2: Optional[float] = (
+            present_active_power_l2  # Optional in AC Scheduled CL
+        )
+        self.present_active_power_l3: Optional[float] = (
+            present_active_power_l3  # Optional in AC Scheduled CL
+        )
 
         # Required for -2 DC CurrentDemand, -20 DC CL
         self.present_current: Union[float, int] = present_current

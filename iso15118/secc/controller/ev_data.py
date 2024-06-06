@@ -218,9 +218,9 @@ class EVDataContext:
         self.max_soc: Optional[int] = max_soc  # 0-100
         self.max_v2x_energy_request: Optional[float] = max_v2x_energy_request
         self.min_v2x_energy_request: Optional[float] = min_v2x_energy_request
-        self.remaining_time_to_target_soc: Optional[
-            float
-        ] = remaining_time_to_target_soc  # noqa: E501
+        self.remaining_time_to_target_soc: Optional[float] = (
+            remaining_time_to_target_soc  # noqa: E501
+        )
         # In -2 is FullSOC
         self.remaining_time_to_max_soc: Optional[float] = remaining_time_to_max_soc
         self.remaining_time_to_min_soc: Optional[float] = remaining_time_to_min_soc
