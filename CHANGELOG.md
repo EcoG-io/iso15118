@@ -8,8 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added missed param in ev data by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/412
 * session limits are rearranged according to rated limits by @ikaratass in https://github.com/SwitchEV/iso15118/pull/415
 
-
-**Full Changelog**: https://github.com/SwitchEV/iso15118/compare/0.28.1...0.28.2
 ## [0.28.1] - 2024-05-21
 * Fixed pydantic issues. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/405
 * Modify cable check contactor status check by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/404
