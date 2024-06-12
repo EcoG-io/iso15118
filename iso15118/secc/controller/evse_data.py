@@ -107,9 +107,9 @@ class EVSEDCCLLimits(Limits):
 @dataclass
 class EVSERatedLimits(Limits):
     def __init__(
-        self,
-        ac_limits: Optional[EVSEACCPDLimits] = EVSEACCPDLimits(),
-        dc_limits: Optional[EVSEDCCPDLimits] = EVSEDCCPDLimits(),
+            self,
+            ac_limits: Optional[EVSEACCPDLimits] = EVSEACCPDLimits(),
+            dc_limits: Optional[EVSEDCCPDLimits] = EVSEDCCPDLimits(),
     ):
         self.ac_limits = ac_limits
         self.dc_limits = dc_limits
@@ -118,9 +118,9 @@ class EVSERatedLimits(Limits):
 @dataclass
 class EVSESessionLimits(Limits):
     def __init__(
-        self,
-        ac_limits: Optional[EVSEACCLLimits] = EVSEACCLLimits(),
-        dc_limits: Optional[EVSEDCCLLimits] = EVSEDCCLLimits(),
+            self,
+            ac_limits: Optional[EVSEACCLLimits] = EVSEACCLLimits(),
+            dc_limits: Optional[EVSEDCCLLimits] = EVSEDCCLLimits(),
     ):
         self.ac_limits = ac_limits
         self.dc_limits = dc_limits
@@ -134,25 +134,25 @@ class CurrentType(str, Enum):
 @dataclass
 class EVSEDataContext:
     def __init__(
-        self,
-        rated_limits: EVSERatedLimits = EVSERatedLimits(),
-        session_limits: EVSESessionLimits = EVSESessionLimits(),
-        departure_time: Optional[int] = None,
-        target_soc: Optional[int] = None,
-        min_soc: Optional[int] = None,
-        ack_max_delay: Optional[int] = None,
-        power_ramp_limit: Optional[float] = None,
-        nominal_voltage: Optional[float] = None,
-        nominal_frequency: Optional[float] = None,
-        max_power_asymmetry: Optional[float] = None,
-        current_regulation_tolerance: Optional[float] = None,
-        peak_current_ripple: Optional[float] = None,
-        energy_to_be_delivered: Optional[float] = None,
-        present_active_power: Optional[float] = 0,
-        present_active_power_l2: Optional[float] = 0,
-        present_active_power_l3: Optional[float] = 0,
-        present_current: Union[float, int] = 0,
-        present_voltage: Union[float, int] = 0,
+            self,
+            rated_limits: EVSERatedLimits = EVSERatedLimits(),
+            session_limits: EVSESessionLimits = EVSESessionLimits(),
+            departure_time: Optional[int] = None,
+            target_soc: Optional[int] = None,
+            min_soc: Optional[int] = None,
+            ack_max_delay: Optional[int] = None,
+            power_ramp_limit: Optional[float] = None,
+            nominal_voltage: Optional[float] = None,
+            nominal_frequency: Optional[float] = None,
+            max_power_asymmetry: Optional[float] = None,
+            current_regulation_tolerance: Optional[float] = None,
+            peak_current_ripple: Optional[float] = None,
+            energy_to_be_delivered: Optional[float] = None,
+            present_active_power: Optional[float] = 0,
+            present_active_power_l2: Optional[float] = 0,
+            present_active_power_l3: Optional[float] = 0,
+            present_current: Union[float, int] = 0,
+            present_voltage: Union[float, int] = 0,
     ):
         self.rated_limits = rated_limits
         self.session_limits = session_limits
@@ -201,7 +201,7 @@ class EVSEDataContext:
     # passed to the EV/EVSE during the Charging Loop.
 
     def update_schedule_exchange_parameters(
-        self, control_mode: ControlMode, schedule_exchange_res: ScheduleExchangeRes
+            self, control_mode: ControlMode, schedule_exchange_res: ScheduleExchangeRes
     ):
         """Update the EVSE data context with the ScheduleExchangeReq parameters"""
         if control_mode == ControlMode.DYNAMIC:
@@ -214,7 +214,7 @@ class EVSEDataContext:
                 self.min_soc = se_params.min_soc
 
     def update_ac_charge_parameters_v2(
-        self, ac_charge_parameter: ACEVSEChargeParameter
+            self, ac_charge_parameter: ACEVSEChargeParameter
     ) -> None:
         """Update the EVSE data context with the AC charge parameters."""
         self.current_type = CurrentType.AC
@@ -243,11 +243,14 @@ class EVSEDataContext:
             if hasattr(session_limits, value):
                 rated_value = getattr(rated_limits, value)
                 session_value = getattr(session_limits, value)
-                if not session_value or (session_value > rated_value):
-                    setattr(session_limits, value, rated_value)
+                try:
+                    if not session_value or (session_value > rated_value):
+                        setattr(session_limits, value, rated_value)
+                except:
+                    pass
 
     def update_dc_charge_parameters(
-        self, dc_charge_parameter: DCEVSEChargeParameter
+            self, dc_charge_parameter: DCEVSEChargeParameter
     ) -> None:
         """Update the EVSE data context with the DC charge parameters."""
         self.current_type = CurrentType.DC
@@ -277,7 +280,8 @@ class EVSEDataContext:
         )
         if dc_charge_parameter.evse_current_regulation_tolerance:
             self.current_regulation_tolerance = (
-                dc_charge_parameter.evse_current_regulation_tolerance.get_decimal_value()  # noqa: E501
+                dc_charge_parameter.evse_current_regulation_tolerance.get_decimal_value()
+            # noqa: E501
             )
         if dc_charge_parameter.evse_energy_to_be_delivered:
             self.energy_to_be_delivered = (
@@ -293,9 +297,9 @@ class EVSEDataContext:
                         setattr(self.session_limits.dc_limits, value, rated_value)
 
     def update_ac_charge_parameters_v20(
-        self,
-        energy_service: ServiceV20,
-        charge_parameter: ACChargeParameterDiscoveryRes,
+            self,
+            energy_service: ServiceV20,
+            charge_parameter: ACChargeParameterDiscoveryRes,
     ) -> None:
         """Update the EVSE data context with the
         ACChargeParameterDiscoveryRes parameters"""
@@ -318,11 +322,11 @@ class EVSEDataContext:
         self.session_limits.dc_limits.update(ac_rated_limits.as_dict())
 
     def _update_common_ac_charge_parameters_v20(
-        self,
-        ac_rated_limits: EVSEACCPDLimits,
-        params: Union[
-            ACChargeParameterDiscoveryResParams, BPTACChargeParameterDiscoveryResParams
-        ],
+            self,
+            ac_rated_limits: EVSEACCPDLimits,
+            params: Union[
+                ACChargeParameterDiscoveryResParams, BPTACChargeParameterDiscoveryResParams
+            ],
     ) -> None:
         """Update the EVSE data context with the common
         ACChargeParameterDiscoveryRes parameters"""
@@ -373,9 +377,9 @@ class EVSEDataContext:
             )  # noqa: E501
 
     def _update_acbpt_charge_parameters_v20(
-        self,
-        ac_rated_limits: EVSEACCPDLimits,
-        params: BPTACChargeParameterDiscoveryResParams,
+            self,
+            ac_rated_limits: EVSEACCPDLimits,
+            params: BPTACChargeParameterDiscoveryResParams,
     ) -> None:
         """Update the EVSE data context with the
         BPTACChargeParameterDiscoveryRes parameters"""
@@ -404,9 +408,9 @@ class EVSEDataContext:
             )  # noqa: E501
 
     def update_dc_charge_parameters_v20(
-        self,
-        energy_service: ServiceV20,
-        charge_parameter: DCChargeParameterDiscoveryRes,
+            self,
+            energy_service: ServiceV20,
+            charge_parameter: DCChargeParameterDiscoveryRes,
     ) -> None:
         """Update the EVSE data context with the
         DCChargeParameterDiscoveryRes parameters"""
@@ -429,11 +433,11 @@ class EVSEDataContext:
         self.session_limits.dc_limits.update(dc_rated_limits.as_dict())
 
     def _update_common_dc_charge_parameters_v20(
-        self,
-        dc_rated_limits: EVSEDCCPDLimits,
-        params: Union[
-            DCChargeParameterDiscoveryResParams, BPTDCChargeParameterDiscoveryResParams
-        ],
+            self,
+            dc_rated_limits: EVSEDCCPDLimits,
+            params: Union[
+                DCChargeParameterDiscoveryResParams, BPTDCChargeParameterDiscoveryResParams
+            ],
     ) -> None:
         """Update the EVSE data context with the common
         DCChargeParameterDiscoveryRes parameters"""
@@ -461,9 +465,9 @@ class EVSEDataContext:
             )  # noqa: E501
 
     def _update_dcbpt_charge_parameters_v20(
-        self,
-        dc_rated_limits: EVSEDCCPDLimits,
-        params: BPTDCChargeParameterDiscoveryResParams,
+            self,
+            dc_rated_limits: EVSEDCCPDLimits,
+            params: BPTDCChargeParameterDiscoveryResParams,
     ) -> None:
         """Update the EVSE data context with the
         BPTDCChargeParameterDiscoveryRes parameters"""
