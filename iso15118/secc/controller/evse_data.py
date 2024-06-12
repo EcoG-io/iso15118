@@ -262,6 +262,9 @@ class EVSEDataContext:
         rated_limits.max_charge_current = (
             dc_charge_parameter.evse_maximum_current_limit.get_decimal_value()
         )
+        rated_limits.min_charge_current = (
+            dc_charge_parameter.evse_minimum_current_limit.get_decimal_value()
+        )
         rated_limits.max_voltage = (
             dc_charge_parameter.evse_maximum_voltage_limit.get_decimal_value()
         )
