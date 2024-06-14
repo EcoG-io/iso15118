@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
+find_package(everest-cmake 0.3 REQUIRED
+    PATHS ../everest-cmake
+)
+
+ev_setup_cmake_variables_python_wheel()
+
 install(
     DIRECTORY iso15118/secc/
     DESTINATION "${THIRD_PARTY_APP_DST}/josev/iso15118/secc"
@@ -25,13 +31,14 @@ find_program(
     REQUIRED
 )
 
-add_custom_target(iso15118_pip_install_dist
-    COMMAND
-        ${PYTHON_EXECUTABLE} -m pip install --force-reinstall .
-    WORKING_DIRECTORY
-        ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT
-        "Installing iso15118 from distribution"
+ev_create_pip_install_targets(
+    PACKAGE_NAME
+        "iso15118"
+)
+
+ev_create_python_wheel_targets(
+    PACKAGE_NAME
+        "iso15118"
 )
 
 add_custom_target(iso15118_requirements_pip_install_dist
