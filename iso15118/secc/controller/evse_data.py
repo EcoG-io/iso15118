@@ -246,7 +246,7 @@ class EVSEDataContext:
                 try:
                     if not session_value or (session_value > rated_value):
                         setattr(session_limits, value, rated_value)
-                except:
+                except TypeError:
                     pass
 
     def update_dc_charge_parameters(
@@ -280,8 +280,7 @@ class EVSEDataContext:
         )
         if dc_charge_parameter.evse_current_regulation_tolerance:
             self.current_regulation_tolerance = (
-                dc_charge_parameter.evse_current_regulation_tolerance.get_decimal_value()
-                # noqa: E501
+                dc_charge_parameter.evse_current_regulation_tolerance.get_decimal_value() # noqa: E501
             )
         if dc_charge_parameter.evse_energy_to_be_delivered:
             self.energy_to_be_delivered = (
@@ -296,7 +295,7 @@ class EVSEDataContext:
                     try:
                         if not session_value or (session_value > rated_value):
                             setattr(self.session_limits.dc_limits, value, rated_value)
-                    except:
+                    except TypeError:
                         pass
 
     def update_ac_charge_parameters_v20(
