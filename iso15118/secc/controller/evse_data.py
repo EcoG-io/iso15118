@@ -243,8 +243,11 @@ class EVSEDataContext:
             if hasattr(session_limits, value):
                 rated_value = getattr(rated_limits, value)
                 session_value = getattr(session_limits, value)
-                if not session_value or (session_value > rated_value):
-                    setattr(session_limits, value, rated_value)
+                try:
+                    if not session_value or (session_value > rated_value):
+                        setattr(session_limits, value, rated_value)
+                except TypeError:
+                    pass
 
     def update_dc_charge_parameters(
         self, dc_charge_parameter: DCEVSEChargeParameter
@@ -261,6 +264,9 @@ class EVSEDataContext:
         )
         rated_limits.max_charge_current = (
             dc_charge_parameter.evse_maximum_current_limit.get_decimal_value()
+        )
+        rated_limits.min_charge_current = (
+            dc_charge_parameter.evse_minimum_current_limit.get_decimal_value()
         )
         rated_limits.max_voltage = (
             dc_charge_parameter.evse_maximum_voltage_limit.get_decimal_value()
@@ -286,8 +292,11 @@ class EVSEDataContext:
                 if hasattr(self.session_limits.dc_limits, value):
                     rated_value = getattr(rated_limits, value)
                     session_value = getattr(self.session_limits.dc_limits, value)
-                    if not session_value or (session_value > rated_value):
-                        setattr(self.session_limits.dc_limits, value, rated_value)
+                    try:
+                        if not session_value or (session_value > rated_value):
+                            setattr(self.session_limits.dc_limits, value, rated_value)
+                    except TypeError:
+                        pass
 
     def update_ac_charge_parameters_v20(
         self,
