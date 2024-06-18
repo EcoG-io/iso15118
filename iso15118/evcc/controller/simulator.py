@@ -132,7 +132,7 @@ class SimEVController(EVControllerInterface):
                 multiplier=1, value=8000, unit=UnitSymbol.WATT
             ),
             dc_max_voltage_limit=PVEVMaxVoltageLimit(
-                multiplier=3, value=20, unit=UnitSymbol.VOLTAGE
+                multiplier=1, value=50, unit=UnitSymbol.VOLTAGE
             ),
             dc_energy_capacity=PVEVEnergyCapacity(
                 multiplier=1, value=7000, unit=UnitSymbol.WATT_HOURS
@@ -141,7 +141,7 @@ class SimEVController(EVControllerInterface):
                 multiplier=0, value=1, unit=UnitSymbol.AMPERE
             ),
             dc_target_voltage=PVEVTargetVoltage(
-                multiplier=3, value=20, unit=UnitSymbol.VOLTAGE
+                multiplier=1, value=50, unit=UnitSymbol.VOLTAGE
             ),
         )
 
