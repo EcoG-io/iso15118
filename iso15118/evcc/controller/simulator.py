@@ -138,7 +138,7 @@ class SimEVController(EVControllerInterface):
                 multiplier=1, value=7000, unit=UnitSymbol.WATT_HOURS
             ),
             dc_target_current=PVEVTargetCurrent(
-                multiplier=0, value=1, unit=UnitSymbol.AMPERE
+                multiplier=0, value=20, unit=UnitSymbol.AMPERE
             ),
             dc_target_voltage=PVEVTargetVoltage(
                 multiplier=1, value=50, unit=UnitSymbol.VOLTAGE

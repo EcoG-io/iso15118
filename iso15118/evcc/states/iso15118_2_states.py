@@ -23,7 +23,7 @@ from iso15118.shared.messages.datatypes import (
     DCEVSEStatusCode,
     EVSENotification,
     SelectedService,
-    SelectedServiceList,
+    SelectedServiceList, PVEVTargetCurrent,
 )
 from iso15118.shared.messages.din_spec.msgdef import V2GMessage as V2GMessageDINSPEC
 from iso15118.shared.messages.enums import (
@@ -32,7 +32,7 @@ from iso15118.shared.messages.enums import (
     EVSEProcessing,
     IsolationLevel,
     Namespace,
-    Protocol,
+    Protocol, UnitSymbol,
 )
 from iso15118.shared.messages.iso15118_2.body import (
     AuthorizationReq,
@@ -80,7 +80,7 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_2.timeouts import Timeouts
 from iso15118.shared.messages.iso15118_20.common_types import (
-    V2GMessage as V2GMessageV20,
+    V2GMessage as V2GMessageV20, RationalNumber,
 )
 from iso15118.shared.messages.timeouts import Timeouts as TimeoutsShared
 from iso15118.shared.messages.xmldsig import X509IssuerSerial
@@ -1274,7 +1274,9 @@ class CableCheck(StateEVCC):
         pre_charge_req = PreChargeReq(
             dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_voltage=charge_params.dc_target_voltage,
-            ev_target_current=charge_params.dc_target_current,
+            ev_target_current=PVEVTargetCurrent(
+            multiplier=0, value=1, unit=UnitSymbol.AMPERE
+        ),
         )
         return pre_charge_req
 
@@ -1348,7 +1350,9 @@ class PreCharge(StateEVCC):
         pre_charge_req = PreChargeReq(
             dc_ev_status=await self.comm_session.ev_controller.get_dc_ev_status(),
             ev_target_voltage=charge_params.dc_target_voltage,
-            ev_target_current=charge_params.dc_target_current,
+            ev_target_current=PVEVTargetCurrent(
+            multiplier=0, value=1, unit=UnitSymbol.AMPERE
+        ),
         )
         return pre_charge_req
 
