@@ -58,7 +58,10 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SelectedEnergyService,
     SelectedVAS,
 )
-from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import (
+    DisplayParameters,
+    RationalNumber,
+)
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
     BPTDynamicDCChargeLoopReqParams,
@@ -679,5 +682,14 @@ class EVControllerInterface(ABC):
         Relevant for:
         - DIN SPEC 70121
         - ISO 15118-2
+        - ISO 15118-20
+        """
+
+    @abstractmethod
+    async def get_display_params(self) -> DisplayParameters:
+        """
+        Enables charging for the EVCC.
+        Can be used as an indication to go to state C
+        Relevant for:
         - ISO 15118-20
         """

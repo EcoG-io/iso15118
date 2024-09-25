@@ -108,7 +108,10 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     SelectedEnergyService,
     SelectedVAS,
 )
-from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import (
+    DisplayParameters,
+    RationalNumber,
+)
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
     BPTDynamicDCChargeLoopReqParams,
@@ -141,7 +144,8 @@ class SimEVController(EVControllerInterface):
 
     def __init__(self, evcc_config: EVCCConfig):
         self.config = evcc_config
-        self.charging_loop_cycles: int = evcc_config.charge_loop_cycle
+        self.charging_loop_cycles: int = max(evcc_config.charge_loop_cycle, 1)
+        self.increment = (1 / self.charging_loop_cycles) * 100
         self.precharge_loop_cycles: int = 0
         self.welding_detection_cycles: int = 0
         self._charging_is_completed = False
@@ -617,8 +621,19 @@ class SimEVController(EVControllerInterface):
 
     async def continue_charging(self) -> bool:
         """Overrides EVControllerInterface.continue_charging()."""
+        # if self.charging_loop_cycles == 0 or await self.is_charging_complete():
+        #     # To simulate a bit of a charging loop, we'll let it run chargingLoopCycle
+        #     # times specified in config file
+        #     return False
+        # else:
+        #     self.charging_loop_cycles -= 1
+        #     self._soc = min(int(self._soc + self.increment), 100)
+        #     # The line below can just be called once process_message in all states
+        #     # are converted to async calls
+        #     # await asyncio.sleep(0.5)
+        #     return True
         return not EVEREST_EV_STATE.StopCharging
-
+    
     async def pause(self) -> bool:
         return EVEREST_EV_STATE.Pause
 
@@ -772,14 +787,14 @@ class SimEVController(EVControllerInterface):
         return DCEVStatusDINSPEC(
             ev_ready=True,
             ev_error_code=DCEVErrorCode.NO_ERROR,
-            ev_ress_soc=60,
+            ev_ress_soc=self._soc,
         )
 
     async def get_dc_ev_status(self) -> DCEVStatus:
         return DCEVStatus(
             ev_ready=True,
             ev_error_code=DCEVErrorCode.NO_ERROR,
-            ev_ress_soc=60,
+            ev_ress_soc=self._soc,
         )
 
     async def get_scheduled_dc_charge_loop_params(
@@ -863,6 +878,13 @@ class SimEVController(EVControllerInterface):
     async def enable_charging(self, enabled: bool) -> None:
         """Overrides EVControllerInterface.enable_charging()."""
         pass
+
+    async def get_display_params(self) -> DisplayParameters:
+        """Overrides EVControllerInterface.get_display_params()."""
+        return DisplayParameters(
+            present_soc=self._soc,
+            charging_complete=await self.is_charging_complete(),
+        )
 
     # ============================================================================
     # |                          SAE J2847/2 FUNCTIONS                           |

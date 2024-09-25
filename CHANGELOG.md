@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.0] - 2024-04-17
+* ScheduleExchangeRes parsing fix by @heavyweight87 in https://github.com/SwitchEV/iso15118/pull/391
+* Moved contactor status check for dc to be after cable check by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/396
+* Simulate soc in -2, -20 and din. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/393
+
 ## [0.26.0] - 2024-03-20
 * Jtt 770 return ongoing if cs is not ready by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/387
 * Fixes for issue where the saved session context wasn't found on waking up. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/388

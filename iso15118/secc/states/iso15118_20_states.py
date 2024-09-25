@@ -1609,7 +1609,15 @@ class DCCableCheck(StateSECC):
         if not self.cable_check_req_was_received:
             # First DCCableCheckReq received. Start cable check.
             await self.comm_session.evse_controller.start_cable_check()
+            self.cable_check_req_was_received = True
 
+        next_state = None
+        processing = EVSEProcessing.ONGOING
+        isolation_level = (
+            await self.comm_session.evse_controller.get_cable_check_status()
+        )
+
+        if isolation_level in [IsolationLevel.VALID, IsolationLevel.WARNING]:
             # Requirement in 6.4.3.106 of the IEC 61851-23
             # Any relays in the DC output circuit of the DC station shall
             # be closed during the insulation test
@@ -1621,15 +1629,6 @@ class DCCableCheck(StateSECC):
                 )
                 return
 
-            self.cable_check_req_was_received = True
-
-        next_state = None
-        processing = EVSEProcessing.ONGOING
-        isolation_level = (
-            await self.comm_session.evse_controller.get_cable_check_status()
-        )
-
-        if isolation_level in [IsolationLevel.VALID, IsolationLevel.WARNING]:
             if isolation_level == IsolationLevel.WARNING:
                 logger.warning(
                     "Isolation resistance measured by EVSE is in Warning range"
