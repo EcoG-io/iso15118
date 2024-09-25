@@ -80,6 +80,7 @@ class SECCCommunicationSession(V2GCommunicationSession):
         config: Config,
         evse_controller: EVSEControllerInterface,
         evse_id: str,
+        ev_session_context: Optional[EVSessionContext] = None,
     ):
         # Need to import here to avoid a circular import error
         # pylint: disable=import-outside-toplevel
@@ -94,6 +95,10 @@ class SECCCommunicationSession(V2GCommunicationSession):
         self.evse_controller = evse_controller
         # EVSE ID associated with this session
         self.evse_id = evse_id
+        # EV Session context associated if available.
+        self.ev_session_context: EVSessionContext = (
+            ev_session_context or EVSessionContext()
+        )
         # The authorization option(s) offered with ServiceDiscoveryRes in
         # ISO 15118-2 and with AuthorizationSetupRes in ISO 15118-20
         self.offered_auth_options: Optional[List[AuthEnum]] = []
@@ -134,7 +139,6 @@ class SECCCommunicationSession(V2GCommunicationSession):
         # CurrentDemandRes. The SECC must send a copy in the MeteringReceiptReq
         # TODO Add support for ISO 15118-20 MeterInfo
         self.sent_meter_info: Optional[MeterInfoV2] = None
-        self.ev_session_context: EVSessionContext = EVSessionContext()
         if secc_settings.save_ev_session_context.session_id is not None:
             self.ev_session_context = secc_settings.save_ev_session_context
         self.is_tls = self._is_tls(transport)
@@ -286,8 +290,16 @@ class CommunicationSessionHandler:
                     )
 
                     try:
-                        comm_session, task = self.comm_sessions[notification.ip_address]
-                        comm_session.resume()
+                        comm_session, _ = self.comm_sessions[notification.ip_address[0]]
+                        ev_context = comm_session.ev_session_context
+                        comm_session = SECCCommunicationSession(
+                            notification.transport,
+                            self._rcv_queue,
+                            self.config,
+                            self.evse_controller,
+                            await self.evse_controller.get_evse_id(Protocol.UNKNOWN),
+                            ev_context,
+                        )
                     except (KeyError, ConnectionResetError) as e:
                         if isinstance(e, ConnectionResetError):
                             logger.info("Can't resume session. End and start new one.")
@@ -307,7 +319,10 @@ class CommunicationSessionHandler:
                             Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT
                         )
                     )
-                    self.comm_sessions[notification.ip_address] = (comm_session, task)
+                    self.comm_sessions[notification.ip_address[0]] = (
+                        comm_session,
+                        task,
+                    )
                     self._current_peer_ip = notification.ip_address
                 elif isinstance(notification, StopNotification):
                     try:
@@ -343,19 +358,19 @@ class CommunicationSessionHandler:
             logger.warning(f"Error while indicating EOF to transport reader: {e}")
 
     async def end_current_session(
-            self, peer_ip_address: str, session_stop_action: SessionStopAction
+        self, peer_ip_address: Any, session_stop_action: SessionStopAction
     ):
         try:
             await cancel_task(self.tcp_server_handler)
-            await cancel_task(self.comm_sessions[peer_ip_address][1])
+            await cancel_task(self.comm_sessions[peer_ip_address[0]][1])
         except Exception as e:
             logger.warning(f"Unexpected error ending current session: {e}")
         finally:
             if session_stop_action == SessionStopAction.TERMINATE:
-                del self.comm_sessions[peer_ip_address]
+                del self.comm_sessions[peer_ip_address[0]]
             else:
-                logger.debug(
-                    f"Preserved session state: {self.comm_sessions[peer_ip_address][0].ev_session_context}"  # noqa
+                logger.info(
+                    f"Preserved session state: {self.comm_sessions[peer_ip_address[0]][0].ev_session_context}"  # noqa
                 )
         self.tcp_server_handler = None
         self._current_peer_ip = None

@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.0] - 2024-03-20
+* Jtt 770 return ongoing if cs is not ready by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/387
+* Fixes for issue where the saved session context wasn't found on waking up. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/388
+
 ## [0.25.2] - 2024-02-14
 * Fix for choosing PnC and DIN removal when the connection is non-TLS by @anudeep-20 in https://github.com/SwitchEV/iso15118/pull/367
 * Fix SessionID length in SessionSetupReq for ISO15118-20 by @adoebber in https://github.com/SwitchEV/iso15118/pull/378

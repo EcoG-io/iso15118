@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple, Type, Union, cast
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
 from iso15118.secc.controller.common import UnknownEnergyService
-from iso15118.secc.controller.evse_data import EVSEDataContext
+from iso15118.secc.controller.evse_data import CurrentType
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.exi_codec import EXI
 from iso15118.shared.messages.app_protocol import (
@@ -53,6 +53,7 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     CertificateInstallationReq,
     ChargeProgress,
     ChargingSession,
+    DynamicScheduleExchangeResParams,
     EIMAuthSetupResParams,
     EVPowerProfile,
     MatchedService,
@@ -457,7 +458,6 @@ class Authorization(StateSECC):
         if (
             current_authorization_status.authorization_status
             == AuthorizationStatus.ACCEPTED
-            and self.comm_session.evse_controller.ready_to_charge()
         ):
             evse_processing = Processing.FINISHED
         elif (
@@ -931,25 +931,39 @@ class ScheduleExchange(StateSECC):
         ev_data_context.update_schedule_exchange_parameters(
             control_mode, schedule_exchange_req
         )
-        evse_processing = Processing.ONGOING
+
+        # As per Table 49 of ISO15118-20 spec: one of scheduled_params/dynamic_params is
+        # required even if EVSEProcessing is ongoing. The SECC shall only omit the
+        # parameter 'ScheduleList' in case EVSEProcessing is set to 'Ongoing'.
+        # However, the schema file doesn't permit this as minOccurs = 0 is not set in
+        # schema here: https://github.com/SwitchEV/iso15118/blob/769eddb0cb780db629b4c736de270d381516abd1/iso15118/shared/schemas/iso15118_20/V2G_CI_CommonMessages.xsd#L467-L466  # noqa
         params = await self.comm_session.evse_controller.get_schedule_exchange_params(
             self.comm_session.selected_energy_service,
             control_mode,
             schedule_exchange_req,
         )
-        if params:
+
+        if (
+            control_mode == ControlMode.SCHEDULED
+            and type(params) is not ScheduledScheduleExchangeResParams
+        ) or (
+            control_mode == ControlMode.DYNAMIC
+            and type(params) is not DynamicScheduleExchangeResParams
+        ):
+            self.stop_state_machine(
+                f"Unexpected control_mode {control_mode},"
+                f" for params type {type(params)}",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
+
+        if self.comm_session.evse_controller.ready_to_charge():
             evse_processing = Processing.FINISHED
-            if control_mode == ControlMode.SCHEDULED:
-                if type(params) is ScheduledScheduleExchangeResParams:
-                    self.comm_session.offered_schedules_V20 = params.schedule_tuples
-                else:
-                    self.stop_state_machine(
-                        f"Unexpected control_mode {control_mode},"
-                        f" for params type {type(params)}",
-                        message,
-                        ResponseCode.FAILED,
-                    )
-                    return
+            if type(params) is ScheduledScheduleExchangeResParams:
+                self.comm_session.offered_schedules_V20 = params.schedule_tuples
+        else:
+            evse_processing = Processing.ONGOING
 
         schedule_exchange_res = ScheduleExchangeRes(
             header=MessageHeader(
@@ -960,10 +974,12 @@ class ScheduleExchange(StateSECC):
             scheduled_params=params if control_mode == ControlMode.SCHEDULED else None,
             dynamic_params=params if control_mode == ControlMode.DYNAMIC else None,
         )
-        evse_data_context = self.comm_session.evse_controller.evse_data_context
-        evse_data_context.update_schedule_exchange_parameters(
-            control_mode, schedule_exchange_res
-        )
+
+        if evse_processing == Processing.FINISHED:
+            evse_data_context = self.comm_session.evse_controller.evse_data_context
+            evse_data_context.update_schedule_exchange_parameters(
+                control_mode, schedule_exchange_res
+            )
 
         # We don't know what request will come next (which state to transition to),
         # unless the schedule parameters are ready and we're in AC charging.
@@ -1332,12 +1348,8 @@ class ACChargeParameterDiscovery(StateSECC):
             self.charge_parameter_valid(ac_cpd_req.ac_params)
             ev_data_context = self.comm_session.evse_controller.ev_data_context
             ev_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_req)
-            evse_data_context = (
-                self.comm_session.evse_controller.evse_data_context
-            ) = EVSEDataContext()
-            evse_data_context.update_ac_charge_parameters_v20(
-                energy_service, ac_cpd_res
-            )
+            evse_data_context = self.comm_session.evse_controller.evse_data_context
+            evse_data_context.current_type = CurrentType.AC
         except UnknownEnergyService:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
@@ -1532,9 +1544,7 @@ class DCChargeParameterDiscovery(StateSECC):
             ev_data_context = self.comm_session.evse_controller.ev_data_context
             ev_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_req)
             evse_data_context = self.comm_session.evse_controller.evse_data_context
-            evse_data_context.update_dc_charge_parameters_v20(
-                energy_service, dc_cpd_res
-            )
+            evse_data_context.current_type = CurrentType.DC
         except UnknownEnergyService:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
