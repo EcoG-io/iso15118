@@ -427,8 +427,7 @@ class ChargeParameterDiscovery(StateSECC):
                 ResponseCode.FAILED_WRONG_ENERGY_TRANSFER_MODE,
             )
             return
-
-        self.comm_session.selected_energy_mode = (
+        self.comm_session.evse_controller.ev_data_context.selected_energy_mode = (
             charge_parameter_discovery_req.requested_energy_mode
         )
 
@@ -437,7 +436,7 @@ class ChargeParameterDiscovery(StateSECC):
         ev_data_context.update_dc_charge_parameters(
             charge_parameter_discovery_req.dc_ev_charge_parameter
         )
-
+        await self.comm_session.evse_controller.send_rated_limits()
         dc_evse_charge_params = (
             await self.comm_session.evse_controller.get_dc_charge_parameters_dinspec()  # noqa
         )
@@ -539,10 +538,7 @@ class CableCheck(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
-        self.cable_check_req_was_received = False
-        # EVerest code start #
-        self.isolation_check_requested = False
-        # EVerest code end #
+        self.cable_check_started: bool = False
 
     async def process_message(
         self,
@@ -588,9 +584,9 @@ class CableCheck(StateSECC):
             return
 
         # EVerest code start #
-        if not self.isolation_check_requested:
+        if not self.cable_check_started:
             EVEREST_CTX.publish('Start_CableCheck', None)
-            self.isolation_check_requested = True
+            self.cable_check_started = True
             await self.comm_session.evse_controller.setIsolationMonitoringActive(True)
         # EVerest code end #
 
@@ -1218,7 +1214,7 @@ class CurrentDemand(StateSECC):
                 await self.comm_session.evse_controller.get_evse_max_power_limit()
             ),
         )
-
+        await self.comm_session.evse_controller.send_display_params()
         if dc_evse_status.evse_status_code is DCEVSEStatusCode.EVSE_SHUTDOWN:
             EVEREST_CTX.publish('currentDemand_Finished', None)
 

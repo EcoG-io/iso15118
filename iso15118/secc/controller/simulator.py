@@ -2,6 +2,7 @@
 This module contains the code to retrieve (hardware-related) data from the EVSE
 (Electric Vehicle Supply Equipment).
 """
+
 import base64
 import logging
 import math
@@ -335,7 +336,7 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.get_scheduled_se_params()."""
         charging_power_schedule_entry = PowerScheduleEntry(
             duration=3600,
-            power=RationalNumber(exponent=3, value=10)
+            power=RationalNumber(exponent=3, value=10),
             # Check if AC ThreePhase applies (Connector parameter within parameter set
             # of SelectedEnergyService) if you want to add power_l2 and power_l3 values
         )
@@ -415,7 +416,7 @@ class SimEVSEController(EVSEControllerInterface):
 
         discharging_power_schedule_entry = PowerScheduleEntry(
             duration=3600,
-            power=RationalNumber(exponent=3, value=10)
+            power=RationalNumber(exponent=3, value=10),
             # Check if AC ThreePhase applies (Connector parameter within parameter set
             # of SelectedEnergyService) if you want to add power_l2 and power_l3 values
         )
@@ -759,7 +760,7 @@ class SimEVSEController(EVSEControllerInterface):
         """Overrides EVSEControllerInterface.service_renegotiation_supported()."""
         return False
 
-    async def is_contactor_closed(self) -> bool:
+    async def is_contactor_closed(self) -> Optional[bool]:
         """Overrides EVSEControllerInterface.is_contactor_closed()."""
         startTime_ns: int = time.time_ns()
         timeout: int = 0
@@ -1297,3 +1298,15 @@ class SimEVSEController(EVSEControllerInterface):
         @param last_message: The last message that was either sent/received.
         """
         logger.info(f"Session ended in {current_state} ({reason}).")
+
+    async def send_display_params(self):
+        """
+        Share display params with CS.
+        """
+        logger.info("Send display params to CS.")
+
+    async def send_rated_limits(self):
+        """
+        Overrides EVSEControllerInterface.send_rated_limits
+        """
+        logger.info("Send rated limits to CS.")

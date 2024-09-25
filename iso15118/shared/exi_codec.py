@@ -262,9 +262,7 @@ class EXI:
 
         return exi_stream
 
-    def from_exi(
-        self, exi_message: bytes, namespace: str
-    ) -> Union[
+    def from_exi(self, exi_message: bytes, namespace: str) -> Union[
         SupportedAppProtocolReq,
         SupportedAppProtocolRes,
         V2GMessageV2,

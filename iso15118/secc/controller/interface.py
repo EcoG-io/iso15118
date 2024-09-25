@@ -2,6 +2,7 @@
 This module contains the abstract class for an SECC to retrieve data from the EVSE
 (Electric Vehicle Supply Equipment).
 """
+
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -383,8 +384,9 @@ class EVSEControllerInterface(ABC):
     @abstractmethod
     async def is_contactor_opened(self) -> bool:
         """
-        Sends a command to the SECC to get the contactor status is opened to terminate
-        energy flow
+        This method is used to check if the contactor is open.
+        Used in PowerDelivery when the EV requests to
+        stop energy transfer.
 
         Relevant for:
         - all protocols
@@ -392,9 +394,12 @@ class EVSEControllerInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def is_contactor_closed(self) -> bool:
+    async def is_contactor_closed(self) -> Optional[bool]:
         """
-        Sends a command to the SECC to get the contactor status is closed
+        This method is used to check if the contactor is closed.
+        In AC, this method is called in PowerDelivery when the EV requests to
+        start energy transfer.
+        In DC, this method is called during CableCheck.
 
         Relevant for:
         - all protocols
@@ -680,7 +685,7 @@ class EVSEControllerInterface(ABC):
         self, protocol: Protocol
     ) -> Union[PVEVSEPresentCurrent, RationalNumber]:
         """
-        Gets the presently available voltage at the EVSE
+        Gets the presently available current at the EVSE
 
         Relevant for:
         - ISO 15118-2
@@ -1054,5 +1059,27 @@ class EVSEControllerInterface(ABC):
     async def session_ended(self, current_state: str, reason: str):
         """
         Indicate the reason for stopping charging.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def send_display_params(self):
+        """
+        Share display params with CS.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def send_rated_limits(self):
+        """
+        This method is called in the state ChargeParameterDiscovery state for all
+        protocols.
+        The message is used to share the physical limitations of the EV (perhaps
+        for this session alone) with the charging station.
+
+        Relevant for:
+        - DIN SPEC 70121
+        - ISO 15118-2
+        - ISO 15118-20
         """
         raise NotImplementedError

@@ -4,6 +4,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.28.3] - 2024-06-18
+* Fix/min charge current is missing by @ikaratass in https://github.com/SwitchEV/iso15118/pull/421
+
+## [0.28.2] - 2024-06-06
+* Added missed param in ev data by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/412
+* session limits are rearranged according to rated limits by @ikaratass in https://github.com/SwitchEV/iso15118/pull/415
+
+## [0.28.1] - 2024-05-21
+* Fixed pydantic issues. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/405
+* Modify cable check contactor status check by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/404
+* Fixed comment. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/407
+* selected_energy_mode is a part of evdata by @ikaratass in https://github.com/SwitchEV/iso15118/pull/408
+
+## [0.28.0] - 2024-05-02
+* fix typo in SECC interface.py by @M4GNV5 in https://github.com/SwitchEV/iso15118/pull/398
+* Update .env.dev.local, ISO_15118_20_DC is not implemented for use by @lwollinger in https://github.com/SwitchEV/iso15118/pull/395
+* Share cpd params with CS. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/400
+* Share display params with CS. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/401
+* Relaxed contactor status check for DC. by @shalinnijel2 in https://github.com/SwitchEV/iso15118/pull/402
 
 ## [0.27.0] - 2024-04-17
 * ScheduleExchangeRes parsing fix by @heavyweight87 in https://github.com/SwitchEV/iso15118/pull/391

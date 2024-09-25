@@ -80,7 +80,6 @@ class TestEvScenarios:
     def _comm_session(self):
         self.comm_session = Mock(spec=SECCCommunicationSession)
         self.comm_session.session_id = "F9F9EE8505F55838"
-        self.comm_session.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
         self.comm_session.selected_charging_type_is_ac = False
         self.comm_session.stop_reason = StopNotification(False, "pytest")
         self.comm_session.protocol = Protocol.ISO_15118_20_DC
@@ -90,6 +89,9 @@ class TestEvScenarios:
         self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
         self.comm_session.evse_controller.ev_data_context = EVDataContext(
             rated_limits=EVRatedLimits(dc_limits=EVDCCPDLimits())
+        )
+        self.comm_session.evse_controller.ev_data_context.selected_energy_mode = (
+            EnergyTransferModeEnum.DC_EXTENDED
         )
         load_shared_settings()
 
@@ -207,27 +209,56 @@ class TestEvScenarios:
         assert schedule_exchange.next_state is None
 
     @pytest.mark.parametrize(
-        "cable_check_req_received, "
         "is_contactor_closed, "
+        "cable_check_started, "
         "cable_check_status, "
         "expected_state",
         [
-            (False, False, IsolationLevel.VALID, Terminate),
-            (False, True, None, None),
-            (False, True, IsolationLevel.VALID, DCPreCharge),
-            (True, True, None, None),
-            (True, True, IsolationLevel.VALID, DCPreCharge),
+            (None, False, None, None),  # First request.
+            (
+                None,
+                False,
+                None,
+                None,
+            ),  # Not first request. Contactor status unknown.
+            (True, False, None, None),  # Not first request. Contactor closed.
+            (False, False, None, Terminate),  # Contactor close failed.
+            (
+                True,
+                True,
+                IsolationLevel.VALID,
+                DCPreCharge,
+            ),  # noqa Contactor closed. Isolation response received - Valid. Next stage Precharge.
+            (
+                True,
+                True,
+                IsolationLevel.INVALID,
+                Terminate,
+            ),  # noqa Contactor closed. Isolation response received - Invalid. Terminate.
+            (
+                True,
+                True,
+                IsolationLevel.WARNING,
+                DCPreCharge,
+            ),  # noqa Contactor closed. Isolation response received - Warning. Next stage Precharge.
+            (
+                True,
+                True,
+                IsolationLevel.FAULT,
+                Terminate,
+            ),  # noqa Contactor closed. Isolation response received - Fault. Terminate session.
         ],
     )
     async def test_15118_20_dc_cable_check(
         self,
-        cable_check_req_received: bool,
         is_contactor_closed: bool,
+        cable_check_started: bool,
         cable_check_status: IsolationLevel,
         expected_state: Type[State],
     ):
         dc_cable_check = DCCableCheck(self.comm_session)
-        dc_cable_check.cable_check_req_was_received = cable_check_req_received
+        dc_cable_check.cable_check_started = cable_check_started
+        dc_cable_check.contactors_closed = is_contactor_closed
         contactor_status = AsyncMock(return_value=is_contactor_closed)
         self.comm_session.evse_controller.is_contactor_closed = contactor_status
         cable_check_status = AsyncMock(return_value=cable_check_status)

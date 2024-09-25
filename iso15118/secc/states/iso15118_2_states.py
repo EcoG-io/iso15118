@@ -3,6 +3,7 @@ This module contains the SECC's States used to process the EVCC's incoming
 V2GMessage objects of the ISO 15118-2 protocol, from SessionSetupReq to
 SessionStopReq.
 """
+
 import asyncio
 import base64
 from datetime import datetime, timedelta
@@ -1575,14 +1576,14 @@ class ChargeParameterDiscovery(StateSECC):
         evse_data_context = self.comm_session.evse_controller.evse_data_context
         ev_data_context = self.comm_session.evse_controller.ev_data_context
 
-        self.comm_session.selected_energy_mode = charge_params_req.requested_energy_mode
+        ev_data_context.selected_energy_mode = charge_params_req.requested_energy_mode
         self.comm_session.selected_charging_type_is_ac = (
-            self.comm_session.selected_energy_mode.value.startswith("AC")
+            ev_data_context.selected_energy_mode.value.startswith("AC")
         )
 
-        max_schedule_entries: Optional[
-            int
-        ] = charge_params_req.max_entries_sa_schedule_tuple
+        max_schedule_entries: Optional[int] = (
+            charge_params_req.max_entries_sa_schedule_tuple
+        )
 
         ac_evse_charge_params: Optional[ACEVSEChargeParameter] = None
         dc_evse_charge_params: Optional[DCEVSEChargeParameter] = None
@@ -1629,6 +1630,68 @@ class ChargeParameterDiscovery(StateSECC):
             ev_data_context.update_dc_charge_parameters(
                 charge_params_req.dc_ev_charge_parameter
             )
+            await self.comm_session.evse_controller.send_rated_limits()
+
+            # EVerest code start #
+            ev_max_voltage = (
+                charge_params_req.dc_ev_charge_parameter.ev_maximum_voltage_limit
+            )
+            ev_max_current = (
+                charge_params_req.dc_ev_charge_parameter.ev_maximum_current_limit
+            )
+            ev_energy_request = (
+                charge_params_req.dc_ev_charge_parameter.ev_energy_request
+            )
+            ev_max_power = (
+                charge_params_req.dc_ev_charge_parameter.ev_maximum_power_limit
+            )
+            dc_ev_charge_params: DCEVChargeParameter = charge_params_req.dc_ev_charge_parameter
+            ev_max_current_limit: float = dc_ev_charge_params.ev_maximum_current_limit.value * pow(
+                10, dc_ev_charge_params.ev_maximum_current_limit.multiplier
+            )
+            # if ev_max_current_limit < 0: ev_max_current_limit = 0
+            ev_max_voltage_limit: float = dc_ev_charge_params.ev_maximum_voltage_limit.value * pow(
+                10, dc_ev_charge_params.ev_maximum_voltage_limit.multiplier
+            )
+            # if ev_max_voltage_limit < 0: ev_max_voltage_limit = 0
+            ev_maxvalues: dict = dict([
+                ("DC_EVMaximumCurrentLimit", ev_max_current_limit),
+                ("DC_EVMaximumVoltageLimit", ev_max_voltage_limit)
+            ])
+
+            if dc_ev_charge_params.ev_maximum_power_limit:
+                ev_max_power_limit: float = dc_ev_charge_params.ev_maximum_power_limit.value * pow(
+                    10, dc_ev_charge_params.ev_maximum_power_limit.multiplier
+                )
+                # if ev_max_power_limit < 0: ev_max_power_limit = 0
+                ev_maxvalues.update(
+                    {"DC_EVMaximumPowerLimit": ev_max_power_limit})
+
+            EVEREST_CTX.publish('DC_EVMaximumLimits', ev_maxvalues)
+
+            if dc_ev_charge_params.ev_energy_capacity:
+                ev_energy_capacity: float = dc_ev_charge_params.ev_energy_capacity.value * pow(
+                    10, dc_ev_charge_params.ev_energy_capacity.multiplier
+                )
+                EVEREST_CTX.publish('DC_EVEnergyCapacity', ev_energy_capacity)
+            if ev_energy_request:
+                p_ev_energy_request: float = ev_energy_request.value * pow(
+                    10, ev_energy_request.multiplier
+                )
+                EVEREST_CTX.publish('DC_EVEnergyRequest', p_ev_energy_request)
+
+            if dc_ev_charge_params.full_soc:
+                EVEREST_CTX.publish('DC_FullSOC', dc_ev_charge_params.full_soc)
+            if dc_ev_charge_params.bulk_soc:
+                EVEREST_CTX.publish('DC_BulkSOC', dc_ev_charge_params.bulk_soc)
+
+            ev_status: dict = dict([
+                ("DC_EVReady", dc_ev_charge_params.dc_ev_status.ev_ready),
+                ("DC_EVErrorCode", dc_ev_charge_params.dc_ev_status.ev_error_code),
+                ("DC_EVRESSSOC", dc_ev_charge_params.dc_ev_status.ev_ress_soc),
+            ])
+            EVEREST_CTX.publish('DC_EVStatus', ev_status)
+            # EVerest code end #
 
             # EVerest code start #
             ev_max_voltage = (
@@ -1792,9 +1855,9 @@ class ChargeParameterDiscovery(StateSECC):
 
         charge_params_res = ChargeParameterDiscoveryRes(
             response_code=ResponseCode.OK,
-            evse_processing=EVSEProcessing.FINISHED
-            if sa_schedule_list
-            else EVSEProcessing.ONGOING,
+            evse_processing=(
+                EVSEProcessing.FINISHED if sa_schedule_list else EVSEProcessing.ONGOING
+            ),
             sa_schedule_list=SAScheduleList(schedule_tuples=sa_schedule_list),
             ac_charge_parameter=ac_evse_charge_params,
             dc_charge_parameter=dc_evse_charge_params,
@@ -2358,7 +2421,7 @@ class MeteringReceipt(StateSECC):
 
         evse_controller = self.comm_session.evse_controller
         if (
-            self.comm_session.selected_energy_mode
+            evse_controller.ev_data_context.selected_energy_mode
             and self.comm_session.selected_charging_type_is_ac
         ):
             metering_receipt_res = MeteringReceiptRes(
@@ -2573,10 +2636,7 @@ class CableCheck(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
-        self.cable_check_req_was_received = False
-        # EVerest code start #
-        self.isolation_check_requested = False
-        # EVerest code end #
+        self.cable_check_started = False
 
     async def process_message(
         self,
@@ -2615,9 +2675,9 @@ class CableCheck(StateSECC):
             return
 
         # EVerest code start #
-        if not self.isolation_check_requested:
+        if not self.cable_check_started:
             EVEREST_CTX.publish('Start_CableCheck', None)
-            self.isolation_check_requested = True
+            self.cable_check_started = True
             await self.comm_session.evse_controller.setIsolationMonitoringActive(True)
         # EVerest code end #
 
@@ -3044,6 +3104,8 @@ class CurrentDemand(StateSECC):
         else:
             receipt_required = await self.comm_session.evse_controller.get_receipt_required()
         # EVerest code end #
+
+        await self.comm_session.evse_controller.send_display_params()
 
         # We don't care about signed meter values from the EVCC, but if you
         # do, then set receipt_required to True and set the field meter_info

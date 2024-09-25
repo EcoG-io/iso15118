@@ -3,6 +3,7 @@ This module contains the SECC's States used to process the EVCC's incoming
 V2GMessage objects of the ISO 15118-20 protocol, from SessionSetupReq to
 SessionStopReq.
 """
+
 import asyncio
 import logging
 import time
@@ -1350,6 +1351,7 @@ class ACChargeParameterDiscovery(StateSECC):
             ev_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_req)
             evse_data_context = self.comm_session.evse_controller.evse_data_context
             evse_data_context.current_type = CurrentType.AC
+            await self.comm_session.evse_controller.send_rated_limits()
         except UnknownEnergyService:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
@@ -1426,9 +1428,9 @@ class ACChargeLoop(StateSECC):
         if ac_charge_loop_req.meter_info_requested:
             meter_info = await self.comm_session.evse_controller.get_meter_info_v20()
 
-        evse_status: Optional[
-            EVSEStatus
-        ] = await self.comm_session.evse_controller.get_evse_status()
+        evse_status: Optional[EVSEStatus] = (
+            await self.comm_session.evse_controller.get_evse_status()
+        )
 
         response_code = ResponseCode.OK
         params = None
@@ -1473,7 +1475,7 @@ class ACChargeLoop(StateSECC):
             ),
             meter_info=meter_info,
         )
-
+        await self.comm_session.evse_controller.send_display_params()
         self.create_next_message(
             None,
             ac_charge_loop_res,
@@ -1545,6 +1547,7 @@ class DCChargeParameterDiscovery(StateSECC):
             ev_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_req)
             evse_data_context = self.comm_session.evse_controller.evse_data_context
             evse_data_context.current_type = CurrentType.DC
+            await self.comm_session.evse_controller.send_rated_limits()
         except UnknownEnergyService:
             self.stop_state_machine(
                 f"Invalid charge parameter for service {energy_service}",
@@ -1583,7 +1586,8 @@ class DCCableCheck(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_EVCC_COMMUNICATION_SETUP_TIMEOUT)
-        self.cable_check_req_was_received = False
+        self.contactors_closed = False
+        self.cable_check_started = False
 
     async def process_message(
         self,
@@ -1606,42 +1610,53 @@ class DCCableCheck(StateSECC):
             await SessionStop(self.comm_session).process_message(message, message_exi)
             return
 
-        if not self.cable_check_req_was_received:
-            # First DCCableCheckReq received. Start cable check.
-            await self.comm_session.evse_controller.start_cable_check()
-            self.cable_check_req_was_received = True
-
         next_state = None
         processing = EVSEProcessing.ONGOING
-        isolation_level = (
-            await self.comm_session.evse_controller.get_cable_check_status()
-        )
 
-        if isolation_level in [IsolationLevel.VALID, IsolationLevel.WARNING]:
-            # Requirement in 6.4.3.106 of the IEC 61851-23
-            # Any relays in the DC output circuit of the DC station shall
-            # be closed during the insulation test
-            if not await self.comm_session.evse_controller.is_contactor_closed():
+        if not self.cable_check_started:
+            # Start cable check as contactors are now closed.
+            await self.comm_session.evse_controller.start_cable_check()
+            self.cable_check_started = True
+
+        if self.contactors_closed:
+            isolation_level = (
+                await self.comm_session.evse_controller.get_cable_check_status()
+            )
+
+            if isolation_level in [IsolationLevel.VALID, IsolationLevel.WARNING]:
+                if isolation_level == IsolationLevel.WARNING:
+                    logger.warning(
+                        "Isolation resistance measured by EVSE is in Warning range"
+                    )
+                next_state = DCPreCharge
+                processing = EVSEProcessing.FINISHED
+            elif isolation_level in [IsolationLevel.INVALID, IsolationLevel.FAULT]:
                 self.stop_state_machine(
-                    "Contactor didnt close for Cable Check",
+                    f"Isolation Failure: {isolation_level}",
                     message,
                     ResponseCode.FAILED,
                 )
                 return
-
-            if isolation_level == IsolationLevel.WARNING:
-                logger.warning(
-                    "Isolation resistance measured by EVSE is in Warning range"
+        else:
+            if not self.contactors_closed:
+                # Requirement in 6.4.3.106 of the IEC 61851-23
+                # Any relays in the DC output circuit of the DC station shall
+                # be closed during the insulation test
+                # If None is returned, then contactor close operation is ongoing.
+                contactors_closed_for_cable_check: Optional[bool] = (
+                    await self.comm_session.evse_controller.is_contactor_closed()
                 )
-            next_state = DCPreCharge
-            processing = EVSEProcessing.FINISHED
-        elif isolation_level in [IsolationLevel.INVALID, IsolationLevel.FAULT]:
-            self.stop_state_machine(
-                f"Isolation Failure: {isolation_level}",
-                message,
-                ResponseCode.FAILED,
-            )
-            return
+
+                if contactors_closed_for_cable_check is not None:
+                    if contactors_closed_for_cable_check:
+                        self.contactors_closed = True
+                    else:
+                        self.stop_state_machine(
+                            "Contactor didnt close for Cable Check",
+                            message,
+                            ResponseCode.FAILED,
+                        )
+                        return
 
         dc_cable_check_res = DCCableCheckRes(
             header=MessageHeader(
@@ -1798,7 +1813,7 @@ class DCChargeLoop(StateSECC):
                 ResponseCode.FAILED,
             )
             return
-
+        await self.comm_session.evse_controller.send_display_params()
         dc_charge_loop_res = await self._build_dc_charge_loop_res(
             dc_charge_loop_req.meter_info_requested
         )
@@ -1828,9 +1843,9 @@ class DCChargeLoop(StateSECC):
                 )
             )  # noqa
 
-        evse_status: Optional[
-            EVSEStatus
-        ] = await self.comm_session.evse_controller.get_evse_status()
+        evse_status: Optional[EVSEStatus] = (
+            await self.comm_session.evse_controller.get_evse_status()
+        )
 
         meter_info: Optional[MeterInfo] = None
         if meter_info_requested:

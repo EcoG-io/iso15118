@@ -34,6 +34,7 @@ from iso15118.shared.messages.app_protocol import AppProtocol, SupportedAppProto
 from iso15118.shared.messages.enums import (
     AuthEnum,
     DINPayloadTypes,
+    EnergyTransferModeEnum,
     ISOV2PayloadTypes,
     ISOV20PayloadTypes,
     Namespace,
@@ -138,7 +139,8 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         # "Caching" authorization_req. (Required in ISO15118-20)
         # Avoids recomputing the signature, eim, pnc params during authorization loop.
         self.authorization_req_message: Optional[AuthorizationReq] = None
-
+        # The energy mode the EVCC selected (ISO 15118-2)
+        self.selected_energy_mode: Optional[EnergyTransferModeEnum] = None
         self.is_tls = False
 
         self.sae_j2847_active: int = 0
@@ -191,9 +193,11 @@ class EVCCCommunicationSession(V2GCommunicationSession):
             priority += 1
             app_protocol_entry = AppProtocol(
                 protocol_ns=protocol.ns.value,
-                major_version=2
-                if protocol in [Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121]
-                else 1,
+                major_version=(
+                    2
+                    if protocol in [Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121]
+                    else 1
+                ),
                 minor_version=0,
                 schema_id=schema_id,
                 priority=priority,

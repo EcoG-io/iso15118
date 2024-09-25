@@ -1,3 +1,4 @@
+from typing import Type
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -12,9 +13,24 @@ from iso15118.secc.controller.evse_data import (
     EVSESessionLimits,
 )
 from iso15118.secc.controller.simulator import SimEVSEController
-from iso15118.secc.states.din_spec_states import CurrentDemand, PowerDelivery
-from iso15118.shared.messages.enums import EnergyTransferModeEnum, Protocol
+from iso15118.secc.failed_responses import init_failed_responses_din_spec_70121
+from iso15118.secc.states.din_spec_states import (
+    CableCheck,
+    CurrentDemand,
+    PowerDelivery,
+    PreCharge,
+)
+from iso15118.shared.messages.din_spec.body import Body, CableCheckReq
+from iso15118.shared.messages.din_spec.datatypes import DCEVStatus, IsolationLevel
+from iso15118.shared.messages.din_spec.header import MessageHeader
+from iso15118.shared.messages.din_spec.msgdef import V2GMessage
+from iso15118.shared.messages.enums import (
+    DCEVErrorCode,
+    EnergyTransferModeEnum,
+    Protocol,
+)
 from iso15118.shared.notifications import StopNotification
+from iso15118.shared.states import State, Terminate
 
 
 class MockWriter:
@@ -30,7 +46,6 @@ class TestEvseScenarios:
         self.comm_session = Mock(spec=SECCCommunicationSession)
         self.comm_session.session_id = "F9F9EE8505F55838"
         # comm_session.offered_schedules = get_sa_schedule_list()
-        self.comm_session.selected_energy_mode = EnergyTransferModeEnum.DC_EXTENDED
         self.comm_session.selected_charging_type_is_ac = False
         self.comm_session.stop_reason = StopNotification(False, "pytest")
         self.comm_session.evse_controller = SimEVSEController()
@@ -39,6 +54,12 @@ class TestEvseScenarios:
         self.comm_session.writer = MockWriter()
         self.comm_session.ev_session_context = EVSessionContext()
         self.comm_session.evse_controller.evse_data_context = self.get_evse_data()
+        self.comm_session.failed_responses_din_spec = (
+            init_failed_responses_din_spec_70121()
+        )
+        self.comm_session.evse_controller.ev_data_context.selected_energy_mode = (
+            EnergyTransferModeEnum.DC_EXTENDED
+        )
 
     def get_evse_data(self) -> EVSEDataContext:
         dc_limits = EVSEDCCPDLimits(
@@ -113,3 +134,74 @@ class TestEvseScenarios:
         await power_delivery.process_message(message=power_delivery_req_charge_stop)
 
         self.comm_session.evse_controller.set_hlc_charging.assert_called_with(False)
+
+    @pytest.mark.parametrize(
+        "is_contactor_closed, "
+        "cable_check_started, "
+        "cable_check_status, "
+        "expected_state",
+        [
+            (None, False, None, None),  # First request.
+            (
+                None,
+                False,
+                None,
+                None,
+            ),  # Not first request. Contactor status unknown.
+            (True, False, None, None),  # Not first request. Contactor closed.
+            (False, False, None, Terminate),  # Contactor close failed.
+            (
+                True,
+                True,
+                IsolationLevel.VALID,
+                PreCharge,
+            ),  # noqa Contactor closed. Isolation response received - Valid. Next stage Precharge.
+            (
+                True,
+                True,
+                IsolationLevel.INVALID,
+                Terminate,
+            ),  # noqa Contactor closed. Isolation response received - Invalid. Terminate.
+            (
+                True,
+                True,
+                IsolationLevel.WARNING,
+                PreCharge,
+            ),  # noqa Contactor closed. Isolation response received - Warning. Next stage Precharge.
+            (
+                True,
+                True,
+                IsolationLevel.FAULT,
+                Terminate,
+            ),  # noqa Contactor closed. Isolation response received - Fault. Terminate session.
+        ],
+    )
+    async def test_15118_dinspec_dc_cable_check(
+        self,
+        is_contactor_closed: bool,
+        cable_check_started: bool,
+        cable_check_status: IsolationLevel,
+        expected_state: Type[State],
+    ):
+        cable_check_req = V2GMessage(
+            header=MessageHeader(session_id=self.comm_session.session_id),
+            body=Body(
+                cable_check_req=CableCheckReq(
+                    dc_ev_status=DCEVStatus(
+                        ev_ready=True,
+                        ev_error_code=DCEVErrorCode.NO_ERROR,
+                        ev_ress_soc=35,
+                    )
+                )
+            ),
+        )
+
+        dc_cable_check = CableCheck(self.comm_session)
+        dc_cable_check.cable_check_started = cable_check_started
+        dc_cable_check.contactors_closed = is_contactor_closed
+        contactor_status = AsyncMock(return_value=is_contactor_closed)
+        self.comm_session.evse_controller.is_contactor_closed = contactor_status
+        cable_check_status = AsyncMock(return_value=cable_check_status)
+        self.comm_session.evse_controller.get_cable_check_status = cable_check_status
+        await dc_cable_check.process_message(message=cable_check_req)
+        assert dc_cable_check.next_state is expected_state

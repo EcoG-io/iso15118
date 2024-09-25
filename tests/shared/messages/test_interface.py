@@ -140,6 +140,12 @@ class DummyEVSEControllerInterface(EVSEControllerInterface):
     async def session_ended(self, _):
         pass
 
+    async def send_display_params(self):
+        pass
+
+    async def send_rated_limits(self):
+        pass
+
 
 @pytest.fixture
 def evse_controller_interface():

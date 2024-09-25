@@ -10,7 +10,12 @@ from iso15118.shared.messages.din_spec.body import (
     DCEVChargeParameter as DIN_DCEVChargeParameter,
 )
 from iso15118.shared.messages.din_spec.body import PreChargeReq as DIN_PreChargeReq
-from iso15118.shared.messages.enums import AuthEnum, ControlMode, ServiceV20
+from iso15118.shared.messages.enums import (
+    AuthEnum,
+    ControlMode,
+    EnergyTransferModeEnum,
+    ServiceV20,
+)
 from iso15118.shared.messages.iso15118_2.body import (
     ACEVChargeParameter,
     CurrentDemandReq,
@@ -213,9 +218,9 @@ class EVDataContext:
         self.max_soc: Optional[int] = max_soc  # 0-100
         self.max_v2x_energy_request: Optional[float] = max_v2x_energy_request
         self.min_v2x_energy_request: Optional[float] = min_v2x_energy_request
-        self.remaining_time_to_target_soc: Optional[
-            float
-        ] = remaining_time_to_target_soc  # noqa: E501
+        self.remaining_time_to_target_soc: Optional[float] = (
+            remaining_time_to_target_soc  # noqa: E501
+        )
         # In -2 is FullSOC
         self.remaining_time_to_max_soc: Optional[float] = remaining_time_to_max_soc
         self.remaining_time_to_min_soc: Optional[float] = remaining_time_to_min_soc
@@ -243,6 +248,8 @@ class EVDataContext:
         # Sent in -2,-20 PreChargeReq
         # and same as above
         self.target_voltage: float = target_voltage
+        # The energy mode the EVCC selected.
+        self.selected_energy_mode: Optional[EnergyTransferModeEnum] = None
 
     def update_ac_charge_parameters_v2(
         self, ac_ev_charge_parameter: ACEVChargeParameter
@@ -688,6 +695,9 @@ class EVDataContext:
         )  # noqa: E501
         dc_rated_limits.max_charge_current = (
             params.ev_max_charge_current.get_decimal_value()
+        )  # noqa: E501
+        dc_rated_limits.min_charge_current = (
+            params.ev_min_charge_current.get_decimal_value()
         )  # noqa: E501
         dc_rated_limits.max_voltage = (
             params.ev_max_voltage.get_decimal_value()
