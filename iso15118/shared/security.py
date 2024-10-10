@@ -164,7 +164,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
         # pymongo setup a client side, but we also need the server side:
         # https://github.com/pyca/pyopenssl/blob/main/src/OpenSSL/SSL.py#L1653
 
-        if SettingKey.FORCE_TLS_CLIENT_AUTH:
+        if shared_settings[SettingKey.FORCE_TLS_CLIENT_AUTH]:
             # In 15118-20 we should also verify EVCC's certificate chain.
             # The spec however says TLS 1.3 should also support 15118-2
             # (Table 5 in V2G20 specification)
@@ -225,7 +225,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
             "ECDHE-ECDSA-AES128-SHA256"
         )
 
-        if SettingKey.FORCE_TLS_CLIENT_AUTH:
+        if shared_settings[SettingKey.FORCE_TLS_CLIENT_AUTH]:
             logger.debug("LOADING CERTIFICATES OEM")
             try:
                 ssl_context.load_cert_chain(
@@ -259,7 +259,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
         # https://docs.python.org/3/library/ssl.html#ssl.create_default_context
         # https://docs.python.org/3/library/ssl.html#ssl.SSLContext.keylog_filename
         # https://github.com/python/cpython/blob/3.11/Lib/ssl.py#L777
-        keylogfile = os.path.join(SettingKey.PKI_PATH, "keylogfile.txt")
+        keylogfile = os.path.join(shared_settings[SettingKey.PKI_PATH], "keylogfile.txt")
         if logging.getLogger().level == logging.DEBUG:
             if not os.path.exists(keylogfile):
                 with open(keylogfile, 'w'):
