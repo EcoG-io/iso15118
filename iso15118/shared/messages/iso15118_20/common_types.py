@@ -10,14 +10,16 @@ Pydantic's Field class is used to be able to create a json schema of each model
 (or class) that matches the definitions in the XSD schema, including the XSD
 element names by using the 'alias' attribute.
 """
+
 from abc import ABC
 from enum import Enum
-from typing import List
+from typing import List, Optional, Union
 
 from pydantic import Field, conbytes, conint, constr, validator
 from typing_extensions import TypeAlias
 
 from iso15118.shared.messages import BaseModel
+from iso15118.shared.messages.datatypes import get_exponent_value_repr
 from iso15118.shared.messages.enums import (
     INT_8_MAX,
     INT_8_MIN,
@@ -173,6 +175,13 @@ class RationalNumber(BaseModel):
 
     def get_decimal_value(self) -> float:
         return self.value * 10**self.exponent
+
+    @classmethod
+    def get_rational_repr(cls, float_value: Optional[Union[float, int]]):
+        if float_value is None:
+            return None
+        exponent, value = get_exponent_value_repr(float_value)
+        return RationalNumber(exponent=exponent, value=value)
 
 
 class EVSENotification(str, Enum):

@@ -33,6 +33,7 @@ from iso15118.shared.messages.app_protocol import AppProtocol, SupportedAppProto
 from iso15118.shared.messages.enums import (
     AuthEnum,
     DINPayloadTypes,
+    EnergyTransferModeEnum,
     ISOV2PayloadTypes,
     ISOV20PayloadTypes,
     Namespace,
@@ -137,8 +138,9 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         # "Caching" authorization_req. (Required in ISO15118-20)
         # Avoids recomputing the signature, eim, pnc params during authorization loop.
         self.authorization_req_message: Optional[AuthorizationReq] = None
-
-        self.is_tls = self.config.use_tls
+        # The energy mode the EVCC selected (ISO 15118-2)
+        self.selected_energy_mode: Optional[EnergyTransferModeEnum] = None
+        self.is_tls = False
 
     def create_sap(self) -> Union[SupportedAppProtocolReq, None]:
         """
@@ -161,7 +163,7 @@ class EVCCCommunicationSession(V2GCommunicationSession):
         # Protocol equal to “TCP” and Security equal to “No transport layer security”
         # according to Table 23. Remove it from the supported protocols list if
         # use_tls is enabled
-        if self.config.use_tls:
+        if self.is_tls:
             try:
                 supported_protocols.remove(Protocol.DIN_SPEC_70121)
                 logger.warning(
@@ -188,9 +190,11 @@ class EVCCCommunicationSession(V2GCommunicationSession):
             priority += 1
             app_protocol_entry = AppProtocol(
                 protocol_ns=protocol.ns.value,
-                major_version=2
-                if protocol in [Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121]
-                else 1,
+                major_version=(
+                    2
+                    if protocol in [Protocol.ISO_15118_2, Protocol.DIN_SPEC_70121]
+                    else 1
+                ),
                 minor_version=0,
                 schema_id=schema_id,
                 priority=priority,
@@ -429,6 +433,10 @@ class CommunicationSessionHandler:
             self.iface,
             self.ev_controller,
         )
+        # Overwriting is_tls field in EVCCCommunicationSession with the setting
+        # returned from SDP response. Remember is_tls field in config still represents
+        # the value initially provided in evcc_config.
+        comm_session.is_tls = is_tls
 
         try:
             await comm_session.send_sap()
@@ -550,7 +558,9 @@ class CommunicationSessionHandler:
                 elif isinstance(notification, StopNotification):
                     await cancel_task(self.comm_session[1])
                     del self.comm_session
-                    if not notification.successful:
+                    if notification.successful:
+                        break
+                    else:
                         try:
                             await self.restart_sdp(True)
                         except SDPFailedError as exc:

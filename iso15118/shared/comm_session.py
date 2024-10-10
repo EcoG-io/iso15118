@@ -38,7 +38,6 @@ from iso15118.shared.messages.enums import (
     Protocol,
     SessionStopAction,
 )
-from iso15118.shared.messages.iso15118_2.datatypes import EnergyTransferModeEnum
 from iso15118.shared.messages.iso15118_2.msgdef import V2GMessage as V2GMessageV2
 from iso15118.shared.messages.iso15118_20.common_messages import (
     MatchedService as OfferedServiceV20,
@@ -328,8 +327,6 @@ class V2GCommunicationSession(SessionStateMachine):
         self.selected_services: List[SelectedServiceV2_DIN] = []
         # The energy service the EVCC selected (ISO 15118-20)
         self.selected_energy_service: Optional[SelectedEnergyService] = None
-        # The energy mode the EVCC selected (ISO 15118-2)
-        self.selected_energy_mode: Optional[EnergyTransferModeEnum] = None
         # Variable selected_charging_type_is_ac set if one of the AC modes is selected
         self.selected_charging_type_is_ac: bool = True
         # The SAScheduleTuple element the EVCC chose (referenced by ID)
@@ -408,6 +405,8 @@ class V2GCommunicationSession(SessionStateMachine):
             evse_controller = self.comm_session.evse_controller
             await evse_controller.update_data_link(terminate_or_pause)
             await evse_controller.session_ended(str(self.current_state), reason)
+        elif hasattr(self.comm_session, "ev_controller"):
+            await self.comm_session.ev_controller.enable_charging(False)
         logger.info(f"{terminate_or_pause}d the data link")
         await asyncio.sleep(3)
         try:
@@ -513,6 +512,10 @@ class V2GCommunicationSession(SessionStateMachine):
                 FaultyStateImplementationError,
                 EXIDecodingError,
                 InvalidV2GTPMessageError,
+                AttributeError,
+                ValueError,
+                ConnectionResetError,
+                Exception,
             ) as exc:
                 message_name = ""
                 additional_info = ""
@@ -527,24 +530,10 @@ class V2GCommunicationSession(SessionStateMachine):
 
                 stop_reason = (
                     f"{exc.__class__.__name__} occurred while processing message "
-                    f"{message_name} in state {str(self.current_state)}"
-                    f":{additional_info}"
+                    f"{message_name} in state {str(self.current_state)} : {exc}. "
+                    f"{additional_info}"
                 )
 
-                self.stop_reason = StopNotification(
-                    False,
-                    stop_reason,
-                    self.peer_name,
-                )
-
-                await self.stop(stop_reason)
-                self.session_handler_queue.put_nowait(self.stop_reason)
-                return
-            except (AttributeError, ValueError) as exc:
-                stop_reason = (
-                    f"{exc.__class__.__name__} occurred while processing message in "
-                    f"state {str(self.current_state)}: {exc}"
-                )
                 self.stop_reason = StopNotification(
                     False,
                     stop_reason,

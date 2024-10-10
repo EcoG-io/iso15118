@@ -2,6 +2,7 @@
 This module contains the abstract class for an EVCC-specific state,
 which extends the state shared between the EVCC and SECC.
 """
+
 import logging
 import time
 from abc import ABC

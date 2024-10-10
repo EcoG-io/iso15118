@@ -4,12 +4,13 @@ V2GMessage objects of the DIN SPEC 70121 protocol, from SessionSetupReq to
 SessionStopReq.
 """
 
+import asyncio
 import logging
 import time
 from typing import Optional, Type, Union
 
 from iso15118.secc.comm_session_handler import SECCCommunicationSession
-from iso15118.secc.controller.interface import EVChargeParamsLimits
+from iso15118.secc.controller.evse_data import CurrentType
 from iso15118.secc.states.secc_state import StateSECC
 from iso15118.shared.messages.app_protocol import (
     SupportedAppProtocolReq,
@@ -381,37 +382,20 @@ class ChargeParameterDiscovery(StateSECC):
                 ResponseCode.FAILED_WRONG_ENERGY_TRANSFER_MODE,
             )
             return
-
-        self.comm_session.selected_energy_mode = (
+        self.comm_session.evse_controller.ev_data_context.selected_energy_mode = (
             charge_parameter_discovery_req.requested_energy_mode
         )
 
-        ev_max_voltage = (
-            charge_parameter_discovery_req.dc_ev_charge_parameter.ev_maximum_voltage_limit  # noqa: E501
+        evse_data_context = self.comm_session.evse_controller.evse_data_context
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+        ev_data_context.update_dc_charge_parameters(
+            charge_parameter_discovery_req.dc_ev_charge_parameter
         )
-        ev_max_current = (
-            charge_parameter_discovery_req.dc_ev_charge_parameter.ev_maximum_current_limit  # noqa: E501
-        )
-        ev_energy_request = (
-            charge_parameter_discovery_req.dc_ev_charge_parameter.ev_energy_request
-        )
-        ev_max_power = (
-            charge_parameter_discovery_req.dc_ev_charge_parameter.ev_maximum_power_limit
-        )
-        ev_charge_params_limits = EVChargeParamsLimits(
-            ev_max_voltage=ev_max_voltage,
-            ev_max_current=ev_max_current,
-            ev_max_power=ev_max_power,
-            ev_energy_request=ev_energy_request,
-        )
-
-        self.comm_session.evse_controller.ev_charge_params_limits = (
-            ev_charge_params_limits
-        )
-
+        await self.comm_session.evse_controller.send_rated_limits()
         dc_evse_charge_params = (
-            await self.comm_session.evse_controller.get_dc_evse_charge_parameter()  # noqa
+            await self.comm_session.evse_controller.get_dc_charge_parameters_dinspec()  # noqa
         )
+        evse_data_context.current_type = CurrentType.DC
 
         sa_schedule_list = (
             await self.comm_session.evse_controller.get_sa_schedule_list_dinspec(
@@ -453,7 +437,8 @@ class CableCheck(StateSECC):
 
     def __init__(self, comm_session: SECCCommunicationSession):
         super().__init__(comm_session, Timeouts.V2G_SECC_SEQUENCE_TIMEOUT)
-        self.cable_check_req_was_received = False
+        self.contactors_closed: bool = False
+        self.cable_check_started: bool = False
 
     async def process_message(
         self,
@@ -482,52 +467,68 @@ class CableCheck(StateSECC):
             )
             return
 
-        if not self.cable_check_req_was_received:
-            # First CableCheckReq received. Start cable check.
-            await self.comm_session.evse_controller.start_cable_check()
+        evse_processing: EVSEProcessing = EVSEProcessing.ONGOING
+        response_code: ResponseCode = ResponseCode.OK
+        next_state = None
 
-            # Requirement in 6.4.3.106 of the IEC 61851-23
-            # Any relays in the DC output circuit of the DC station shall
-            # be closed during the insulation test
-            if not await self.comm_session.evse_controller.is_contactor_closed():
+        if not self.cable_check_started:
+            await self.comm_session.evse_controller.start_cable_check()
+            self.cable_check_started = True
+
+        if self.contactors_closed:
+            isolation_level = (
+                await self.comm_session.evse_controller.get_cable_check_status()
+            )  # noqa
+
+            evse_processing = EVSEProcessing.ONGOING
+            next_state = None
+            if isolation_level in [
+                IsolationLevel.VALID,
+                IsolationLevel.WARNING,
+            ]:
+                if isolation_level == IsolationLevel.WARNING:
+                    logger.warning(
+                        "Isolation resistance measured by EVSE is in Warning-Range"
+                    )
+                evse_processing = EVSEProcessing.FINISHED
+                next_state = PreCharge
+            elif isolation_level in [
+                IsolationLevel.FAULT,
+                IsolationLevel.INVALID,
+            ]:
                 self.stop_state_machine(
-                    "Contactor didnt close for Cable Check",
+                    f"Isolation Failure: {isolation_level}",
                     message,
                     ResponseCode.FAILED,
                 )
                 return
+        else:
+            # Requirement in 6.4.3.106 of the IEC 61851-23
+            # Any relays in the DC output circuit of the DC station shall
+            # be closed during the insulation test
+            # If None is returned, then contactor close operation is ongoing.
+            contactors_closed_for_cable_check: Optional[bool] = (
+                await self.comm_session.evse_controller.is_contactor_closed()
+            )
 
-            self.cable_check_req_was_received = True
-        self.comm_session.evse_controller.ev_data_context.soc = (
+            if contactors_closed_for_cable_check is not None:
+                if contactors_closed_for_cable_check:
+                    self.contactors_closed = True
+                else:
+                    self.stop_state_machine(
+                        "Contactor didnt close for Cable Check",
+                        message,
+                        ResponseCode.FAILED,
+                    )
+                    return
+
+        self.comm_session.evse_controller.ev_data_context.present_soc = (
             cable_check_req.dc_ev_status.ev_ress_soc
         )
-
-        isolation_level = (
-            await self.comm_session.evse_controller.get_cable_check_status()
-        )  # noqa
 
         # [V2G-DC-418] Stay in CableCheck state until EVSEProcessing is complete.
         # Until EVSEProcessing is completed, EV will send identical
         # CableCheckReq message.
-
-        evse_processing: EVSEProcessing = EVSEProcessing.ONGOING
-        response_code: ResponseCode = ResponseCode.OK
-        next_state: Type["State"] = None
-        if isolation_level in [
-            IsolationLevel.VALID,
-            IsolationLevel.WARNING,
-        ]:
-            if isolation_level == IsolationLevel.WARNING:
-                logger.warning(
-                    "Isolation resistance measured by EVSE is in Warning-Range"
-                )
-            next_state = PreCharge
-            evse_processing = EVSEProcessing.FINISHED
-        elif isolation_level in [IsolationLevel.FAULT, IsolationLevel.NO_IMD]:
-            response_code = ResponseCode.FAILED
-            next_state = Terminate
-            evse_processing = EVSEProcessing.FINISHED
-
         cable_check_res: CableCheckRes = CableCheckRes(
             response_code=response_code,
             dc_evse_status=await self.comm_session.evse_controller.get_dc_evse_status(),
@@ -587,9 +588,8 @@ class PreCharge(StateSECC):
             )
             return
 
-        self.comm_session.evse_controller.ev_data_context.soc = (
-            precharge_req.dc_ev_status.ev_ress_soc
-        )
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+        ev_data_context.update_pre_charge_parameters(precharge_req)
 
         # for the PreCharge phase, the requested current must be < 2 A
         # (maximum inrush current according to CC.5.2 in IEC61851 -23)
@@ -598,16 +598,18 @@ class PreCharge(StateSECC):
                 Protocol.DIN_SPEC_70121
             )
         )
+
         if isinstance(present_current, PVEVSEPresentCurrent):
-            present_current_in_a = (
-                present_current.value * 10**present_current.multiplier
-            )
-            target_current = precharge_req.ev_target_current
-            target_current_in_a = target_current.value * 10**target_current.multiplier
+            present_current_in_a = present_current.get_decimal_value()
+            target_current_in_a = ev_data_context.target_current
         else:
-            present_current_in_a = present_current.value
-            target_current = precharge_req.ev_target_current
-            target_current_in_a = precharge_req.ev_target_current.value
+            self.stop_state_machine(
+                "Error reading EVSE Present Current."
+                f"Wrong type: {type(present_current)}",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         if present_current_in_a > 2 or target_current_in_a > 2:
             self.stop_state_machine(
@@ -620,9 +622,19 @@ class PreCharge(StateSECC):
         # Set precharge voltage in every loop.
         # Because there are EVs that send a wrong Precharge-Voltage
         # in the first message (example: BMW i3 Rex 2018)
-        await self.comm_session.evse_controller.set_precharge(
-            precharge_req.ev_target_voltage, precharge_req.ev_target_current
-        )
+        try:
+            await self.comm_session.evse_controller.send_charging_command(
+                ev_data_context.target_voltage,
+                ev_data_context.target_current,
+                is_precharge=True,
+            )
+        except asyncio.TimeoutError:
+            self.stop_state_machine(
+                "Error sending targets to charging station in charging loop.",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         dc_charger_state = await self.comm_session.evse_controller.get_dc_evse_status()
         evse_present_voltage = (
@@ -698,6 +710,10 @@ class PowerDelivery(StateSECC):
             return
 
         power_delivery_req: PowerDeliveryReq = msg.body.power_delivery_req
+
+        self.comm_session.evse_controller.ev_data_context.present_soc = (
+            power_delivery_req.dc_ev_power_delivery_parameter.dc_ev_status.ev_ress_soc
+        )
 
         logger.debug(
             f"ChargeProgress set to "
@@ -794,29 +810,21 @@ class CurrentDemand(StateSECC):
 
         current_demand_req: CurrentDemandReq = msg.body.current_demand_req
 
-        self.comm_session.evse_controller.ev_data_context.soc = (
-            current_demand_req.dc_ev_status.ev_ress_soc
-        )
+        ev_data_context = self.comm_session.evse_controller.ev_data_context
+        ev_data_context.update_charge_loop_parameters(current_demand_req)
 
-        self.comm_session.evse_controller.ev_data_context.remaining_time_to_bulk_soc_s = (  # noqa: E501
-            None
-            if current_demand_req.remaining_time_to_bulk_soc is None
-            else current_demand_req.remaining_time_to_bulk_soc.get_decimal_value()
-        )
-
-        self.comm_session.evse_controller.ev_data_context.remaining_time_to_full_soc_s = (  # noqa: E501
-            None
-            if current_demand_req.remaining_time_to_full_soc is None
-            else current_demand_req.remaining_time_to_full_soc.get_decimal_value()
-        )
-
-        self.comm_session.evse_controller.ev_charge_params_limits.ev_max_current = (
-            current_demand_req.ev_max_current_limit
-        )
-
-        await self.comm_session.evse_controller.send_charging_command(
-            current_demand_req.ev_target_voltage, current_demand_req.ev_target_current
-        )
+        try:
+            await self.comm_session.evse_controller.send_charging_command(
+                ev_data_context.target_voltage,
+                ev_data_context.target_current,
+            )
+        except asyncio.TimeoutError:
+            self.stop_state_machine(
+                "Error sending targets to charging station in charging loop.",
+                message,
+                ResponseCode.FAILED,
+            )
+            return
 
         current_demand_res: CurrentDemandRes = CurrentDemandRes(
             response_code=ResponseCode.OK,
@@ -848,7 +856,7 @@ class CurrentDemand(StateSECC):
                 await self.comm_session.evse_controller.get_evse_max_power_limit()
             ),
         )
-
+        await self.comm_session.evse_controller.send_display_params()
         self.create_next_message(
             None,
             current_demand_res,

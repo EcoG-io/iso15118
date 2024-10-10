@@ -7,5 +7,6 @@
 	],
 	"energyTransferMode": "AC_three_phase_core",
 	"isCertInstallNeeded": false,
-	"useTls": true
+	"useTls": true,
+	"chargeLoopCycle": 10
 }

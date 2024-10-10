@@ -1,6 +1,17 @@
 import time
+from typing import Union
 
 from iso15118.shared.messages.enums import AuthEnum, ControlMode, ServiceV20
+from iso15118.shared.messages.iso15118_20.ac import (
+    ACChargeLoopReq,
+    ACChargeParameterDiscoveryReq,
+    ACChargeParameterDiscoveryReqParams,
+    BPTACChargeParameterDiscoveryReqParams,
+    BPTDynamicACChargeLoopReqParams,
+    BPTScheduledACChargeLoopReqParams,
+    DynamicACChargeLoopReqParams,
+    ScheduledACChargeLoopReqParams,
+)
 from iso15118.shared.messages.iso15118_20.common_messages import (
     AuthorizationReq,
     ChargeProgress,
@@ -25,10 +36,15 @@ from iso15118.shared.messages.iso15118_20.common_types import (
 )
 from iso15118.shared.messages.iso15118_20.dc import (
     BPTDCChargeParameterDiscoveryReqParams,
+    BPTDynamicDCChargeLoopReqParams,
+    BPTScheduledDCChargeLoopReqParams,
     DCCableCheckReq,
+    DCChargeLoopReq,
     DCChargeParameterDiscoveryReq,
     DCChargeParameterDiscoveryReqParams,
     DCPreChargeReq,
+    DynamicDCChargeLoopReqParams,
+    ScheduledDCChargeLoopReqParams,
 )
 from iso15118.shared.security import get_random_bytes
 from tests.tools import MOCK_SESSION_ID
@@ -172,4 +188,126 @@ def get_power_delivery_req(processing: Processing, charge_progress: ChargeProgre
             ),
             dynamic_profile=DynamicEVPowerProfile(),
         ),
+    )
+
+
+def get_dc_service_discovery_req(
+    params: Union[
+        DCChargeParameterDiscoveryReqParams, BPTDCChargeParameterDiscoveryReqParams
+    ],
+    service: ServiceV20,
+) -> DCChargeParameterDiscoveryReq:
+    dc_params = None
+    dc_bpt_params = None
+    if service == ServiceV20.DC:
+        dc_params = params
+    else:
+        dc_bpt_params = params
+    return DCChargeParameterDiscoveryReq(
+        header=MessageHeader(
+            session_id=MOCK_SESSION_ID,
+            timestamp=time.time(),
+        ),
+        dc_params=dc_params,
+        bpt_dc_params=dc_bpt_params,
+    )
+
+
+def get_ac_service_discovery_req(
+    params: Union[
+        ACChargeParameterDiscoveryReqParams, BPTACChargeParameterDiscoveryReqParams
+    ],
+    service: ServiceV20,
+) -> ACChargeParameterDiscoveryReq:
+    ac_params = None
+    ac_bpt_params = None
+    if service == ServiceV20.AC:
+        ac_params = params
+    else:
+        ac_bpt_params = params
+    return ACChargeParameterDiscoveryReq(
+        header=MessageHeader(
+            session_id=MOCK_SESSION_ID,
+            timestamp=time.time(),
+        ),
+        ac_params=ac_params,
+        bpt_ac_params=ac_bpt_params,
+    )
+
+
+def get_ac_charge_loop_req(
+    params: Union[
+        ScheduledACChargeLoopReqParams,
+        DynamicACChargeLoopReqParams,
+        BPTScheduledACChargeLoopReqParams,
+        BPTDynamicACChargeLoopReqParams,
+    ],
+    service: ServiceV20,
+    control_mode: ControlMode,
+) -> ACChargeLoopReq:
+    scheduled_params = None
+    dynamic_params = None
+    bpt_scheduled_params = None
+    bpt_dynamic_params = None
+
+    if service == ServiceV20.AC:
+        if control_mode == ControlMode.SCHEDULED:
+            scheduled_params = params
+        else:
+            dynamic_params = params
+    elif service == ServiceV20.AC_BPT:
+        if control_mode == ControlMode.SCHEDULED:
+            bpt_scheduled_params = params
+        else:
+            bpt_dynamic_params = params
+
+    return ACChargeLoopReq(
+        header=MessageHeader(
+            session_id=MOCK_SESSION_ID,
+            timestamp=time.time(),
+        ),
+        scheduled_params=scheduled_params,
+        dynamic_params=dynamic_params,
+        bpt_scheduled_params=bpt_scheduled_params,
+        bpt_dynamic_params=bpt_dynamic_params,
+        meter_info_requested=False,
+    )
+
+
+def get_dc_charge_loop_req(
+    params: Union[
+        ScheduledDCChargeLoopReqParams,
+        DynamicDCChargeLoopReqParams,
+        BPTScheduledDCChargeLoopReqParams,
+        BPTDynamicDCChargeLoopReqParams,
+    ],
+    service: ServiceV20,
+    control_mode: ControlMode,
+) -> DCChargeLoopReq:
+    scheduled_params = None
+    dynamic_params = None
+    bpt_scheduled_params = None
+    bpt_dynamic_params = None
+
+    if service == ServiceV20.DC:
+        if control_mode == ControlMode.SCHEDULED:
+            scheduled_params = params
+        else:
+            dynamic_params = params
+    elif service == ServiceV20.DC_BPT:
+        if control_mode == ControlMode.SCHEDULED:
+            bpt_scheduled_params = params
+        else:
+            bpt_dynamic_params = params
+    return DCChargeLoopReq(
+        header=MessageHeader(
+            session_id=MOCK_SESSION_ID,
+            timestamp=time.time(),
+        ),
+        ev_present_voltage=RationalNumber(exponent=0, value=300),
+        scheduled_params=scheduled_params,
+        dynamic_params=dynamic_params,
+        bpt_scheduled_params=bpt_scheduled_params,
+        bpt_dynamic_params=bpt_dynamic_params,
+        meter_info_requested=False,
     )

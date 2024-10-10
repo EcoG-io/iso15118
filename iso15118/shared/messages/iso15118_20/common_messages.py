@@ -10,6 +10,7 @@ Pydantic's Field class is used to be able to create a json schema of each model
 (or class) that matches the definitions in the XSD schema, including the XSD
 element names by using the 'alias' attribute.
 """
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Tuple
@@ -620,7 +621,7 @@ class PriceRule(BaseModel):
     """See section 8.3.5.3.54 in ISO 15118-20"""
 
     energy_fee: RationalNumber = Field(..., alias="EnergyFee")
-    parking_fee: RationalNumber = Field(None, alias="EnergyFee")
+    parking_fee: RationalNumber = Field(None, alias="ParkingFee")
     parking_fee_period: int = Field(None, le=UINT_32_MAX, alias="ParkingFeePeriod")
     carbon_dioxide_emission: int = Field(
         None, le=UINT_16_MAX, alias="CarbonDioxideEmission"
@@ -684,6 +685,9 @@ class AdditionalServiceList(BaseModel):
 class AbsolutePriceSchedule(PriceSchedule):
     """See section 8.3.5.3.45 in ISO 15118-20"""
 
+    # 'Id' is actually an XML attribute, but JSON (our serialisation method)
+    # doesn't have attributes. The EXI codec has to en-/decode accordingly.
+    id: str = Field(None, alias="Id")
     currency: str = Field(..., max_length=3, alias="Currency")
     language: str = Field(..., max_length=3, alias="Language")
     price_algorithm: str = Field(..., max_length=255, alias="PriceAlgorithm")
@@ -820,30 +824,6 @@ class DynamicScheduleExchangeResParams(BaseModel):
             )
 
         return values
-
-    @root_validator(pre=True)
-    def either_price_levels_or_absolute_prices(cls, values):
-        """
-        Either price_level_schedule or absolute_price_schedule must be set,
-        depending on abstract price levels or absolute prices are used to
-        indicate costs for the charging session.
-
-        Pydantic validators are "class methods",
-        see https://pydantic-docs.helpmanual.io/usage/validators/
-        """
-        # pylint: disable=no-self-argument
-        # pylint: disable=no-self-use
-        if one_field_must_be_set(
-            [
-                "price_level_schedule",
-                "PriceLevelSchedule",
-                "absolute_price_schedule",
-                "AbsolutePriceSchedule",
-            ],
-            values,
-            True,
-        ):
-            return values
 
 
 class ScheduleExchangeRes(V2GResponse):

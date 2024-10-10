@@ -3,9 +3,8 @@
 		"ISO_15118_20_AC"
 	],
 	"supportedEnergyServices": [
-		"AC_BPT"
+		"AC"
 	],
 	"isCertInstallNeeded": false,
-	"useTls": false,
-	"chargeLoopCycle": 10
+	"useTls": false
 }

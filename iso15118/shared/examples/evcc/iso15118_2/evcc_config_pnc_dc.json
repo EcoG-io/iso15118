@@ -7,5 +7,6 @@
 	],
 	"energyTransferMode": "DC_extended",
 	"isCertInstallNeeded": false,
-	"useTls": false
+	"useTls": false,
+	"chargeLoopCycle": 10
 }

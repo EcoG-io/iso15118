@@ -1,11 +1,10 @@
 {
 	"supportedProtocols": [
-		"ISO_15118_20_AC"
+		"ISO_15118_20_DC"
 	],
 	"supportedEnergyServices": [
-		"AC_BPT"
+		"DC"
 	],
 	"isCertInstallNeeded": false,
-	"useTls": false,
-	"chargeLoopCycle": 10
+	"useTls": false
 }
