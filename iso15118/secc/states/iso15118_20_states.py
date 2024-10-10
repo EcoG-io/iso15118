@@ -251,13 +251,15 @@ class AuthorizationSetup(StateSECC):
 
         offered_auth_options: List[AuthEnum] = []
         eim_as_res, pnc_as_res = None, None
-        supported_auth_options: List[AuthEnum] = self.comm_session.config.supported_auth_options  # noqa: E501
+        supported_auth_options: List[AuthEnum] = (
+            self.comm_session.config.supported_auth_options
+        )  # noqa: E501
         is_eim_authorized: bool = self.comm_session.evse_controller.is_eim_authorized()
 
         if (
-                AuthEnum.PNC in supported_auth_options and
-                self.comm_session.is_tls and
-                not is_eim_authorized
+            AuthEnum.PNC in supported_auth_options
+            and self.comm_session.is_tls
+            and not is_eim_authorized
         ):
             offered_auth_options.append(AuthEnum.PNC)
             self.comm_session.gen_challenge = get_random_bytes(16)

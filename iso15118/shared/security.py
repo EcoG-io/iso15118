@@ -17,9 +17,7 @@ from cryptography.hazmat.primitives.asymmetric.ec import (
     EllipticCurvePrivateKey,
     EllipticCurvePublicKey,
 )
-from cryptography.hazmat.primitives.asymmetric.ed448 import (
-    Ed448PublicKey,
-)
+from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PublicKey
 from cryptography.hazmat.primitives.asymmetric.utils import (
     decode_dss_signature,
     encode_dss_signature,
@@ -85,7 +83,6 @@ from iso15118.shared.messages.xmldsig import (
     Transforms,
 )
 from iso15118.shared.settings import SettingKey, shared_settings
-
 
 logger = logging.getLogger(__name__)
 
@@ -248,7 +245,7 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
                 logger.exception(exc)
                 return None
 
-    if hasattr(ssl_context, 'keylog_filename'):
+    if hasattr(ssl_context, "keylog_filename"):
         # It is possible to decrypt the TLS frames, using wireshark
         # if the keylogfile is generated with the pre-master secret
         # The file is generated when DEBUG level mode is set and
@@ -259,10 +256,12 @@ def get_ssl_context(server_side: bool) -> Optional[SSLContext]:
         # https://docs.python.org/3/library/ssl.html#ssl.create_default_context
         # https://docs.python.org/3/library/ssl.html#ssl.SSLContext.keylog_filename
         # https://github.com/python/cpython/blob/3.11/Lib/ssl.py#L777
-        keylogfile = os.path.join(shared_settings[SettingKey.PKI_PATH], "keylogfile.txt")
+        keylogfile = os.path.join(
+            shared_settings[SettingKey.PKI_PATH], "keylogfile.txt"
+        )
         if logging.getLogger().level == logging.DEBUG:
             if not os.path.exists(keylogfile):
-                with open(keylogfile, 'w'):
+                with open(keylogfile, "w"):
                     pass
             logger.debug(f"TLS (Pre)-Master-Secret log filename path: {keylogfile}")
             ssl_context.keylog_filename = keylogfile
@@ -518,9 +517,7 @@ def log_certs_details(certs: List[bytes]):
 
 
 def _validate_signature(
-        cert_to_check,
-        parent_pub_key: Union[EllipticCurvePublicKey,
-                              Ed448PublicKey]
+    cert_to_check, parent_pub_key: Union[EllipticCurvePublicKey, Ed448PublicKey]
 ) -> None:
     if isinstance(parent_pub_key, EllipticCurvePublicKey):
         ec_curve_name = parent_pub_key.curve.name
@@ -530,7 +527,8 @@ def _validate_signature(
             hash_algorithm = SHA512()
         else:
             raise KeyTypeError(
-                f"Unexpected curve name " f"{ec_curve_name}."
+                f"Unexpected curve name "
+                f"{ec_curve_name}."
                 f"None of secp256r1, secp521r1"
             )
         parent_pub_key.verify(
@@ -544,9 +542,7 @@ def _validate_signature(
             cert_to_check.tbs_certificate_bytes,
         )
     else:
-        raise KeyTypeError(
-            f"Unexpected public key type " f"{type(parent_pub_key)}"
-        )
+        raise KeyTypeError(f"Unexpected public key type " f"{type(parent_pub_key)}")
 
 
 def verify_certs(
@@ -603,7 +599,7 @@ def verify_certs(
         certs_to_check: List[Certificate] = [leaf_cert]
         if len(sub_ca_der_certs) != 0:
             certs_to_check.extend(sub_ca_der_certs)
-        check_validity(certs_to_check)
+        _check_validity(certs_to_check)
     except (CertNotYetValidError, CertExpiredError) as exc:
         raise exc
 
@@ -665,9 +661,11 @@ def verify_certs(
         raise CertChainLengthError(allowed_num_sub_cas=2, num_sub_cas=0)
 
     if (sub_ca2_cert or sub_ca1_cert) and private_environment:
-        logger.error("Sub-CA 1 and 2 certificate are included and "
-                     "PE is set at the same time. "
-                     "In a PE there are no Sub-CA certs")
+        logger.error(
+            "Sub-CA 1 and 2 certificate are included and "
+            "PE is set at the same time. "
+            "In a PE there are no Sub-CA certs"
+        )
         raise CertChainLengthError(allowed_num_sub_cas=0, num_sub_cas=1)
 
     # Step 2.b: Now that we have established the right order of sub-CA
@@ -681,7 +679,7 @@ def verify_certs(
             parent_cert_pub_key = root_ca_cert.public_key()
             _validate_signature(cert_to_check, parent_cert_pub_key)
         else:
-           
+
             parent_cert_pub_key = sub_ca2_cert.public_key()
             _validate_signature(cert_to_check, parent_cert_pub_key)
 
@@ -690,7 +688,7 @@ def verify_certs(
                 cert_to_check = sub_ca2_cert
                 parent_cert_pub_key = sub_ca1_cert.public_key()
                 _validate_signature(cert_to_check, parent_cert_pub_key)
-                
+
                 # check subca1 signature
                 cert_to_check = sub_ca1_cert
                 parent_cert_pub_key = root_ca_cert.public_key()
@@ -730,7 +728,6 @@ def verify_certs(
     # Step 2: Check that each certificate is valid, i.e. the current time is
     #         between the notBefore and notAfter timestamps of the certificate
     try:
-        certs_to_check: List[Certificate] = [leaf_cert]
         if sub_ca2_cert:
             certs_to_check.append(sub_ca2_cert)
         if sub_ca1_cert:
@@ -1000,7 +997,8 @@ def verify_signature(
                 hash_algorithm = SHA512()
             else:
                 raise KeyTypeError(
-                    f"Unexpected curve name " f"{ec_curve_name}."
+                    f"Unexpected curve name "
+                    f"{ec_curve_name}."
                     f"None of secp256r1, secp521r1"
                 )
             pub_key.verify(

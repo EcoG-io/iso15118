@@ -3,6 +3,7 @@ This module contains the EVCC's States used to process the SECC's incoming
 V2GMessage objects of the ISO 15118-20 protocol, from SessionSetupRes to
 SessionStopRes.
 """
+
 import logging
 import time
 from typing import Any, List, Union, cast
@@ -391,15 +392,16 @@ class Authorization(StateEVCC):
                 elapsed_time = time.time() - self.comm_session.ongoing_timer
                 if elapsed_time > TimeoutsShared.V2G_EVCC_ONGOING_TIMEOUT:
                     debug_message = "Ongoing timer timed out for 'AuthorizationRes'"
-                    self.comm_session.charging_session_stop_v20 = \
+                    self.comm_session.charging_session_stop_v20 = (
                         ChargingSession.TERMINATE
+                    )
                     session_stop_req = SessionStopReq(
                         header=MessageHeader(
                             session_id=self.comm_session.session_id,
                             timestamp=time.time(),
                         ),
                         charging_session=self.comm_session.charging_session_stop_v20,
-                        ev_termination_explanation=debug_message
+                        ev_termination_explanation=debug_message,
                     )
                     self.create_next_message(
                         SessionStop,
