@@ -25,11 +25,7 @@ install(
     DESTINATION "${THIRD_PARTY_APP_DST}/josev/iso15118/evcc"
 )
 
-find_program(
-    PYTHON_EXECUTABLE
-    python3
-    REQUIRED
-)
+find_package(Python3 COMPONENTS Interpreter)
 
 ev_create_pip_install_targets(
     PACKAGE_NAME
@@ -43,7 +39,7 @@ ev_create_python_wheel_targets(
 
 add_custom_target(iso15118_requirements_pip_install_dist
     COMMAND
-        ${PYTHON_EXECUTABLE} -m pip install --force-reinstall -r requirements.txt
+        ${Python3_EXECUTABLE} -m pip install --force-reinstall -r requirements.txt
     WORKING_DIRECTORY
         ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT
