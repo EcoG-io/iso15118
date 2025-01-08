@@ -1128,13 +1128,10 @@ class PowerDelivery(StateSECC):
                 # ms after sending the first PowerDeliveryReq with ChargeProgress
                 # equals "Start" within V2G communication session.
                 if not await self.wait_for_state_c_or_d():
-                    self.stop_state_machine(
-                        "[V2G20-847]: State C/D not detected in PowerDelivery within"
-                        " the allotted 250 ms.",
-                        message,
-                        ResponseCode.FAILED,
+                    logger.warning(
+                        "[V2G20-847]: C2/D2 CP state not detected after "
+                        "250ms in PowerDelivery"
                     )
-                    return
 
                 if not await self.comm_session.evse_controller.is_contactor_closed():
                     self.stop_state_machine(
