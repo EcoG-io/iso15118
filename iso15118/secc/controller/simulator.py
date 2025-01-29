@@ -134,9 +134,13 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     TaxRule,
     TaxRuleList,
 )
-from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
+from iso15118.shared.messages.iso15118_20.common_types import (
+    EVSEStatus,
+)
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
-from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import (
+    RationalNumber,
+)
 from iso15118.shared.messages.iso15118_20.common_types import (
     ResponseCode as ResponseCodeV20,
 )

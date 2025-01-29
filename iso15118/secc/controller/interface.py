@@ -46,7 +46,9 @@ from iso15118.shared.messages.iso15118_2.datatypes import (
 )
 from iso15118.shared.messages.iso15118_2.datatypes import MeterInfo as MeterInfoV2
 from iso15118.shared.messages.iso15118_2.datatypes import ResponseCode as ResponseCodeV2
-from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTuple
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    SAScheduleTuple,
+)
 from iso15118.shared.messages.iso15118_20.ac import (
     ACChargeParameterDiscoveryResParams,
     BPTACChargeParameterDiscoveryResParams,
@@ -64,9 +66,13 @@ from iso15118.shared.messages.iso15118_20.common_messages import (
     ServiceList,
     ServiceParameterList,
 )
-from iso15118.shared.messages.iso15118_20.common_types import EVSEStatus
+from iso15118.shared.messages.iso15118_20.common_types import (
+    EVSEStatus,
+)
 from iso15118.shared.messages.iso15118_20.common_types import MeterInfo as MeterInfoV20
-from iso15118.shared.messages.iso15118_20.common_types import RationalNumber
+from iso15118.shared.messages.iso15118_20.common_types import (
+    RationalNumber,
+)
 from iso15118.shared.messages.iso15118_20.common_types import (
     ResponseCode as ResponseCodeV20,
 )
