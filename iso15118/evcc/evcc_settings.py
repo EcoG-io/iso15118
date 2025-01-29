@@ -40,7 +40,7 @@ class Config:
         self.ev_config_file_path = str(
             env.path(
                 "EVCC_CONFIG_PATH",
-                default="iso15118/shared/examples/evcc/iso15118_2/evcc_config_eim_ac.json",
+                default="iso15118/shared/examples/evcc/iso15118_2/evcc_config_eim_ac.json",  # noqa
             )
         )
         env.seal()  # raise all errors at once, if any

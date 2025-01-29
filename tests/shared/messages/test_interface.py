@@ -10,10 +10,7 @@ from iso15118.secc.controller.evse_data import (
     EVSEDCCLLimits,
     EVSESessionLimits,
 )
-from iso15118.secc.controller.interface import (
-    AuthorizationResponse,
-    EVSEControllerInterface,
-)
+from iso15118.secc.controller.interface import EVSEControllerInterface
 from iso15118.shared.messages.datatypes import (
     PVEVSEMaxCurrent,
     PVEVSEMaxCurrentLimit,
@@ -21,7 +18,6 @@ from iso15118.shared.messages.datatypes import (
     UnitSymbol,
 )
 from iso15118.shared.messages.enums import AuthorizationTokenType, ControlMode
-from iso15118.shared.messages.iso15118_2.datatypes import SAScheduleTuple
 from iso15118.shared.messages.iso15118_20.common_messages import (
     DynamicScheduleExchangeResParams,
     ScheduledScheduleExchangeResParams,

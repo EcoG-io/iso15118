@@ -540,7 +540,8 @@ class EVSEControllerInterface(ABC):
             ) > 0:
                 logger.error(
                     "Both Max Reactive Charge and Discharge power are set, "
-                    "Just one is allowed at a time. Ignoring Reactive Discharge setpoint."
+                    "Just one is allowed at a time. "
+                    "Ignoring Reactive Discharge setpoint."
                 )
                 target_reactive_power = evse_session_limits.max_charge_reactive_power
             elif evse_session_limits.max_charge_reactive_power or 0 > 0:
