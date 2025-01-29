@@ -201,8 +201,8 @@ def get_evse_context():
         max_discharge_power_l2=10,
         max_discharge_power_l3=10,
         max_discharge_reactive_power=10,
-        max_discharge_active_power_l2=10,
-        max_discharge_active_power_l3=10,
+        max_discharge_reactive_power_l2=10,
+        max_discharge_reactive_power_l3=10,
     )
     dc_cl_limits = EVSEDCCLLimits(
         # Optional in 15118-20 DC CL (Scheduled)

@@ -86,8 +86,8 @@ class EVSEACCLLimits(Limits):
     max_discharge_power_l2: Optional[float] = None
     max_discharge_power_l3: Optional[float] = None
     max_discharge_reactive_power: Optional[float] = None
-    max_discharge_active_power_l2: Optional[float] = None
-    max_discharge_active_power_l3: Optional[float] = None
+    max_discharge_reactive_power_l2: Optional[float] = None
+    max_discharge_reactive_power_l3: Optional[float] = None
 
 
 @dataclass
