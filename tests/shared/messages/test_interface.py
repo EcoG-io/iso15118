@@ -1,5 +1,8 @@
+from typing import Any, Coroutine, Optional, Union
+
 import pytest
 
+from iso15118.secc.controller.ev_data import EVDataContext
 from iso15118.secc.controller.evse_data import (
     CurrentType,
     EVSEACCLLimits,
@@ -13,6 +16,13 @@ from iso15118.shared.messages.datatypes import (
     PVEVSEMaxCurrentLimit,
     PVEVSEMaxVoltageLimit,
     UnitSymbol,
+)
+from iso15118.shared.messages.enums import AuthorizationTokenType, ControlMode
+from iso15118.shared.messages.iso15118_20.common_messages import (
+    DynamicScheduleExchangeResParams,
+    ScheduledScheduleExchangeResParams,
+    ScheduleExchangeReq,
+    SelectedEnergyService,
 )
 
 
@@ -30,7 +40,16 @@ class DummyEVSEControllerInterface(EVSEControllerInterface):
     async def get_supported_energy_transfer_modes(self, _):
         pass
 
-    async def get_schedule_exchange_params(self, _):
+    def get_schedule_exchange_params(
+        self,
+        selected_energy_service: SelectedEnergyService,
+        control_mode: ControlMode,
+        schedule_exchange_req: ScheduleExchangeReq,
+    ) -> Coroutine[
+        Any,
+        Any,
+        Union[ScheduledScheduleExchangeResParams, DynamicScheduleExchangeResParams],
+    ]:
         pass
 
     async def get_energy_service_list(self):
@@ -39,13 +58,27 @@ class DummyEVSEControllerInterface(EVSEControllerInterface):
     def is_eim_authorized(self):
         pass
 
-    async def is_authorized(self, _):
+    async def is_authorized(
+        self,
+        id_token: Optional[str] = ...,
+        id_token_type: Optional[AuthorizationTokenType] = ...,
+        certificate_chain: Optional[bytes] = ...,
+        hash_data: Optional[list[dict[str, str]]] = ...,
+    ):
         pass
 
-    async def get_sa_schedule_list(self):
+    async def get_sa_schedule_list(
+        self,
+        ev_data_context: EVDataContext,
+        is_free_charging_service: bool,
+        max_schedule_entries: Optional[int],
+        departure_time: int = ...,
+    ):
         pass
 
-    async def get_sa_schedule_list_dinspec(self, _):
+    async def get_sa_schedule_list_dinspec(
+        self, max_schedule_entries: Optional[int], departure_time: int = ...
+    ):
         pass
 
     async def get_meter_info_v2(self):
@@ -113,7 +146,13 @@ class DummyEVSEControllerInterface(EVSEControllerInterface):
     async def get_cable_check_status(self):
         pass
 
-    async def send_charging_command(self, _):
+    async def send_charging_command(
+        self,
+        ev_target_voltage: Optional[float],
+        ev_target_current: Optional[float],
+        is_precharge: bool = ...,
+        is_session_bpt: bool = ...,
+    ):
         pass
 
     async def is_evse_current_limit_achieved(self):
@@ -137,7 +176,9 @@ class DummyEVSEControllerInterface(EVSEControllerInterface):
     def ready_to_charge(self):
         pass
 
-    async def session_ended(self, _):
+    async def session_ended(
+        self, current_state: str, reason: str
+    ) -> Coroutine[Any, Any, Any]:
         pass
 
     async def send_display_params(self):

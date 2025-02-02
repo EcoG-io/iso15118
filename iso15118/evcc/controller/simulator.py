@@ -49,7 +49,9 @@ from iso15118.shared.messages.enums import (
     ServiceV20,
     UnitSymbol,
 )
-from iso15118.shared.messages.iso15118_2.datatypes import ACEVChargeParameter
+from iso15118.shared.messages.iso15118_2.datatypes import (
+    ACEVChargeParameter,
+)
 from iso15118.shared.messages.iso15118_2.datatypes import (
     ChargeProgress as ChargeProgressV2,
 )
