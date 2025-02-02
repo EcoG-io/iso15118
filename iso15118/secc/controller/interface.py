@@ -532,7 +532,7 @@ class EVSEControllerInterface(ABC):
                 active_discharge_mode = True
                 target_active_power = (-1) * evse_session_limits.max_discharge_power
             else:
-                logger.error("No Active Power setpoint is provided. Setting to 0.")
+                logger.warning("No Active Power setpoint is provided. Setting to 0.")
                 target_active_power = 0
 
             if (evse_session_limits.max_charge_reactive_power or 0) > 0 and (
@@ -552,7 +552,7 @@ class EVSEControllerInterface(ABC):
                     -1
                 ) * evse_session_limits.max_discharge_reactive_power
             else:
-                logger.error("No Reactive Power setpoint is provided. Setting to 0.")
+                logger.warning("No Reactive Power setpoint is provided. Setting to 0.")
                 target_reactive_power = 0
 
             # Conversion to RationalNumber

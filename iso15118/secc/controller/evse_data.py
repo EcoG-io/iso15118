@@ -286,17 +286,17 @@ class EVSEDataContext:
             self.energy_to_be_delivered = (
                 dc_charge_parameter.evse_energy_to_be_delivered.get_decimal_value()
             )
-            # Create the session limits based on the rated limits
-            # without exceeding the rated limits
-            for value in vars(rated_limits):
-                if hasattr(self.session_limits.dc_limits, value):
-                    rated_value = getattr(rated_limits, value)
-                    session_value = getattr(self.session_limits.dc_limits, value)
-                    try:
-                        if not session_value or (session_value > rated_value):
-                            setattr(self.session_limits.dc_limits, value, rated_value)
-                    except TypeError:
-                        pass
+        # Create the session limits based on the rated limits
+        # without exceeding the rated limits
+        for value in vars(rated_limits):
+            if hasattr(self.session_limits.dc_limits, value):
+                rated_value = getattr(rated_limits, value)
+                session_value = getattr(self.session_limits.dc_limits, value)
+                try:
+                    if not session_value or (session_value > rated_value):
+                        setattr(self.session_limits.dc_limits, value, rated_value)
+                except TypeError:
+                    pass
 
     def update_ac_charge_parameters_v20(
         self,

@@ -1120,6 +1120,13 @@ class PowerDelivery(StateSECC):
                             ResponseCode.FAILED_SCHEDULE_SELECTION_INVALID,
                         )
                         return
+                # According to section 8.5.6 in ISO 15118-20, the EV enters into HLC-C
+                # (High Level Controlled Charging) once
+                # PowerDeliveryRes(ResponseCode=OK) is sent with a ChargeProgress=Start
+                # To facilitate testing, we will set the HLC-C flag to True here
+                # but if the contactor wont close as expected, we set
+                # the HLC-C flag to False and stop the state machine immediately
+                await self.comm_session.evse_controller.set_hlc_charging(True)
 
                 # [V2G20-1617] The EVCC shall signal CP State B before sending the
                 # first PowerDeliveryReq with ChargeProgress equals "Start" within V2G
@@ -1134,6 +1141,7 @@ class PowerDelivery(StateSECC):
                     )
 
                 if not await self.comm_session.evse_controller.is_contactor_closed():
+                    await self.comm_session.evse_controller.set_hlc_charging(False)
                     self.stop_state_machine(
                         "Contactor didn't close",
                         message,
@@ -1141,10 +1149,6 @@ class PowerDelivery(StateSECC):
                     )
                     return
 
-                # According to section 8.5.6 in ISO 15118-20, the EV enters into HLC-C
-                # (High Level Controlled Charging) once
-                # PowerDeliveryRes(ResponseCode=OK) is sent with a ChargeProgress=Start
-                await self.comm_session.evse_controller.set_hlc_charging(True)
 
                 if self.comm_session.selected_energy_service.service in (
                     ServiceV20.AC,
