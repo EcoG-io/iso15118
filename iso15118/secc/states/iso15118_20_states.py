@@ -1149,7 +1149,6 @@ class PowerDelivery(StateSECC):
                     )
                     return
 
-
                 if self.comm_session.selected_energy_service.service in (
                     ServiceV20.AC,
                     ServiceV20.AC_BPT,
