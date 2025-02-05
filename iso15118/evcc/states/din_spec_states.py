@@ -713,6 +713,12 @@ class CurrentDemand(StateEVCC):
             logger.debug("EVSE Notification received requesting to stop charging.")
             await self.stop_charging()
         elif await self.comm_session.ev_controller.continue_charging():
+            try:
+                delay: int = await self.comm_session.ev_controller.charge_loop_delay() # noqa
+                logger.info(f"Next ChargeLoop Req in {delay} seconds")
+                await asyncio.sleep(delay)
+            except Exception as e:
+                logger.info(f"No delay for the next ChargeLoop Req. Reason {e}")
             self.create_next_message(
                 None,
                 await self.build_current_demand_req(),
