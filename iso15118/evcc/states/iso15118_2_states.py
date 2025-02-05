@@ -4,6 +4,7 @@ V2GMessage objects of the ISO 15118-2 protocol, from SessionSetupRes to
 SessionStopRes.
 """
 
+import asyncio
 import logging
 from time import time
 from typing import Any, List, Union
@@ -1173,7 +1174,9 @@ class ChargingStatus(StateEVCC):
 
         elif await self.comm_session.ev_controller.continue_charging():
             try:
-                delay: int = await self.comm_session.ev_controller.charge_loop_delay() # noqa
+                delay: int = (
+                    await self.comm_session.ev_controller.charge_loop_delay()
+                )  # noqa
                 logger.info(f"Next ChargeLoop Req in {delay} seconds")
                 await asyncio.sleep(delay)
             except Exception as e:
@@ -1391,7 +1394,9 @@ class CurrentDemand(StateEVCC):
 
         elif await self.comm_session.ev_controller.continue_charging():
             try:
-                delay: int = await self.comm_session.ev_controller.charge_loop_delay() # noqa
+                delay: int = (
+                    await self.comm_session.ev_controller.charge_loop_delay()
+                )  # noqa
                 logger.info(f"Next ChargeLoop Req in {delay} seconds")
                 await asyncio.sleep(delay)
             except Exception as e:

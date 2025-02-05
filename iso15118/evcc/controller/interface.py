@@ -93,6 +93,7 @@ class EVControllerInterface(ABC):
         - ISO 15118-20
         """
         raise NotImplementedError
+
     @abstractmethod
     async def get_evcc_id(self, protocol: Protocol, iface: str) -> str:
         """
