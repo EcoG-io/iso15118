@@ -907,28 +907,34 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-2
         """
         # This is currently being used by -2 only.
+        logger.debug(
+            "Updating EVSE Data Context (Rated and Session Limits) with "
+            "ChargeParameterDiscoveryResponse"
+        )
         session_limits = self.evse_data_context.session_limits
+        rated_limits = self.evse_data_context.rated_limits
         if self.evse_data_context.current_type == CurrentType.AC:
+            logger.debug(f"Setting EVSE Max Curent...")
+            logger.debug(f"Active Rated Limits: {rated_limits.ac_limits}")
+            logger.debug(f"Active Session Limits: {session_limits.ac_limits}")
             ac_limits = session_limits.ac_limits
-            min_session_power_limit = ac_limits.max_charge_power
+            total_power_limit: float = ac_limits.max_charge_power
             if ac_limits.max_charge_power_l2:
-                min_session_power_limit = min(
-                    min_session_power_limit, ac_limits.max_charge_power_l2
-                )
+                total_power_limit += ac_limits.max_charge_power_l2
             if ac_limits.max_charge_power_l3:
-                min_session_power_limit = min(
-                    min_session_power_limit, ac_limits.max_charge_power_l3
-                )
+                total_power_limit += ac_limits.max_charge_power_l3
             present_voltage = self.evse_data_context.present_voltage
             if present_voltage == 0:
                 present_voltage = self.evse_data_context.nominal_voltage
             if present_voltage == 0:
-                present_voltage = 230
+                present_voltage = 230.0
                 logger.warning(
                     "Present voltage and nominal voltage are 0,"
-                    "using 230 Vrms as default"
+                    "using 230.0 Vrms as default"
                 )
-            current_limit_phase = min_session_power_limit / present_voltage
+            logger.debug(f"Total Power Limit to Set: {total_power_limit}")
+            current_limit_phase = total_power_limit / present_voltage
+            logger.debug(f"New EVSEMaxCurrent limit: {current_limit_phase}")
             exponent, value = PhysicalValue.get_exponent_value_repr(current_limit_phase)
             return PVEVSEMaxCurrent(
                 multiplier=exponent,
@@ -936,7 +942,11 @@ class EVSEControllerInterface(ABC):
                 unit=UnitSymbol.AMPERE,
             )
         elif self.evse_data_context.current_type == CurrentType.DC:
+            logger.debug(f"Setting EVSE Max Curent...")
+            logger.debug(f"Active Rated Limits: {rated_limits.dc_limits}")
+            logger.debug(f"Active Session Limits: {session_limits.dc_limits}")
             current_limit = session_limits.dc_limits.max_charge_current
+            logger.debug(f"New EVSEMaxCurrentLimit: {current_limit}")
             exponent, value = PhysicalValue.get_exponent_value_repr(current_limit)
             return PVEVSEMaxCurrentLimit(
                 multiplier=exponent,
