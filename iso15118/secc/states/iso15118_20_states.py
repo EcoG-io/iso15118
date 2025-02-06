@@ -1345,12 +1345,13 @@ class ACChargeParameterDiscovery(StateSECC):
                 ac_params=params if energy_service == ServiceV20.AC else None,
                 bpt_ac_params=params if energy_service == ServiceV20.AC_BPT else None,
             )
-            # Update EV/EVSE Data Context
-            self.charge_parameter_valid(ac_cpd_req.ac_params)
-            ev_data_context = self.comm_session.evse_controller.ev_data_context
-            ev_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_req)
+            # Update EVSE Data Context
             evse_data_context = self.comm_session.evse_controller.evse_data_context
             evse_data_context.current_type = CurrentType.AC
+            evse_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_res)
+            # Update EV Data Context
+            ev_data_context = self.comm_session.evse_controller.ev_data_context
+            ev_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_req)
             await self.comm_session.evse_controller.send_rated_limits()
         except UnknownEnergyService:
             self.stop_state_machine(
@@ -1542,11 +1543,13 @@ class DCChargeParameterDiscovery(StateSECC):
                 dc_params=params if energy_service == ServiceV20.DC else None,
                 bpt_dc_params=params if energy_service == ServiceV20.DC_BPT else None,
             )
-            # Update EV/EVSE Data Context
-            ev_data_context = self.comm_session.evse_controller.ev_data_context
-            ev_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_req)
+            # Update EVSE Data Context
             evse_data_context = self.comm_session.evse_controller.evse_data_context
             evse_data_context.current_type = CurrentType.DC
+            evse_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_res)
+            # Update EV Data Context
+            ev_data_context = self.comm_session.evse_controller.ev_data_context
+            ev_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_req)
             await self.comm_session.evse_controller.send_rated_limits()
         except UnknownEnergyService:
             self.stop_state_machine(
