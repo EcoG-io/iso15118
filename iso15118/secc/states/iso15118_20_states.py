@@ -1348,7 +1348,9 @@ class ACChargeParameterDiscovery(StateSECC):
             # Update EVSE Data Context
             evse_data_context = self.comm_session.evse_controller.evse_data_context
             evse_data_context.current_type = CurrentType.AC
-            evse_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_res)
+            evse_data_context.update_ac_charge_parameters_v20(
+                energy_service, ac_cpd_res
+            )
             # Update EV Data Context
             ev_data_context = self.comm_session.evse_controller.ev_data_context
             ev_data_context.update_ac_charge_parameters_v20(energy_service, ac_cpd_req)
@@ -1546,7 +1548,9 @@ class DCChargeParameterDiscovery(StateSECC):
             # Update EVSE Data Context
             evse_data_context = self.comm_session.evse_controller.evse_data_context
             evse_data_context.current_type = CurrentType.DC
-            evse_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_res)
+            evse_data_context.update_dc_charge_parameters_v20(
+                energy_service, dc_cpd_res
+            )
             # Update EV Data Context
             ev_data_context = self.comm_session.evse_controller.ev_data_context
             ev_data_context.update_dc_charge_parameters_v20(energy_service, dc_cpd_req)
