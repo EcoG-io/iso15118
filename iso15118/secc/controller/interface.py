@@ -907,34 +907,44 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-2
         """
         # This is currently being used by -2 only.
-        logger.debug(
-            "Updating EVSE Data Context (Rated and Session Limits) with "
-            "ChargeParameterDiscoveryResponse"
+        logger.info(
+            "Extracting the Session Current Limit " "based on Session Limits with. "
         )
+        logger.debug("This method is used both in CPD and " "ChargeLoop in -2")
         session_limits = self.evse_data_context.session_limits
         rated_limits = self.evse_data_context.rated_limits
         if self.evse_data_context.current_type == CurrentType.AC:
-            logger.debug("Setting EVSE Max Current...")
+            logger.debug("Gettint EVSE Max Current for AC...")
             logger.debug(f"Active Rated Limits: {rated_limits.ac_limits}")
             logger.debug(f"Active Session Limits: {session_limits.ac_limits}")
             ac_limits = session_limits.ac_limits
-            total_power_limit: float = ac_limits.max_charge_power
-            if ac_limits.max_charge_power_l2:
-                total_power_limit += ac_limits.max_charge_power_l2
-            if ac_limits.max_charge_power_l3:
-                total_power_limit += ac_limits.max_charge_power_l3
+            if ac_limits.max_charge_power > 0:
+                logger.info(f"Applying a Charging limit")
+                total_power_limit: float = ac_limits.max_charge_power
+                if ac_limits.max_charge_power_l2:
+                    total_power_limit += ac_limits.max_charge_power_l2
+                if ac_limits.max_charge_power_l3:
+                    total_power_limit += ac_limits.max_charge_power_l3
+            elif ac_limits.max_discharge_power and ac_limits.max_discharge_power > 0:
+                logger.info(f"Applying a Discharging limit")
+                total_power_limit = (-1) * ac_limits.max_discharge_power
+                if ac_limits.max_discharge_power_l2:
+                    total_power_limit -= ac_limits.max_discharge_power_l2
+                if ac_limits.max_discharge_power_l3:
+                    total_power_limit -= ac_limits.max_discharge_power_l3
             present_voltage = self.evse_data_context.present_voltage
             if present_voltage == 0:
-                present_voltage = self.evse_data_context.nominal_voltage
-            if present_voltage == 0:
-                present_voltage = 230.0
                 logger.warning(
                     "Present voltage and nominal voltage are 0,"
-                    "using 230.0 Vrms as default"
+                    "using Nominal voltage as default"
                 )
+                present_voltage = self.evse_data_context.nominal_voltage
+                if not present_voltage:
+                    logger.error("Present voltage and nominal voltage are 0")
+                    raise ValueError("Present voltage and nominal voltage are 0")
             logger.debug(f"Total Power Limit to Set: {total_power_limit}")
             current_limit_phase = total_power_limit / present_voltage
-            logger.debug(f"New EVSEMaxCurrent limit: {current_limit_phase}")
+            logger.debug(f"Active EVSEMaxCurrent limit: {current_limit_phase}")
             exponent, value = PhysicalValue.get_exponent_value_repr(current_limit_phase)
             return PVEVSEMaxCurrent(
                 multiplier=exponent,
@@ -942,11 +952,17 @@ class EVSEControllerInterface(ABC):
                 unit=UnitSymbol.AMPERE,
             )
         elif self.evse_data_context.current_type == CurrentType.DC:
-            logger.debug("Setting EVSE Max Current...")
+            logger.debug("Getting EVSE Max Current for DC...")
             logger.debug(f"Active Rated Limits: {rated_limits.dc_limits}")
             logger.debug(f"Active Session Limits: {session_limits.dc_limits}")
-            current_limit = session_limits.dc_limits.max_charge_current
-            logger.debug(f"New EVSEMaxCurrentLimit: {current_limit}")
+            max_discharge_current = session_limits.dc_limits.max_discharge_current
+            if max_discharge_current and max_discharge_current > 0:
+                logger.info(f"Applying a Discharging limit")
+                current_limit = (-1) * session_limits.dc_limits.max_discharge_current
+            else:
+                logger.info(f"Applying a Charging limit")
+                current_limit = session_limits.dc_limits.max_charge_current
+            logger.debug(f"Active EVSEMaxCurrentLimit: {current_limit}")
             exponent, value = PhysicalValue.get_exponent_value_repr(current_limit)
             return PVEVSEMaxCurrentLimit(
                 multiplier=exponent,
@@ -976,9 +992,17 @@ class EVSEControllerInterface(ABC):
         - ISO 15118-2
         """
         session_limits = self.evse_data_context.session_limits
-        if session_limits.dc_limits.max_charge_power is None:
-            return None
-        power_limit = session_limits.dc_limits.max_charge_power
+        max_discharge_power = 0.0
+        max_charge_power = 0.0
+        if session_limits.dc_limits.max_discharge_power:
+            max_discharge_power = session_limits.dc_limits.max_discharge_power
+        else:
+            max_charge_power = session_limits.dc_limits.max_charge_power
+        # Update of the power limit based on the session limits
+        if max_discharge_power > 0:
+            power_limit = (-1) * max_discharge_power
+        else:
+            power_limit = max_charge_power
         exponent, value = PhysicalValue.get_exponent_value_repr(power_limit)
         return PVEVSEMaxPowerLimit(
             multiplier=exponent,
