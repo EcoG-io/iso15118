@@ -239,13 +239,11 @@ class TestEVSEControllerInterface:
         assert isinstance(limit, PVEVSEMaxCurrent)
         assert limit == expected_limit
 
-    async def test_get_evse_present_and_nominal_voltage_are_0(
-        self, evse_controller_interface
-    ):
+    async def test_get_evse_nominal_voltage_is_0(self, evse_controller_interface):
         """Test that max current is calculated correctly
-        when present and nominal voltage are 0."""
+        when nominal voltage is 0, but present voltage is not."""
         evse_controller_interface.evse_data_context.current_type = CurrentType.AC
-        evse_controller_interface.evse_data_context.present_voltage = 0
+        evse_controller_interface.evse_data_context.present_voltage = 230
         evse_controller_interface.evse_data_context.nominal_voltage = 0
         expected_limit = PVEVSEMaxCurrent(
             multiplier=0,
@@ -255,6 +253,17 @@ class TestEVSEControllerInterface:
         limit = await evse_controller_interface.get_evse_max_current_limit()
         assert isinstance(limit, PVEVSEMaxCurrent)
         assert limit == expected_limit
+
+    async def test_get_evse_present_and_nominal_voltage_are_0(
+        self, evse_controller_interface
+    ):
+        """Test that max current is calculated correctly
+        when present and nominal voltage are 0."""
+        evse_controller_interface.evse_data_context.current_type = CurrentType.AC
+        evse_controller_interface.evse_data_context.present_voltage = 0
+        evse_controller_interface.evse_data_context.nominal_voltage = 0
+        with pytest.raises(ValueError):
+            await evse_controller_interface.get_evse_max_current_limit()
 
     async def test_get_evse_max_voltage_limit_ac(self, evse_controller_interface):
         evse_controller_interface.evse_data_context.current_type = CurrentType.AC
