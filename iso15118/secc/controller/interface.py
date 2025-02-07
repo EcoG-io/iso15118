@@ -914,7 +914,7 @@ class EVSEControllerInterface(ABC):
         session_limits = self.evse_data_context.session_limits
         rated_limits = self.evse_data_context.rated_limits
         if self.evse_data_context.current_type == CurrentType.AC:
-            logger.debug(f"Setting EVSE Max Curent...")
+            logger.debug("Setting EVSE Max Current...")
             logger.debug(f"Active Rated Limits: {rated_limits.ac_limits}")
             logger.debug(f"Active Session Limits: {session_limits.ac_limits}")
             ac_limits = session_limits.ac_limits
@@ -942,7 +942,7 @@ class EVSEControllerInterface(ABC):
                 unit=UnitSymbol.AMPERE,
             )
         elif self.evse_data_context.current_type == CurrentType.DC:
-            logger.debug(f"Setting EVSE Max Curent...")
+            logger.debug("Setting EVSE Max Current...")
             logger.debug(f"Active Rated Limits: {rated_limits.dc_limits}")
             logger.debug(f"Active Session Limits: {session_limits.dc_limits}")
             current_limit = session_limits.dc_limits.max_charge_current
