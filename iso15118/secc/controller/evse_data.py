@@ -4,17 +4,9 @@ from enum import Enum
 from typing import Optional, Union
 
 from iso15118.secc.controller.common import Limits, UnknownEnergyService
-from iso15118.shared.messages.datatypes import DCEVSEChargeParameter
 from iso15118.shared.messages.enums import (
     ControlMode,
-    EnergyTransferModeEnum,
     ServiceV20,
-)
-from iso15118.shared.messages.iso15118_2.datatypes import ACEVSEChargeParameter
-from iso15118.shared.messages.iso15118_20.ac import (
-    ACChargeParameterDiscoveryRes,
-    ACChargeParameterDiscoveryResParams,
-    BPTACChargeParameterDiscoveryResParams,
 )
 from iso15118.shared.messages.iso15118_20.common_messages import ScheduleExchangeRes
 from iso15118.shared.messages.iso15118_20.dc import (

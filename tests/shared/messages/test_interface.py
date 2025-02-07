@@ -262,11 +262,6 @@ class TestEVSEControllerInterface:
         evse_controller_interface.evse_data_context.current_type = CurrentType.AC
         evse_controller_interface.evse_data_context.present_voltage = 0
         evse_controller_interface.evse_data_context.nominal_voltage = 0
-        expected_limit = PVEVSEMaxCurrent(
-            multiplier=0,
-            value=100,
-            unit=UnitSymbol.AMPERE,
-        )
         with pytest.raises(ValueError):
             await evse_controller_interface.get_evse_max_current_limit()
 

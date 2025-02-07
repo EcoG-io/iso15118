@@ -919,14 +919,14 @@ class EVSEControllerInterface(ABC):
             logger.debug(f"Active Session Limits: {session_limits.ac_limits}")
             ac_limits = session_limits.ac_limits
             if ac_limits.max_charge_power > 0:
-                logger.info(f"Applying a Charging limit")
+                logger.info("Applying a Charging limit")
                 total_power_limit: float = ac_limits.max_charge_power
                 if ac_limits.max_charge_power_l2:
                     total_power_limit += ac_limits.max_charge_power_l2
                 if ac_limits.max_charge_power_l3:
                     total_power_limit += ac_limits.max_charge_power_l3
             elif ac_limits.max_discharge_power and ac_limits.max_discharge_power > 0:
-                logger.info(f"Applying a Discharging limit")
+                logger.info("Applying a Discharging limit")
                 total_power_limit = (-1) * ac_limits.max_discharge_power
                 if ac_limits.max_discharge_power_l2:
                     total_power_limit -= ac_limits.max_discharge_power_l2
@@ -957,10 +957,10 @@ class EVSEControllerInterface(ABC):
             logger.debug(f"Active Session Limits: {session_limits.dc_limits}")
             max_discharge_current = session_limits.dc_limits.max_discharge_current
             if max_discharge_current and max_discharge_current > 0:
-                logger.info(f"Applying a Discharging limit")
+                logger.info("Applying a Discharging limit")
                 current_limit = (-1) * session_limits.dc_limits.max_discharge_current
             else:
-                logger.info(f"Applying a Charging limit")
+                logger.info("Applying a Charging limit")
                 current_limit = session_limits.dc_limits.max_charge_current
             logger.debug(f"Active EVSEMaxCurrentLimit: {current_limit}")
             exponent, value = PhysicalValue.get_exponent_value_repr(current_limit)
