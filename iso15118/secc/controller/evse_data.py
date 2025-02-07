@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Union
@@ -17,6 +18,8 @@ from iso15118.shared.messages.iso15118_20.dc import (
     DCChargeParameterDiscoveryRes,
     DCChargeParameterDiscoveryResParams,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -217,6 +220,12 @@ class EVSEDataContext:
         self, ac_charge_parameter: ACEVSEChargeParameter
     ) -> None:
         """Update the EVSE data context with the AC charge parameters."""
+        logger.debug(
+            "Updating EVSE Data Context (Rated and Session Limits) with "
+            "ChargeParameterDiscoveryResponse"
+        )
+        logger.debug(f"Active Rated Limits {self.rated_limits.ac_limits}")
+        logger.debug(f"Active Session Limits {self.session_limits.ac_limits}")
         self.current_type = CurrentType.AC
         if self.rated_limits.ac_limits is None:
             self.rated_limits.ac_limits = EVSEACCPDLimits()
@@ -248,11 +257,22 @@ class EVSEDataContext:
                         setattr(session_limits, value, rated_value)
                 except TypeError:
                     pass
+        logger.debug(
+            "Rated and Session Limits updated after " "ChargeParametersDiscovery"
+        )
+        logger.debug(f"New Rated Limits {self.rated_limits.ac_limits}")
+        logger.debug(f"New Session Limits {self.session_limits.ac_limits}")
 
     def update_dc_charge_parameters(
         self, dc_charge_parameter: DCEVSEChargeParameter
     ) -> None:
         """Update the EVSE data context with the DC charge parameters."""
+        logger.debug(
+            "Updating EVSE Data Context (Rated and Session Limits) with "
+            "ChargeParameterDiscoveryResponse"
+        )
+        logger.debug(f"Active Rated Limits {self.rated_limits.dc_limits}")
+        logger.debug(f"Active Session Limits {self.session_limits.dc_limits}")
         self.current_type = CurrentType.DC
         if not self.rated_limits.dc_limits:
             self.rated_limits.dc_limits = EVSEDCCPDLimits()
@@ -297,6 +317,11 @@ class EVSEDataContext:
                         setattr(self.session_limits.dc_limits, value, rated_value)
                 except TypeError:
                     pass
+        logger.debug(
+            "Rated and Session Limits updated after " "ChargeParametersDiscovery"
+        )
+        logger.debug(f"New Rated Limits {self.rated_limits.dc_limits}")
+        logger.debug(f"New Session Limits {self.session_limits.dc_limits}")
 
     def update_ac_charge_parameters_v20(
         self,
@@ -305,6 +330,12 @@ class EVSEDataContext:
     ) -> None:
         """Update the EVSE data context with the
         ACChargeParameterDiscoveryRes parameters"""
+        logger.debug(
+            "Updating EVSE Data Context (Rated and Session Limits) with "
+            "ChargeParameterDiscoveryResponse"
+        )
+        logger.debug(f"Active Rated Limits {self.rated_limits.ac_limits}")
+        logger.debug(f"Active Session Limits {self.session_limits.ac_limits}")
         self.current_type = CurrentType.AC
         ac_rated_limits = self.rated_limits.ac_limits = EVSEACCPDLimits()
         self.session_limits = EVSESessionLimits()
@@ -321,7 +352,12 @@ class EVSEDataContext:
         else:
             raise UnknownEnergyService(f"Unknown Service {energy_service}")
         # Create the session limits based on the rated limits
-        self.session_limits.dc_limits.update(ac_rated_limits.as_dict())
+        self.session_limits.ac_limits.update(ac_rated_limits.as_dict())
+        logger.debug(
+            "Rated and Session Limits updated after " "ChargeParametersDiscovery"
+        )
+        logger.debug(f"New Rated Limits {self.rated_limits.ac_limits}")
+        logger.debug(f"New Session Limits {self.session_limits.ac_limits}")
 
     def _update_common_ac_charge_parameters_v20(
         self,
@@ -416,6 +452,12 @@ class EVSEDataContext:
     ) -> None:
         """Update the EVSE data context with the
         DCChargeParameterDiscoveryRes parameters"""
+        logger.debug(
+            "Updating EVSE Data Context (Rated and Session Limits) with "
+            "ChargeParameterDiscoveryResponse"
+        )
+        logger.debug(f"Active Rated Limits {self.rated_limits.dc_limits}")
+        logger.debug(f"Active Session Limits {self.session_limits.dc_limits}")
         self.current_type = CurrentType.DC
         dc_rated_limits = self.rated_limits.dc_limits = EVSEDCCPDLimits()
         self.session_limits = EVSESessionLimits()
@@ -433,6 +475,11 @@ class EVSEDataContext:
             raise UnknownEnergyService(f"Unknown Service {energy_service}")
         # Create the session limits based on the rated limits
         self.session_limits.dc_limits.update(dc_rated_limits.as_dict())
+        logger.debug(
+            "Rated and Session Limits updated after " "ChargeParametersDiscovery"
+        )
+        logger.debug(f"New Rated Limits {self.rated_limits.dc_limits}")
+        logger.debug(f"New Session Limits {self.session_limits.dc_limits}")
 
     def _update_common_dc_charge_parameters_v20(
         self,
